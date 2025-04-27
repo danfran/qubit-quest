@@ -27,7 +27,19 @@ class QubitState {
 
   @override
   String toString() {
-    return state.map((c) => "${c.real.toStringAsFixed(2)} + ${c.imaginary.toStringAsFixed(2)}i").join(", ");
+    return state.map((c) {
+      final real = c.real.toStringAsFixed(2);
+      final imag = c.imaginary.toStringAsFixed(2);
+      if (c.imaginary == 0) {
+        return real;
+      } else if (c.real == 0) {
+        return "${imag}i";
+      } else if (c.imaginary > 0) {
+        return "$real + ${imag}i";
+      } else {
+        return "$real - ${imag.substring(1)}i"; // Remove the negative sign from imaginary part
+      }
+    }).join(", ");
   }
 }
 

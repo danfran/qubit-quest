@@ -15,9 +15,14 @@ class QuantumCircuit {
   }
 
   void run() {
-    currentState = QubitState(); // Reset to initial state
+    currentState = QubitState();
     for (var gate in gates) {
       currentState.applyGate(gate.getMatrix());
     }
+  }
+
+  void clearCircuit() {
+    gates.clear();
+    currentState = QubitState();
   }
 }

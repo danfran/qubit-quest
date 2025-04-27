@@ -1,30 +1,39 @@
 import 'package:flutter/material.dart';
-import 'dart:math'; // For sqrt
-import 'package:quantumquiz/quantum_circuit.dart'; // For Complex
+import 'package:quantumquiz/quantum_circuit.dart';
+import 'package:quantumquiz/quantum_gate.dart';
 
 // Assume QubitState and QuantumGate classes are defined as above
 
 class QuantumCircuitPainter extends CustomPainter {
   final QuantumCircuit circuit;
 
+  static const double qubitSpacing = 40.0;
+  static const double gateSpacing = 60.0;
+  static const double gateSize = 30.0;
+  static const double padding = 20.0;
+  static const double hitTolerance = 30.0;
+
+  // Define static colors for gate types
+  static const Color hadamardColor = Colors.blue; // Example color for Hadamard
+  static const Color cnotColor = Colors.blue; // Example color for CNOT (often same as H)
+  static const Color pauliXColor = Colors.green; // Example color for Pauli-X
+
+
   QuantumCircuitPainter(this.circuit);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final double qubitSpacing = 40.0;
-    final double gateSpacing = 60.0;
-    final double gateSize = 30.0;
-    final double padding = 20.0;
+    // print('QuantumCircuitPainter paint method called. Canvas size: ${size.width}x${size.height}');
 
     final Paint linePaint = Paint()
       ..color = Colors.blueGrey
       ..strokeWidth = 2.0;
 
+    // Create a single gatePaint and change its color as needed
     final Paint gatePaint = Paint()
-      ..color = Colors.blue
-      ..style = PaintingStyle.fill;
+      ..style = PaintingStyle.fill; // Style remains fill
 
-     final TextPainter textPainter = TextPainter(
+    final TextPainter textPainter = TextPainter(
       textAlign: TextAlign.center,
       textDirection: TextDirection.ltr,
     );
@@ -44,88 +53,62 @@ class QuantumCircuitPainter extends CustomPainter {
     }
 
     // Draw gates
-    double currentX = padding + gateSpacing;
+    double currentX = padding + gateSpacing / 2;
     for (var gate in circuit.gates) {
-      // This is a simplified drawing. You'll need logic to draw
-      // different gate types (H, CNOT, etc.) at the correct qubit positions.
-      // For a simple example, let's just draw a box for each gate.
-      for (int i = 0; i < gate.getNumberOfQubits(); i++) {
-         final double gateY = padding + i * qubitSpacing - gateSize / 2;
-         canvas.drawRect(Rect.fromLTWH(currentX, gateY, gateSize, gateSize), gatePaint);
+      if (gate is HadamardGate) {
+        // Set the color for Hadamard
+        gatePaint.color = hadamardColor;
+        final double gateY = padding + gate.targetQubit * qubitSpacing - gateSize / 2;
+        canvas.drawRect(Rect.fromLTWH(currentX, gateY, gateSize, gateSize), gatePaint);
 
-         // Draw gate name (simplified)
-         textPainter.text = TextSpan(
-           text: gate.runtimeType.toString().replaceAll('Gate', ''),
-           style: TextStyle(color: Colors.white, fontSize: 12),
-         );
-         textPainter.layout();
-         textPainter.paint(canvas, Offset(currentX + gateSize / 2 - textPainter.width / 2, gateY + gateSize / 2 - textPainter.height / 2));
+        textPainter.text = TextSpan(
+          text: 'H',
+          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+        );
+        textPainter.layout();
+        textPainter.paint(canvas, Offset(currentX + gateSize / 2 - textPainter.width / 2, gateY + gateSize / 2 - textPainter.height / 2));
+
+      } else if (gate is CNOTGate) {
+        // Set the color for CNOT
+        gatePaint.color = cnotColor;
+        final double controlY = padding + gate.controlQubit * qubitSpacing;
+        final double targetY = padding + gate.targetQubit * qubitSpacing;
+        final double gateCenterX = currentX + gateSize / 2;
+
+        // Draw the control point (filled circle) using gatePaint
+        canvas.drawCircle(Offset(gateCenterX, controlY), 5.0, gatePaint);
+
+        // Draw the line connecting control and target (using linePaint for consistency with qubit lines)
+        canvas.drawLine(Offset(gateCenterX, controlY), Offset(gateCenterX, targetY), linePaint);
+
+        // Draw the target circle with a cross (using linePaint)
+        canvas.drawCircle(Offset(gateCenterX, targetY), gateSize / 2, linePaint); // Outer circle
+        canvas.drawLine(Offset(gateCenterX - gateSize / 4, targetY), Offset(gateCenterX + gateSize / 4, targetY), linePaint); // Horizontal line
+        canvas.drawLine(Offset(gateCenterX, targetY + gateSize / 4), Offset(gateCenterX, targetY - gateSize / 4), linePaint); // Vertical line
+
+
       }
+      // Add drawing logic for other gate types, setting gatePaint.color accordingly
+
       currentX += gateSpacing;
     }
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return true; // Repaint whenever the circuit changes
-  }
-}
-
-class QuantumComposer extends StatefulWidget {
-  @override
-  _QuantumComposerState createState() => _QuantumComposerState();
-}
-
-class _QuantumComposerState extends State<QuantumComposer> {
-  final QuantumCircuit circuit = QuantumCircuit();
-  String simulationResult = "Run the circuit to see the result";
-
-  void _addHadamard() {
-    // This is a placeholder. You need to specify which qubit
-    // circuit.addGate(HadamardGate(0)); // Add H to qubit 0
-    setState(() {});
+    return true;
   }
 
-  void _runSimulation() {
-     circuit.run();
-     setState(() {
-       simulationResult = circuit.currentState.toString();
-     });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: CustomPaint(
-            painter: QuantumCircuitPainter(circuit),
-            child: Container(), // Placeholder child
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ElevatedButton(
-                onPressed: _addHadamard, // Needs to be refined to select qubit
-                child: Text('Add H (Qubit 0)'),
-              ),
-              // Add buttons for other gates
-              ElevatedButton(
-                onPressed: _runSimulation,
-                child: Text('Run Simulation'),
-              ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text("State Vector: $simulationResult"),
-        ),
-      ],
-    );
+  // Helper to determine which qubit line was tapped
+  int? getTappedQubit(Offset tapPosition) {
+    // ... (getTappedQubit implementation using static constants) ...
+    for (int i = 0; i < 2; i++) {
+      final double y = padding + i * qubitSpacing;
+      const double hitTolerance = QuantumCircuitPainter.hitTolerance; // Use static hit tolerance
+      if (tapPosition.dy >= y - hitTolerance && tapPosition.dy <= y + hitTolerance) {
+        return i;
+      }
+    }
+    return null;
   }
 }
