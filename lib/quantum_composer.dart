@@ -129,27 +129,11 @@ class _QuantumComposerState extends State<QuantumComposer> {
             child: SingleChildScrollView( // Add scrolling for the content
               child: ListBody( // Use ListBody to arrange children in a vertical column
                 children: <Widget>[
-                  TeXView(
-                    child: TeXViewColumn(children: [
-                      TeXViewInkWell(
-                        id: "id_0",
-                        child: TeXViewColumn(children: [
-                          TeXViewDocument(r"""<h2>Flutter \( \rm\\TeX \)</h2>""",
-                              ),
-                          TeXViewDocument(r"""<p>                                
-                       Performs a bit flip, equivalent to a rotation of \\pi radians around the X-axis of the Bloch sphere.
-                       Maps |0\\rangle \\to |1\\rangle and |1\\rangle \\to |0\\rangle.</p>""",
-                              )
-                        ]),
-                      )
-                    ]),
+                  _buildGateDescription(
+                      r"<h2>Pauli-X (\( X \))</h2>",
+                      r"<p>Performs a bit flip, equivalent to a rotation of \( \pi \) radians around the X-axis of the Bloch sphere. Maps \( |0\rangle \) to \( |1\rangle \) and \( |1\rangle \) to \( |0\rangle \).</p>",
+                      r"<p>$$ X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} $$</p>"
                   ),
-
-                  // _buildGateDescription(
-                  //     "Pauli-X (X)",
-                  //     "Performs a bit flip, equivalent to a rotation of \$ \\pi \$ radians around the X-axis of the Bloch sphere. Maps \$ |0\\rangle \\to |1\\rangle \$ and \$ |1\\rangle \\to |0\\rangle \$.",
-                  //     "\\begin{pmatrix} 0 & 1 \\\\ 1 & 0 \\end{pmatrix}"
-                  // ),
                   // _buildGateDescription(
                   //     "Pauli-Y (Y)",
                   //     "Performs a rotation of \$ \\pi \$ radians around the Y-axis of the Bloch sphere. Maps \$ |0\\rangle \\to i|1\\rangle \$ and \$ |1\\rangle \\to -i|0\\rangle \$.",
@@ -235,9 +219,18 @@ class _QuantumComposerState extends State<QuantumComposer> {
   Widget _buildGateDescription(String name, String description, String matrixLatex) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: TeXView(
+            child: TeXViewInkWell(
+                id: r"id_0",
+                child: TeXViewColumn(children: [
+                  TeXViewDocument(name),
+                  TeXViewDocument(description),
+                  TeXViewDocument(matrixLatex),
+                  ]
+                ),
+            )
+          ),
+
           // Text(
           //   name,
           //   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -268,8 +261,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
           //   // errorBuilder: (context, error, formula) { ... },
           // ),
           // Divider(height: 16), // Add a separator
-        ],
-      ),
     );
   }
 
