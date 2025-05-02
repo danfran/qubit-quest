@@ -127,18 +127,20 @@ class _QuantumComposerState extends State<QuantumComposer> {
           content: Container( // Wrap content in Container for size constraints if needed
             width: double.maxFinite, // Allow content to take max width available in dialog
             child: SingleChildScrollView( // Add scrolling for the content
-              child: ListBody( // Use ListBody to arrange children in a vertical column
-                children: <Widget>[
-                  _buildGateDescription(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: TeXView(
+                  child: TeXViewColumn(children: [
+                _buildGateDescription(
                       r"<h2>Pauli-X (\( X \))</h2>",
                       r"<p>Performs a bit flip, equivalent to a rotation of \( \pi \) radians around the X-axis of the Bloch sphere. Maps \( |0\rangle \) to \( |1\rangle \) and \( |1\rangle \) to \( |0\rangle \).</p>",
                       r"<p>$$ X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} $$</p>"
                   ),
-                  // _buildGateDescription(
-                  //     "Pauli-Y (Y)",
-                  //     "Performs a rotation of \$ \\pi \$ radians around the Y-axis of the Bloch sphere. Maps \$ |0\\rangle \\to i|1\\rangle \$ and \$ |1\\rangle \\to -i|0\\rangle \$.",
-                  //     "\\begin{pmatrix} 0 & -i \\\\ i & 0 \\end{pmatrix}"
-                  // ),
+                  _buildGateDescription(
+                      r"<h2>Pauli-Y (\( Y \))</h2>",
+                      r"<p>Performs a rotation of \( \pi \) radians around the Y-axis of the Bloch sphere. Maps \( |0\rangle \) to \( i|1\rangle \) and \( |1\rangle \) to \( -i|0\rangle \).</p>",
+                      r"<p>$$ X = \begin{pmatrix} 0 & -i \\ i & 0 \end{pmatrix} $$</p>"
+                  ),
                   // _buildGateDescription(
                   //     "Pauli-Z (Z)",
                   //     "Performs a rotation of \$ \\pi \$ radians around the Z-axis of the Bloch sphere. Maps \$ |0\\rangle \\to |0\\rangle \$ and \$ |1\\rangle \\to -|1\\rangle \$. Introduces a phase difference.",
@@ -201,8 +203,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
                   // Add other gates here
                 ],
               ),
-            ),
-          ),
+            ),),
+          ),),
           actions: <Widget>[
             TextButton(
               child: Text('Close'),
@@ -216,11 +218,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
     );
   }
 
-  Widget _buildGateDescription(String name, String description, String matrixLatex) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: TeXView(
-            child: TeXViewInkWell(
+  TeXViewInkWell _buildGateDescription(String name, String description, String matrixLatex) {
+    return TeXViewInkWell(
                 id: r"id_0",
                 child: TeXViewColumn(children: [
                   TeXViewDocument(name),
@@ -228,8 +227,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
                   TeXViewDocument(matrixLatex),
                   ]
                 ),
-            )
-          ),
+            );
+          // ),
 
           // Text(
           //   name,
@@ -261,7 +260,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
           //   // errorBuilder: (context, error, formula) { ... },
           // ),
           // Divider(height: 16), // Add a separator
-    );
   }
 
 
