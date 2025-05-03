@@ -123,29 +123,39 @@ class _QuantumComposerState extends State<QuantumComposer> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Quantum Gates List"),
+          contentPadding: EdgeInsets.zero,
+          // title: Text("Quantum Gates List"),
           content: Container( // Wrap content in Container for size constraints if needed
             width: double.maxFinite, // Allow content to take max width available in dialog
             child: SingleChildScrollView( // Add scrolling for the content
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.symmetric(vertical: 0.0),
                 child: TeXView(
-                  child: TeXViewColumn(children: [
+                  child: TeXViewColumn(
+                      style: const TeXViewStyle(
+                          margin: TeXViewMargin.all(10),
+                          padding: TeXViewPadding.all(10),
+                          borderRadius: TeXViewBorderRadius.all(10),
+                          border: TeXViewBorder.all(TeXViewBorderDecoration(
+                              borderWidth: 2,
+                              borderStyle: TeXViewBorderStyle.groove,
+                              borderColor: Colors.green))),
+                      children: [
                 _buildGateDescription(
                       r"<h2>Pauli-X (\( X \))</h2>",
-                      r"<p>Performs a bit flip, equivalent to a rotation of \( \pi \) radians around the X-axis of the Bloch sphere. Maps \( |0\rangle \) to \( |1\rangle \) and \( |1\rangle \) to \( |0\rangle \).</p>",
-                      r"<p>$$ X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} $$</p>"
+                      r"<p>Performs a bit flip, equivalent to a rotation of \( \pi \) radians around the X-axis of the Bloch sphere.</p>",
+                      r"<p>$$X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} \Rightarrow \begin{cases} X|0\rangle = |1\rangle \\ X|1\rangle = |0\rangle \end{cases}$$</p>"
                   ),
                   _buildGateDescription(
                       r"<h2>Pauli-Y (\( Y \))</h2>",
-                      r"<p>Performs a rotation of \( \pi \) radians around the Y-axis of the Bloch sphere. Maps \( |0\rangle \) to \( i|1\rangle \) and \( |1\rangle \) to \( -i|0\rangle \).</p>",
-                      r"<p>$$ X = \begin{pmatrix} 0 & -i \\ i & 0 \end{pmatrix} $$</p>"
+                      r"<p>Performs a rotation of \( \pi \) radians around the Y-axis of the Bloch sphere.</p>",
+                      r"<p>$$Y = \begin{pmatrix} 0 & -i \\ i & 0 \end{pmatrix} \Rightarrow \begin{cases} Y|0\rangle = i|1\rangle \\ Y|1\rangle = -i|0\rangle \end{cases}$$</p>"
                   ),
-                  // _buildGateDescription(
-                  //     "Pauli-Z (Z)",
-                  //     "Performs a rotation of \$ \\pi \$ radians around the Z-axis of the Bloch sphere. Maps \$ |0\\rangle \\to |0\\rangle \$ and \$ |1\\rangle \\to -|1\\rangle \$. Introduces a phase difference.",
-                  //     "\\begin{pmatrix} 1 & 0 \\\\ 0 & -1 \\end{pmatrix}"
-                  // ),
+                  _buildGateDescription(
+                      r"<h2>Pauli-Z (\( Z \))</h2>",
+                      r"<p>Performs a rotation of \( \\pi \) radians around the Z-axis of the Bloch sphere.</p>",
+                      r"<p>$$Z = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix} \Rightarrow \begin{cases} Z|0\rangle = |0\rangle \\ Z|1\rangle = -|1\rangle \end{cases}$$</p>"
+                  ),
                   // _buildGateDescription(
                   //     "Hadamard (H)",
                   //     "Creates an equal superposition of \$ |0\\rangle \$ and \$ |1\\rangle \$. Maps \$ |0\\rangle \\to \\frac{1}{\\sqrt{2}}(|0\\rangle + |1\\rangle) \$ and \$ |1\\rangle \\to \\frac{1}{\\sqrt{2}}(|0\\rangle - |1\\rangle) \$. Essential for generating superposition.",
@@ -201,10 +211,23 @@ class _QuantumComposerState extends State<QuantumComposer> {
                   //     "\\begin{pmatrix} I_6 & 0 \\\\ 0 & SWAP \\end{pmatrix}"
                   // ),
                   // Add other gates here
-                ],
+                ]),
+                  // style: const TeXViewStyle(
+                  //   margin: TeXViewMargin.all(10),
+                  //   elevation: 10,
+                  //   borderRadius: TeXViewBorderRadius.all(25),
+                  //   border: TeXViewBorder.all(
+                  //     TeXViewBorderDecoration(
+                  //         borderColor: Colors.blue,
+                  //         borderStyle: TeXViewBorderStyle.solid,
+                  //         borderWidth: 5),
+                  //   ),
+                  //   backgroundColor: Colors.white,
+                  // ),
+                ),
+            ),
               ),
-            ),),
-          ),),
+          ),
           actions: <Widget>[
             TextButton(
               child: Text('Close'),
@@ -222,9 +245,18 @@ class _QuantumComposerState extends State<QuantumComposer> {
     return TeXViewInkWell(
                 id: r"id_0",
                 child: TeXViewColumn(children: [
-                  TeXViewDocument(name),
-                  TeXViewDocument(description),
-                  TeXViewDocument(matrixLatex),
+                  TeXViewDocument(
+                    name,
+                    style: const TeXViewStyle(
+                        padding: TeXViewPadding.all(10),
+                        // borderRadius: TeXViewBorderRadius.all(10),
+                        textAlign: TeXViewTextAlign.center,
+                        // width: 250,
+                        margin: TeXViewMargin.zeroAuto(),
+                        backgroundColor: Colors.green),
+                  ),
+                  TeXViewDocument(description, style: const TeXViewStyle(margin: TeXViewMargin.only(top: 10))),
+                  TeXViewDocument(matrixLatex, style: const TeXViewStyle(margin: TeXViewMargin.only(top:10, bottom: 10))),
                   ]
                 ),
             );
