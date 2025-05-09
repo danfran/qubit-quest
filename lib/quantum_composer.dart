@@ -1,8 +1,12 @@
+import 'package:complex/complex.dart';
 import 'package:flutter_tex/flutter_tex.dart';
+import 'package:quantumquiz/probability_histogram.dart';
 import 'package:quantumquiz/quantum_circuit.dart';
 import 'package:quantumquiz/quantum_circuit_painter.dart';
 import 'package:quantumquiz/quantum_gate.dart';
 import 'package:flutter/material.dart';
+
+import 'math_utils.dart';
 
 class QuantumComposer extends StatefulWidget {
   @override
@@ -14,7 +18,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
   String simulationResult = "Run the circuit to see the result";
   SelectedGateType _selectedGateType = SelectedGateType.none;
   int? _cnotControlQubit; // To track the first tap for CNOT
-
+  List<List<Complex>> overallCircuitMatrix = identityMatrix;
+  List<double> measurementProbabilities = [0.0, 0.0, 0.0, 0.0];
 
   void _selectGateForPlacement(SelectedGateType gateType) {
     setState(() {
@@ -100,12 +105,25 @@ class _QuantumComposerState extends State<QuantumComposer> {
     }
   }
 
+  void _updateOverallMatrix() {
+    overallCircuitMatrix = circuit.getOverallMatrix();
+    // No setState here, setState is called in _handleCircuitTap or _clearCircuit
+  }
+
   void _runSimulation() {
     circuit.run();
+    measurementProbabilities = circuit.currentState.state.map((amplitude) {
+      return amplitude.abs() * amplitude.abs();
+    }).toList();
+
+    // ** Add this debug print **
+    print("Calculated probabilities: $measurementProbabilities");
+    // ************************
+
+
     setState(() {
       simulationResult = "State Vector: ${circuit.currentState.toString()}";
     });
-    print('Running simulation.'); // Debug simulation run
   }
 
   void _clearCircuit() {
@@ -294,134 +312,192 @@ class _QuantumComposerState extends State<QuantumComposer> {
           // Divider(height: 16), // Add a separator
   }
 
+  // Helper to format the overall matrix for display
+  String formatMatrix(List<List<Complex>> matrix) {
+    String formatted = "";
+    for (int i = 0; i < 4; i++) {
+      formatted += "[";
+      for (int j = 0; j < 4; j++) {
+        // Format complex number (e.g., "1.00+0.00i" or "0.71-0.71i")
+        String real = matrix[i][j].real.toStringAsFixed(2);
+        String imag = matrix[i][j].imaginary.toStringAsFixed(2);
+        String complexStr;
+        if (matrix[i][j].imaginary == 0) {
+          complexStr = real;
+        } else if (matrix[i][j].real == 0) {
+          complexStr = "${imag}i";
+        } else if (matrix[i][j].imaginary > 0) {
+          complexStr = "$real+$imag" + "i";
+        } else {
+          complexStr = "$real$imag" + "i"; // Imaginary part already has '-'
+        }
+
+        formatted += complexStr;
+        if (j < 3) {
+          formatted += ", ";
+        }
+      }
+      formatted += "]\n"; // New line for each row
+    }
+    return formatted;
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Modify the AppBar
       appBar: AppBar(
         title: Text("2-Qubit Composer (Landscape)"),
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: GestureDetector(
-                key: _gestureDetectorKey,
-                onTapDown: _handleCircuitTap,
-                child: SizedBox(
-                  width: circuit.gates.length * QuantumCircuitPainter.gateSpacing + QuantumCircuitPainter.padding * 2 + QuantumCircuitPainter.gateSpacing * 2,
-                  height: double.infinity,
-                  child: CustomPaint(
-                    painter: QuantumCircuitPainter(circuit),
-                    child: Container(color: Colors.transparent),
-                  ),
-                ),
-              ),
+        // ** Add the actions list here **
+        actions: [
+          // Info Button (as TextButton.icon)
+          TextButton.icon(
+            onPressed: _showGateListDialog,
+            icon: Icon(Icons.info_outline),
+            label: Text('Info'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black, // White icon/text color for contrast on AppBar
+              // You might adjust padding if needed to fit
+              // padding: EdgeInsets.symmetric(horizontal: 8.0),
             ),
           ),
+          // Run Simulation Button (as TextButton)
+          TextButton.icon(
+            onPressed: _runSimulation,
+            icon: Icon(Icons.play_arrow),
+            label: Text('Run'), // Shorten text for AppBar
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black, // White text color
+            ),
+          ),
+          // Clear Circuit Button (as TextButton)
+          TextButton.icon(
+            onPressed: _clearCircuit,
+            icon: Icon(Icons.cleaning_services),
+            label: Text('Clear'), // Shorten text for AppBar
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black, // White text color
+            ),
+          ),
+        ],
+        // ****************************
+      ),
+      body: Column( // Main Column stacking the top section and controls
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded( // This Expanded makes the Row take available vertical space
+            child: Row( // <-- Main Row for Circuit and Histogram side-by-side
+              children: [
+                // Circuit Visualization (Left - 70% width)
+                Expanded(
+                  flex: 7, // Allocate 70% of the Row's width
+                  child: Container( // Optional: Add container for visual separation/padding
+                    padding: EdgeInsets.all(8.0),
+                    child: SingleChildScrollView( // Horizontal scroll for the circuit drawing
+                      scrollDirection: Axis.horizontal,
+                      child: GestureDetector( // Tap detection for placing gates
+                        key: _gestureDetectorKey,
+                        onTapDown: _handleCircuitTap,
+                        child: SizedBox( // Size the CustomPaint area
+                          width: circuit.gates.length * QuantumCircuitPainter.gateSpacing + QuantumCircuitPainter.padding * 2 + QuantumCircuitPainter.gateSpacing * 2, // Dynamic width based on gates
+                          height: double.infinity, // Take available height in the Expanded
+                          child: CustomPaint(
+                            painter: QuantumCircuitPainter(circuit),
+                            child: Container(color: Colors.transparent),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Add VerticalDivider here
+                VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  indent: 0,
+                  endIndent: 0,
+                  color: Colors.grey,
+                ),
+
+                // Histogram Visualization (Right - 30% width)
+                Expanded(
+                  flex: 3,
+                  child: Column(children: [
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                            simulationResult,
+                            style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.gridLinesFontColor),
+                          ),
+                    ),
+                    Divider(),
+                    SizedBox(height: 16.0),
+                    Container(
+                      padding: EdgeInsets.all(8.0),
+                      // The histogram content itself is scrollable inside _buildProbabilityHistogram if needed
+                      child: SingleChildScrollView( // Scroll the whole histogram section if needed
+                        scrollDirection: Axis.vertical,
+                        child: AspectRatio(
+                          aspectRatio: 2.0,
+                          child: ProbabilityHistogram(probabilities: measurementProbabilities),
+                        ), // Your histogram helper
+                      ),
+                    ),
+                    // State Vector Display (Below buttons)
+                  ]),
+                ),
+              ],
+            ),
+          ),
+
+          // Controls Section (Below the Row)
+
+          // Add Gates Buttons (This section remains)
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Add Gates:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                SizedBox(height: 8),
+                // SizedBox(height: 8),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      // Styled Hadamard Button
+                      // ... (Your existing gate buttons like H, CNOT) ...
                       ElevatedButton(
                         onPressed: () => _selectGateForPlacement(SelectedGateType.hadamard),
                         style: ElevatedButton.styleFrom(
-                          minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize), // Make it square
-                          padding: EdgeInsets.zero, // Remove default padding
-                          backgroundColor: Colors.blue[700], // Darker blue like IBM Composer for Clifford gates
-                          foregroundColor: Colors.white, // White text
-                          shape: RoundedRectangleBorder( // Optional: make it slightly rounded
-                            borderRadius: BorderRadius.circular(4.0),
-                          ),
+                          minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
+                          padding: EdgeInsets.zero,
+                          backgroundColor: QuantumCircuitPainter.hadamardColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),),
                         ),
-                        child: Text(
-                          'H',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
+                        child: Text('H', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),),
                       ),
-                      SizedBox(width: 8),
-                      // Styled CNOT Button
+                      // SizedBox(width: 4),
                       ElevatedButton(
                         onPressed: () => _selectGateForPlacement(SelectedGateType.cnot),
                         style: ElevatedButton.styleFrom(
-                          minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize), // Make it square
-                          padding: EdgeInsets.zero, // Remove default padding
-                          backgroundColor: Colors.blue[700], // Darker blue for Clifford gates
-                          foregroundColor: Colors.white, // White text
-                          shape: RoundedRectangleBorder( // Optional: make it slightly rounded
-                            borderRadius: BorderRadius.circular(4.0),
-                          ),
+                          minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
+                          padding: EdgeInsets.zero,
+                          backgroundColor: QuantumCircuitPainter.cnotColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),),
                         ),
-                        child: Text(
-                          'CNOT', // Or just 'C' or a symbol if you prefer
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold), // Adjust font size for CNOT
-                        ),
+                        child: Text('CNOT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),),
                       ),
-                      // Add styled buttons for other gates here
-                      // Example: Pauli-X (Often green in composers)
-                      // SizedBox(width: 8),
-                      // ElevatedButton(
-                      //   onPressed: () => _selectGateForPlacement(SelectedGateType.pauliX),
-                      //   style: ElevatedButton.styleFrom(
-                      //      minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
-                      //      padding: EdgeInsets.zero,
-                      //      backgroundColor: Colors.green[700], // Green for Pauli gates
-                      //      foregroundColor: Colors.white,
-                      //       shape: RoundedRectangleBorder(
-                      //       borderRadius: BorderRadius.circular(4.0),
-                      //     ),
-                      //   ),
-                      //   child: Text(
-                      //     'X',
-                      //     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      //   ),
-                      // ),
-                      ElevatedButton.icon(
-                        onPressed: _showGateListDialog,
-                        icon: Icon(Icons.info_outline),
-                        label: Text('Info'),
-                        style: ElevatedButton.styleFrom(
-                          // You can style this button differently if you like
-                          backgroundColor: Colors.grey[300],
-                          foregroundColor: Colors.black87,
-                        ),
-                      ),
+                      // Info button was moved to AppBar
                     ],
                   ),
                 ),
               ],
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: _runSimulation,
-                  child: Text('Run Simulation'),
-                ),
-                ElevatedButton(
-                  onPressed: _clearCircuit,
-                  child: Text('Clear Circuit'),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(simulationResult),
           ),
         ],
       ),
