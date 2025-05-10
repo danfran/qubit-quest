@@ -11,7 +11,6 @@ abstract class QuantumGate {
 // Define the Hadamard Gate
 class HadamardGate implements QuantumGate {
   final int targetQubit; // 0 or 1 for a 2-qubit system
-
   HadamardGate(this.targetQubit);
 
   @override

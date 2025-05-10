@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:complex/complex.dart';
 import 'package:flutter_tex/flutter_tex.dart';
 import 'package:quantumquiz/probability_histogram.dart';
@@ -349,7 +351,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     return Scaffold(
       // Modify the AppBar
       appBar: AppBar(
-        title: Text("2-Qubit Composer (Landscape)"),
+        title: Text("n-Qubit Composer"),
         // ** Add the actions list here **
         actions: [
           // Info Button (as TextButton.icon)
@@ -392,23 +394,43 @@ class _QuantumComposerState extends State<QuantumComposer> {
               children: [
                 // Circuit Visualization (Left - 70% width)
                 Expanded(
-                  flex: 7, // Allocate 70% of the Row's width
-                  child: Container( // Optional: Add container for visual separation/padding
+                  flex: 7, // Allocate 70% width
+                  child: Container( // Container for padding
                     padding: EdgeInsets.all(8.0),
-                    child: SingleChildScrollView( // Horizontal scroll for the circuit drawing
-                      scrollDirection: Axis.horizontal,
-                      child: GestureDetector( // Tap detection for placing gates
-                        key: _gestureDetectorKey,
-                        onTapDown: _handleCircuitTap,
-                        child: SizedBox( // Size the CustomPaint area
-                          width: circuit.gates.length * QuantumCircuitPainter.gateSpacing + QuantumCircuitPainter.padding * 2 + QuantumCircuitPainter.gateSpacing * 2, // Dynamic width based on gates
-                          height: double.infinity, // Take available height in the Expanded
-                          child: CustomPaint(
-                            painter: QuantumCircuitPainter(circuit),
-                            child: Container(color: Colors.transparent),
-                          ),
-                        ),
-                      ),
+                    child: LayoutBuilder( // LayoutBuilder gets bounded constraints from Container/Expanded
+                        builder: (context, constraints) {
+                          // constraints.maxWidth is the bounded width of the Expanded area
+                          final double availableContainerWidth = constraints.maxWidth;
+                          // constraints.maxHeight is the bounded height of the Expanded area
+                          final double availableContainerHeight = constraints.maxHeight;
+
+
+                          // Calculate the minimum width needed to display all gates
+                          final double minRequiredWidth = circuit.gates.length * QuantumCircuitPainter.gateSpacing + QuantumCircuitPainter.padding * 2 + QuantumCircuitPainter.gateSpacing * 2;
+
+                          // The width of the SizedBox should be at least the calculated width
+                          // and at least the available container width (to fill the space when content is small)
+                          final double SizedBoxWidth = max(minRequiredWidth, availableContainerWidth);
+
+
+                          return SingleChildScrollView( // Allows horizontal scrolling if content exceeds viewport
+                            scrollDirection: Axis.horizontal,
+                            child: GestureDetector( // For tap detection
+                              key: _gestureDetectorKey,
+                              onTapDown: _handleCircuitTap,
+                              child: SizedBox( // Size the CustomPaint area
+                                // ** Set width and height based on calculation and available container space **
+                                width: SizedBoxWidth,
+                                height: availableContainerHeight, // Use the bounded height from the LayoutBuilder
+                                child: CustomPaint(
+                                  painter: QuantumCircuitPainter(circuit),
+                                  // The QuantumCircuitPainter receives a Size based on the SizedBox dimensions
+                                  child: Container(color: Colors.transparent),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
                     ),
                   ),
                 ),

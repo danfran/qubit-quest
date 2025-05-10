@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:complex/complex.dart';
 import 'package:quantumquiz/quantum_gate.dart';
 import 'package:quantumquiz/qubit_state.dart';
@@ -7,15 +9,18 @@ import 'math_utils.dart';
 class QuantumCircuit {
   List<QuantumGate> gates = [];
   QubitState currentState = QubitState();
+  List<double> gatesPositionX = [0, 0];
 
   void addGate(QuantumGate gate) {
     // Basic validation
-    if (gate.getNumberOfQubits() != 2) {
+    if (gate.getNumberOfQubits() != qubitLines) {
       // Handle error or different number of qubits
       return;
     }
     gates.add(gate);
   }
+
+  int get qubitLines => 2;
 
   void run() {
     currentState = QubitState();

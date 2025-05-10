@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/quantum_circuit.dart';
 import 'package:quantumquiz/quantum_gate.dart';
@@ -8,7 +10,7 @@ class QuantumCircuitPainter extends CustomPainter {
   final QuantumCircuit circuit;
 
   static const double qubitSpacing = 40.0;
-  static const double gateSpacing = 60.0;
+  static const double gateSpacing = 40.0;
   static const double gateSize = 30.0;
   static const double padding = 20.0;
   static const double hitTolerance = 30.0;
@@ -17,7 +19,6 @@ class QuantumCircuitPainter extends CustomPainter {
   static const Color hadamardColor = Colors.blue; // Example color for Hadamard
   static const Color cnotColor = Colors.blue; // Example color for CNOT (often same as H)
   static const Color pauliXColor = Colors.green; // Example color for Pauli-X
-
 
   QuantumCircuitPainter(this.circuit);
 
@@ -39,7 +40,7 @@ class QuantumCircuitPainter extends CustomPainter {
     );
 
     // Draw qubit lines
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < circuit.qubitLines; i++) {
       final double y = padding + i * qubitSpacing;
       canvas.drawLine(Offset(padding, y), Offset(size.width - padding, y), linePaint);
 
@@ -52,10 +53,13 @@ class QuantumCircuitPainter extends CustomPainter {
       textPainter.paint(canvas, Offset(padding - textPainter.width - 5, y - textPainter.height / 2));
     }
 
+    double startX = padding + gateSpacing / 2;
+    List<double> gatesPositionX = [startX, startX];
+
     // Draw gates
-    double currentX = padding + gateSpacing / 2;
     for (var gate in circuit.gates) {
       if (gate is HadamardGate) {
+        double currentX = gatesPositionX[gate.targetQubit];
         // Set the color for Hadamard
         gatePaint.color = hadamardColor;
         final double gateY = padding + gate.targetQubit * qubitSpacing - gateSize / 2;
@@ -68,7 +72,9 @@ class QuantumCircuitPainter extends CustomPainter {
         textPainter.layout();
         textPainter.paint(canvas, Offset(currentX + gateSize / 2 - textPainter.width / 2, gateY + gateSize / 2 - textPainter.height / 2));
 
+        gatesPositionX[gate.targetQubit] += gateSpacing;
       } else if (gate is CNOTGate) {
+        double currentX = gatesPositionX.reduce(max);
         // Set the color for CNOT
         gatePaint.color = cnotColor;
         final double controlY = padding + gate.controlQubit * qubitSpacing;
@@ -86,11 +92,8 @@ class QuantumCircuitPainter extends CustomPainter {
         canvas.drawLine(Offset(gateCenterX - gateSize / 4, targetY), Offset(gateCenterX + gateSize / 4, targetY), linePaint); // Horizontal line
         canvas.drawLine(Offset(gateCenterX, targetY + gateSize / 4), Offset(gateCenterX, targetY - gateSize / 4), linePaint); // Vertical line
 
-
+        gatesPositionX = List.filled(circuit.qubitLines, currentX + gateSpacing);
       }
-      // Add drawing logic for other gate types, setting gatePaint.color accordingly
-
-      currentX += gateSpacing;
     }
   }
 
