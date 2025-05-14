@@ -20,10 +20,20 @@ List<List<Complex>> multiplyMatrices(List<List<Complex>> matrixA, List<List<Comp
   return resultMatrix;
 }
 
-// Define a 4x4 Identity matrix
-List<List<Complex>> identityMatrix = [
-  [Complex(1.0), Complex(0.0), Complex(0.0), Complex(0.0)],
-  [Complex(0.0), Complex(1.0), Complex(0.0), Complex(0.0)],
-  [Complex(0.0), Complex(0.0), Complex(1.0), Complex(0.0)],
-  [Complex(0.0), Complex(0.0), Complex(0.0), Complex(1.0)],
-];
+/// Creates an identity matrix of the given size.
+/// An identity matrix has 1s on the main diagonal and 0s elsewhere.
+List<List<Complex>> identityMatrix(int size) {
+  // Create a size x size list of lists, initialized with Complex.zero
+  List<List<Complex>> matrix = List.generate(
+    size,
+        (_) => List.generate(size, (_) => Complex.zero),
+  );
+
+  // Set the diagonal elements to Complex(1.0)
+  for (int i = 0; i < size; i++) {
+    matrix[i][i] = Complex(1.0);
+  }
+
+  return matrix;
+}
+

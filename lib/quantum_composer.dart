@@ -2,11 +2,15 @@ import 'dart:math';
 
 import 'package:complex/complex.dart';
 import 'package:flutter_tex/flutter_tex.dart';
+import 'package:quantumquiz/placed_quantum_gate.dart';
 import 'package:quantumquiz/probability_histogram.dart';
 import 'package:quantumquiz/quantum_circuit.dart';
 import 'package:quantumquiz/quantum_circuit_painter.dart';
+import 'package:quantumquiz/quantum_doc_dialog.dart';
 import 'package:quantumquiz/quantum_gate.dart';
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/qubit_state.dart';
+import 'package:quantumquiz/selected_gate_type.dart';
 
 import 'math_utils.dart';
 
@@ -16,25 +20,189 @@ class QuantumComposer extends StatefulWidget {
 }
 
 class _QuantumComposerState extends State<QuantumComposer> {
-  final QuantumCircuit circuit = QuantumCircuit();
+  static final int numberQubits = 2;
+  final QuantumCircuit circuit = QuantumCircuit(numQubits: numberQubits);
   String simulationResult = "Run the circuit to see the result";
-  SelectedGateType _selectedGateType = SelectedGateType.none;
-  int? _cnotControlQubit; // To track the first tap for CNOT
-  List<List<Complex>> overallCircuitMatrix = identityMatrix;
+  List<List<Complex>> overallCircuitMatrix = identityMatrix(numberQubits);
   List<double> measurementProbabilities = [0.0, 0.0, 0.0, 0.0];
+  SelectedGateType _currentMode = SelectedGateType.none;
+  int? _cnotControlQubit; // To track the first tap for CNOT
+
+// You'll likely need a helper to format the QubitState for display
+  String formatStateVector(QubitState state) {
+    // Implement formatting based on your QubitState structure
+    // Example: [a+bi, c+di, ...]
+    String formatted = "[";
+    for (int i = 0; i < state.state.length; i++) {
+      String real = state.state[i].real.toStringAsFixed(2);
+      String imag = state.state[i].imaginary.toStringAsFixed(2);
+      String complexStr;
+      if (state.state[i].imaginary == 0) {
+        complexStr = real;
+      } else if (state.state[i].real == 0) {
+        complexStr = "${imag}i";
+      } else if (state.state[i].imaginary > 0) {
+        complexStr = "$real+$imag" + "i";
+      } else {
+        complexStr = "$real$imag" + "i"; // Imaginary part already has '-'
+      }
+      formatted += complexStr;
+      if (i < state.state.length - 1) {
+        formatted += ", ";
+      }
+    }
+    formatted += "]";
+    return formatted;
+  }
+
+  // Helper to find the next available horizontal position on a given qubit line
+  int _getNextGatePosition(int qubitIndex) {
+    // Find all placed gates that are drawn primarily on this specific qubit line.
+    // Use primaryDrawingQubit from the PlacedQuantumGate object.
+    final placedGatesOnQubit = circuit.placedGates.where((placedGate) => placedGate.primaryDrawingQubit == qubitIndex).toList();
+
+    if (placedGatesOnQubit.isEmpty) {
+      // If there are no gates drawn on this line yet, the next position is the first position (0)
+      return 0;
+    } else {
+      // Find the maximum horizontal position among the gates on this line
+      // Use .map to get an Iterable of positions and .reduce(max) to find the maximum value
+      final maxPosition = placedGatesOnQubit.map((placedGate) => placedGate.position).reduce(max);
+      // The next available position is one slot after the maximum position
+      return maxPosition + 1;
+    }
+  }
+
+  void _setInteractionMode(SelectedGateType mode) {
+    setState(() {
+      _currentMode = mode;
+      _cnotControlQubit = null; // Reset CNOT control on mode change
+      if (mode == SelectedGateType.delete) {
+        simulationResult = "Tap on a gate to delete it.";
+      } else {
+        simulationResult = "Drag a gate onto the circuit."; // Default message for drag mode
+      }
+    });
+    print('Interaction mode set to: $_currentMode');
+  }
+
+  // New method to handle a gate being dropped onto the circuit area
+  void _handleGateDrop(DragTargetDetails<SelectedGateType> details) {
+    // Corrected: Use details.offset for the local drop position
+    print('Gate dropped at local position: ${details.offset}'); // localPosition relative to the DragTarget
+    print('Dropped gate type: ${details.data}'); // The data from the Draggable
+
+    final RenderBox? renderBox = _gestureDetectorKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) {
+      print('Error: Could not find RenderBox for GestureDetector.');
+      return;
+    }
+    final localPosition = renderBox.globalToLocal(details.offset);
+
+    final droppedGateType = details.data;
+    // final dropPosition = details.offset; // Use details.offset
+    final dropPosition = localPosition; // Use details.offset
+
+    // Use the painter's logic to determine the qubit line and insertion position
+    final painter = QuantumCircuitPainter(circuit); // Painter knows layout constants
+
+    // Determine the tapped qubit line based on the vertical drop position
+    final tappedQubitLine = painter.getTappedQubitLine(dropPosition);
+
+    if (tappedQubitLine == null) {
+      print('Dropped outside qubit lines. Ignoring drop.');
+      // Optionally provide feedback to the user
+      return;
+    }
+
+    // Determine the horizontal insertion position based on the horizontal drop position
+    final insertionPosition = painter.getInsertionPosition(dropPosition); // <-- Need to implement this in Painter
+
+    if (insertionPosition == null) {
+      print('Could not determine valid insertion position. Ignoring drop.');
+      // Optionally provide feedback
+      return;
+    }
+
+
+    print('Dropped on Qubit line: $tappedQubitLine at insertion position: $insertionPosition');
+
+    // Create the PlacedQuantumGate based on the dropped type and calculated position
+    PlacedQuantumGate? placedGate;
+
+    if (droppedGateType == SelectedGateType.hadamard) {
+      placedGate = PlacedQuantumGate(
+        type: SelectedGateType.hadamard,
+        position: insertionPosition,
+        singleQubitIndex: tappedQubitLine,
+      );
+    } else if (droppedGateType == SelectedGateType.cnot) {
+      // For CNOT drag and drop, we need to select control/target after dropping.
+      // This is a more complex interaction. For simplicity in this initial drag/drop,
+      // let's assume CNOT drag requires dropping the control part, and then
+      // a subsequent tap selects the target. Or, the drop position implies control,
+      // and the nearest other qubit line is the target? This needs careful UI design.
+
+      // A simpler approach for initial drag/drop: CNOT drag places a CNOT
+      // with control on the dropped line and target on the next line (if available).
+      // This might not be ideal but simplifies the initial implementation.
+      // A better approach might involve a special CNOT drag feedback that shows
+      // both control and target and lets the user position both before dropping.
+
+      // Let's go with the simpler approach for now: Drop implies control qubit.
+      // Target is the next available qubit line, if different from control.
+      final int controlQubit = tappedQubitLine;
+      int? targetQubit;
+      if (controlQubit == 0 && circuit.numQubits > 1) {
+        targetQubit = 1;
+      } else if (controlQubit == 1 && circuit.numQubits > 0) {
+        targetQubit = 0;
+      } else {
+        print('Cannot place CNOT on single qubit or invalid target.');
+        // Optionally provide feedback
+        return;
+      }
+
+      if (targetQubit != null && controlQubit != targetQubit) {
+        placedGate = PlacedQuantumGate(
+          type: SelectedGateType.cnot,
+          position: insertionPosition,
+          controlQubitIndex: controlQubit,
+          targetQubitIndex: targetQubit,
+        );
+      } else {
+        print('Invalid CNOT placement (control == target or not enough qubits).');
+        // Optionally provide feedback
+        return;
+      }
+    }
+    // Add logic for other gate types
+
+    if (placedGate != null) {
+      // ** Add the PlacedQuantumGate to the circuit at the specific position **
+      // The QuantumCircuit class needs a method like insertPlacedGateAt
+      circuit.insertPlacedGateAt(placedGate, insertionPosition, tappedQubitLine); // <-- Need to implement this in QuantumCircuit
+
+      print('Gate successfully placed.');
+      // No need for setState here, circuit.insertPlacedGateAt should call notifyListeners()
+      _runSimulation(); // Optionally run simulation after placing
+    }
+  }
 
   void _selectGateForPlacement(SelectedGateType gateType) {
     setState(() {
-      _selectedGateType = gateType;
+      _currentMode = gateType;
       _cnotControlQubit = null; // Reset CNOT control on new gate selection
       simulationResult = "Tap on a qubit line to place the gate.";
       if (gateType == SelectedGateType.cnot) {
         simulationResult = "Tap on the control qubit for CNOT.";
       } else if (gateType == SelectedGateType.none) {
         simulationResult = "Run the circuit to see the result";
+      } else if (gateType == SelectedGateType.delete) {
+        simulationResult = "Tap on a gate to delete it."; // Updated message
       }
     });
-    print('Selected gate type for placement: $_selectedGateType'); // Debug selected gate
+    print('Selected gate type for placement: $_currentMode');
   }
 
   // ** Add a GlobalKey for the GestureDetector **
@@ -43,275 +211,94 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
 
   void _handleCircuitTap(TapDownDetails details) {
-    print('Circuit tapped at global position: ${details.globalPosition.dx}, ${details.globalPosition.dy}');
-
-    // ** Get the RenderBox using the GlobalKey **
+    print('Tap detected.');
     final RenderBox? renderBox = _gestureDetectorKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) {
       print('Error: Could not find RenderBox for GestureDetector.');
-      return; // Exit if RenderBox is not found
-    }
-    // *****************************************
-
-
-    print('RenderBox size: ${renderBox.size.width}x${renderBox.size.height}');
-    final Offset localTopLeft = renderBox.globalToLocal(Offset.zero);
-    print('RenderBox local top-left (should be 0,0): ${localTopLeft.dx}, ${localTopLeft.dy}');
-    final Offset globalTopLeft = renderBox.localToGlobal(Offset.zero);
-    print('RenderBox global top-left: ${globalTopLeft.dx}, ${globalTopLeft.dy}');
-
-
-    if (_selectedGateType == SelectedGateType.none) {
-      print('No gate selected for placement.');
       return;
     }
 
     final localPosition = renderBox.globalToLocal(details.globalPosition);
+    print('Local tap position: $localPosition');
 
-    // Pass the actual size of the render box to the painter's hit test
-    final painter = QuantumCircuitPainter(circuit); // Painter instance
-    final tappedQubit = painter.getTappedQubit(localPosition); // Use the painter's method
+    // Create a temporary painter instance for hit testing
+    final painter = QuantumCircuitPainter(circuit);
 
-    if (tappedQubit != null) {
-      print('Tapped on Qubit: $tappedQubit');
-      if (_selectedGateType == SelectedGateType.hadamard) {
-        circuit.addGate(HadamardGate(tappedQubit));
-        print('Added Hadamard to Qubit $tappedQubit');
-        _selectGateForPlacement(SelectedGateType.none);
-      } else if (_selectedGateType == SelectedGateType.cnot) {
-        if (_cnotControlQubit == null) {
-          _cnotControlQubit = tappedQubit;
-          setState(() {
-            simulationResult = "Tap on the target qubit for CNOT.";
-          });
-          print('CNOT control qubit selected: $_cnotControlQubit');
-        } else {
-          if (_cnotControlQubit != tappedQubit) {
-            circuit.addGate(CNOTGate(_cnotControlQubit!, tappedQubit));
-            print('Added CNOT from Qubit $_cnotControlQubit to Qubit $tappedQubit');
-            _selectGateForPlacement(SelectedGateType.none);
-          } else {
-            setState(() {
-              simulationResult = "Control and target qubits cannot be the same. Tap target qubit.";
-            });
-            print('CNOT control and target are the same.');
-          }
-        }
+
+    if (_currentMode == SelectedGateType.delete) {
+      print('In delete mode.');
+      // Use the painter's hit-testing method to find if a gate was tapped
+      final PlacedQuantumGate? tappedGate = painter.getGateAtTap(localPosition);
+
+      if (tappedGate != null) {
+        print('Tapped on a gate for deletion: ${tappedGate.type} at position ${tappedGate.position} on qubits ${tappedGate.getQubitIndices()}');
+        // Remove the gate from the circuit's list of placed gates
+        // This calls notifyListeners() inside QuantumCircuit
+        circuit.removePlacedGate(tappedGate);
+
+        print('Deleted gate.');
+        _runSimulation(); // Update simulation after deletion
+        setState(() {
+          _currentMode = SelectedGateType.none; // Reset mode after successful deletion
+          simulationResult = "Gate deleted. Drag a gate onto the circuit."; // Reset message
+        });
+
+      } else {
+        print('Tapped outside gates in delete mode.');
+        // Optional: Provide feedback or reset mode if user taps outside gates
+        // setState(() { simulationResult = "No gate tapped. Exiting delete mode."; }); // Example feedback
+        // _setInteractionMode(SelectedGateType.none); // Example: Exit delete mode on tap outside
       }
-      setState(() {});
-    } else {
-      print('Tapped outside qubit lines.');
-      if (_selectedGateType != SelectedGateType.none) {
-        _selectGateForPlacement(SelectedGateType.none);
-      }
+      return; // Exit _handleCircuitTap if in delete mode
     }
-  }
 
-  void _updateOverallMatrix() {
-    overallCircuitMatrix = circuit.getOverallMatrix();
-    // No setState here, setState is called in _handleCircuitTap or _clearCircuit
+    // If not in delete mode, taps on the circuit might be ignored or used for other interactions later
+    print('Tapped on circuit in non-delete mode. Ignoring for now.');
   }
 
   void _runSimulation() {
-    circuit.run();
-    measurementProbabilities = circuit.currentState.state.map((amplitude) {
+    print("Running simulation...");
+
+    // ** Call the void simulation method on the circuit **
+    // This method executes the simulation and updates circuit.currentState internally.
+    circuit.runSimulation();
+
+    // ** Access the updated circuit.currentState property to get the final state **
+    // Now that runSimulation is complete, circuit.currentState holds the result.
+    final QubitState finalState = circuit.currentState;
+
+    // ** Calculate measurement probabilities from the final state **
+    measurementProbabilities = finalState.state.map((amplitude) {
       return amplitude.abs() * amplitude.abs();
     }).toList();
 
-    // ** Add this debug print **
     print("Calculated probabilities: $measurementProbabilities");
-    // ************************
 
-
+    // ** Update the UI state variables to trigger a rebuild **
     setState(() {
-      simulationResult = "State Vector: ${circuit.currentState.toString()}";
+      // Format the final state vector for display
+      // Access the state data via the finalState object obtained from circuit.currentState
+      simulationResult = "Final State Vector:\n${formatStateVector(finalState)}"; // Assuming formatStateVector helper
     });
+    print("Simulation finished.");
   }
 
+
   void _clearCircuit() {
-    circuit.clearCircuit();
-    setState(() {
-      simulationResult = "Run the circuit to see the result";
-      _selectedGateType = SelectedGateType.none; // Reset any active placement
-      _cnotControlQubit = null;
-    });
-    print('Circuit cleared.'); // Debug circuit clear
+    circuit.clearPlacedGates(); // This calls notifyListeners()
+    print('Circuit cleared.');
+    _setInteractionMode(SelectedGateType.none); // Reset mode
+    _cnotControlQubit = null;
+    _runSimulation(); // Run simulati
   }
 
   void _showGateListDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          contentPadding: EdgeInsets.zero,
-          // title: Text("Quantum Gates List"),
-          content: Container( // Wrap content in Container for size constraints if needed
-            width: double.maxFinite, // Allow content to take max width available in dialog
-            child: SingleChildScrollView( // Add scrolling for the content
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 0.0),
-                child: TeXView(
-                  child: TeXViewColumn(
-                      style: const TeXViewStyle(
-                          margin: TeXViewMargin.all(10),
-                          padding: TeXViewPadding.all(10),
-                          borderRadius: TeXViewBorderRadius.all(10),
-                          border: TeXViewBorder.all(TeXViewBorderDecoration(
-                              borderWidth: 2,
-                              borderStyle: TeXViewBorderStyle.groove,
-                              borderColor: Colors.green))),
-                      children: [
-                _buildGateDescription(
-                      r"<h2>Pauli-X (\( X \))</h2>",
-                      r"<p>Performs a bit flip, equivalent to a rotation of \( \pi \) radians around the X-axis of the Bloch sphere.</p>",
-                      r"<p>$$X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} \Rightarrow \begin{cases} X|0\rangle = |1\rangle \\ X|1\rangle = |0\rangle \end{cases}$$</p>"
-                  ),
-                  _buildGateDescription(
-                      r"<h2>Pauli-Y (\( Y \))</h2>",
-                      r"<p>Performs a rotation of \( \pi \) radians around the Y-axis of the Bloch sphere.</p>",
-                      r"<p>$$Y = \begin{pmatrix} 0 & -i \\ i & 0 \end{pmatrix} \Rightarrow \begin{cases} Y|0\rangle = i|1\rangle \\ Y|1\rangle = -i|0\rangle \end{cases}$$</p>"
-                  ),
-                  _buildGateDescription(
-                      r"<h2>Pauli-Z (\( Z \))</h2>",
-                      r"<p>Performs a rotation of \( \\pi \) radians around the Z-axis of the Bloch sphere.</p>",
-                      r"<p>$$Z = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix} \Rightarrow \begin{cases} Z|0\rangle = |0\rangle \\ Z|1\rangle = -|1\rangle \end{cases}$$</p>"
-                  ),
-                  // _buildGateDescription(
-                  //     "Hadamard (H)",
-                  //     "Creates an equal superposition of \$ |0\\rangle \$ and \$ |1\\rangle \$. Maps \$ |0\\rangle \\to \\frac{1}{\\sqrt{2}}(|0\\rangle + |1\\rangle) \$ and \$ |1\\rangle \\to \\frac{1}{\\sqrt{2}}(|0\\rangle - |1\\rangle) \$. Essential for generating superposition.",
-                  //     "\\frac{1}{\\sqrt{2}}\\begin{pmatrix} 1 & 1 \\\\ 1 & -1 \\end{pmatrix}"
-                  // ),
-                  // _buildGateDescription(
-                  //     "Phase (S or Z¹/²)",
-                  //     "A Z-axis rotation by \$ \\pi/2 \$ radians. Maps \$ |0\\rangle \\to |0\\rangle \$ and \$ |1\\rangle \\to i|1\\rangle \$.",
-                  //     "\\begin{pmatrix} 1 & 0 \\\\ 0 & i \\end{pmatrix}"
-                  // ),
-                  // _buildGateDescription(
-                  //     "\\(\\pi/8\\) (T or S¹/²)",
-                  //     "A Z-axis rotation by \$ \\pi/4 \$ radians. Maps \$ |0\\rangle \\to |0\\rangle \$ and \$ |1\\rangle \\to e^{i\\pi/4}|1\\rangle \$. The H and T gates are a universal set.",
-                  //     "\\begin{pmatrix} 1 & 0 \\\\ 0 & e^{i\\pi/4} \\end{pmatrix}"
-                  // ),
-                  // _buildGateDescription(
-                  //     "Rotation (R\$_k\$(\$\\theta\$))",
-                  //     // Rephrased slightly to avoid \$ k \$-axis directly
-                  //     "Performs a rotation around the \$k\$-axis (X, Y, or Z) of the Bloch sphere by an angle \$ \\theta \$. For \$ k=Z \$, the matrix is \$ R_z(\\theta) = \\begin{pmatrix} e^{-i\\theta/2} & 0 \\\\ 0 & e^{i\\theta/2} \\end{pmatrix} \$ (alternative common form).",
-                  //     "R_z(\\theta) = \\begin{pmatrix} e^{-i\\theta/2} & 0 \\\\ 0 & e^{i\\theta/2} \\end{pmatrix}"
-                  //   // Note: Rx and Ry matrices are different
-                  // ),
-                  // _buildGateDescription(
-                  //     "Controlled-NOT (CNOT or CX)",
-                  //     "A two-qubit gate. Flips the target qubit if the control qubit is in the \$ |1\\rangle \$ state. If control is \$ |0\\rangle \$, the target is unchanged. Creates entanglement between the control and target qubits.",
-                  //     "\\begin{pmatrix} 1 & 0 & 0 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 0 & 1 \\\\ 0 & 0 & 1 & 0 \\end{pmatrix}"
-                  // ),
-                  // _buildGateDescription(
-                  //     "Controlled-Z (CZ)",
-                  //     "A two-qubit gate. Applies the Z gate to the target if the control is \$ |1\\rangle \$. Equivalent to adding a phase of -1 to the \$ |11\\rangle \$ state.",
-                  //     "\\begin{pmatrix} 1 & 0 & 0 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 1 & 0 \\\\ 0 & 0 & 0 & -1 \\end{pmatrix}"
-                  // ),
-                  // _buildGateDescription(
-                  //     "Controlled-U (CU)",
-                  //     "A two-qubit gate. Applies an arbitrary single-qubit gate \$ U \$ to the target if the control qubit is in the \$ |1\\rangle \$ state.",
-                  //     "CU = \\begin{pmatrix} I & 0 \\\\ 0 & U \\end{pmatrix}"
-                  // ),
-                  // _buildGateDescription(
-                  //     "SWAP",
-                  //     "A two-qubit gate that swaps the states of two qubits. Maps \$ |01\\rangle \\to |10\\rangle \$ and \$ |10\\rangle \\to |01\\rangle \$, leaving \$ |00\\rangle \$ and \$ |11\\rangle \$ unchanged.",
-                  //     "\\begin{pmatrix} 1 & 0 & 0 & 0 \\\\ 0 & 0 & 1 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 0 & 1 \\end{pmatrix}"
-                  // ),
-                  // _buildGateDescription(
-                  //     "Toffoli (CCNOT or CCX)",
-                  //     "A three-qubit gate. Flips the target qubit if and only if both control qubits are in the \$ |1\\rangle \$ state. A universal classical gate from which any classical circuit can be built.",
-                  //     // 8x8 matrix representation is large, showing block form
-                  //     "\\begin{pmatrix} I_6 & 0 \\\\ 0 & X \\end{pmatrix}"
-                  // ),
-                  // _buildGateDescription(
-                  //     "Fredkin (CSWAP)",
-                  //     "A three-qubit gate. Swaps the two target qubits if the control qubit is in the \$ |1\\rangle \$ state. It is a universal classical computation gate and is also known as the controlled-SWAP.",
-                  //     // 8x8 matrix representation is large, showing block form
-                  //     "\\begin{pmatrix} I_6 & 0 \\\\ 0 & SWAP \\end{pmatrix}"
-                  // ),
-                  // Add other gates here
-                ]),
-                  // style: const TeXViewStyle(
-                  //   margin: TeXViewMargin.all(10),
-                  //   elevation: 10,
-                  //   borderRadius: TeXViewBorderRadius.all(25),
-                  //   border: TeXViewBorder.all(
-                  //     TeXViewBorderDecoration(
-                  //         borderColor: Colors.blue,
-                  //         borderStyle: TeXViewBorderStyle.solid,
-                  //         borderWidth: 5),
-                  //   ),
-                  //   backgroundColor: Colors.white,
-                  // ),
-                ),
-            ),
-              ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text('Close'),
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-            ),
-          ],
-        );
+        return const QuantumDocDialog();
       },
     );
-  }
-
-  TeXViewInkWell _buildGateDescription(String name, String description, String matrixLatex) {
-    return TeXViewInkWell(
-                id: r"id_0",
-                child: TeXViewColumn(children: [
-                  TeXViewDocument(
-                    name,
-                    style: const TeXViewStyle(
-                        padding: TeXViewPadding.all(10),
-                        // borderRadius: TeXViewBorderRadius.all(10),
-                        textAlign: TeXViewTextAlign.center,
-                        // width: 250,
-                        margin: TeXViewMargin.zeroAuto(),
-                        backgroundColor: Colors.green),
-                  ),
-                  TeXViewDocument(description, style: const TeXViewStyle(margin: TeXViewMargin.only(top: 10))),
-                  TeXViewDocument(matrixLatex, style: const TeXViewStyle(margin: TeXViewMargin.only(top:10, bottom: 10))),
-                  ]
-                ),
-            );
-          // ),
-
-          // Text(
-          //   name,
-          //   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          // ),
-          // SizedBox(height: 4),
-          // // Use Math.tex for the description to render inline math
-          // // Ensure the description string correctly uses \$ ... \$ for inline math
-          // Math.tex(
-          //   description,
-          //   textStyle: TextStyle(fontSize: 14),
-          //   mathStyle: MathStyle.text,
-          //   textScaleFactor: 1.0,
-          //   // Remove this line if errorBuilder is not defined:
-          //   // errorBuilder: (context, error, formula) { ... },
-          // ),
-          // SizedBox(height: 8),
-          // Text(
-          //   "Matrix:",
-          //   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          // ),
-          // SizedBox(height: 4),
-          // // Use Math.tex for the matrix rendering
-          // Math.tex(
-          //   matrixLatex,
-          //   mathStyle: MathStyle.display,
-          //   textScaleFactor: 1.0,
-          //   // Remove this line if errorBuilder is not defined:
-          //   // errorBuilder: (context, error, formula) { ... },
-          // ),
-          // Divider(height: 16), // Add a separator
   }
 
   // Helper to format the overall matrix for display
@@ -396,39 +383,75 @@ class _QuantumComposerState extends State<QuantumComposer> {
                 Expanded(
                   flex: 7, // Allocate 70% width
                   child: Container( // Container for padding
-                    padding: EdgeInsets.all(8.0),
+                    // padding: EdgeInsets.all(8.0),
                     child: LayoutBuilder( // LayoutBuilder gets bounded constraints from Container/Expanded
                         builder: (context, constraints) {
-                          // constraints.maxWidth is the bounded width of the Expanded area
+                          print("  LayoutBuilder constraints: $constraints"); // Debug constraints
                           final double availableContainerWidth = constraints.maxWidth;
-                          // constraints.maxHeight is the bounded height of the Expanded area
                           final double availableContainerHeight = constraints.maxHeight;
+                          print("  Available container size: Size($availableContainerWidth, $availableContainerHeight)"); // Debug available size
 
 
-                          // Calculate the minimum width needed to display all gates
-                          final double minRequiredWidth = circuit.gates.length * QuantumCircuitPainter.gateSpacing + QuantumCircuitPainter.padding * 2 + QuantumCircuitPainter.gateSpacing * 2;
-
-                          // The width of the SizedBox should be at least the calculated width
-                          // and at least the available container width (to fill the space when content is small)
-                          final double SizedBoxWidth = max(minRequiredWidth, availableContainerWidth);
+                          // Calculate the minimum width needed based on the maximum position of placed gates
+                          final int maxPosition = circuit.placedGates.isEmpty ? -1 : circuit.placedGates.map((placedGate) => placedGate.position).reduce(max);
+                          // Add 2 for the next column and some extra space
+                          final double minRequiredWidth = (maxPosition + 3) * QuantumCircuitPainter.gateSpacing + QuantumCircuitPainter.padding * 2;
 
 
-                          return SingleChildScrollView( // Allows horizontal scrolling if content exceeds viewport
+                          final double sizedBoxWidth = max(minRequiredWidth, availableContainerWidth);
+                          // The height of the SizedBox should be fixed based on the number of qubits and spacing
+                          final double sizedBoxHeight = circuit.numQubits * QuantumCircuitPainter.qubitSpacing + QuantumCircuitPainter.padding * 2;
+                          print("  Calculated SizedBox size: Size($sizedBoxWidth, $sizedBoxHeight)"); // Debug SizedBox size
+
+
+                          return SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
-                            child: GestureDetector( // For tap detection
-                              key: _gestureDetectorKey,
-                              onTapDown: _handleCircuitTap,
-                              child: SizedBox( // Size the CustomPaint area
-                                // ** Set width and height based on calculation and available container space **
-                                width: SizedBoxWidth,
-                                height: availableContainerHeight, // Use the bounded height from the LayoutBuilder
-                                child: CustomPaint(
-                                  painter: QuantumCircuitPainter(circuit),
-                                  // The QuantumCircuitPainter receives a Size based on the SizedBox dimensions
-                                  child: Container(color: Colors.transparent),
+                            // ** Wrap the SizedBox in a Center widget **
+                            child: Center(
+                              child: SizedBox( // SizedBox defines the size of the scrollable area
+                                width: sizedBoxWidth,
+                                // height: sizedBoxHeight, // Use the calculated fixed height
+                                // ** Add a background color to visualize the SizedBox bounds **
+                                child: Container(
+                                  color: Colors.yellow.withOpacity(0.2), // Semi-transparent yellow background
+                                  // ** Make the SizedBox/circuit area a DragTarget **
+                                  child: DragTarget<SelectedGateType>( // Specify the data type being dragged
+                                    onWillAccept: (data) => data != null && data != SelectedGateType.delete, // Accept any gate type except delete
+                                    onAcceptWithDetails: _handleGateDrop, // Handle the drop event
+                                    builder: (context, candidateData, rejectedData) {
+                                      // This builder function defines the appearance of the DragTarget area
+                                      // candidateData is a list of data from draggables currently hovering over the target
+                                      // rejectedData is a list of data from draggables that were rejected by onWillAccept
+
+                                      // We can use the presence of candidateData to provide visual feedback
+                                      bool isDraggingOver = candidateData.isNotEmpty;
+
+                                      // ** Wrap CustomPaint in ListenableBuilder to rebuild when circuit changes **
+                                      return ListenableBuilder(
+                                        listenable: circuit, // Listen to the circuit object
+                                        builder: (context, child) {
+                                          print("ListenableBuilder rebuilding CustomPaint."); // Debug rebuild
+                                          return GestureDetector( // GestureDetector is still needed for tap detection (e.g., for deletion)
+                                            key: _gestureDetectorKey,
+                                            onTapDown: _handleCircuitTap, // Tap handler for deletion
+                                            child: CustomPaint(
+                                              painter: QuantumCircuitPainter(circuit), // Pass the circuit
+                                              // Add visual feedback when dragging over
+                                              child: Container(
+                                                color: isDraggingOver ? Colors.white.withOpacity(0.1) : Colors.transparent, // Subtle overlay when dragging over
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                      // ******************************************************************
+                                    },
+                                  ),
+                                  // ****************************************************************
                                 ),
                               ),
                             ),
+                            // ***********************************
                           );
                         }
                     ),
@@ -483,36 +506,87 @@ class _QuantumComposerState extends State<QuantumComposer> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Add Gates:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text("Add/Remove Gates:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 // SizedBox(height: 8),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      // ... (Your existing gate buttons like H, CNOT) ...
                       ElevatedButton(
-                        onPressed: () => _selectGateForPlacement(SelectedGateType.hadamard),
+                        onPressed: () => _selectGateForPlacement(SelectedGateType.delete),
                         style: ElevatedButton.styleFrom(
-                          minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
-                          padding: EdgeInsets.zero,
-                          backgroundColor: QuantumCircuitPainter.hadamardColor,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),),
+                          minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize), // Use gate size for button size
+                          padding: EdgeInsets.zero, // Remove internal padding
+                          backgroundColor: Colors.red[700], // Red color for delete
+                          foregroundColor: Colors.white, // White text/icon color
+                          shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),), // Square shape
                         ),
-                        child: Text('H', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),),
+                        child: Text('DEL', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), // Button text
+                      ),
+                      SizedBox(width: 4), // Space after Delete button
+                      // ** Add the Vertical Divider **
+                      Container( // Wrap divider in Container to give it a height matching buttons
+                        height: QuantumCircuitPainter.gateSize, // Match button height
+                        child: VerticalDivider(
+                          width: 1,
+                          thickness: 2,
+                          indent: 0, // Adjust indent/endIndent if buttons have different padding
+                          endIndent: 0,
+                          color: Colors.black, // White divider for visibility on black background
+                        ),
+                      ),
+                      SizedBox(width: 4), // Space after divider
+                      Draggable<SelectedGateType>( // Draggable for Hadamard
+                        data: SelectedGateType.hadamard, // Data carried by the drag
+                        feedback: Container( // Visual feedback while dragging
+                          width: QuantumCircuitPainter.gateSize,
+                          height: QuantumCircuitPainter.gateSize,
+                          color: QuantumCircuitPainter.hadamardColor.withOpacity(0.7), // Semi-transparent feedback
+                          child: Center(child: Text('H', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+                        ),
+                        // childWhenDragging: Container( // What to show in the original position while dragging
+                        //   width: QuantumCircuitPainter.gateSize,
+                        //   height: QuantumCircuitPainter.gateSize,
+                        //   color: Colors.grey.withOpacity(0.5), // Placeholder appearance
+                        // ),
+                        child: ElevatedButton( // The original button appearance
+                          onPressed: () => _setInteractionMode(SelectedGateType.none), // Tapping button resets mode
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
+                            padding: EdgeInsets.zero,
+                            backgroundColor: QuantumCircuitPainter.hadamardColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),),
+                          ),
+                          child: Text('H', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),),
+                        ),
                       ),
                       // SizedBox(width: 4),
-                      ElevatedButton(
-                        onPressed: () => _selectGateForPlacement(SelectedGateType.cnot),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
-                          padding: EdgeInsets.zero,
-                          backgroundColor: QuantumCircuitPainter.cnotColor,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),),
+                      Draggable<SelectedGateType>( // Draggable for CNOT
+                        data: SelectedGateType.cnot, // Data carried by the drag
+                        feedback: Container( // Visual feedback while dragging
+                          width: QuantumCircuitPainter.gateSize * 2, // CNOT feedback might be wider
+                          height: QuantumCircuitPainter.gateSize * 2, // CNOT feedback might be taller
+                          color: QuantumCircuitPainter.cnotColor.withOpacity(0.7), // Semi-transparent feedback
+                          child: Center(child: Text('CNOT', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
                         ),
-                        child: Text('CNOT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),),
+                        // childWhenDragging: Container( // What to show in the original position while dragging
+                        //   width: QuantumCircuitPainter.gateSize,
+                        //   height: QuantumCircuitPainter.gateSize,
+                        //   color: Colors.grey.withOpacity(0.5), // Placeholder appearance
+                        // ),
+                        child: ElevatedButton( // The original button appearance
+                          onPressed: () => _setInteractionMode(SelectedGateType.none), // Tapping button resets mode
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
+                            padding: EdgeInsets.zero,
+                            backgroundColor: QuantumCircuitPainter.cnotColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),),
+                          ),
+                          child: Text('CNOT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),),
+                        ),
                       ),
                       // Info button was moved to AppBar
                     ],

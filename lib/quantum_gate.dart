@@ -82,11 +82,3 @@ class CNOTGate implements QuantumGate {
   @override
   int getNumberOfQubits() => 2;
 }
-
-// Enum to track the selected gate type for placement
-enum SelectedGateType {
-  none,
-  hadamard,
-  cnot,
-  // Add other gate types here
-}

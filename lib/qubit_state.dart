@@ -1,55 +1,80 @@
-import 'dart:math';
+// In your qubit_state.dart file
 
-import 'package:complex/complex.dart'; // You might need a complex number library
+import 'package:complex/complex.dart'; // Assuming you use the complex package
 
 class QubitState {
-  // Represents the state vector for 2 qubits (|00>, |01>, |10>, |11>)
+  // The list of complex amplitudes representing the state vector
   List<Complex> state;
+  final int numQubits; // Store the number of qubits this state corresponds to
 
-  QubitState() : state = [Complex(1.0), Complex(0.0), Complex(0.0), Complex(0.0)]; // Initialize to |00>
+  // Private constructor
+  QubitState._(this.state, this.numQubits);
 
-  // Method to apply a 2-qubit gate (represented by a 4x4 matrix)
-  void applyGate(List<List<Complex>> gateMatrix) {
-    if (gateMatrix.length != 4 || gateMatrix[0].length != 4) {
-      throw ArgumentError("Gate matrix must be 4x4 for 2 qubits.");
+  // ** Static factory method or constructor to create the initial state **
+  static QubitState initial(int numQubits) {
+    final int size = 1 << numQubits; // Calculate 2^numQubits
+    // Create a list of complex numbers, initialized to zero
+    List<Complex> initialStateVector = List.generate(size, (_) => Complex.zero);
+
+    // Set the amplitude for the |00...0> state (index 0) to 1.0 + 0.0i
+    initialStateVector[0] = Complex(1.0);
+
+    // Return a new QubitState instance with this initial state vector
+    return QubitState._(initialStateVector, numQubits);
+  }
+
+  // You'll also need methods like:
+  // - applyMatrix(List<List<Complex>> matrix): To multiply the state vector by a matrix
+  // - toString(): For displaying the state vector (like you have)
+  // - Maybe methods to get probabilities, etc.
+
+  QubitState applyMatrix(List<List<Complex>> matrix) {
+    // Implement matrix-vector multiplication: matrix * this.state
+    // This involves iterating through the rows of the matrix
+    // and calculating the dot product with the state vector.
+    // The result is a new state vector.
+
+    if (matrix.length != state.length || matrix.isEmpty || matrix[0].length != state.length) {
+      throw ArgumentError("Matrix dimensions do not match state vector size.");
     }
 
-    List<Complex> newState = [];
-    for (int i = 0; i < 4; i++) {
+    List<Complex> newStateVector = List.generate(state.length, (_) => Complex.zero);
+
+    for (int i = 0; i < matrix.length; i++) { // Iterate through rows of the matrix
       Complex sum = Complex.zero;
-      for (int j = 0; j < 4; j++) {
-        sum += gateMatrix[i][j] * state[j];
+      for (int j = 0; j < matrix[i].length; j++) { // Iterate through elements in the row
+        sum += matrix[i][j] * state[j]; // Multiply matrix element by state element and add
       }
-      newState.add(sum);
+      newStateVector[i] = sum; // The result is the new amplitude for state |i>
     }
-    state = newState;
+
+    // Return a new QubitState object with the updated state vector
+    return QubitState._(newStateVector, numQubits);
   }
 
   @override
   String toString() {
-    return state.map((c) {
-      final real = c.real.toStringAsFixed(2);
-      final imag = c.imaginary.toStringAsFixed(2);
-      if (c.imaginary == 0) {
-        return real;
-      } else if (c.real == 0) {
-        return "${imag}i";
-      } else if (c.imaginary > 0) {
-        return "$real + ${imag}i";
+    // Implement formatting the state vector to a string (like your formatStateVector helper)
+    String formatted = "[";
+    for (int i = 0; i < state.length; i++) {
+      String real = state[i].real.toStringAsFixed(2);
+      String imag = state[i].imaginary.toStringAsFixed(2);
+      String complexStr;
+      if (state[i].imaginary == 0) {
+        complexStr = real;
+      } else if (state[i].real == 0) {
+        complexStr = "${imag}i";
+      } else if (state[i].imaginary > 0) {
+        complexStr = "$real+$imag" + "i";
       } else {
-        return "$real - ${imag.substring(1)}i"; // Remove the negative sign from imaginary part
+        complexStr = "$real$imag" + "i"; // Imaginary part already has '-'
       }
-    }).join(", ");
+      formatted += complexStr;
+      if (i < state.length - 1) {
+        formatted += ", ";
+      }
+    }
+    formatted += "]";
+    return formatted;
   }
 }
-
-// Example Gate (Hadamard on the first qubit, Identity on the second)
-// This is a 4x4 matrix representing H tensor I
-List<List<Complex>> hGateTwoQubits = [
-  [Complex(1 / sqrt(2)), Complex(1 / sqrt(2)), Complex(0), Complex(0)],
-  [Complex(1 / sqrt(2)), Complex(-1 / sqrt(2)), Complex(0), Complex(0)],
-  [Complex(0), Complex(0), Complex(1 / sqrt(2)), Complex(1 / sqrt(2))],
-  [Complex(0), Complex(0), Complex(1 / sqrt(2)), Complex(-1 / sqrt(2))],
-];
-
-// Define other gates as needed (e.g., CNOT)
