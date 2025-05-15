@@ -101,22 +101,27 @@ class QuantumCircuitPainter extends CustomPainter {
       textPainter.paint(canvas, Offset(labelX, labelY));
     }
 
+    List<int> gateXPosititionPerQubit = [0, 0];
+
     // Draw placed gates
     for (final placedGate in circuit.placedGates) {
       // Calculate the horizontal center x-coordinate of the gate's column
       // Gates are positioned relative to the area *after* the initial padding and labels
-      final double gateColumnCenterX = padding + placedGate.position * gateSpacing + gateSpacing / 2;
 
       // Use the helper for the vertical center of the primary qubit line
       final double gateCenterY = getQubitCenterY(placedGate.primaryDrawingQubit);
+      final double gateIconTop = gateCenterY - gateSize / 2; // Use gateCenterY to center vertically
 
       // Calculate the top-left corner of the gate icon square
-      final double gateIconLeft = gateColumnCenterX - gateSize / 2;
-      final double gateIconTop = gateCenterY - gateSize / 2; // Use gateCenterY to center vertically
 
 
       // Draw the gate based on its type and calculated position
       if (placedGate.type == SelectedGateType.hadamard) {
+        final double gateColumnCenterX = padding + gateXPosititionPerQubit[placedGate.primaryDrawingQubit] * gateSpacing + gateSpacing / 2;
+        final double gateIconLeft = gateColumnCenterX - gateSize / 2;
+
+        gateXPosititionPerQubit[placedGate.primaryDrawingQubit] += 1; // Increment for next gate
+
         gatePaint.color = hadamardColor; // Use the static constant
         canvas.drawRect(Rect.fromLTWH(gateIconLeft, gateIconTop, gateSize, gateSize), gatePaint);
 
@@ -133,6 +138,11 @@ class QuantumCircuitPainter extends CustomPainter {
 
       } else if (placedGate.type == SelectedGateType.cnot) {
         // Drawing logic for CNOT
+        int currentX = gateXPosititionPerQubit.reduce(max);
+        final double gateColumnCenterX = padding + currentX * gateSpacing + gateSpacing / 2;
+        final double gateIconLeft = gateColumnCenterX - gateSize / 2;
+
+        gateXPosititionPerQubit = List.filled(circuit.numQubits, currentX + 1);
 
         // Use the helper for the vertical centers of control and target qubits
         final double controlY = getQubitCenterY(placedGate.controlQubitIndex!);

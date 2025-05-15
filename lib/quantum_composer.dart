@@ -185,7 +185,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
       print('Gate successfully placed.');
       // No need for setState here, circuit.insertPlacedGateAt should call notifyListeners()
-      _runSimulation(); // Optionally run simulation after placing
+      // _runSimulation(); // Optionally run simulation after placing
     }
   }
 
@@ -407,7 +407,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                           return SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             // ** Wrap the SizedBox in a Center widget **
-                            child: Center(
+                            child: IntrinsicWidth(
                               child: SizedBox( // SizedBox defines the size of the scrollable area
                                 width: sizedBoxWidth,
                                 // height: sizedBoxHeight, // Use the calculated fixed height
