@@ -407,7 +407,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                           return SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             // ** Wrap the SizedBox in a Center widget **
-                            child: IntrinsicWidth(
+                            child: Center(
                               child: SizedBox( // SizedBox defines the size of the scrollable area
                                 width: sizedBoxWidth,
                                 // height: sizedBoxHeight, // Use the calculated fixed height
