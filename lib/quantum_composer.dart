@@ -1,13 +1,11 @@
 import 'dart:math';
 
 import 'package:complex/complex.dart';
-import 'package:flutter_tex/flutter_tex.dart';
 import 'package:quantumquiz/placed_quantum_gate.dart';
 import 'package:quantumquiz/probability_histogram.dart';
 import 'package:quantumquiz/quantum_circuit.dart';
 import 'package:quantumquiz/quantum_circuit_painter.dart';
 import 'package:quantumquiz/quantum_doc_dialog.dart';
-import 'package:quantumquiz/quantum_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/qubit_state.dart';
 import 'package:quantumquiz/selected_gate_type.dart';
@@ -27,6 +25,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
   List<double> measurementProbabilities = [0.0, 0.0, 0.0, 0.0];
   SelectedGateType _currentMode = SelectedGateType.none;
   int? _cnotControlQubit; // To track the first tap for CNOT
+
+  final ValueNotifier<double> _circuitWidthNotifier = ValueNotifier<double>(0.0);
 
 // You'll likely need a helper to format the QubitState for display
   String formatStateVector(QubitState state) {
@@ -104,7 +104,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     final dropPosition = localPosition; // Use details.offset
 
     // Use the painter's logic to determine the qubit line and insertion position
-    final painter = QuantumCircuitPainter(circuit); // Painter knows layout constants
+    final painter = QuantumCircuitPainter(circuit, widthNotifier: _circuitWidthNotifier); // Painter knows layout constants
 
     // Determine the tapped qubit line based on the vertical drop position
     final tappedQubitLine = painter.getTappedQubitLine(dropPosition);
@@ -222,7 +222,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     print('Local tap position: $localPosition');
 
     // Create a temporary painter instance for hit testing
-    final painter = QuantumCircuitPainter(circuit);
+    final painter = QuantumCircuitPainter(circuit, widthNotifier: _circuitWidthNotifier);
 
 
     if (_currentMode == SelectedGateType.delete) {
@@ -403,55 +403,35 @@ class _QuantumComposerState extends State<QuantumComposer> {
                           final double sizedBoxHeight = circuit.numQubits * QuantumCircuitPainter.qubitSpacing + QuantumCircuitPainter.padding * 2;
                           print("  Calculated SizedBox size: Size($sizedBoxWidth, $sizedBoxHeight)"); // Debug SizedBox size
 
+                          return DragTarget<SelectedGateType>( // DragTarget wraps the scrollable area
+                            onWillAccept: (data) => data != null && data != SelectedGateType.delete, // Accept any gate type except delete
+                            onAcceptWithDetails: _handleGateDrop, // Handle the drop event
+                            builder: (context, candidateData, rejectedData) {
+                              // We can use the presence of candidateData to provide visual feedback
+                              bool isDraggingOver = candidateData.isNotEmpty;
 
-                          return SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            // ** Wrap the SizedBox in a Center widget **
-                            child: Center(
-                              child: SizedBox( // SizedBox defines the size of the scrollable area
-                                width: sizedBoxWidth,
-                                // height: sizedBoxHeight, // Use the calculated fixed height
-                                // ** Add a background color to visualize the SizedBox bounds **
-                                child: Container(
-                                  color: Colors.yellow.withOpacity(0.2), // Semi-transparent yellow background
-                                  // ** Make the SizedBox/circuit area a DragTarget **
-                                  child: DragTarget<SelectedGateType>( // Specify the data type being dragged
-                                    onWillAccept: (data) => data != null && data != SelectedGateType.delete, // Accept any gate type except delete
-                                    onAcceptWithDetails: _handleGateDrop, // Handle the drop event
-                                    builder: (context, candidateData, rejectedData) {
-                                      // This builder function defines the appearance of the DragTarget area
-                                      // candidateData is a list of data from draggables currently hovering over the target
-                                      // rejectedData is a list of data from draggables that were rejected by onWillAccept
-
-                                      // We can use the presence of candidateData to provide visual feedback
-                                      bool isDraggingOver = candidateData.isNotEmpty;
-
-                                      // ** Wrap CustomPaint in ListenableBuilder to rebuild when circuit changes **
-                                      return ListenableBuilder(
-                                        listenable: circuit, // Listen to the circuit object
-                                        builder: (context, child) {
-                                          print("ListenableBuilder rebuilding CustomPaint."); // Debug rebuild
-                                          return GestureDetector( // GestureDetector is still needed for tap detection (e.g., for deletion)
-                                            key: _gestureDetectorKey,
-                                            onTapDown: _handleCircuitTap, // Tap handler for deletion
-                                            child: CustomPaint(
-                                              painter: QuantumCircuitPainter(circuit), // Pass the circuit
-                                              // Add visual feedback when dragging over
-                                              child: Container(
-                                                color: isDraggingOver ? Colors.white.withOpacity(0.1) : Colors.transparent, // Subtle overlay when dragging over
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      );
-                                      // ******************************************************************
-                                    },
+                              return GestureDetector( // GestureDetector wraps the scrollable area
+                                key: _gestureDetectorKey,
+                                onTapDown: _handleCircuitTap, // Tap handler for deletion
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  // ** Wrap CustomPaint in ConstrainedBox to force size **
+                                  child: CustomPaint(
+                                    painter: QuantumCircuitPainter(circuit, widthNotifier: _circuitWidthNotifier), // Pass the circuit
+                                    child: ListenableBuilder(
+                                      listenable: circuit, // Listen to the circuit object
+                                      builder: (context, child) {
+                                        print("ListenableBuilder rebuilding CustomPaint."); // Debug rebuild
+                                        return Container(
+                                            width: max(sizedBoxWidth, _circuitWidthNotifier.value),
+                                            // color: isDraggingOver ? Colors.white.withOpacity(0.1) : Colors.transparent, // Subtle overlay when dragging over
+                                        );
+                                      },
+                                    ),
                                   ),
-                                  // ****************************************************************
                                 ),
-                              ),
-                            ),
-                            // ***********************************
+                              );
+                            },
                           );
                         }
                     ),

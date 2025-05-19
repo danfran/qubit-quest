@@ -33,8 +33,9 @@ class QuantumCircuitPainter extends CustomPainter {
 
 
   final QuantumCircuit circuit; // Painter needs the circuit (with List<PlacedQuantumGate> placedGates)
+  final ValueNotifier<double> widthNotifier;
 
-  QuantumCircuitPainter(this.circuit);
+  QuantumCircuitPainter(this.circuit, {required this.widthNotifier});
 
   // Helper getter to calculate the vertical center of a qubit line
   double getQubitCenterY(int qubitIndex) {
@@ -114,16 +115,14 @@ class QuantumCircuitPainter extends CustomPainter {
 
       // Calculate the top-left corner of the gate icon square
 
-
       // Draw the gate based on its type and calculated position
       if (placedGate.type == SelectedGateType.hadamard) {
         final double gateColumnCenterX = padding + gateXPosititionPerQubit[placedGate.primaryDrawingQubit] * gateSpacing + gateSpacing / 2;
-        final double gateIconLeft = gateColumnCenterX - gateSize / 2;
 
         gateXPosititionPerQubit[placedGate.primaryDrawingQubit] += 1; // Increment for next gate
 
         gatePaint.color = hadamardColor; // Use the static constant
-        canvas.drawRect(Rect.fromLTWH(gateIconLeft, gateIconTop, gateSize, gateSize), gatePaint);
+        canvas.drawRect(Rect.fromLTWH(gateColumnCenterX - gateSize / 2, gateIconTop, gateSize, gateSize), gatePaint);
 
         // Draw 'H' text centered in the square
         final textPainter = TextPainter(
@@ -134,13 +133,13 @@ class QuantumCircuitPainter extends CustomPainter {
           textDirection: TextDirection.ltr, // Required for TextPainter
         );
         textPainter.layout(); // Perform layout before painting
-        textPainter.paint(canvas, Offset(gateIconLeft + gateSize / 2 - textPainter.width / 2, gateIconTop + gateSize / 2 - textPainter.height / 2));
+        textPainter.paint(canvas, Offset(gateColumnCenterX - textPainter.width / 2, gateIconTop + gateSize / 2 - textPainter.height / 2));
 
+        widthNotifier.value = max(widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
       } else if (placedGate.type == SelectedGateType.cnot) {
         // Drawing logic for CNOT
         int currentX = gateXPosititionPerQubit.reduce(max);
         final double gateColumnCenterX = padding + currentX * gateSpacing + gateSpacing / 2;
-        final double gateIconLeft = gateColumnCenterX - gateSize / 2;
 
         gateXPosititionPerQubit = List.filled(circuit.numQubits, currentX + 1);
 
@@ -167,6 +166,8 @@ class QuantumCircuitPainter extends CustomPainter {
         );
         plusPainter.layout();
         plusPainter.paint(canvas, Offset(gateColumnCenterX - plusPainter.width / 2, targetY - plusPainter.height / 2));
+
+        widthNotifier.value = max(widthNotifier.value, gateColumnCenterX + targetRadius + padding);
       }
       // Add drawing logic for other gate types here
     }
