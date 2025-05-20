@@ -130,13 +130,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     // Create the PlacedQuantumGate based on the dropped type and calculated position
     PlacedQuantumGate? placedGate;
 
-    if (droppedGateType == SelectedGateType.hadamard) {
-      placedGate = PlacedQuantumGate(
-        type: SelectedGateType.hadamard,
-        position: insertionPosition,
-        singleQubitIndex: tappedQubitLine,
-      );
-    } else if (droppedGateType == SelectedGateType.cnot) {
+    if (droppedGateType == SelectedGateType.cnot) {
       // For CNOT drag and drop, we need to select control/target after dropping.
       // This is a more complex interaction. For simplicity in this initial drag/drop,
       // let's assume CNOT drag requires dropping the control part, and then
@@ -175,8 +169,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
         // Optionally provide feedback
         return;
       }
+    } else {
+      placedGate = PlacedQuantumGate(
+        type: droppedGateType,
+        position: insertionPosition,
+        singleQubitIndex: tappedQubitLine,
+      );
     }
-    // Add logic for other gate types
 
     if (placedGate != null) {
       // ** Add the PlacedQuantumGate to the circuit at the specific position **
@@ -289,7 +288,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
     print('Circuit cleared.');
     _setInteractionMode(SelectedGateType.none); // Reset mode
     _cnotControlQubit = null;
-    _runSimulation(); // Run simulati
+    _runSimulation(); // Run simulation - empty circuit
+    _circuitWidthNotifier.value = 0; // Reset width notifier
   }
 
   void _showGateListDialog() {
@@ -498,11 +498,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
                         style: ElevatedButton.styleFrom(
                           minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize), // Use gate size for button size
                           padding: EdgeInsets.zero, // Remove internal padding
-                          backgroundColor: Colors.red[700], // Red color for delete
-                          foregroundColor: Colors.white, // White text/icon color
+                          backgroundColor: Colors.green[700], // Red color for delete
+                          foregroundColor: Colors.black, // White text/icon color
                           shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),), // Square shape
                         ),
-                        child: Text('DEL', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), // Button text
+                        child: FittedBox(
+                            fit: BoxFit.fitWidth,
+                            child: Icon(Icons.delete, size: 18)),
+                        // child: Text('DEL', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), // Button text
                       ),
                       SizedBox(width: 4), // Space after Delete button
                       // ** Add the Vertical Divider **
@@ -522,8 +525,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
                         feedback: Container( // Visual feedback while dragging
                           width: QuantumCircuitPainter.gateSize,
                           height: QuantumCircuitPainter.gateSize,
-                          color: QuantumCircuitPainter.hadamardColor.withOpacity(0.7), // Semi-transparent feedback
-                          child: Center(child: Text('H', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+                          color: SelectedGateType.hadamard.color.withOpacity(0.7), // Semi-transparent feedback
+                          child: Center(child: Text(SelectedGateType.hadamard.label, style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
                         ),
                         // childWhenDragging: Container( // What to show in the original position while dragging
                         //   width: QuantumCircuitPainter.gateSize,
@@ -535,11 +538,11 @@ class _QuantumComposerState extends State<QuantumComposer> {
                           style: ElevatedButton.styleFrom(
                             minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
                             padding: EdgeInsets.zero,
-                            backgroundColor: QuantumCircuitPainter.hadamardColor,
+                            backgroundColor: SelectedGateType.hadamard.color,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),),
                           ),
-                          child: Text('H', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),),
+                          child: Text(SelectedGateType.hadamard.label, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),),
                         ),
                       ),
                       // SizedBox(width: 4),
@@ -548,8 +551,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
                         feedback: Container( // Visual feedback while dragging
                           width: QuantumCircuitPainter.gateSize * 2, // CNOT feedback might be wider
                           height: QuantumCircuitPainter.gateSize * 2, // CNOT feedback might be taller
-                          color: QuantumCircuitPainter.cnotColor.withOpacity(0.7), // Semi-transparent feedback
-                          child: Center(child: Text('CNOT', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
+                          color: SelectedGateType.cnot.color.withOpacity(0.7), // Semi-transparent feedback
+                          child: Center(child: Text(SelectedGateType.cnot.label, style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
                         ),
                         // childWhenDragging: Container( // What to show in the original position while dragging
                         //   width: QuantumCircuitPainter.gateSize,
@@ -561,11 +564,89 @@ class _QuantumComposerState extends State<QuantumComposer> {
                           style: ElevatedButton.styleFrom(
                             minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
                             padding: EdgeInsets.zero,
-                            backgroundColor: QuantumCircuitPainter.cnotColor,
+                            backgroundColor: SelectedGateType.cnot.color,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),),
                           ),
-                          child: Text('CNOT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),),
+                          child: Text(SelectedGateType.cnot.label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),),
+                        ),
+                      ),
+
+                      Draggable<SelectedGateType>( // Draggable for x
+                        data: SelectedGateType.x, // Data carried by the drag
+                        feedback: Container( // Visual feedback while dragging
+                          width: QuantumCircuitPainter.gateSize,
+                          height: QuantumCircuitPainter.gateSize,
+                          color: SelectedGateType.x.color.withOpacity(0.7), // Semi-transparent feedback
+                          child: Center(child: Text(SelectedGateType.x.label, style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+                        ),
+                        // childWhenDragging: Container( // What to show in the original position while dragging
+                        //   width: QuantumCircuitPainter.gateSize,
+                        //   height: QuantumCircuitPainter.gateSize,
+                        //   color: Colors.grey.withOpacity(0.5), // Placeholder appearance
+                        // ),
+                        child: ElevatedButton( // The original button appearance
+                          onPressed: () => _setInteractionMode(SelectedGateType.none), // Tapping button resets mode
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
+                            padding: EdgeInsets.zero,
+                            backgroundColor: SelectedGateType.x.color,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),),
+                          ),
+                          child: Text(SelectedGateType.x.label, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),),
+                        ),
+                      ),
+
+                      Draggable<SelectedGateType>( // Draggable for y
+                        data: SelectedGateType.y, // Data carried by the drag
+                        feedback: Container( // Visual feedback while dragging
+                          width: QuantumCircuitPainter.gateSize,
+                          height: QuantumCircuitPainter.gateSize,
+                          color: SelectedGateType.y.color.withOpacity(0.7), // Semi-transparent feedback
+                          child: Center(child: Text(SelectedGateType.y.label, style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+                        ),
+                        // childWhenDragging: Container( // What to show in the original position while dragging
+                        //   width: QuantumCircuitPainter.gateSize,
+                        //   height: QuantumCircuitPainter.gateSize,
+                        //   color: Colors.grey.withOpacity(0.5), // Placeholder appearance
+                        // ),
+                        child: ElevatedButton( // The original button appearance
+                          onPressed: () => _setInteractionMode(SelectedGateType.none), // Tapping button resets mode
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
+                            padding: EdgeInsets.zero,
+                            backgroundColor: SelectedGateType.y.color,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),),
+                          ),
+                          child: Text(SelectedGateType.y.label, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),),
+                        ),
+                      ),
+
+                      Draggable<SelectedGateType>( // Draggable for z
+                        data: SelectedGateType.z, // Data carried by the drag
+                        feedback: Container( // Visual feedback while dragging
+                          width: QuantumCircuitPainter.gateSize,
+                          height: QuantumCircuitPainter.gateSize,
+                          color: SelectedGateType.z.color.withOpacity(0.7), // Semi-transparent feedback
+                          child: Center(child: Text(SelectedGateType.z.label, style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+                        ),
+                        // childWhenDragging: Container( // What to show in the original position while dragging
+                        //   width: QuantumCircuitPainter.gateSize,
+                        //   height: QuantumCircuitPainter.gateSize,
+                        //   color: Colors.grey.withOpacity(0.5), // Placeholder appearance
+                        // ),
+                        child: ElevatedButton( // The original button appearance
+                          onPressed: () => _setInteractionMode(SelectedGateType.none), // Tapping button resets mode
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
+                            padding: EdgeInsets.zero,
+                            backgroundColor: SelectedGateType.z.color,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),),
+                          ),
+                          child: Text(SelectedGateType.z.label, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),),
                         ),
                       ),
                       // Info button was moved to AppBar

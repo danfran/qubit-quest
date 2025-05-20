@@ -17,12 +17,10 @@ class QuantumCircuitPainter extends CustomPainter {
   // ** Temporarily increased hitTolerance for easier testing **
   static const double hitTolerance = 20.0; // Extra padding for tap detection area around gates/lines
   // *********************************************************
-  static const double targetRadius = 8.0; // Radius of the CNOT target circle
+  static const double targetRadius = 12.0; // Radius of the CNOT target circle
   static const double controlDotRadius = 4.0; // Radius of the CNOT control dot
 
   // Color constants
-  static const Color hadamardColor = Colors.blue; // Define Hadamard color
-  static const Color cnotColor = Colors.blue;     // Define CNOT color
   static const Color gridLinesColor = Colors.black; // Define color for qubit lines (Black)
   static const Color qubitLabelColor = Colors.black; // Color for qubit labels (q0, q1) (Black)
   // Add colors for other gate types as needed
@@ -114,29 +112,7 @@ class QuantumCircuitPainter extends CustomPainter {
       final double gateIconTop = gateCenterY - gateSize / 2; // Use gateCenterY to center vertically
 
       // Calculate the top-left corner of the gate icon square
-
-      // Draw the gate based on its type and calculated position
-      if (placedGate.type == SelectedGateType.hadamard) {
-        final double gateColumnCenterX = padding + gateXPosititionPerQubit[placedGate.primaryDrawingQubit] * gateSpacing + gateSpacing / 2;
-
-        gateXPosititionPerQubit[placedGate.primaryDrawingQubit] += 1; // Increment for next gate
-
-        gatePaint.color = hadamardColor; // Use the static constant
-        canvas.drawRect(Rect.fromLTWH(gateColumnCenterX - gateSize / 2, gateIconTop, gateSize, gateSize), gatePaint);
-
-        // Draw 'H' text centered in the square
-        final textPainter = TextPainter(
-          text: TextSpan(
-            text: 'H',
-            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          textDirection: TextDirection.ltr, // Required for TextPainter
-        );
-        textPainter.layout(); // Perform layout before painting
-        textPainter.paint(canvas, Offset(gateColumnCenterX - textPainter.width / 2, gateIconTop + gateSize / 2 - textPainter.height / 2));
-
-        widthNotifier.value = max(widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
-      } else if (placedGate.type == SelectedGateType.cnot) {
+      if (placedGate.type == SelectedGateType.cnot) {
         // Drawing logic for CNOT
         int currentX = gateXPosititionPerQubit.reduce(max);
         final double gateColumnCenterX = padding + currentX * gateSpacing + gateSpacing / 2;
@@ -148,29 +124,55 @@ class QuantumCircuitPainter extends CustomPainter {
         final double targetY = getQubitCenterY(placedGate.targetQubitIndex!);
 
         // Draw control circle/dot
-        final controlPaint = Paint()..color = cnotColor; // Use the static constant
+        final controlPaint = Paint()..color = SelectedGateType.cnot.color; // Use the static constant
         canvas.drawCircle(Offset(gateColumnCenterX, controlY), controlDotRadius, controlPaint);
 
         // Draw connection line between control and target
-        final linePaint = Paint()..color = cnotColor..strokeWidth = 2.0; // Use the static constant
+        final linePaint = Paint()..color = SelectedGateType.cnot.color..strokeWidth = 2.0; // Use the static constant
         canvas.drawLine(Offset(gateColumnCenterX, controlY), Offset(gateColumnCenterX, targetY), linePaint);
 
         // Draw target circle
-        final targetPaint = Paint()..color = cnotColor..style = PaintingStyle.stroke..strokeWidth = 2.0; // Use the static constant
+        final targetPaint = Paint()..color = SelectedGateType.cnot.color; // Use the static constant
         canvas.drawCircle(Offset(gateColumnCenterX, targetY), targetRadius, targetPaint);
+
 
         // Draw '+' inside target circle
         final plusPainter = TextPainter(
-          text: TextSpan(text: '+', style: TextStyle(color: cnotColor, fontSize: targetRadius * 1.5, fontWeight: FontWeight.bold)), // Use the static constant
+          text: TextSpan(text: '+', style: TextStyle(color: Colors.white, fontSize: 24)), // Use the static constant
           textDirection: TextDirection.ltr,
         );
         plusPainter.layout();
         plusPainter.paint(canvas, Offset(gateColumnCenterX - plusPainter.width / 2, targetY - plusPainter.height / 2));
 
-        widthNotifier.value = max(widthNotifier.value, gateColumnCenterX + targetRadius + padding);
+        widthNotifier.value = max(widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
+      } else {
+        final double gateColumnCenterX = padding + gateXPosititionPerQubit[placedGate.primaryDrawingQubit] * gateSpacing + gateSpacing / 2;
+
+        gateXPosititionPerQubit[placedGate.primaryDrawingQubit] += 1; // Increment for next gate
+
+        gatePaint.color = placedGate.type.color; // Use the static constant
+        canvas.drawRect(Rect.fromLTWH(gateColumnCenterX - gateSize / 2, gateIconTop, gateSize, gateSize), gatePaint);
+
+        // Draw 'H' text centered in the square
+        String gateText = placedGate.type.label; // Set the text to 'H'
+        gateTextPainter(gateText, canvas, gateColumnCenterX, gateIconTop);
+
+        widthNotifier.value = max(widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
       }
       // Add drawing logic for other gate types here
     }
+  }
+
+  void gateTextPainter(String gateText, Canvas canvas, double gateColumnCenterX, double gateIconTop) {
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: gateText,
+        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+      textDirection: TextDirection.ltr, // Required for TextPainter
+    );
+    textPainter.layout(); // Perform layout before painting
+    textPainter.paint(canvas, Offset(gateColumnCenterX - textPainter.width / 2, gateIconTop + gateSize / 2 - textPainter.height / 2));
   }
 
   // Implement the hit-testing method to find a TAPPED GATE

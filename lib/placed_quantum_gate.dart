@@ -61,16 +61,4 @@ class PlacedQuantumGate {
     // Should not happen due to constructor assertion
     return [];
   }
-
-  // You might add other helper methods here if needed later,
-  // e.g., for getting a text representation of the gate type for drawing.
-  String get gateText {
-    switch (type) {
-      case SelectedGateType.hadamard: return 'H';
-      case SelectedGateType.cnot: return 'CNOT';
-      case SelectedGateType.delete: return 'Del'; // Not typically placed visually
-      case SelectedGateType.none: return ''; // Not typically placed visually
-    // Add cases for other gate types
-    }
-  }
 }
