@@ -27,46 +27,56 @@ class QuantumCircuit extends ChangeNotifier {
 
   // New method to insert a placed gate at a specific position
   void insertPlacedGateAt(PlacedQuantumGate gateToInsert, int insertionPosition, int targetQubitIndex) {
-    // Find all gates that are at or after the insertion position
-    final gatesToShift = placedGates.where((placedGate) => placedGate.position >= insertionPosition).toList();
 
-    // Increment the position of all gates that need to be shifted
-    for (var gate in gatesToShift) {
-      // Create a new PlacedQuantumGate object with the incremented position
-      // PlacedQuantumGate is immutable, so we create a new one.
-      final shiftedGate = PlacedQuantumGate(
-        type: gate.type,
-        position: gate.position + 1, // Increment the horizontal position
-        singleQubitIndex: gate.singleQubitIndex,
-        controlQubitIndex: gate.controlQubitIndex,
-        targetQubitIndex: gate.targetQubitIndex,
-      );
-      // Replace the old gate object with the new shifted one in the list
-      final index = placedGates.indexOf(gate);
-      if (index != -1) {
-        placedGates[index] = shiftedGate;
-      }
-    }
-
-    // Update the position of the gate being inserted
-    final PlacedQuantumGate gateWithCorrectedPosition = PlacedQuantumGate(
-      type: gateToInsert.type,
-      position: insertionPosition, // Set the position to the calculated insertion position
-      singleQubitIndex: gateToInsert.singleQubitIndex,
-      controlQubitIndex: gateToInsert.controlQubitIndex,
-      targetQubitIndex: gateToInsert.targetQubitIndex,
-    );
-
-    // Add the gate to the list
-    placedGates.add(gateWithCorrectedPosition);
-
-    // Sort the list by position to maintain order (important for drawing and simulation)
-    placedGates.sort((a, b) => a.position.compareTo(b.position));
+    insertionPosition = placedGates.isEmpty ? 0 : min(insertionPosition, placedGates.length);
+    placedGates.insert(insertionPosition, gateToInsert);
 
     print("Gate inserted at position $insertionPosition. Total placed gates: ${placedGates.length}");
     // Notify listeners that the state has changed
     notifyListeners();
   }
+
+  // void insertPlacedGateAt(PlacedQuantumGate gateToInsert, int insertionPosition, int targetQubitIndex) {
+  //   // Find all gates that are at or after the insertion position
+  //   final gatesToShift = placedGates.where((placedGate) => placedGate.position >= insertionPosition).toList();
+  //
+  //   // Increment the position of all gates that need to be shifted
+  //   for (var gate in gatesToShift) {
+  //     // Create a new PlacedQuantumGate object with the incremented position
+  //     // PlacedQuantumGate is immutable, so we create a new one.
+  //     final shiftedGate = PlacedQuantumGate(
+  //       type: gate.type,
+  //       position: gate.position + 1, // Increment the horizontal position
+  //       singleQubitIndex: gate.singleQubitIndex,
+  //       controlQubitIndex: gate.controlQubitIndex,
+  //       targetQubitIndex: gate.targetQubitIndex,
+  //     );
+  //     // Replace the old gate object with the new shifted one in the list
+  //     final index = placedGates.indexOf(gate);
+  //     if (index != -1) {
+  //       placedGates[index] = shiftedGate;
+  //     }
+  //   }
+  //
+  //   // Update the position of the gate being inserted
+  //   final PlacedQuantumGate gateWithCorrectedPosition = PlacedQuantumGate(
+  //     type: gateToInsert.type,
+  //     position: insertionPosition, // Set the position to the calculated insertion position
+  //     singleQubitIndex: gateToInsert.singleQubitIndex,
+  //     controlQubitIndex: gateToInsert.controlQubitIndex,
+  //     targetQubitIndex: gateToInsert.targetQubitIndex,
+  //   );
+  //
+  //   // Add the gate to the list
+  //   placedGates.add(gateWithCorrectedPosition);
+  //
+  //   // Sort the list by position to maintain order (important for drawing and simulation)
+  //   placedGates.sort((a, b) => a.position.compareTo(b.position));
+  //
+  //   print("Gate inserted at position $insertionPosition. Total placed gates: ${placedGates.length}");
+  //   // Notify listeners that the state has changed
+  //   notifyListeners();
+  // }
 
 
   // Method to add a placed gate instance to the circuit

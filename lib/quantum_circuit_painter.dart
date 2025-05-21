@@ -32,8 +32,9 @@ class QuantumCircuitPainter extends CustomPainter {
 
   final QuantumCircuit circuit; // Painter needs the circuit (with List<PlacedQuantumGate> placedGates)
   final ValueNotifier<double> widthNotifier;
+  final Offset? draggingOffset; // New: Qubit index for highlight
 
-  QuantumCircuitPainter(this.circuit, {required this.widthNotifier});
+  QuantumCircuitPainter(this.circuit, this.widthNotifier, this.draggingOffset);
 
   // Helper getter to calculate the vertical center of a qubit line
   double getQubitCenterY(int qubitIndex) {
@@ -54,6 +55,17 @@ class QuantumCircuitPainter extends CustomPainter {
       ..color = debugHitAreaColor.withOpacity(0.3) // Semi-transparent color
       ..style = PaintingStyle.fill; // Fill the rectangle
 
+    // Paint for the highlight box
+    final Paint highlightPaint = Paint()
+      ..color = Colors.grey[300]! // Gray background
+      ..style = PaintingStyle.fill;
+    final Paint highlightBorderPaint = Paint()
+      ..color = Colors.grey.shade600 // Darker gray border
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0;
+    final Paint highlightShadowPaint = Paint() // For shadow effect
+      ..color = Colors.grey.withOpacity(0.4)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0); // Blur radius for shadow
 
     // Draw qubit lines and labels
     for (int i = 0; i < circuit.numQubits; i++) {
@@ -100,10 +112,36 @@ class QuantumCircuitPainter extends CustomPainter {
       textPainter.paint(canvas, Offset(labelX, labelY));
     }
 
+    List<PlacedQuantumGate> localPlacedGates = circuit.placedGates;
+
+    print('Highlighting Offset: $draggingOffset');
+
+    // Draw the highlight box if a cell is highlighted
+    if (draggingOffset != null) {
+      int? qubitLine = getTappedQubitLine(draggingOffset!);
+      int? gatePosition = getInsertionPosition(draggingOffset!);
+
+      print('Highlighting qubit line: $qubitLine and gate position: $gatePosition');
+
+      if (qubitLine != null && gatePosition != null) {
+        localPlacedGates = List.from(circuit.placedGates);
+        gatePosition = localPlacedGates.isEmpty ? 0 : min(gatePosition, localPlacedGates.length);
+
+        // not considering CNOT at the moment
+        PlacedQuantumGate targetGate = PlacedQuantumGate(
+          type: SelectedGateType.singleGateTarget,
+          position: gatePosition,
+          singleQubitIndex: qubitLine,
+        );
+
+        localPlacedGates.insert(gatePosition, targetGate);
+      }
+    }
+
     List<int> gateXPosititionPerQubit = [0, 0];
 
     // Draw placed gates
-    for (final placedGate in circuit.placedGates) {
+    for (final placedGate in localPlacedGates) {
       // Calculate the horizontal center x-coordinate of the gate's column
       // Gates are positioned relative to the area *after* the initial padding and labels
 
@@ -151,7 +189,18 @@ class QuantumCircuitPainter extends CustomPainter {
         gateXPosititionPerQubit[placedGate.primaryDrawingQubit] += 1; // Increment for next gate
 
         gatePaint.color = placedGate.type.color; // Use the static constant
-        canvas.drawRect(Rect.fromLTWH(gateColumnCenterX - gateSize / 2, gateIconTop, gateSize, gateSize), gatePaint);
+        var gateRect = Rect.fromLTWH(gateColumnCenterX - gateSize / 2, gateIconTop, gateSize, gateSize);
+
+        if (placedGate.type == SelectedGateType.singleGateTarget) {
+          final RRect highlightRect = RRect.fromRectAndRadius(gateRect, const Radius.circular(8),);
+
+          // Draw shadow, fill and border
+          canvas.drawRRect(highlightRect, highlightShadowPaint);
+          canvas.drawRRect(highlightRect, highlightPaint);
+          canvas.drawRRect(highlightRect, highlightBorderPaint);
+        } else {
+          canvas.drawRect(gateRect, gatePaint);
+        }
 
         // Draw 'H' text centered in the square
         String gateText = placedGate.type.label; // Set the text to 'H'

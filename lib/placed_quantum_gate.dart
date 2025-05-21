@@ -61,4 +61,23 @@ class PlacedQuantumGate {
     // Should not happen due to constructor assertion
     return [];
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+          other is PlacedQuantumGate &&
+              runtimeType == other.runtimeType &&
+              type == other.type &&
+              position == other.position &&
+              primaryDrawingQubit == other.primaryDrawingQubit &&
+              controlQubitIndex == other.controlQubitIndex &&
+              targetQubitIndex == other.targetQubitIndex;
+
+  @override
+  int get hashCode =>
+      type.hashCode ^
+      position.hashCode ^
+      primaryDrawingQubit.hashCode ^
+      controlQubitIndex.hashCode ^
+      targetQubitIndex.hashCode;
 }

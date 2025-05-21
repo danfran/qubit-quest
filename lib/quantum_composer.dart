@@ -26,6 +26,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
   SelectedGateType _currentMode = SelectedGateType.none;
   int? _cnotControlQubit; // To track the first tap for CNOT
 
+  // State to manage the highlight box for drag-and-drop
+  Offset? _draggingOffset;
+
   final ValueNotifier<double> _circuitWidthNotifier = ValueNotifier<double>(0.0);
 
 // You'll likely need a helper to format the QubitState for display
@@ -87,24 +90,36 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }
 
   // New method to handle a gate being dropped onto the circuit area
+  Offset? _gatePositionToLocal(Offset offset) {
+    final RenderBox? renderBox = _gestureDetectorKey.currentContext
+        ?.findRenderObject() as RenderBox?;
+    if (renderBox == null) {
+      print('Error: Could not find RenderBox for GestureDetector.');
+      return null;
+    }
+    final localPosition = renderBox.globalToLocal(offset);
+    return localPosition;
+  }
+
+    // New method to handle a gate being dropped onto the circuit area
   void _handleGateDrop(DragTargetDetails<SelectedGateType> details) {
     // Corrected: Use details.offset for the local drop position
     print('Gate dropped at local position: ${details.offset}'); // localPosition relative to the DragTarget
     print('Dropped gate type: ${details.data}'); // The data from the Draggable
 
-    final RenderBox? renderBox = _gestureDetectorKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) {
-      print('Error: Could not find RenderBox for GestureDetector.');
+    final localPosition = _gatePositionToLocal(details.offset);
+
+    if (localPosition == null) {
+      print('Error: Could not convert global position to local.');
       return;
     }
-    final localPosition = renderBox.globalToLocal(details.offset);
 
     final droppedGateType = details.data;
     // final dropPosition = details.offset; // Use details.offset
     final dropPosition = localPosition; // Use details.offset
 
     // Use the painter's logic to determine the qubit line and insertion position
-    final painter = QuantumCircuitPainter(circuit, widthNotifier: _circuitWidthNotifier); // Painter knows layout constants
+    final painter = QuantumCircuitPainter(circuit, _circuitWidthNotifier, _draggingOffset); // Painter knows layout constants
 
     // Determine the tapped qubit line based on the vertical drop position
     final tappedQubitLine = painter.getTappedQubitLine(dropPosition);
@@ -211,17 +226,16 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   void _handleCircuitTap(TapDownDetails details) {
     print('Tap detected.');
-    final RenderBox? renderBox = _gestureDetectorKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) {
-      print('Error: Could not find RenderBox for GestureDetector.');
+    final localPosition = _gatePositionToLocal(details.globalPosition);
+
+    if (localPosition == null) {
+      print('Error: Could not convert global position to local.');
       return;
     }
-
-    final localPosition = renderBox.globalToLocal(details.globalPosition);
     print('Local tap position: $localPosition');
 
     // Create a temporary painter instance for hit testing
-    final painter = QuantumCircuitPainter(circuit, widthNotifier: _circuitWidthNotifier);
+    final painter = QuantumCircuitPainter(circuit, _circuitWidthNotifier, _draggingOffset);
 
 
     if (_currentMode == SelectedGateType.delete) {
@@ -331,7 +345,24 @@ class _QuantumComposerState extends State<QuantumComposer> {
     return formatted;
   }
 
+  void _onDragEnter(Offset offset) {
+    setState(() {
+      final localPosition = _gatePositionToLocal(offset);
 
+      if (localPosition == null) {
+        print('Error: Could not convert global position to local.');
+        return;
+      }
+
+      _draggingOffset = localPosition;
+    });
+  }
+
+  void _onDragLeave() {
+    setState(() {
+      _draggingOffset = null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -404,8 +435,23 @@ class _QuantumComposerState extends State<QuantumComposer> {
                           print("  Calculated SizedBox size: Size($sizedBoxWidth, $sizedBoxHeight)"); // Debug SizedBox size
 
                           return DragTarget<SelectedGateType>( // DragTarget wraps the scrollable area
-                            onWillAccept: (data) => data != null && data != SelectedGateType.delete, // Accept any gate type except delete
-                            onAcceptWithDetails: _handleGateDrop, // Handle the drop event
+                            // onWillAccept: (data) => data != null && data != SelectedGateType.delete, // Accept any gate type except delete
+                            onAcceptWithDetails: (details) {
+                              _handleGateDrop(details);
+                              _onDragLeave();
+                              }, // Handle the drop event
+                            onLeave: (data) {
+                              _onDragLeave();
+                              },
+                            onMove: (data) {
+                              _onDragEnter(data.offset);
+                            },
+                            onWillAcceptWithDetails: (details) {
+                              SelectedGateType data = details.data;
+                              _onDragEnter(details.offset);
+                              bool isNotDelete = data != null && data != SelectedGateType.delete;
+                              return isNotDelete;
+                            },
                             builder: (context, candidateData, rejectedData) {
                               // We can use the presence of candidateData to provide visual feedback
                               bool isDraggingOver = candidateData.isNotEmpty;
@@ -417,7 +463,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                                   scrollDirection: Axis.horizontal,
                                   // ** Wrap CustomPaint in ConstrainedBox to force size **
                                   child: CustomPaint(
-                                    painter: QuantumCircuitPainter(circuit, widthNotifier: _circuitWidthNotifier), // Pass the circuit
+                                    painter: QuantumCircuitPainter(circuit, _circuitWidthNotifier, _draggingOffset), // Pass the circuit
                                     child: ListenableBuilder(
                                       listenable: circuit, // Listen to the circuit object
                                       builder: (context, child) {
