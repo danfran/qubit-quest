@@ -369,7 +369,12 @@ class _QuantumComposerState extends State<QuantumComposer> {
     return Scaffold(
       // Modify the AppBar
       appBar: AppBar(
-        title: Text("n-Qubit Composer"),
+        title: Text("<Q|Q> Level 05",
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),),
         // ** Add the actions list here **
         actions: [
           // Info Button (as TextButton.icon)
@@ -378,7 +383,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
             icon: Icon(Icons.info_outline),
             label: Text('Info'),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.black, // White icon/text color for contrast on AppBar
+              foregroundColor: Colors.white, // White icon/text color for contrast on AppBar
               // You might adjust padding if needed to fit
               // padding: EdgeInsets.symmetric(horizontal: 8.0),
             ),
@@ -389,7 +394,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
             icon: Icon(Icons.play_arrow),
             label: Text('Run'), // Shorten text for AppBar
             style: TextButton.styleFrom(
-              foregroundColor: Colors.black, // White text color
+              foregroundColor: Colors.white, // White text color
             ),
           ),
           // Clear Circuit Button (as TextButton)
@@ -398,13 +403,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
             icon: Icon(Icons.cleaning_services),
             label: Text('Clear'), // Shorten text for AppBar
             style: TextButton.styleFrom(
-              foregroundColor: Colors.black, // White text color
+              foregroundColor: Colors.white, // White text color
             ),
           ),
         ],
         // ****************************
       ),
-      body: Column( // Main Column stacking the top section and controls
+      body: SafeArea(child: Column( // Main Column stacking the top section and controls
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded( // This Expanded makes the Row take available vertical space
@@ -704,6 +709,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
           ),
         ],
       ),
-    );
+    ));
   }
 }

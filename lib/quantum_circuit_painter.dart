@@ -21,8 +21,8 @@ class QuantumCircuitPainter extends CustomPainter {
   static const double controlDotRadius = 4.0; // Radius of the CNOT control dot
 
   // Color constants
-  static const Color gridLinesColor = Colors.black; // Define color for qubit lines (Black)
-  static const Color qubitLabelColor = Colors.black; // Color for qubit labels (q0, q1) (Black)
+  static const Color gridLinesColor = Colors.white; // Define color for qubit lines (Black)
+  static const Color qubitLabelColor = Colors.white; // Color for qubit labels (q0, q1) (Black)
   // Add colors for other gate types as needed
 
   // ** Debugging color for hit areas **
