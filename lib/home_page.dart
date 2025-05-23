@@ -24,9 +24,9 @@ class _HomePageState extends State<HomePage> {
         title: Text(
           "<Qubit|Quest>", // App name
           style: TextStyle(
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
         backgroundColor: Colors.black, // Dark app bar

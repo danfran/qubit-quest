@@ -367,6 +367,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        backgroundColor: Colors.black,
       // Modify the AppBar
       appBar: AppBar(
         title: Text("<Q|Q> Level 05",
@@ -419,7 +420,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
                 Expanded(
                   flex: 7, // Allocate 70% width
                   child: Container( // Container for padding
-                    // padding: EdgeInsets.all(8.0),
+                    // color: Colors.grey[900],
+                    decoration: BoxDecoration(
+                        shape: BoxShape.rectangle,
+                        color: Colors.grey[900],
+                        border: Border.all(color: Colors.green, width: 2),
+                        borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    padding: EdgeInsets.all(2.0),
                     child: LayoutBuilder( // LayoutBuilder gets bounded constraints from Container/Expanded
                         builder: (context, constraints) {
                           print("  LayoutBuilder constraints: $constraints"); // Debug constraints
@@ -490,40 +498,41 @@ class _QuantumComposerState extends State<QuantumComposer> {
                 ),
 
                 // Add VerticalDivider here
-                VerticalDivider(
-                  width: 1,
-                  thickness: 1,
-                  indent: 0,
-                  endIndent: 0,
-                  color: Colors.grey,
-                ),
+                // VerticalDivider(
+                //   width: 1,
+                //   thickness: 1,
+                //   indent: 0,
+                //   endIndent: 0,
+                //   color: Colors.grey,
+                // ),
 
                 // Histogram Visualization (Right - 30% width)
                 Expanded(
                   flex: 3,
-                  child: Column(children: [
+                  child:
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: Text(
+                      child: Column(children: [
+                        Text(
                             simulationResult,
-                            style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.gridLinesFontColor),
+                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                           ),
+                        Divider(),
+                        SizedBox(height: 10.0),
+                        Container(
+                          padding: EdgeInsets.all(8.0),
+                          // The histogram content itself is scrollable inside _buildProbabilityHistogram if needed
+                          child: SingleChildScrollView( // Scroll the whole histogram section if needed
+                            scrollDirection: Axis.vertical,
+                            child: AspectRatio(
+                              aspectRatio: 1.8,
+                              child: ProbabilityHistogram(probabilities: measurementProbabilities),
+                            ), // Your histogram helper
+                          ),
+                        ),
+                        // State Vector Display (Below buttons)
+                      ]),
                     ),
-                    Divider(),
-                    SizedBox(height: 16.0),
-                    Container(
-                      padding: EdgeInsets.all(8.0),
-                      // The histogram content itself is scrollable inside _buildProbabilityHistogram if needed
-                      child: SingleChildScrollView( // Scroll the whole histogram section if needed
-                        scrollDirection: Axis.vertical,
-                        child: AspectRatio(
-                          aspectRatio: 2.0,
-                          child: ProbabilityHistogram(probabilities: measurementProbabilities),
-                        ), // Your histogram helper
-                      ),
-                    ),
-                    // State Vector Display (Below buttons)
-                  ]),
                 ),
               ],
             ),
@@ -561,13 +570,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
                       SizedBox(width: 4), // Space after Delete button
                       // ** Add the Vertical Divider **
                       Container( // Wrap divider in Container to give it a height matching buttons
-                        height: QuantumCircuitPainter.gateSize, // Match button height
+                        height: QuantumCircuitPainter.gateSize * 0.75, // Match button height
                         child: VerticalDivider(
                           width: 1,
                           thickness: 2,
                           indent: 0, // Adjust indent/endIndent if buttons have different padding
                           endIndent: 0,
-                          color: Colors.black, // White divider for visibility on black background
+                          color: Colors.white, // White divider for visibility on black background
                         ),
                       ),
                       SizedBox(width: 4), // Space after divider
