@@ -112,10 +112,11 @@ class QuantumCircuitPainter extends CustomPainter {
       textPainter.paint(canvas, Offset(labelX, labelY));
     }
 
-    List<PlacedQuantumGate> localPlacedGates = circuit.placedGates;
+    List<List<PlacedQuantumGate>> localPlacedGates = circuit.placedGates;
 
     print('Highlighting Offset: $draggingOffset');
 
+    // **** HIGHLIGHT BOX
     // Draw the highlight box if a cell is highlighted
     if (draggingOffset != null) {
       int? qubitLine = getTappedQubitLine(draggingOffset!);
@@ -124,8 +125,9 @@ class QuantumCircuitPainter extends CustomPainter {
       print('Highlighting qubit line: $qubitLine and gate position: $gatePosition');
 
       if (qubitLine != null && gatePosition != null) {
-        localPlacedGates = List.from(circuit.placedGates);
-        gatePosition = localPlacedGates.isEmpty ? 0 : min(gatePosition, localPlacedGates.length);
+        // localPlacedGates = List.from(circuit.placedGates);
+        localPlacedGates = circuit.placedGates.map((element) => List<PlacedQuantumGate>.from(element)).toList();
+        gatePosition = circuit.isEmpty() ? 0 : min(gatePosition, localPlacedGates[qubitLine].length);
 
         // not considering CNOT at the moment
         PlacedQuantumGate targetGate = PlacedQuantumGate(
@@ -133,82 +135,114 @@ class QuantumCircuitPainter extends CustomPainter {
           position: gatePosition,
           singleQubitIndex: qubitLine,
         );
-
-        localPlacedGates.insert(gatePosition, targetGate);
+        print('Place box at Highlighting qubit line: $qubitLine and gate position: $gatePosition');
+        var localQubitLine = localPlacedGates[qubitLine];
+        if (gatePosition > localQubitLine.length) {
+          localQubitLine.add(targetGate);
+        } else {
+          localQubitLine.insert(gatePosition, targetGate);
+        }
       }
     }
 
     List<int> gateXPosititionPerQubit = [0, 0];
 
     // Draw placed gates
-    for (final placedGate in localPlacedGates) {
-      // Calculate the horizontal center x-coordinate of the gate's column
-      // Gates are positioned relative to the area *after* the initial padding and labels
+    for (final row in localPlacedGates) {
+      for (final placedGate in row) {
+        // Calculate the horizontal center x-coordinate of the gate's column
+        // Gates are positioned relative to the area *after* the initial padding and labels
 
-      // Use the helper for the vertical center of the primary qubit line
-      final double gateCenterY = getQubitCenterY(placedGate.primaryDrawingQubit);
-      final double gateIconTop = gateCenterY - gateSize / 2; // Use gateCenterY to center vertically
+        // Use the helper for the vertical center of the primary qubit line
+        final double gateCenterY = getQubitCenterY(
+            placedGate.primaryDrawingQubit);
+        final double gateIconTop = gateCenterY -
+            gateSize / 2; // Use gateCenterY to center vertically
 
-      // Calculate the top-left corner of the gate icon square
-      if (placedGate.type == SelectedGateType.cnot) {
-        // Drawing logic for CNOT
-        int currentX = gateXPosititionPerQubit.reduce(max);
-        final double gateColumnCenterX = padding + currentX * gateSpacing + gateSpacing / 2;
+        // Calculate the top-left corner of the gate icon square
+        if (placedGate.type == SelectedGateType.cnot) {
+          // Drawing logic for CNOT
+          int currentX = gateXPosititionPerQubit.reduce(max);
+          final double gateColumnCenterX = padding + currentX * gateSpacing +
+              gateSpacing / 2;
 
-        gateXPosititionPerQubit = List.filled(circuit.numQubits, currentX + 1);
+          gateXPosititionPerQubit =
+              List.filled(circuit.numQubits, currentX + 1);
 
-        // Use the helper for the vertical centers of control and target qubits
-        final double controlY = getQubitCenterY(placedGate.controlQubitIndex!);
-        final double targetY = getQubitCenterY(placedGate.targetQubitIndex!);
+          // Use the helper for the vertical centers of control and target qubits
+          final double controlY = getQubitCenterY(
+              placedGate.controlQubitIndex!);
+          final double targetY = getQubitCenterY(placedGate.targetQubitIndex!);
 
-        // Draw control circle/dot
-        final controlPaint = Paint()..color = SelectedGateType.cnot.color; // Use the static constant
-        canvas.drawCircle(Offset(gateColumnCenterX, controlY), controlDotRadius, controlPaint);
+          // Draw control circle/dot
+          final controlPaint = Paint()
+            ..color = SelectedGateType.cnot.color; // Use the static constant
+          canvas.drawCircle(
+              Offset(gateColumnCenterX, controlY), controlDotRadius,
+              controlPaint);
 
-        // Draw connection line between control and target
-        final linePaint = Paint()..color = SelectedGateType.cnot.color..strokeWidth = 2.0; // Use the static constant
-        canvas.drawLine(Offset(gateColumnCenterX, controlY), Offset(gateColumnCenterX, targetY), linePaint);
+          // Draw connection line between control and target
+          final linePaint = Paint()
+            ..color = SelectedGateType.cnot.color
+            ..strokeWidth = 2.0; // Use the static constant
+          canvas.drawLine(Offset(gateColumnCenterX, controlY),
+              Offset(gateColumnCenterX, targetY), linePaint);
 
-        // Draw target circle
-        final targetPaint = Paint()..color = SelectedGateType.cnot.color; // Use the static constant
-        canvas.drawCircle(Offset(gateColumnCenterX, targetY), targetRadius, targetPaint);
+          // Draw target circle
+          final targetPaint = Paint()
+            ..color = SelectedGateType.cnot.color; // Use the static constant
+          canvas.drawCircle(
+              Offset(gateColumnCenterX, targetY), targetRadius, targetPaint);
 
 
-        // Draw '+' inside target circle
-        final plusPainter = TextPainter(
-          text: TextSpan(text: '+', style: TextStyle(color: Colors.white, fontSize: 24)), // Use the static constant
-          textDirection: TextDirection.ltr,
-        );
-        plusPainter.layout();
-        plusPainter.paint(canvas, Offset(gateColumnCenterX - plusPainter.width / 2, targetY - plusPainter.height / 2));
+          // Draw '+' inside target circle
+          final plusPainter = TextPainter(
+            text: TextSpan(
+                text: '+', style: TextStyle(color: Colors.white, fontSize: 24)),
+            // Use the static constant
+            textDirection: TextDirection.ltr,
+          );
+          plusPainter.layout();
+          plusPainter.paint(canvas, Offset(
+              gateColumnCenterX - plusPainter.width / 2,
+              targetY - plusPainter.height / 2));
 
-        widthNotifier.value = max(widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
-      } else {
-        final double gateColumnCenterX = padding + gateXPosititionPerQubit[placedGate.primaryDrawingQubit] * gateSpacing + gateSpacing / 2;
-
-        gateXPosititionPerQubit[placedGate.primaryDrawingQubit] += 1; // Increment for next gate
-
-        gatePaint.color = placedGate.type.color; // Use the static constant
-        var gateRect = Rect.fromLTWH(gateColumnCenterX - gateSize / 2, gateIconTop, gateSize, gateSize);
-
-        if (placedGate.type == SelectedGateType.singleGateTarget) {
-          final RRect highlightRect = RRect.fromRectAndRadius(gateRect, const Radius.circular(8),);
-
-          // Draw shadow, fill and border
-          canvas.drawRRect(highlightRect, highlightShadowPaint);
-          canvas.drawRRect(highlightRect, highlightPaint);
-          canvas.drawRRect(highlightRect, highlightBorderPaint);
+          widthNotifier.value = max(
+              widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
         } else {
-          canvas.drawRect(gateRect, gatePaint);
+          final double gateColumnCenterX = padding +
+              gateXPosititionPerQubit[placedGate.primaryDrawingQubit] *
+                  gateSpacing + gateSpacing / 2;
+
+          gateXPosititionPerQubit[placedGate.primaryDrawingQubit] +=
+          1; // Increment for next gate
+
+          gatePaint.color = placedGate.type.color; // Use the static constant
+          var gateRect = Rect.fromLTWH(
+              gateColumnCenterX - gateSize / 2, gateIconTop, gateSize,
+              gateSize);
+
+          if (placedGate.type == SelectedGateType.singleGateTarget) {
+            final RRect highlightRect = RRect.fromRectAndRadius(
+              gateRect, const Radius.circular(8),);
+
+            // Draw shadow, fill and border
+            canvas.drawRRect(highlightRect, highlightShadowPaint);
+            canvas.drawRRect(highlightRect, highlightPaint);
+            canvas.drawRRect(highlightRect, highlightBorderPaint);
+          } else {
+            canvas.drawRect(gateRect, gatePaint);
+          }
+
+          // Draw 'H' text centered in the square
+          String gateText = placedGate.type.label; // Set the text to 'H'
+          gateTextPainter(gateText, canvas, gateColumnCenterX, gateIconTop);
+
+          widthNotifier.value = max(
+              widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
         }
-
-        // Draw 'H' text centered in the square
-        String gateText = placedGate.type.label; // Set the text to 'H'
-        gateTextPainter(gateText, canvas, gateColumnCenterX, gateIconTop);
-
-        widthNotifier.value = max(widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
+        // Add drawing logic for other gate types here
       }
-      // Add drawing logic for other gate types here
     }
   }
 
@@ -224,78 +258,18 @@ class QuantumCircuitPainter extends CustomPainter {
     textPainter.paint(canvas, Offset(gateColumnCenterX - textPainter.width / 2, gateIconTop + gateSize / 2 - textPainter.height / 2));
   }
 
-  // Implement the hit-testing method to find a TAPPED GATE
-  // This method is called from _handleCircuitTap and receives the local tap position.
-  PlacedQuantumGate? getGateAtTap(Offset tapPosition) {
-    // Iterate through the list of placed gates in the circuit
-    for (final placedGate in circuit.placedGates) {
-      // Calculate the horizontal center x-coordinate of the gate's column
-      final double gateColumnCenterX = padding + placedGate.position * gateSpacing + gateSpacing / 2;
+  bool removeGateAtTap(Offset tapPosition) {
+    int? qubitLine = getTappedQubitLine(tapPosition);
+    int? gatePosition = getInsertionPosition(tapPosition);
 
-      // Use the helper for the vertical center of the primary qubit line
-      final double gateCenterY = getQubitCenterY(placedGate.primaryDrawingQubit);
+    print('Gate remove tap qubit line: $qubitLine and gate position: $gatePosition');
 
-      // Calculate the bounding box (rectangle) around the gate icon for hit testing
-      // This rectangle is where the gate icon would be drawn, plus hit tolerance.
-      final double gateIconLeft = gateColumnCenterX - gateSize / 2;
-      final double gateIconTop = gateCenterY - gateSize / 2; // Use gateCenterY
-      final double gateIconRight = gateColumnCenterX + gateSize / 2;
-      final double gateIconBottom = gateCenterY + gateSize / 2; // Use gateCenterY
-
-      // Create a slightly larger rectangle including hit tolerance for easier tapping
-      final Rect gateHitRect = Rect.fromLTRB(
-        gateIconLeft - hitTolerance,
-        gateIconTop - hitTolerance,
-        gateIconRight + hitTolerance,
-        gateIconBottom + hitTolerance,
-      );
-
-      // Check if the tap position is inside this gate icon's hit rectangle
-      if (gateHitRect.contains(tapPosition)) {
-        return placedGate; // Return the specific PlacedQuantumGate object that was tapped
-      }
-
-      // Handle hit testing for CNOT connection line and target circle
-      if (placedGate.type == SelectedGateType.cnot) {
-        // Use the helper for the vertical centers of control and target qubits
-        final double controlY = getQubitCenterY(placedGate.controlQubitIndex!);
-        final double targetY = getQubitCenterY(placedGate.targetQubitIndex!);
-
-        // The connection line is vertical at the gate's column center x-position
-        final double lineX = gateColumnCenterX;
-        final double lineTop = min(controlY, targetY);
-        final double lineBottom = max(controlY, targetY);
-
-        // Create a thin rectangle for the connection line (add horizontal tolerance)
-        final Rect connectionLineHitRect = Rect.fromLTRB(
-          lineX - hitTolerance / 2, // Make it tappable horizontally
-          lineTop,
-          lineX + hitTolerance / 2, // Make it tappable horizontally
-          lineBottom,
-        );
-
-        // Check if the tap hit the connection line
-        if (connectionLineHitRect.contains(tapPosition)) {
-          return placedGate; // Return the CNOT gate if its connection line is tapped
-        }
-
-        // Check the target circle hit area
-        final double targetCircleY = getQubitCenterY(placedGate.targetQubitIndex!); // Use helper
-        final double targetCircleRadius = QuantumCircuitPainter.targetRadius;
-        final double targetCircleLeft = gateColumnCenterX - (targetCircleRadius + hitTolerance / 2);
-        final double targetCircleTop = targetCircleY - (targetCircleRadius + hitTolerance / 2);
-        final double targetCircleRight = gateColumnCenterX + (targetCircleRadius + hitTolerance / 2);
-        final double targetCircleBottom = targetCircleY + (targetCircleRadius + hitTolerance / 2);
-        final Rect targetCircleHitRect = Rect.fromLTRB(targetCircleLeft, targetCircleTop, targetCircleRight, targetCircleBottom);
-
-        // Check if the tap hit the target circle
-        if (targetCircleHitRect.contains(tapPosition)) {
-          return placedGate; // Return the CNOT gate if its target circle is tapped
-        }
-      }
+    if (qubitLine != null && gatePosition != null && gatePosition < circuit.placedGates[qubitLine].length) {
+      circuit.removePlacedGate(gatePosition, qubitLine);
+      return true;
     }
 
-    return null; // If the loop finishes without finding a gate, return null
+    return false;
   }
 
   // Implement the hit-testing method to find a TAPPED QUBIT LINE (for placement)
@@ -329,7 +303,7 @@ class QuantumCircuitPainter extends CustomPainter {
     // Calculate the potential column index
     // Divide by gateSpacing to get the column index, then round to the nearest integer
     // Add 0.5 before casting to int for proper rounding
-    final int potentialPosition = ((dropXRelativeToGrid / gateSpacing)).round(); // Use round() for standard rounding
+    final int potentialPosition = ((dropXRelativeToGrid / gateSpacing)).floor(); // Use round() for standard rounding
 
     // Ensure the potential position is not negative
     if (potentialPosition < 0) {
@@ -345,50 +319,50 @@ class QuantumCircuitPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant QuantumCircuitPainter oldDelegate) {
     return true;
-    // print("shouldRepaint called.");
-    // print("New circuit placedGates length: ${circuit.placedGates.length}");
-    // print("Old circuit placedGates length: ${oldDelegate.circuit.placedGates.length}");
-
-    // Check if the list reference is different.
-    if (circuit.placedGates != oldDelegate.circuit.placedGates) {
-      // print("shouldRepaint: true (list reference changed).");
-      return true;
-    }
-
-    // Check if the list length has changed.
-    if (circuit.placedGates.length != oldDelegate.circuit.placedGates.length) {
-      // print("shouldRepaint: true (list length changed).");
-      return true;
-    }
-
-    // If list reference and length are the same, perform a deep comparison of contents.
-    // This is the most thorough check.
-    for (int i = 0; i < circuit.placedGates.length; i++) {
-      final newGate = circuit.placedGates[i];
-      final oldGate = oldDelegate.circuit.placedGates[i];
-
-      // Compare relevant properties that affect drawing
-      if (newGate.type != oldGate.type ||
-          newGate.position != oldGate.position ||
-          newGate.singleQubitIndex != oldGate.singleQubitIndex ||
-          newGate.controlQubitIndex != oldGate.controlQubitIndex ||
-          newGate.targetQubitIndex != oldGate.targetQubitIndex) {
-        // print("shouldRepaint: true (gate properties changed at index $i).");
-        return true; // A gate's properties has changed, need to repaint
-      }
-      // Add debug prints to see if properties are being compared and if they match
-      // print("Comparing gate at index $i:");
-      // print("  New: type=${newGate.type}, pos=${newGate.position}, single=${newGate.singleQubitIndex}, control=${newGate.controlQubitIndex}, target=${newGate.targetQubitIndex}");
-      // print("  Old: type=${oldGate.type}, pos=${oldGate.position}, single=${oldGate.singleQubitIndex}, control=${oldGate.controlQubitIndex}, target=${oldGate.targetQubitIndex}");
-      // if (newGate.type != oldGate.type) print("    Type mismatch!");
-      // if (newGate.position != oldGate.position) print("    Position mismatch!");
-      // if (newGate.singleQubitIndex != oldGate.singleQubitIndex) print("    Single Qubit mismatch!");
-      // if (newGate.controlQubitIndex != oldGate.controlQubitIndex) print("    Control Qubit mismatch!");
-      // if (newGate.targetQubitIndex != oldGate.targetQubitIndex) print("    Target Qubit mismatch!");
-    }
-
-    // If none of the checks above indicate a change, no need to repaint.
-    // print("shouldRepaint: false (no changes detected after deep comparison).");
-    return false;
+    // // print("shouldRepaint called.");
+    // // print("New circuit placedGates length: ${circuit.placedGates.length}");
+    // // print("Old circuit placedGates length: ${oldDelegate.circuit.placedGates.length}");
+    //
+    // // Check if the list reference is different.
+    // if (circuit.placedGates != oldDelegate.circuit.placedGates) {
+    //   // print("shouldRepaint: true (list reference changed).");
+    //   return true;
+    // }
+    //
+    // // Check if the list length has changed.
+    // if (circuit.placedGates.length != oldDelegate.circuit.placedGates.length) {
+    //   // print("shouldRepaint: true (list length changed).");
+    //   return true;
+    // }
+    //
+    // // If list reference and length are the same, perform a deep comparison of contents.
+    // // This is the most thorough check.
+    // for (int i = 0; i < circuit.placedGates.length; i++) {
+    //   final newGate = circuit.placedGates[i];
+    //   final oldGate = oldDelegate.circuit.placedGates[i];
+    //
+    //   // Compare relevant properties that affect drawing
+    //   if (newGate.type != oldGate.type ||
+    //       newGate.position != oldGate.position ||
+    //       newGate.singleQubitIndex != oldGate.singleQubitIndex ||
+    //       newGate.controlQubitIndex != oldGate.controlQubitIndex ||
+    //       newGate.targetQubitIndex != oldGate.targetQubitIndex) {
+    //     // print("shouldRepaint: true (gate properties changed at index $i).");
+    //     return true; // A gate's properties has changed, need to repaint
+    //   }
+    //   // Add debug prints to see if properties are being compared and if they match
+    //   // print("Comparing gate at index $i:");
+    //   // print("  New: type=${newGate.type}, pos=${newGate.position}, single=${newGate.singleQubitIndex}, control=${newGate.controlQubitIndex}, target=${newGate.targetQubitIndex}");
+    //   // print("  Old: type=${oldGate.type}, pos=${oldGate.position}, single=${oldGate.singleQubitIndex}, control=${oldGate.controlQubitIndex}, target=${oldGate.targetQubitIndex}");
+    //   // if (newGate.type != oldGate.type) print("    Type mismatch!");
+    //   // if (newGate.position != oldGate.position) print("    Position mismatch!");
+    //   // if (newGate.singleQubitIndex != oldGate.singleQubitIndex) print("    Single Qubit mismatch!");
+    //   // if (newGate.controlQubitIndex != oldGate.controlQubitIndex) print("    Control Qubit mismatch!");
+    //   // if (newGate.targetQubitIndex != oldGate.targetQubitIndex) print("    Target Qubit mismatch!");
+    // }
+    //
+    // // If none of the checks above indicate a change, no need to repaint.
+    // // print("shouldRepaint: false (no changes detected after deep comparison).");
+    // return false;
   }
 }

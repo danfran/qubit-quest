@@ -58,24 +58,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
     return formatted;
   }
 
-  // Helper to find the next available horizontal position on a given qubit line
-  int _getNextGatePosition(int qubitIndex) {
-    // Find all placed gates that are drawn primarily on this specific qubit line.
-    // Use primaryDrawingQubit from the PlacedQuantumGate object.
-    final placedGatesOnQubit = circuit.placedGates.where((placedGate) => placedGate.primaryDrawingQubit == qubitIndex).toList();
-
-    if (placedGatesOnQubit.isEmpty) {
-      // If there are no gates drawn on this line yet, the next position is the first position (0)
-      return 0;
-    } else {
-      // Find the maximum horizontal position among the gates on this line
-      // Use .map to get an Iterable of positions and .reduce(max) to find the maximum value
-      final maxPosition = placedGatesOnQubit.map((placedGate) => placedGate.position).reduce(max);
-      // The next available position is one slot after the maximum position
-      return maxPosition + 1;
-    }
-  }
-
   void _setInteractionMode(SelectedGateType mode) {
     setState(() {
       _currentMode = mode;
@@ -226,7 +208,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   void _handleCircuitTap(TapDownDetails details) {
     print('Tap detected.');
-    final localPosition = _gatePositionToLocal(details.globalPosition);
+    // final localPosition = _gatePositionToLocal(details.globalPosition);
+    final localPosition = details.localPosition;
 
     if (localPosition == null) {
       print('Error: Could not convert global position to local.');
@@ -241,15 +224,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
     if (_currentMode == SelectedGateType.delete) {
       print('In delete mode.');
       // Use the painter's hit-testing method to find if a gate was tapped
-      final PlacedQuantumGate? tappedGate = painter.getGateAtTap(localPosition);
+      bool gateRemoved = painter.removeGateAtTap(localPosition);
 
-      if (tappedGate != null) {
-        print('Tapped on a gate for deletion: ${tappedGate.type} at position ${tappedGate.position} on qubits ${tappedGate.getQubitIndices()}');
-        // Remove the gate from the circuit's list of placed gates
-        // This calls notifyListeners() inside QuantumCircuit
-        circuit.removePlacedGate(tappedGate);
-
-        print('Deleted gate.');
+      if (gateRemoved) {
         _runSimulation(); // Update simulation after deletion
         setState(() {
           _currentMode = SelectedGateType.none; // Reset mode after successful deletion
@@ -424,7 +401,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                     decoration: BoxDecoration(
                         shape: BoxShape.rectangle,
                         color: Colors.grey[900],
-                        border: Border.all(color: Colors.green, width: 2),
+                        border: Border.all(color: Colors.green, width: 4),
                         borderRadius: BorderRadius.circular(12.0),
                     ),
                     padding: EdgeInsets.all(2.0),
@@ -437,7 +414,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
 
                           // Calculate the minimum width needed based on the maximum position of placed gates
-                          final int maxPosition = circuit.placedGates.isEmpty ? -1 : circuit.placedGates.map((placedGate) => placedGate.position).reduce(max);
+                          final int maxPosition = circuit.isEmpty() ? -1 : circuit.placedGates.expand((e) => e).map((e) => e.position).reduce(max);
                           // Add 2 for the next column and some extra space
                           final double minRequiredWidth = (maxPosition + 3) * QuantumCircuitPainter.gateSpacing + QuantumCircuitPainter.padding * 2;
 
