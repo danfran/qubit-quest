@@ -401,7 +401,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                     decoration: BoxDecoration(
                         shape: BoxShape.rectangle,
                         color: Colors.grey[900],
-                        border: Border.all(color: Colors.green, width: 4),
+                        border: Border.all(color: Colors.yellowAccent, width: 4),
                         borderRadius: BorderRadius.circular(12.0),
                     ),
                     padding: EdgeInsets.all(2.0),
