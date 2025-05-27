@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:quantumquiz/qubit_state.dart';
 import 'package:quantumquiz/selected_gate_type.dart';
 
+import 'cnot_target_qubit_selection_dialog.dart';
 import 'math_utils.dart';
 
 class QuantumComposer extends StatefulWidget {
@@ -24,7 +25,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
   List<List<Complex>> overallCircuitMatrix = identityMatrix(numberQubits);
   List<double> measurementProbabilities = [0.0, 0.0, 0.0, 0.0];
   SelectedGateType _currentMode = SelectedGateType.none;
-  int? _cnotControlQubit; // To track the first tap for CNOT
+  int? _cnotTargetQubit; // To track the target for CNOT
 
   // State to manage the highlight box for drag-and-drop
   Offset? _draggingOffset;
@@ -61,7 +62,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
   void _setInteractionMode(SelectedGateType mode) {
     setState(() {
       _currentMode = mode;
-      _cnotControlQubit = null; // Reset CNOT control on mode change
+      _cnotTargetQubit = null; // Reset CNOT control on mode change
       if (mode == SelectedGateType.delete) {
         simulationResult = "Tap on a gate to delete it.";
       } else {
@@ -84,7 +85,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }
 
     // New method to handle a gate being dropped onto the circuit area
-  void _handleGateDrop(DragTargetDetails<SelectedGateType> details) {
+  Future<void> _handleGateDrop(DragTargetDetails<SelectedGateType> details) async {
     // Corrected: Use details.offset for the local drop position
     print('Gate dropped at local position: ${details.offset}'); // localPosition relative to the DragTarget
     print('Dropped gate type: ${details.data}'); // The data from the Draggable
@@ -142,24 +143,32 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
       // Let's go with the simpler approach for now: Drop implies control qubit.
       // Target is the next available qubit line, if different from control.
-      final int controlQubit = tappedQubitLine;
-      int? targetQubit;
-      if (controlQubit == 0 && circuit.numQubits > 1) {
-        targetQubit = 1;
-      } else if (controlQubit == 1 && circuit.numQubits > 0) {
-        targetQubit = 0;
+      int? targetQubitLine;
+
+      if (circuit.numQubits == 1) {
+        if (tappedQubitLine == 0 && circuit.numQubits > 1) {
+          targetQubitLine = 1;
+        } else if (tappedQubitLine == 1 && circuit.numQubits > 0) {
+          targetQubitLine = 0;
+        } else {
+          print('Cannot place CNOT on single qubit or invalid target.');
+          // Optionally provide feedback
+          return;
+        }
       } else {
-        print('Cannot place CNOT on single qubit or invalid target.');
-        // Optionally provide feedback
-        return;
+        await _showTargetSelectionDialog(context, tappedQubitLine, circuit.numQubits);
+        if (_cnotTargetQubit != null) {
+          targetQubitLine = _cnotTargetQubit;
+        }
       }
 
-      if (targetQubit != null && controlQubit != targetQubit) {
+      if (targetQubitLine != null && tappedQubitLine != targetQubitLine) {
+        print('CNOT placement (control line = $tappedQubitLine and target line = $_cnotTargetQubit).');
         placedGate = PlacedQuantumGate(
           type: SelectedGateType.cnot,
           position: insertionPosition,
-          controlQubitIndex: controlQubit,
-          targetQubitIndex: targetQubit,
+          controlQubitIndex: tappedQubitLine,
+          targetQubitIndex: targetQubitLine,
         );
       } else {
         print('Invalid CNOT placement (control == target or not enough qubits).');
@@ -178,6 +187,16 @@ class _QuantumComposerState extends State<QuantumComposer> {
       // ** Add the PlacedQuantumGate to the circuit at the specific position **
       // The QuantumCircuit class needs a method like insertPlacedGateAt
       circuit.insertPlacedGateAt(placedGate, insertionPosition, tappedQubitLine); // <-- Need to implement this in QuantumCircuit
+      if (droppedGateType == SelectedGateType.cnot) {
+        PlacedQuantumGate placedGateTarget = PlacedQuantumGate(
+          type: SelectedGateType.cnot,
+          position: placedGate.position,
+          controlQubitIndex: placedGate.controlQubitIndex,
+          targetQubitIndex: placedGate.targetQubitIndex,
+          isTarget: true,
+        );
+        circuit.insertPlacedGateAt(placedGateTarget, insertionPosition, placedGate.targetQubitIndex!);
+      }
 
       print('Gate successfully placed.');
       // No need for setState here, circuit.insertPlacedGateAt should call notifyListeners()
@@ -185,10 +204,31 @@ class _QuantumComposerState extends State<QuantumComposer> {
     }
   }
 
+  Future<void> _showTargetSelectionDialog(BuildContext context, int controlQubit, int numQubits) async {
+    // Ensure dialog is not already shown
+    if (ModalRoute.of(context)?.isCurrent != true || Navigator.of(context).canPop() == false) {
+      // This is a crude check to avoid showing multiple dialogs.
+      // A more robust solution might involve a global boolean or state for dialog visibility.
+      return;
+    }
+
+    final int? selectedTarget = await showDialog<int>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return CNOTTargetQubitSelectionDialog(
+          controlQubitIndex: controlQubit,
+          numQubits: numQubits,
+        );
+      },
+    );
+
+    _cnotTargetQubit = selectedTarget;
+  }
+
   void _selectGateForPlacement(SelectedGateType gateType) {
     setState(() {
       _currentMode = gateType;
-      _cnotControlQubit = null; // Reset CNOT control on new gate selection
+      _cnotTargetQubit = null; // Reset CNOT control on new gate selection
       simulationResult = "Tap on a qubit line to place the gate.";
       if (gateType == SelectedGateType.cnot) {
         simulationResult = "Tap on the control qubit for CNOT.";
@@ -278,7 +318,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     circuit.clearPlacedGates(); // This calls notifyListeners()
     print('Circuit cleared.');
     _setInteractionMode(SelectedGateType.none); // Reset mode
-    _cnotControlQubit = null;
+    _cnotTargetQubit = null;
     _runSimulation(); // Run simulation - empty circuit
     _circuitWidthNotifier.value = 0; // Reset width notifier
   }

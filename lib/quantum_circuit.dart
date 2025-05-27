@@ -3,6 +3,7 @@
 import 'package:flutter/foundation.dart'; // Import this for ChangeNotifier
 import 'package:complex/complex.dart';
 import 'package:quantumquiz/placed_quantum_gate.dart'; // Import PlacedQuantumGate
+import 'package:quantumquiz/quantum_gate.dart';
 import 'package:quantumquiz/qubit_state.dart'; // Assuming you have this class
 import 'dart:math';
 
@@ -29,10 +30,19 @@ class QuantumCircuit extends ChangeNotifier {
 
   // New method to insert a placed gate at a specific position
   void insertPlacedGateAt(PlacedQuantumGate gateToInsert, int insertionPosition, int targetQubitIndex) {
-    insertionPosition = isEmpty() ? 0 : min(insertionPosition, placedGates[targetQubitIndex].length);
-    placedGates[targetQubitIndex].insert(insertionPosition, gateToInsert);
+    if (gateToInsert.isTarget) {
+      if (insertionPosition > placedGates[targetQubitIndex].length) { // Insert empty filler
+        final int lengthFiller = (placedGates[targetQubitIndex].length - insertionPosition).abs();
+        final fillerList = List<PlacedQuantumGate>.filled(lengthFiller, PlacedQuantumGate.emptyGate());
+        placedGates[targetQubitIndex].addAll(fillerList);
+      }
+      placedGates[targetQubitIndex].insert(insertionPosition, gateToInsert);
+    } else {
+      insertionPosition = isEmpty() ? 0 : min(insertionPosition, placedGates[targetQubitIndex].length);
+      placedGates[targetQubitIndex].insert(insertionPosition, gateToInsert);
 
-    print("Gate inserted at position $insertionPosition on qubit $targetQubitIndex. Total placed gates: ${placedGates.length}");
+      print("Gate inserted at position $insertionPosition on qubit $targetQubitIndex. Total placed gates: ${placedGates.length}");
+    }
     // Notify listeners that the state has changed
     notifyListeners();
   }

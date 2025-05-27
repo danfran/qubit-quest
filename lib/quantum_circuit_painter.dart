@@ -148,100 +148,81 @@ class QuantumCircuitPainter extends CustomPainter {
     List<int> gateXPosititionPerQubit = [0, 0];
 
     // Draw placed gates
-    for (final row in localPlacedGates) {
-      for (final placedGate in row) {
-        // Calculate the horizontal center x-coordinate of the gate's column
-        // Gates are positioned relative to the area *after* the initial padding and labels
-
-        // Use the helper for the vertical center of the primary qubit line
-        final double gateCenterY = getQubitCenterY(
-            placedGate.primaryDrawingQubit);
-        final double gateIconTop = gateCenterY -
-            gateSize / 2; // Use gateCenterY to center vertically
-
+    for (final (primaryDrawingQubit, row) in localPlacedGates.indexed) {
+      for (final (currentX, placedGate) in row.indexed) {
         // Calculate the top-left corner of the gate icon square
         if (placedGate.type == SelectedGateType.cnot) {
-          // Drawing logic for CNOT
-          int currentX = gateXPosititionPerQubit.reduce(max);
-          final double gateColumnCenterX = padding + currentX * gateSpacing +
-              gateSpacing / 2;
+          // Drawing logic for CNOT not target
+          // int currentX = gateXPosititionPerQubit.reduce(max);
+          final double gateColumnCenterX = padding + currentX * gateSpacing + gateSpacing / 2;
+          print('  Drawing CNOT at $gateColumnCenterX');
 
-          gateXPosititionPerQubit =
-              List.filled(circuit.numQubits, currentX + 1);
+          gateXPosititionPerQubit[primaryDrawingQubit] += 1; // Increment for next gate
 
-          // Use the helper for the vertical centers of control and target qubits
-          final double controlY = getQubitCenterY(
-              placedGate.controlQubitIndex!);
-          final double targetY = getQubitCenterY(placedGate.targetQubitIndex!);
+          if (placedGate.type != SelectedGateType.none && !placedGate.isTarget) {
+            // Use the helper for the vertical centers of control and target qubits
+            final double controlY = getQubitCenterY(primaryDrawingQubit);
+            final double targetY = getQubitCenterY(placedGate.targetQubitIndex!);
 
-          // Draw control circle/dot
-          final controlPaint = Paint()
-            ..color = SelectedGateType.cnot.color; // Use the static constant
-          canvas.drawCircle(
-              Offset(gateColumnCenterX, controlY), controlDotRadius,
-              controlPaint);
+            // Draw control circle/dot
+            final controlPaint = Paint()
+              ..color = SelectedGateType.cnot.color; // Use the static constant
+            canvas.drawCircle(Offset(gateColumnCenterX, controlY), controlDotRadius, controlPaint);
 
-          // Draw connection line between control and target
-          final linePaint = Paint()
-            ..color = SelectedGateType.cnot.color
-            ..strokeWidth = 2.0; // Use the static constant
-          canvas.drawLine(Offset(gateColumnCenterX, controlY),
-              Offset(gateColumnCenterX, targetY), linePaint);
+            // Draw connection line between control and target
+            final linePaint = Paint()
+              ..color = SelectedGateType.cnot.color
+              ..strokeWidth = 2.0; // Use the static constant
+            canvas.drawLine(Offset(gateColumnCenterX, controlY), Offset(gateColumnCenterX, targetY), linePaint);
 
-          // Draw target circle
-          final targetPaint = Paint()
-            ..color = SelectedGateType.cnot.color; // Use the static constant
-          canvas.drawCircle(
-              Offset(gateColumnCenterX, targetY), targetRadius, targetPaint);
+            // Draw target circle
+            final targetPaint = Paint()
+              ..color = SelectedGateType.cnot.color; // Use the static constant
+            canvas.drawCircle(Offset(gateColumnCenterX, targetY), targetRadius, targetPaint);
 
-
-          // Draw '+' inside target circle
-          final plusPainter = TextPainter(
-            text: TextSpan(
-                text: '+', style: TextStyle(color: Colors.white, fontSize: 24)),
-            // Use the static constant
-            textDirection: TextDirection.ltr,
-          );
-          plusPainter.layout();
-          plusPainter.paint(canvas, Offset(
-              gateColumnCenterX - plusPainter.width / 2,
-              targetY - plusPainter.height / 2));
-
-          widthNotifier.value = max(
-              widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
-        } else {
-          final double gateColumnCenterX = padding +
-              gateXPosititionPerQubit[placedGate.primaryDrawingQubit] *
-                  gateSpacing + gateSpacing / 2;
-
-          gateXPosititionPerQubit[placedGate.primaryDrawingQubit] +=
-          1; // Increment for next gate
-
-          gatePaint.color = placedGate.type.color; // Use the static constant
-          var gateRect = Rect.fromLTWH(
-              gateColumnCenterX - gateSize / 2, gateIconTop, gateSize,
-              gateSize);
-
-          if (placedGate.type == SelectedGateType.singleGateTarget) {
-            final RRect highlightRect = RRect.fromRectAndRadius(
-              gateRect, const Radius.circular(8),);
-
-            // Draw shadow, fill and border
-            canvas.drawRRect(highlightRect, highlightShadowPaint);
-            canvas.drawRRect(highlightRect, highlightPaint);
-            canvas.drawRRect(highlightRect, highlightBorderPaint);
-          } else {
-            canvas.drawRect(gateRect, gatePaint);
+            // Draw '+' inside target circle
+            final plusPainter = TextPainter(
+              text: TextSpan(text: '+', style: TextStyle(color: Colors.white, fontSize: 24)),
+              textDirection: TextDirection.ltr,
+            );
+            plusPainter.layout();
+            plusPainter.paint(canvas, Offset(gateColumnCenterX - plusPainter.width / 2, targetY - plusPainter.height / 2));
           }
 
-          // Draw 'H' text centered in the square
-          String gateText = placedGate.type.label; // Set the text to 'H'
-          gateTextPainter(gateText, canvas, gateColumnCenterX, gateIconTop);
+          widthNotifier.value = max(widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
+        } else {
+          // Use the helper for the vertical center of the primary qubit line
+          final double gateCenterY = getQubitCenterY(primaryDrawingQubit);
+          final double gateIconTop = gateCenterY - gateSize / 2; // Use gateCenterY to center vertically
 
-          widthNotifier.value = max(
-              widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
+          final double gateColumnCenterX = padding + gateXPosititionPerQubit[primaryDrawingQubit] * gateSpacing + gateSpacing / 2;
+
+          print('  Drawing GATE at $gateColumnCenterX');
+
+          gateXPosititionPerQubit[primaryDrawingQubit] += 1; // Increment for next gate
+
+          if (placedGate.type != SelectedGateType.none) {
+            gatePaint.color = placedGate.type.color; // Use the static constant
+            var gateRect = Rect.fromLTWH(gateColumnCenterX - gateSize / 2, gateIconTop, gateSize, gateSize);
+
+            if (placedGate.type == SelectedGateType.singleGateTarget) {
+              final RRect highlightRect = RRect.fromRectAndRadius(gateRect, const Radius.circular(8),);
+
+              // Draw shadow, fill and border
+              canvas.drawRRect(highlightRect, highlightShadowPaint);
+              canvas.drawRRect(highlightRect, highlightPaint);
+              canvas.drawRRect(highlightRect, highlightBorderPaint);
+            } else {
+              canvas.drawRect(gateRect, gatePaint);
+            }
+
+            // Draw 'H' or 'S' or 'X', etc text centered in the square
+            String gateText = placedGate.type.label; // Set the text
+            gateTextPainter(gateText, canvas, gateColumnCenterX, gateIconTop);
+          }
+
+          widthNotifier.value = max(widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
         }
-        // Add drawing logic for other gate types here
       }
     }
   }

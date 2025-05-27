@@ -21,6 +21,10 @@ class PlacedQuantumGate {
   final int? controlQubitIndex;
   final int? targetQubitIndex;
 
+  final bool isTarget;
+
+  static PlacedQuantumGate emptyGate() => PlacedQuantumGate(type: SelectedGateType.none, position: -1);
+
   // Constructor
   PlacedQuantumGate({
     required this.type,
@@ -28,39 +32,28 @@ class PlacedQuantumGate {
     this.singleQubitIndex,
     this.controlQubitIndex,
     this.targetQubitIndex,
+    this.isTarget = false,
   }) : assert(
   // Assertion to ensure valid combinations of properties based on gate type
   (type != SelectedGateType.cnot && singleQubitIndex != null && controlQubitIndex == null && targetQubitIndex == null) || // Must be a single-qubit gate with a singleQubitIndex
-      (type == SelectedGateType.cnot && singleQubitIndex == null && controlQubitIndex != null && targetQubitIndex != null), // Must be a CNOT with control and target indices
+      (type == SelectedGateType.cnot && singleQubitIndex == null && controlQubitIndex != null && targetQubitIndex != null)  || // Must be a CNOT with control and target indices
+      (type == SelectedGateType.none),  // Must be a none with control and target indices
   'Placed gate must be either a single-qubit gate or a CNOT with valid qubit indices.',
   );
 
   // Helper getter to determine the primary qubit line for drawing this gate
   // This is typically the single qubit for H/X, or the control qubit for CNOT
-  int get primaryDrawingQubit {
-    if (type != SelectedGateType.cnot && singleQubitIndex != null) {
-      return singleQubitIndex!;
-    } else if (type == SelectedGateType.cnot && controlQubitIndex != null) {
-      return controlQubitIndex!;
-    }
-    // This point should ideally not be reached if the constructor assertion is correct
-    throw StateError("Placed gate has no primary drawing qubit defined.");
-  }
-
-  // Helper method to get a list of all qubit indices involved in this placed gate
-  // Useful for simulation or drawing connection lines (like for CNOT)
-  List<int> getQubitIndices() {
-    if (type != SelectedGateType.cnot && singleQubitIndex != null) {
-      return [singleQubitIndex!];
-    } else if (type == SelectedGateType.cnot && controlQubitIndex != null && targetQubitIndex != null) {
-      // Return sorted indices for consistency (e.g., [0, 1] vs [1, 0] for CNOT)
-      final List<int> indices = [controlQubitIndex!, targetQubitIndex!];
-      indices.sort(); // Sorts in place
-      return indices;
-    }
-    // Should not happen due to constructor assertion
-    return [];
-  }
+  // int get primaryDrawingQubit {
+  //   if (type != SelectedGateType.cnot && singleQubitIndex != null) {
+  //     return singleQubitIndex!;
+  //   } else if (type == SelectedGateType.cnot && controlQubitIndex != null) {
+  //     return controlQubitIndex!;
+  //   } else {
+  //     return -1;
+  //   }
+  //   // This point should ideally not be reached if the constructor assertion is correct
+  //   throw StateError("Placed gate has no primary drawing qubit defined.");
+  // }
 
   @override
   bool operator ==(Object other) =>
@@ -69,7 +62,7 @@ class PlacedQuantumGate {
               runtimeType == other.runtimeType &&
               type == other.type &&
               position == other.position &&
-              primaryDrawingQubit == other.primaryDrawingQubit &&
+              // primaryDrawingQubit == other.primaryDrawingQubit &&
               controlQubitIndex == other.controlQubitIndex &&
               targetQubitIndex == other.targetQubitIndex;
 
@@ -77,7 +70,7 @@ class PlacedQuantumGate {
   int get hashCode =>
       type.hashCode ^
       position.hashCode ^
-      primaryDrawingQubit.hashCode ^
+      // primaryDrawingQubit.hashCode ^
       controlQubitIndex.hashCode ^
       targetQubitIndex.hashCode;
 }
