@@ -1,4 +1,4 @@
-package com.example.quantumquiz
+package com.qubitquest
 
 import io.flutter.embedding.android.FlutterActivity
 
