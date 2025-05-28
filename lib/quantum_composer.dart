@@ -387,7 +387,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
         backgroundColor: Colors.black,
       // Modify the AppBar
       appBar: AppBar(
-        title: Text("<Q|Q> Level 05",
+        title: Text("⟨𝜑|𝜑⟩ Level 05",
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,

@@ -22,7 +22,7 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.black, // Consistent dark background
       appBar: AppBar(
         title: Text(
-          "<Qubit|Quest>", // App name
+          "⟨𝜑ubit|𝜑uest⟩", // App name
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
