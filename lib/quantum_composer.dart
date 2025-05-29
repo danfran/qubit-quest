@@ -258,7 +258,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     if (_currentMode == SelectedGateType.delete) {
       print('In delete mode.');
       // Use the painter's hit-testing method to find if a gate was tapped
-      bool gateRemoved = painter.removeGateAtTap(localPosition + 1);
+      bool gateRemoved = painter.removeGateAtTap(localPosition);
 
       if (gateRemoved) {
         _runSimulation(); // Update simulation after deletion
