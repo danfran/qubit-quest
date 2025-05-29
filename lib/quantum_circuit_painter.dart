@@ -132,8 +132,6 @@ class QuantumCircuitPainter extends CustomPainter {
         // not considering CNOT at the moment
         PlacedQuantumGate targetGate = PlacedQuantumGate(
           type: SelectedGateType.singleGateTarget,
-          position: gatePosition,
-          singleQubitIndex: qubitLine,
         );
         print('Place box at Highlighting qubit line: $qubitLine and gate position: $gatePosition');
         var localQubitLine = localPlacedGates[qubitLine];

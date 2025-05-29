@@ -166,8 +166,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
         print('CNOT placement (control line = $tappedQubitLine and target line = $_cnotTargetQubit).');
         placedGate = PlacedQuantumGate(
           type: SelectedGateType.cnot,
-          position: insertionPosition,
-          controlQubitIndex: tappedQubitLine,
           targetQubitIndex: targetQubitLine,
         );
       } else {
@@ -178,8 +176,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
     } else {
       placedGate = PlacedQuantumGate(
         type: droppedGateType,
-        position: insertionPosition,
-        singleQubitIndex: tappedQubitLine,
       );
     }
 
@@ -190,8 +186,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
       if (droppedGateType == SelectedGateType.cnot) {
         PlacedQuantumGate placedGateTarget = PlacedQuantumGate(
           type: SelectedGateType.cnot,
-          position: placedGate.position,
-          controlQubitIndex: placedGate.controlQubitIndex,
           targetQubitIndex: placedGate.targetQubitIndex,
           isTarget: true,
         );
@@ -264,7 +258,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     if (_currentMode == SelectedGateType.delete) {
       print('In delete mode.');
       // Use the painter's hit-testing method to find if a gate was tapped
-      bool gateRemoved = painter.removeGateAtTap(localPosition);
+      bool gateRemoved = painter.removeGateAtTap(localPosition + 1);
 
       if (gateRemoved) {
         _runSimulation(); // Update simulation after deletion
@@ -454,7 +448,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
 
                           // Calculate the minimum width needed based on the maximum position of placed gates
-                          final int maxPosition = circuit.isEmpty() ? -1 : circuit.placedGates.expand((e) => e).map((e) => e.position).reduce(max);
+                          final int maxPosition = circuit.isEmpty() ? -1 : circuit.placedGates.map((e) => e.length).reduce(max);
                           // Add 2 for the next column and some extra space
                           final double minRequiredWidth = (maxPosition + 3) * QuantumCircuitPainter.gateSpacing + QuantumCircuitPainter.padding * 2;
 
