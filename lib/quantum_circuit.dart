@@ -1,9 +1,5 @@
-// quantum_circuit.dart
-
 import 'package:flutter/foundation.dart'; // Import this for ChangeNotifier
-import 'package:complex/complex.dart';
 import 'package:quantumquiz/placed_quantum_gate.dart'; // Import PlacedQuantumGate
-import 'package:quantumquiz/quantum_gate.dart';
 import 'package:quantumquiz/qubit_state.dart'; // Assuming you have this class
 import 'dart:math';
 
@@ -107,38 +103,38 @@ class QuantumCircuit extends ChangeNotifier {
   // --- Helper Methods for Simulation (Need Implementation) ---
 
   // You need to implement this method based on your matrix library and QuantumGate definitions.
-  List<List<Complex>> calculateColumnMatrix(List<PlacedQuantumGate> gatesInColumn, int numQubits) {
-    // This involves building the identity matrix of size 2^numQubits,
-    // then for each gate in the column, getting its 2^numQubits x 2^numQubits matrix
-    // (tensoring with identities for unaffected qubits), and multiplying these together.
-    // The order of multiplication for simultaneous gates in a column doesn't matter mathematically,
-    // but implement consistently.
-
-    // Example (Conceptual - implementation depends on your math library):
-    // Assuming identityMatrix and multiplyMatrices helpers are available
-    List<List<Complex>> identity = identityMatrix(1 << numQubits);
-
-    List<List<Complex>> combinedMatrix = identity;
-
-    for (var placedGate in gatesInColumn) {
-      // Get the full system matrix for this single placed gate operation
-      List<List<Complex>> gateSystemMatrix = buildSystemMatrixForPlacedGate(placedGate, numQubits); // <-- Needs implementation
-
-      // Multiply the combined matrix by this gate's system matrix
-      combinedMatrix = multiplyMatrices(gateSystemMatrix, combinedMatrix); // Assuming multiplyMatrices helper exists
-    }
-
-    return combinedMatrix;
-  }
-
-  // You need to implement this based on your original QuantumGate definitions and matrix library.
-  // This function takes a PlacedQuantumGate and returns its 2^numQubits x 2^numQubits matrix representation
-  List<List<Complex>> buildSystemMatrixForPlacedGate(PlacedQuantumGate placedGate, int numQubits) {
-    // This is complex logic depending on the gate type and how your original getMatrix works.
-    // You'll need to map the PlacedQuantumGate type and qubits to the correct matrix
-    // from your QuantumGate definitions and potentially expand it using tensor products.
-    throw UnimplementedError("buildSystemMatrixForPlacedGate needs implementation");
-  }
+  // List<List<Complex>> calculateColumnMatrix(List<PlacedQuantumGate> gatesInColumn, int numQubits) {
+  //   // This involves building the identity matrix of size 2^numQubits,
+  //   // then for each gate in the column, getting its 2^numQubits x 2^numQubits matrix
+  //   // (tensoring with identities for unaffected qubits), and multiplying these together.
+  //   // The order of multiplication for simultaneous gates in a column doesn't matter mathematically,
+  //   // but implement consistently.
+  //
+  //   // Example (Conceptual - implementation depends on your math library):
+  //   // Assuming identityMatrix and multiplyMatrices helpers are available
+  //   List<List<Complex>> identity = identityMatrix(1 << numQubits);
+  //
+  //   List<List<Complex>> combinedMatrix = identity;
+  //
+  //   for (var placedGate in gatesInColumn) {
+  //     // Get the full system matrix for this single placed gate operation
+  //     List<List<Complex>> gateSystemMatrix = buildSystemMatrixForPlacedGate(placedGate, numQubits); // <-- Needs implementation
+  //
+  //     // Multiply the combined matrix by this gate's system matrix
+  //     combinedMatrix = multiplyMatrices(gateSystemMatrix, combinedMatrix); // Assuming multiplyMatrices helper exists
+  //   }
+  //
+  //   return combinedMatrix;
+  // }
+  //
+  // // You need to implement this based on your original QuantumGate definitions and matrix library.
+  // // This function takes a PlacedQuantumGate and returns its 2^numQubits x 2^numQubits matrix representation
+  // List<List<Complex>> buildSystemMatrixForPlacedGate(PlacedQuantumGate placedGate, int numQubits) {
+  //   // This is complex logic depending on the gate type and how your original getMatrix works.
+  //   // You'll need to map the PlacedQuantumGate type and qubits to the correct matrix
+  //   // from your QuantumGate definitions and potentially expand it using tensor products.
+  //   throw UnimplementedError("buildSystemMatrixForPlacedGate needs implementation");
+  // }
 
 // Assuming you have matrix multiplication and identity matrix helper functions
 // List<List<Complex>> multiplyMatrices(List<List<Complex>> matrix1, List<List<Complex>> matrix2) { ... }

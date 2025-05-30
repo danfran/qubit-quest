@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'dart:math'; // For min/max
-import 'package:complex/complex.dart'; // Assuming Complex is used for CNOT drawing details if needed
 import 'package:quantumquiz/placed_quantum_gate.dart'; // Import PlacedQuantumGate
 import 'package:quantumquiz/quantum_circuit.dart'; // Import QuantumCircuit
 import 'package:quantumquiz/selected_gate_type.dart'; // Import SelectedGateType

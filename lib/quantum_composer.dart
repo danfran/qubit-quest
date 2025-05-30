@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:complex/complex.dart';
+import 'package:advance_math/advance_math.dart';
 import 'package:quantumquiz/placed_quantum_gate.dart';
 import 'package:quantumquiz/probability_histogram.dart';
 import 'package:quantumquiz/quantum_circuit.dart';
@@ -11,7 +11,6 @@ import 'package:quantumquiz/qubit_state.dart';
 import 'package:quantumquiz/selected_gate_type.dart';
 
 import 'cnot_target_qubit_selection_dialog.dart';
-import 'math_utils.dart';
 
 class QuantumComposer extends StatefulWidget {
   @override
@@ -22,7 +21,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
   static final int numberQubits = 2;
   final QuantumCircuit circuit = QuantumCircuit(numQubits: numberQubits);
   String simulationResult = "Run the circuit to see the result";
-  List<List<Complex>> overallCircuitMatrix = identityMatrix(numberQubits);
   List<double> measurementProbabilities = [0.0, 0.0, 0.0, 0.0];
   SelectedGateType _currentMode = SelectedGateType.none;
   int? _cnotTargetQubit; // To track the target for CNOT
@@ -292,11 +290,11 @@ class _QuantumComposerState extends State<QuantumComposer> {
     final QubitState finalState = circuit.currentState;
 
     // ** Calculate measurement probabilities from the final state **
-    measurementProbabilities = finalState.state.map((amplitude) {
-      return amplitude.abs() * amplitude.abs();
-    }).toList();
-
-    print("Calculated probabilities: $measurementProbabilities");
+    // measurementProbabilities = finalState.state.map((amplitude) {
+    //   return amplitude.abs() * amplitude.abs();
+    // }).cast<double>().toList();
+    //
+    // print("Calculated probabilities: $measurementProbabilities");
 
     // ** Update the UI state variables to trigger a rebuild **
     setState(() {

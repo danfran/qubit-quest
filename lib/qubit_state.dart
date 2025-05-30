@@ -1,6 +1,4 @@
-// In your qubit_state.dart file
-
-import 'package:complex/complex.dart'; // Assuming you use the complex package
+import 'package:advance_math/advance_math.dart';
 
 class QubitState {
   // The list of complex amplitudes representing the state vector
@@ -14,7 +12,7 @@ class QubitState {
   static QubitState initial(int numQubits) {
     final int size = 1 << numQubits; // Calculate 2^numQubits
     // Create a list of complex numbers, initialized to zero
-    List<Complex> initialStateVector = List.generate(size, (_) => Complex.zero);
+    List<Complex> initialStateVector = List.generate(size, (_) => Complex.zero());
 
     // Set the amplitude for the |00...0> state (index 0) to 1.0 + 0.0i
     initialStateVector[0] = Complex(1.0);
@@ -38,10 +36,10 @@ class QubitState {
       throw ArgumentError("Matrix dimensions do not match state vector size.");
     }
 
-    List<Complex> newStateVector = List.generate(state.length, (_) => Complex.zero);
+    List<Complex> newStateVector = List.generate(state.length, (_) => Complex.zero());
 
     for (int i = 0; i < matrix.length; i++) { // Iterate through rows of the matrix
-      Complex sum = Complex.zero;
+      Complex sum = Complex.zero();
       for (int j = 0; j < matrix[i].length; j++) { // Iterate through elements in the row
         sum += matrix[i][j] * state[j]; // Multiply matrix element by state element and add
       }
