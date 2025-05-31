@@ -12,16 +12,17 @@ class QuantumDocDialog extends StatelessWidget {
       child: TeXViewColumn(children: [
         TeXViewDocument(
           name,
-          style: const TeXViewStyle(
-              padding: TeXViewPadding.all(10),
-              // borderRadius: TeXViewBorderRadius.all(10),
+          style: TeXViewStyle(
+              padding: const TeXViewPadding.all(10),
+              borderRadius: TeXViewBorderRadius.all(10),
               textAlign: TeXViewTextAlign.center,
               // width: 250,
-              margin: TeXViewMargin.zeroAuto(),
-              backgroundColor: Colors.green),
+              margin: const TeXViewMargin.zeroAuto(),
+              backgroundColor: Colors.blueGrey[700],
+              contentColor: Colors.white,),
         ),
-        TeXViewDocument(description, style: const TeXViewStyle(margin: TeXViewMargin.only(top: 10))),
-        TeXViewDocument(matrixLatex, style: const TeXViewStyle(margin: TeXViewMargin.only(top:10, bottom: 10))),
+        TeXViewDocument(description, style: const TeXViewStyle(margin: TeXViewMargin.only(top: 10), contentColor: Colors.green)),
+        TeXViewDocument(matrixLatex, style: const TeXViewStyle(margin: TeXViewMargin.only(top:10, bottom: 10), contentColor: Colors.green)),
       ]
       ),
     );
@@ -77,9 +78,9 @@ class QuantumDocDialog extends StatelessWidget {
                       padding: TeXViewPadding.all(10),
                       borderRadius: TeXViewBorderRadius.all(10),
                       border: TeXViewBorder.all(TeXViewBorderDecoration(
-                          borderWidth: 2,
+                          borderWidth: 4,
                           borderStyle: TeXViewBorderStyle.groove,
-                          borderColor: Colors.green))),
+                          borderColor: Colors.yellowAccent))),
                   children: [
                     _buildGateDescription(
                         r"<h2>Pauli-X (\( X \))</h2>",
@@ -93,14 +94,19 @@ class QuantumDocDialog extends StatelessWidget {
                     ),
                     _buildGateDescription(
                         r"<h2>Pauli-Z (\( Z \))</h2>",
-                        r"<p>Performs a rotation of \( \\pi \) radians around the Z-axis of the Bloch sphere.</p>",
+                        r"<p>Performs a rotation of \( \pi \) radians around the Z-axis of the Bloch sphere.</p>",
                         r"<p>$$Z = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix} \Rightarrow \begin{cases} Z|0\rangle = |0\rangle \\ Z|1\rangle = -|1\rangle \end{cases}$$</p>"
                     ),
-                    // _buildGateDescription(
-                    //     "Hadamard (H)",
-                    //     "Creates an equal superposition of \$ |0\\rangle \$ and \$ |1\\rangle \$. Maps \$ |0\\rangle \\to \\frac{1}{\\sqrt{2}}(|0\\rangle + |1\\rangle) \$ and \$ |1\\rangle \\to \\frac{1}{\\sqrt{2}}(|0\\rangle - |1\\rangle) \$. Essential for generating superposition.",
-                    //     "\\frac{1}{\\sqrt{2}}\\begin{pmatrix} 1 & 1 \\\\ 1 & -1 \\end{pmatrix}"
-                    // ),
+                    _buildGateDescription(
+                        r"<h2>Hadamard (H)</h2>",
+                        r"<p>Creates an equal superposition of \( |0\rangle \) and \( |1\rangle \).</p>",
+                        r"<p>$$H = \frac{1}{\sqrt{2}}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix} \Rightarrow \begin{cases} H|0\rangle = \frac{1}{\sqrt{2}}(|0\rangle + |1\rangle) \\ H|1\rangle = \frac{1}{\sqrt{2}}(|0\rangle - |1\rangle) \end{cases}$$</p>"
+                    ),
+                    _buildGateDescription(
+                        r"<h2>Controlled-NOT (\( CNOT \) or \( CX \))</h2>",
+                        r"<p>A two-qubit gate. Flips the target qubit if the control qubit is in the \( |1\rangle \) state. If control is \( |0\rangle \), the target is unchanged. Creates entanglement between the control and target qubits.</p>",
+                        r"<p>$$CNOT = \begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{pmatrix}\Rightarrow \begin{cases} CNOT|00\rangle = |00\rangle \\ CNOT|01\rangle = |01\rangle \\ CNOT|10\rangle = |11\rangle \\ CNOT|11\rangle = |10\rangle \end{cases}$$</p>"
+                    ),
                     // _buildGateDescription(
                     //     "Phase (S or Z¹/²)",
                     //     "A Z-axis rotation by \$ \\pi/2 \$ radians. Maps \$ |0\\rangle \\to |0\\rangle \$ and \$ |1\\rangle \\to i|1\\rangle \$.",
@@ -117,11 +123,6 @@ class QuantumDocDialog extends StatelessWidget {
                     //     "Performs a rotation around the \$k\$-axis (X, Y, or Z) of the Bloch sphere by an angle \$ \\theta \$. For \$ k=Z \$, the matrix is \$ R_z(\\theta) = \\begin{pmatrix} e^{-i\\theta/2} & 0 \\\\ 0 & e^{i\\theta/2} \\end{pmatrix} \$ (alternative common form).",
                     //     "R_z(\\theta) = \\begin{pmatrix} e^{-i\\theta/2} & 0 \\\\ 0 & e^{i\\theta/2} \\end{pmatrix}"
                     //   // Note: Rx and Ry matrices are different
-                    // ),
-                    // _buildGateDescription(
-                    //     "Controlled-NOT (CNOT or CX)",
-                    //     "A two-qubit gate. Flips the target qubit if the control qubit is in the \$ |1\\rangle \$ state. If control is \$ |0\\rangle \$, the target is unchanged. Creates entanglement between the control and target qubits.",
-                    //     "\\begin{pmatrix} 1 & 0 & 0 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 0 & 1 \\\\ 0 & 0 & 1 & 0 \\end{pmatrix}"
                     // ),
                     // _buildGateDescription(
                     //     "Controlled-Z (CZ)",
@@ -170,7 +171,7 @@ class QuantumDocDialog extends StatelessWidget {
       ),
       actions: <Widget>[
         TextButton(
-          child: Text('Close'),
+          child: Text('Close', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
           onPressed: () {
             Navigator.of(context).pop(); // Close the dialog
           },

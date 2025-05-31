@@ -3,8 +3,6 @@ import 'package:quantumquiz/placed_quantum_gate.dart'; // Import PlacedQuantumGa
 import 'package:quantumquiz/qubit_state.dart'; // Assuming you have this class
 import 'dart:math';
 
-import 'math_utils.dart'; // For max in _getNextGatePosition if it's in this class
-
 // Make QuantumCircuit extend ChangeNotifier
 class QuantumCircuit extends ChangeNotifier {
   // List to store the placed gate instances that define the circuit structure

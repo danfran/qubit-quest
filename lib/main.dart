@@ -43,6 +43,19 @@ class MyApp extends StatelessWidget {
           labelMedium: TextStyle(color: Colors.white),
           labelSmall: TextStyle(color: Colors.white),
         ),
+        dialogTheme: DialogTheme(
+          backgroundColor: Colors.grey[900], // Dark background for the dialog
+          titleTextStyle: const TextStyle(
+            color: Colors.white, // Explicitly set title color
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+          contentTextStyle: const TextStyle(
+            color: Colors.white70, // Slightly off-white for content
+            fontSize: 16,
+          ),
+          // You might also need to style action buttons if they don't inherit correctly
+        ),
         // Ensure text selection handles also use white (or a contrasting color)
         textSelectionTheme: TextSelectionThemeData(
           cursorColor: Colors.white,

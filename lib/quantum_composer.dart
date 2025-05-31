@@ -144,16 +144,16 @@ class _QuantumComposerState extends State<QuantumComposer> {
       int? targetQubitLine;
 
       if (circuit.numQubits == 1) {
-        if (tappedQubitLine == 0 && circuit.numQubits > 1) {
-          targetQubitLine = 1;
-        } else if (tappedQubitLine == 1 && circuit.numQubits > 0) {
-          targetQubitLine = 0;
-        } else {
-          print('Cannot place CNOT on single qubit or invalid target.');
+        print('Cannot place CNOT on single qubit or invalid target.');
           // Optionally provide feedback
-          return;
+        return;
+      } else if (circuit.numQubits == 2) {
+        if (tappedQubitLine == 0) {
+          targetQubitLine = 1;
+        } else if (tappedQubitLine == 1) {
+          targetQubitLine = 0;
         }
-      } else {
+      } else if (circuit.numQubits > 2){
         await _showTargetSelectionDialog(context, tappedQubitLine, circuit.numQubits);
         if (_cnotTargetQubit != null) {
           targetQubitLine = _cnotTargetQubit;
@@ -192,7 +192,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
       print('Gate successfully placed.');
       // No need for setState here, circuit.insertPlacedGateAt should call notifyListeners()
-      // _runSimulation(); // Optionally run simulation after placing
+      _runSimulation(); // Optionally run simulation after placing
     }
   }
 
@@ -387,33 +387,24 @@ class _QuantumComposerState extends State<QuantumComposer> {
           ),),
         // ** Add the actions list here **
         actions: [
-          // Info Button (as TextButton.icon)
-          TextButton.icon(
-            onPressed: _showGateListDialog,
-            icon: Icon(Icons.info_outline),
-            label: Text('Info'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white, // White icon/text color for contrast on AppBar
-              // You might adjust padding if needed to fit
-              // padding: EdgeInsets.symmetric(horizontal: 8.0),
-            ),
-          ),
           // Run Simulation Button (as TextButton)
-          TextButton.icon(
-            onPressed: _runSimulation,
-            icon: Icon(Icons.play_arrow),
-            label: Text('Run'), // Shorten text for AppBar
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white, // White text color
-            ),
-          ),
-          // Clear Circuit Button (as TextButton)
           TextButton.icon(
             onPressed: _clearCircuit,
             icon: Icon(Icons.cleaning_services),
             label: Text('Clear'), // Shorten text for AppBar
             style: TextButton.styleFrom(
               foregroundColor: Colors.white, // White text color
+            ),
+          ),
+          // Info Button (as TextButton.icon)
+          TextButton.icon(
+            onPressed: _showGateListDialog,
+            icon: Icon(Icons.book),
+            label: Text('Doc'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white, // White icon/text color for contrast on AppBar
+              // You might adjust padding if needed to fit
+              // padding: EdgeInsets.symmetric(horizontal: 8.0),
             ),
           ),
         ],
