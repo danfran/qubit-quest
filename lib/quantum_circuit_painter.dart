@@ -28,12 +28,12 @@ class QuantumCircuitPainter extends CustomPainter {
   static const Color debugHitAreaColor = Colors.redAccent; // Color to visualize hit areas
   // ***********************************
 
-
   final QuantumCircuit circuit; // Painter needs the circuit (with List<PlacedQuantumGate> placedGates)
   final ValueNotifier<double> widthNotifier;
-  final Offset? draggingOffset; // New: Qubit index for highlight
+  final Offset? draggingOffset;
+  final SelectedGateType? draggingGateType; // New: Qubit index for highlight
 
-  QuantumCircuitPainter(this.circuit, this.widthNotifier, this.draggingOffset);
+  QuantumCircuitPainter(this.circuit, this.widthNotifier, this.draggingOffset, this.draggingGateType);
 
   // Helper getter to calculate the vertical center of a qubit line
   double getQubitCenterY(int qubitIndex) {
@@ -124,25 +124,36 @@ class QuantumCircuitPainter extends CustomPainter {
       print('Highlighting qubit line: $qubitLine and gate position: $gatePosition');
 
       if (qubitLine != null && gatePosition != null) {
-        // localPlacedGates = List.from(circuit.placedGates);
         localPlacedGates = circuit.placedGates.map((element) => List<PlacedQuantumGate>.from(element)).toList();
         gatePosition = circuit.isEmpty() ? 0 : min(gatePosition, localPlacedGates[qubitLine].length);
 
-        // not considering CNOT at the moment
         PlacedQuantumGate targetGate = PlacedQuantumGate(
-          type: SelectedGateType.singleGateTarget,
+          type: SelectedGateType.draggedGate,
         );
-        print('Place box at Highlighting qubit line: $qubitLine and gate position: $gatePosition');
-        var localQubitLine = localPlacedGates[qubitLine];
-        if (gatePosition > localQubitLine.length) {
-          localQubitLine.add(targetGate);
+
+        if (draggingGateType == SelectedGateType.cnot) {
+          print('Place CNOT box at Highlighting qubit line: $qubitLine and gate position: $gatePosition');
+          for (List<PlacedQuantumGate> gateRow in localPlacedGates) {
+            if (gatePosition > gateRow.length) {
+              final int lengthFiller = (gateRow.length - gatePosition).abs();
+              final fillerList = List<PlacedQuantumGate>.filled(lengthFiller, PlacedQuantumGate.emptyGate());
+              gateRow.addAll(fillerList);
+            }
+            gateRow.insert(gatePosition, targetGate);
+          }
         } else {
-          localQubitLine.insert(gatePosition, targetGate);
+          print('Place box at Highlighting qubit line: $qubitLine and gate position: $gatePosition');
+          var localQubitLine = localPlacedGates[qubitLine];
+          if (gatePosition > localQubitLine.length) {
+            localQubitLine.add(targetGate);
+          } else {
+            localQubitLine.insert(gatePosition, targetGate);
+          }
         }
       }
     }
 
-    List<int> gateXPosititionPerQubit = [0, 0];
+    List<int> gateXPosititionPerQubit = List<int>.filled(circuit.numQubits, 0);
 
     // Draw placed gates
     for (final (primaryDrawingQubit, row) in localPlacedGates.indexed) {
@@ -202,7 +213,7 @@ class QuantumCircuitPainter extends CustomPainter {
             gatePaint.color = placedGate.type.color; // Use the static constant
             var gateRect = Rect.fromLTWH(gateColumnCenterX - gateSize / 2, gateIconTop, gateSize, gateSize);
 
-            if (placedGate.type == SelectedGateType.singleGateTarget) {
+            if (placedGate.type == SelectedGateType.draggedGate) {
               final RRect highlightRect = RRect.fromRectAndRadius(gateRect, const Radius.circular(8),);
 
               // Draw shadow, fill and border

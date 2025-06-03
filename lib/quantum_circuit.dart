@@ -3,6 +3,8 @@ import 'package:quantumquiz/placed_quantum_gate.dart'; // Import PlacedQuantumGa
 import 'package:quantumquiz/qubit_state.dart'; // Assuming you have this class
 import 'dart:math';
 
+import 'package:quantumquiz/selected_gate_type.dart';
+
 // Make QuantumCircuit extend ChangeNotifier
 class QuantumCircuit extends ChangeNotifier {
   // List to store the placed gate instances that define the circuit structure
@@ -20,25 +22,177 @@ class QuantumCircuit extends ChangeNotifier {
   // Assuming QubitState has a constructor or static method to create the initial state
         currentState = QubitState.initial(numQubits), placedGates = List.generate(numQubits, (index) => []);
 
-  bool isEmpty() => placedGates.map((e) => e.length).reduce(max) == 0;
+  int maxCircuitDepth() => placedGates.map((e) => e.length).reduce(max);
+
+  bool isEmpty() => maxCircuitDepth() == 0;
 
   // New method to insert a placed gate at a specific position
-  void insertPlacedGateAt(PlacedQuantumGate gateToInsert, int insertionPosition, int targetQubitIndex) {
-    if (gateToInsert.isTarget) {
-      if (insertionPosition > placedGates[targetQubitIndex].length) { // Insert empty filler
-        final int lengthFiller = (placedGates[targetQubitIndex].length - insertionPosition).abs();
-        final fillerList = List<PlacedQuantumGate>.filled(lengthFiller, PlacedQuantumGate.emptyGate());
-        placedGates[targetQubitIndex].addAll(fillerList);
-      }
-      placedGates[targetQubitIndex].insert(insertionPosition, gateToInsert);
-    } else {
+  void insertSinglePlacedGateAt(SelectedGateType gateType, int insertionPosition, int targetQubitIndex) {
+    // need to check if the area to place the gate is fully empty then,
+    bool allEmpty = placedGates[targetQubitIndex].length <= insertionPosition ||
+        placedGates[targetQubitIndex][insertionPosition].type == SelectedGateType.none;
+
+    if (allEmpty) {
       insertionPosition = isEmpty() ? 0 : min(insertionPosition, placedGates[targetQubitIndex].length);
+      PlacedQuantumGate gateToInsert = PlacedQuantumGate(
+        type: gateType,
+      );
       placedGates[targetQubitIndex].insert(insertionPosition, gateToInsert);
 
       print("Gate inserted at position $insertionPosition on qubit $targetQubitIndex. Total placed gates: ${placedGates.length}");
+      return;
     }
+
+    // else, this will fill a vertical line in the circuit with gates as first phase.
+    for (int i = 0; i < numQubits; i++) {
+      if (i == targetQubitIndex) {
+        PlacedQuantumGate controlGate = PlacedQuantumGate(
+          type: gateType,
+          targetQubitIndex: targetQubitIndex, // for the painter
+        );
+        _insertGateAt(controlGate, insertionPosition, i);
+      } else {
+        PlacedQuantumGate emptyGate = PlacedQuantumGate.emptyGate();
+        _insertGateAt(emptyGate, insertionPosition, i);
+      }
+    }
+
+    // Second phase, we need to scroll left what is scrollable.
+    _shiftLeft(insertionPosition);
+
+    _trimCircuit();
+
+    print("Gate inserted at position $insertionPosition on qubit $targetQubitIndex. Total placed gates: ${placedGates.length}");
+
     // Notify listeners that the state has changed
     notifyListeners();
+  }
+
+  // currently specific to CNOT only
+  void insertDoublePlacedGateAt(SelectedGateType gateType, int insertionPosition, int tappedQubitIndex, int targetQubitIndex) {
+    // need to check if the area to place the gate is fully empty then,
+    bool allEmpty = true;
+    for (int i = min(tappedQubitIndex, targetQubitIndex); i <= max(tappedQubitIndex, targetQubitIndex); i++) {
+      if(insertionPosition < placedGates[i].length && placedGates[i][insertionPosition].type != SelectedGateType.none) {
+        allEmpty = false;
+        break;
+      }
+    }
+
+    // There is no need to scroll,
+    if (allEmpty) {
+      for (int i = min(tappedQubitIndex, targetQubitIndex); i <= max(tappedQubitIndex, targetQubitIndex); i++) {
+        if (i == tappedQubitIndex) {
+          PlacedQuantumGate controlGate = PlacedQuantumGate(
+            type: gateType,
+            targetQubitIndex: targetQubitIndex, // for the painter
+          );
+          _insertGateAt(controlGate, insertionPosition, i);
+        } else if (i == targetQubitIndex) {
+          PlacedQuantumGate targetGate = PlacedQuantumGate(
+            type: gateType,
+            isTarget: true,
+          );
+          _insertGateAt(targetGate, insertionPosition, i);
+        } else if (i > tappedQubitIndex && i < targetQubitIndex || i < tappedQubitIndex && i > targetQubitIndex) {
+          PlacedQuantumGate linkGate = PlacedQuantumGate(
+            type: gateType,
+            isLink: true,
+          );
+          _insertGateAt(linkGate, insertionPosition, i);
+        }
+      }
+      print("Gate inserted at position $insertionPosition on qubit $targetQubitIndex. Total placed gates: ${placedGates.length}");
+      return;
+    }
+
+    // Else, this will fill a vertical line in the circuit with gates as first phase.
+    for (int i = 0; i < numQubits; i++) {
+      if (i == tappedQubitIndex) {
+        PlacedQuantumGate controlGate = PlacedQuantumGate(
+          type: gateType,
+          targetQubitIndex: targetQubitIndex, // for the painter
+        );
+        _insertGateAt(controlGate, insertionPosition, i);
+      } else if (i == targetQubitIndex) {
+        PlacedQuantumGate targetGate = PlacedQuantumGate(
+          type: gateType,
+          controlQubitIndex: tappedQubitIndex,
+          isTarget: true,
+        );
+        _insertGateAt(targetGate, insertionPosition, i);
+      } else if (i > tappedQubitIndex && i < targetQubitIndex || i < tappedQubitIndex && i > targetQubitIndex) {
+        PlacedQuantumGate linkGate = PlacedQuantumGate(
+          type: gateType,
+          isLink: true,
+        );
+        _insertGateAt(linkGate, insertionPosition, i);
+      } else {
+        PlacedQuantumGate emptyGate = PlacedQuantumGate.emptyGate();
+        _insertGateAt(emptyGate, insertionPosition, i);
+      }
+    }
+
+    // Second phase, we need to scroll left what is scrollable.
+    _shiftLeft(insertionPosition);
+
+    _trimCircuit();
+
+    print("Gate inserted at position $insertionPosition on qubit $targetQubitIndex. Total placed gates: ${placedGates.length}");
+
+    // Notify listeners that the state has changed
+    notifyListeners();
+  }
+
+  void _shiftLeft(int insertionPosition) {
+    int rightPosition = insertionPosition + 1;
+    while(rightPosition < maxCircuitDepth()) {
+      for (int i = 0; i < numQubits; i++) {
+        var rightGate = placedGates[i][rightPosition];
+        if (rightPosition < placedGates[i].length && rightGate.type != SelectedGateType.none) {
+          if (rightGate.type == SelectedGateType.cnot) {
+            int endLine = rightGate.isTarget ? rightGate.controlQubitIndex! : rightGate.targetQubitIndex!;
+            bool canBeMoved = true;
+            for (int j = i; j <= endLine; j++) {
+              if (placedGates[i][rightPosition - 1].type == SelectedGateType.none) {
+                canBeMoved = false;
+                break;
+              }
+            }
+            if (canBeMoved) {
+              for (int j = i; j <= endLine; j++) {
+                placedGates[i][rightPosition -1] = placedGates[i][rightPosition];
+                placedGates[i][rightPosition] = PlacedQuantumGate.emptyGate();
+              }
+              i = endLine;
+            }
+          } else {
+            PlacedQuantumGate singleGate = rightGate;
+            placedGates[i][rightPosition -1] = singleGate;
+            PlacedQuantumGate emptyGate = PlacedQuantumGate.emptyGate();
+            rightGate = emptyGate;
+          }
+        }
+      }
+      rightPosition++;
+    }
+  }
+
+  void _insertGateAt(PlacedQuantumGate gateToInsert, int insertionPosition, int targetQubitIndex) {
+    if (insertionPosition > placedGates[targetQubitIndex].length) { // Insert empty filler
+      final int lengthFiller = (placedGates[targetQubitIndex].length - insertionPosition).abs();
+      final fillerList = List<PlacedQuantumGate>.filled(lengthFiller, PlacedQuantumGate.emptyGate());
+      placedGates[targetQubitIndex].addAll(fillerList);
+    }
+    placedGates[targetQubitIndex].insert(insertionPosition, gateToInsert);
+  }
+
+  void _trimCircuit() {
+    for (int i = 0; i < numQubits; i++) {
+      while (placedGates[i].last.type == SelectedGateType.none) {
+        placedGates[i].removeLast();
+      }
+    }
   }
 
   // Method to remove a specific placed gate instance from the circuit

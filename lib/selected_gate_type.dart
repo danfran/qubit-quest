@@ -8,8 +8,7 @@ enum SelectedGateType {
   y,
   z,
   delete,
-  doubleGateTarget,
-  singleGateTarget,
+  draggedGate,
   // Add other gate types here
 }
 
