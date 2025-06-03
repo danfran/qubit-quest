@@ -27,28 +27,27 @@ class QuantumCircuit extends ChangeNotifier {
   bool isEmpty() => maxCircuitDepth() == 0;
 
   // New method to insert a placed gate at a specific position
-  void insertSinglePlacedGateAt(SelectedGateType gateType, int insertionPosition, int targetQubitIndex) {
+  void insertSinglePlacedGateAt(SelectedGateType gateType, int insertionPosition, int tappedQubitIndex) {
     // need to check if the area to place the gate is fully empty then,
-    bool allEmpty = placedGates[targetQubitIndex].length <= insertionPosition ||
-        placedGates[targetQubitIndex][insertionPosition].type == SelectedGateType.none;
+    bool allEmpty = placedGates[tappedQubitIndex].length <= insertionPosition ||
+        placedGates[tappedQubitIndex][insertionPosition].type == SelectedGateType.none;
 
     if (allEmpty) {
-      insertionPosition = isEmpty() ? 0 : min(insertionPosition, placedGates[targetQubitIndex].length);
+      insertionPosition = isEmpty() ? 0 : min(insertionPosition, placedGates[tappedQubitIndex].length);
       PlacedQuantumGate gateToInsert = PlacedQuantumGate(
         type: gateType,
       );
-      placedGates[targetQubitIndex].insert(insertionPosition, gateToInsert);
+      placedGates[tappedQubitIndex].insert(insertionPosition, gateToInsert);
 
-      print("Gate inserted at position $insertionPosition on qubit $targetQubitIndex. Total placed gates: ${placedGates.length}");
       return;
     }
 
     // else, this will fill a vertical line in the circuit with gates as first phase.
     for (int i = 0; i < numQubits; i++) {
-      if (i == targetQubitIndex) {
+      if (i == tappedQubitIndex) {
         PlacedQuantumGate controlGate = PlacedQuantumGate(
           type: gateType,
-          targetQubitIndex: targetQubitIndex, // for the painter
+          targetQubitIndex: tappedQubitIndex, // for the painter
         );
         _insertGateAt(controlGate, insertionPosition, i);
       } else {
@@ -61,8 +60,6 @@ class QuantumCircuit extends ChangeNotifier {
     _shiftLeft(insertionPosition);
 
     _trimCircuit();
-
-    print("Gate inserted at position $insertionPosition on qubit $targetQubitIndex. Total placed gates: ${placedGates.length}");
 
     // Notify listeners that the state has changed
     notifyListeners();
@@ -94,7 +91,7 @@ class QuantumCircuit extends ChangeNotifier {
             isTarget: true,
           );
           _insertGateAt(targetGate, insertionPosition, i);
-        } else if (i > tappedQubitIndex && i < targetQubitIndex || i < tappedQubitIndex && i > targetQubitIndex) {
+        } else {
           PlacedQuantumGate linkGate = PlacedQuantumGate(
             type: gateType,
             isLink: true,
@@ -102,7 +99,6 @@ class QuantumCircuit extends ChangeNotifier {
           _insertGateAt(linkGate, insertionPosition, i);
         }
       }
-      print("Gate inserted at position $insertionPosition on qubit $targetQubitIndex. Total placed gates: ${placedGates.length}");
       return;
     }
 
@@ -137,8 +133,6 @@ class QuantumCircuit extends ChangeNotifier {
     _shiftLeft(insertionPosition);
 
     _trimCircuit();
-
-    print("Gate inserted at position $insertionPosition on qubit $targetQubitIndex. Total placed gates: ${placedGates.length}");
 
     // Notify listeners that the state has changed
     notifyListeners();

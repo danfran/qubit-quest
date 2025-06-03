@@ -159,6 +159,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
       if (targetQubitLine != null && tappedQubitLine != targetQubitLine) {
         print('CNOT placement (control line = $tappedQubitLine and target line = $_cnotTargetQubit).');
         circuit.insertDoublePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine, targetQubitLine);
+        print("Gate CNOT inserted at position $insertionPosition on qubits $tappedQubitLine and $targetQubitLine.");
       } else {
         print('Invalid CNOT placement (control == target or not enough qubits).');
         // Optionally provide feedback
@@ -166,9 +167,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
       }
     } else {
       circuit.insertSinglePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine);
+      print("Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
     }
 
-    print('Gate successfully placed.');
     _runSimulation(); // Optionally run simulation after placing
   }
 
