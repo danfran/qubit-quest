@@ -24,42 +24,37 @@ class QuantumCircuit extends ChangeNotifier {
 
   int maxCircuitDepth() => placedGates.map((e) => e.length).reduce(max);
 
-  bool isEmpty() => maxCircuitDepth() == 0;
+  bool isCircuitEmpty() => maxCircuitDepth() == 0;
 
   // New method to insert a placed gate at a specific position
   void insertSinglePlacedGateAt(SelectedGateType gateType, int insertionPosition, int tappedQubitIndex) {
-    // need to check if the area to place the gate is fully empty then,
-    bool allEmpty = placedGates[tappedQubitIndex].length <= insertionPosition ||
-        placedGates[tappedQubitIndex][insertionPosition].type == SelectedGateType.none;
+    PlacedQuantumGate gateToInsert = PlacedQuantumGate(
+      type: gateType,
+    );
 
-    if (allEmpty) {
-      insertionPosition = isEmpty() ? 0 : min(insertionPosition, placedGates[tappedQubitIndex].length);
-      PlacedQuantumGate gateToInsert = PlacedQuantumGate(
-        type: gateType,
-      );
+    if (placedGates[tappedQubitIndex].length <= insertionPosition) {
+      insertionPosition = min(insertionPosition, placedGates[tappedQubitIndex].length);
       placedGates[tappedQubitIndex].insert(insertionPosition, gateToInsert);
-
+      return;
+    } else if (placedGates[tappedQubitIndex][insertionPosition].type == SelectedGateType.none) {
+      placedGates[tappedQubitIndex][insertionPosition] = gateToInsert;
       return;
     }
 
     // else, this will fill a vertical line in the circuit with gates as first phase.
     for (int i = 0; i < numQubits; i++) {
       if (i == tappedQubitIndex) {
-        PlacedQuantumGate controlGate = PlacedQuantumGate(
-          type: gateType,
-          targetQubitIndex: tappedQubitIndex, // for the painter
-        );
-        _insertGateAt(controlGate, insertionPosition, i);
+        insertGateAt(gateToInsert, insertionPosition, i);
       } else {
         PlacedQuantumGate emptyGate = PlacedQuantumGate.emptyGate();
-        _insertGateAt(emptyGate, insertionPosition, i);
+        insertGateAt(emptyGate, insertionPosition, i);
       }
     }
 
     // Second phase, we need to scroll left what is scrollable.
-    _shiftLeft(insertionPosition);
+    shiftLeft(insertionPosition);
 
-    _trimCircuit();
+    trimCircuit();
 
     // Notify listeners that the state has changed
     notifyListeners();
@@ -82,21 +77,23 @@ class QuantumCircuit extends ChangeNotifier {
         if (i == tappedQubitIndex) {
           PlacedQuantumGate controlGate = PlacedQuantumGate(
             type: gateType,
+            isControl: true,
             targetQubitIndex: targetQubitIndex, // for the painter
           );
-          _insertGateAt(controlGate, insertionPosition, i);
+          insertGateAt(controlGate, insertionPosition, i);
         } else if (i == targetQubitIndex) {
           PlacedQuantumGate targetGate = PlacedQuantumGate(
             type: gateType,
             isTarget: true,
+            controlQubitIndex: tappedQubitIndex,
           );
-          _insertGateAt(targetGate, insertionPosition, i);
+          insertGateAt(targetGate, insertionPosition, i);
         } else {
           PlacedQuantumGate linkGate = PlacedQuantumGate(
             type: gateType,
             isLink: true,
           );
-          _insertGateAt(linkGate, insertionPosition, i);
+          insertGateAt(linkGate, insertionPosition, i);
         }
       }
       return;
@@ -107,48 +104,49 @@ class QuantumCircuit extends ChangeNotifier {
       if (i == tappedQubitIndex) {
         PlacedQuantumGate controlGate = PlacedQuantumGate(
           type: gateType,
+          isControl: true,
           targetQubitIndex: targetQubitIndex, // for the painter
         );
-        _insertGateAt(controlGate, insertionPosition, i);
+        insertGateAt(controlGate, insertionPosition, i);
       } else if (i == targetQubitIndex) {
         PlacedQuantumGate targetGate = PlacedQuantumGate(
           type: gateType,
-          controlQubitIndex: tappedQubitIndex,
           isTarget: true,
+          controlQubitIndex: tappedQubitIndex,
         );
-        _insertGateAt(targetGate, insertionPosition, i);
+        insertGateAt(targetGate, insertionPosition, i);
       } else if (i > tappedQubitIndex && i < targetQubitIndex || i < tappedQubitIndex && i > targetQubitIndex) {
         PlacedQuantumGate linkGate = PlacedQuantumGate(
           type: gateType,
           isLink: true,
         );
-        _insertGateAt(linkGate, insertionPosition, i);
+        insertGateAt(linkGate, insertionPosition, i);
       } else {
         PlacedQuantumGate emptyGate = PlacedQuantumGate.emptyGate();
-        _insertGateAt(emptyGate, insertionPosition, i);
+        insertGateAt(emptyGate, insertionPosition, i);
       }
     }
 
     // Second phase, we need to scroll left what is scrollable.
-    _shiftLeft(insertionPosition);
+    shiftLeft(insertionPosition);
 
-    _trimCircuit();
+    trimCircuit();
 
     // Notify listeners that the state has changed
     notifyListeners();
   }
 
-  void _shiftLeft(int insertionPosition) {
+  void shiftLeft(int insertionPosition) {
     int rightPosition = insertionPosition + 1;
-    while(rightPosition < maxCircuitDepth()) {
+    while(rightPosition < maxCircuitDepth() - 1) {
       for (int i = 0; i < numQubits; i++) {
-        var rightGate = placedGates[i][rightPosition];
-        if (rightPosition < placedGates[i].length && rightGate.type != SelectedGateType.none) {
+        if (rightPosition < placedGates[i].length && placedGates[i][rightPosition].type != SelectedGateType.none) {
+          var rightGate = placedGates[i][rightPosition];
           if (rightGate.type == SelectedGateType.cnot) {
             int endLine = rightGate.isTarget ? rightGate.controlQubitIndex! : rightGate.targetQubitIndex!;
             bool canBeMoved = true;
             for (int j = i; j <= endLine; j++) {
-              if (placedGates[i][rightPosition - 1].type == SelectedGateType.none) {
+              if (placedGates[i][rightPosition - 1].type != SelectedGateType.none) {
                 canBeMoved = false;
                 break;
               }
@@ -161,10 +159,12 @@ class QuantumCircuit extends ChangeNotifier {
               i = endLine;
             }
           } else {
-            PlacedQuantumGate singleGate = rightGate;
-            placedGates[i][rightPosition -1] = singleGate;
-            PlacedQuantumGate emptyGate = PlacedQuantumGate.emptyGate();
-            rightGate = emptyGate;
+            if (placedGates[i][rightPosition - 1].type == SelectedGateType.none) {
+              PlacedQuantumGate singleGate = rightGate;
+              placedGates[i][rightPosition - 1] = singleGate;
+              PlacedQuantumGate emptyGate = PlacedQuantumGate.emptyGate();
+              rightGate = emptyGate;
+            }
           }
         }
       }
@@ -172,7 +172,7 @@ class QuantumCircuit extends ChangeNotifier {
     }
   }
 
-  void _insertGateAt(PlacedQuantumGate gateToInsert, int insertionPosition, int targetQubitIndex) {
+  void insertGateAt(PlacedQuantumGate gateToInsert, int insertionPosition, int targetQubitIndex) {
     if (insertionPosition > placedGates[targetQubitIndex].length) { // Insert empty filler
       final int lengthFiller = (placedGates[targetQubitIndex].length - insertionPosition).abs();
       final fillerList = List<PlacedQuantumGate>.filled(lengthFiller, PlacedQuantumGate.emptyGate());
@@ -181,9 +181,9 @@ class QuantumCircuit extends ChangeNotifier {
     placedGates[targetQubitIndex].insert(insertionPosition, gateToInsert);
   }
 
-  void _trimCircuit() {
+  void trimCircuit() {
     for (int i = 0; i < numQubits; i++) {
-      while (placedGates[i].last.type == SelectedGateType.none) {
+      while (placedGates[i].isNotEmpty && placedGates[i].last.type == SelectedGateType.none) {
         placedGates[i].removeLast();
       }
     }

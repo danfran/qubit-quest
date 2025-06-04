@@ -125,7 +125,7 @@ class QuantumCircuitPainter extends CustomPainter {
 
       if (qubitLine != null && gatePosition != null) {
         localPlacedGates = circuit.placedGates.map((element) => List<PlacedQuantumGate>.from(element)).toList();
-        gatePosition = circuit.isEmpty() ? 0 : min(gatePosition, localPlacedGates[qubitLine].length);
+        gatePosition = circuit.isCircuitEmpty() ? 0 : min(gatePosition, localPlacedGates[qubitLine].length);
 
         PlacedQuantumGate targetGate = PlacedQuantumGate(
           type: SelectedGateType.draggedGate,
@@ -167,7 +167,7 @@ class QuantumCircuitPainter extends CustomPainter {
 
           gateXPosititionPerQubit[primaryDrawingQubit] += 1; // Increment for next gate
 
-          if (placedGate.type != SelectedGateType.none && !placedGate.isTarget) {
+          if (placedGate.type != SelectedGateType.none && placedGate.isControl) {
             // Use the helper for the vertical centers of control and target qubits
             final double controlY = getQubitCenterY(primaryDrawingQubit);
             final double targetY = getQubitCenterY(placedGate.targetQubitIndex!);

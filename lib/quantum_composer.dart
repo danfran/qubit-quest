@@ -418,7 +418,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
 
                           // Calculate the minimum width needed based on the maximum position of placed gates
-                          final int maxPosition = circuit.isEmpty() ? -1 : circuit.placedGates.map((e) => e.length).reduce(max);
+                          final int maxPosition = circuit.isCircuitEmpty() ? -1 : circuit.placedGates.map((e) => e.length).reduce(max);
                           // Add 2 for the next column and some extra space
                           final double minRequiredWidth = (maxPosition + 3) * QuantumCircuitPainter.gateSpacing + QuantumCircuitPainter.padding * 2;
 

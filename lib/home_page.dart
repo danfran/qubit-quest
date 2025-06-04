@@ -102,7 +102,7 @@ class _HomePageState extends State<HomePage> {
                           maxCrossAxisExtent: 70.0, // Adjusted max width for 10 items in 70% width
                           crossAxisSpacing: 10.0,   // Horizontal space between items
                           mainAxisSpacing: 10.0,    // Vertical space between items
-                          childAspectRatio: 1.0,    // Make items square
+                          childAspectRatio: 1.5,    // Make items square
                         ),
                         itemCount: _totalLevels,
                         itemBuilder: (context, index) {
@@ -125,7 +125,7 @@ class _HomePageState extends State<HomePage> {
                               backgroundColor: isUnlocked ? Colors.blueAccent : Colors.grey[800],
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.0), // Rounded corners for buttons
+                                borderRadius: BorderRadius.circular(8.0), // Rounded corners for buttons
                               ),
                               elevation: 5,
                               padding: EdgeInsets.zero, // Remove default padding for better text centering
