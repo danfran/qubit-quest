@@ -138,7 +138,7 @@ class QuantumCircuit extends ChangeNotifier {
 
   void shiftLeft(int insertionPosition) {
     int rightPosition = insertionPosition + 1;
-    while(rightPosition < maxCircuitDepth() - 1) {
+    while(rightPosition - 1 < maxCircuitDepth() - 1) {
       for (int i = 0; i < numQubits; i++) {
         if (rightPosition < placedGates[i].length && placedGates[i][rightPosition].type != SelectedGateType.none) {
           var rightGate = placedGates[i][rightPosition];
@@ -153,17 +153,15 @@ class QuantumCircuit extends ChangeNotifier {
             }
             if (canBeMoved) {
               for (int j = i; j <= endLine; j++) {
-                placedGates[i][rightPosition -1] = placedGates[i][rightPosition];
+                placedGates[i][rightPosition - 1] = rightGate;
                 placedGates[i][rightPosition] = PlacedQuantumGate.emptyGate();
               }
-              i = endLine;
             }
+            i = max(i, endLine);
           } else {
             if (placedGates[i][rightPosition - 1].type == SelectedGateType.none) {
-              PlacedQuantumGate singleGate = rightGate;
-              placedGates[i][rightPosition - 1] = singleGate;
-              PlacedQuantumGate emptyGate = PlacedQuantumGate.emptyGate();
-              rightGate = emptyGate;
+              placedGates[i][rightPosition - 1] = rightGate;
+              placedGates[i][rightPosition] = PlacedQuantumGate.emptyGate();
             }
           }
         }

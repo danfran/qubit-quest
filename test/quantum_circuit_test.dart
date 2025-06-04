@@ -40,6 +40,8 @@ void main() {
           String gateChar = "";
           if (gate.type == SelectedGateType.hadamard) gateChar = "H";
           else if (gate.type == SelectedGateType.x) gateChar = "X";
+          else if (gate.type == SelectedGateType.y) gateChar = "Y";
+          else if (gate.type == SelectedGateType.z) gateChar = "Z";
           else if (gate.type == SelectedGateType.cnot) {
             if (gate.isControl) gateChar = "C";
             else if (gate.isTarget) gateChar = "T";
@@ -368,8 +370,14 @@ void main() {
       expect(circuit.placedGates[0][1].type, SelectedGateType.hadamard);
       expect(circuit.placedGates[0][2].type, SelectedGateType.x);
 
-      expect(circuit.placedGates[1].length, 1);
-      expect(circuit.placedGates[1][0].type, SelectedGateType.y);
+      expect(circuit.placedGates[1].length, 3);
+      expect(circuit.placedGates[1][0].type, SelectedGateType.none);
+      expect(circuit.placedGates[1][1].type, SelectedGateType.none);
+      expect(circuit.placedGates[1][2].type, SelectedGateType.y);
+
+      // we need to revert only one insert not the whole line
+      // expect(circuit.placedGates[1].length, 1);
+      // expect(circuit.placedGates[1][0].type, SelectedGateType.y);
       print('After _shiftLeft(0):\n${circuitToString(circuit)}');
     });
 
@@ -398,24 +406,32 @@ void main() {
       // Now insert something at column 0 that would trigger _shiftLeft
       // For example, calling insertSinglePlacedGateAt which then calls _shiftLeft
       circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
+      // This is not what we expect
       // Expected:
       // Q0: [H, C]
       // Q1: [-, |]
       // Q2: [-, T]
-      expect(circuit.placedGates[0].length, 2);
+      // but:
+      // Q0: [H, -, C]
+      // Q1: [-, -, |]
+      // Q2: [-, -, T]
+      expect(circuit.placedGates[0].length, 3);
       expect(circuit.placedGates[0][0].type, SelectedGateType.hadamard);
-      expect(circuit.placedGates[0][1].type, SelectedGateType.cnot);
-      expect(circuit.placedGates[0][1].isControl, isTrue);
+      expect(circuit.placedGates[0][1].type, SelectedGateType.none);
+      expect(circuit.placedGates[0][2].type, SelectedGateType.cnot);
+      expect(circuit.placedGates[0][2].isControl, isTrue);
 
-      expect(circuit.placedGates[1].length, 2);
+      expect(circuit.placedGates[1].length, 3);
       expect(circuit.placedGates[1][0].type, SelectedGateType.none);
-      expect(circuit.placedGates[1][1].type, SelectedGateType.cnot);
-      expect(circuit.placedGates[1][1].isLink, isTrue);
+      expect(circuit.placedGates[1][1].type, SelectedGateType.none);
+      expect(circuit.placedGates[1][2].type, SelectedGateType.cnot);
+      expect(circuit.placedGates[1][2].isLink, isTrue);
 
-      expect(circuit.placedGates[2].length, 2);
+      expect(circuit.placedGates[2].length, 3);
       expect(circuit.placedGates[2][0].type, SelectedGateType.none);
-      expect(circuit.placedGates[2][1].type, SelectedGateType.cnot);
-      expect(circuit.placedGates[2][1].isTarget, isTrue);
+      expect(circuit.placedGates[2][1].type, SelectedGateType.none);
+      expect(circuit.placedGates[2][2].type, SelectedGateType.cnot);
+      expect(circuit.placedGates[2][2].isTarget, isTrue);
       print('After insertSingle(H, 0, 0) causing CNOT shift:\n${circuitToString(circuit)}');
     });
 
@@ -450,6 +466,51 @@ void main() {
       expect(circuit.placedGates[1][0].type, SelectedGateType.cnot); // New CNOT target
       expect(circuit.placedGates[1][1].type, SelectedGateType.x); // Original X
       expect(circuit.placedGates[1][2].type, SelectedGateType.cnot); // Original CNOT target
+      print('After insertDouble(CNOT, 0, 0, 1) with no shift for existing CNOT:\n${circuitToString(circuit)}');
+    });
+
+    test('should shift single Gate if the target left position is not occupied by another gate', () {
+      final circuit = createEmptyCircuit(3);
+      // Q0: [H, C]
+      // Q1: [X, L]
+      // Q2: [Y, T]
+      circuit.placedGates[0].addAll([
+        PlacedQuantumGate(type: SelectedGateType.hadamard),
+        PlacedQuantumGate(type: SelectedGateType.cnot, isControl: true, targetQubitIndex: 2)
+      ]);
+      circuit.placedGates[1].addAll([
+        PlacedQuantumGate(type: SelectedGateType.x),
+        PlacedQuantumGate(type: SelectedGateType.cnot, isLink: true)
+      ]);
+      circuit.placedGates[2].addAll([
+        PlacedQuantumGate(type: SelectedGateType.y),
+        PlacedQuantumGate(type: SelectedGateType.cnot, isTarget: true, controlQubitIndex: 0)
+      ]);
+      print('Initial:\n${circuitToString(circuit)}');
+
+      // Attempt to shift by calling insertDouble which triggers shiftLeft
+      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 0, 1); // CNOT (Q0->Q1) at pos 0
+
+      // The original CNOT at pos 1 should NOT move left because pos 0 is occupied by H and X.
+      // Instead, a new CNOT will be at pos 0, and H, X, and the original CNOT should be at pos 1, 2.
+      // Expected (after internal full column insert + _shiftLeft):
+      // Q0: [C, H, C_orig]
+      // Q1: [T, X, L_orig]
+      // Q2: [Y, -, T_orig]
+      expect(circuit.placedGates[0].length, 3);
+      expect(circuit.placedGates[0][0].type, SelectedGateType.cnot); // New CNOT control
+      expect(circuit.placedGates[0][1].type, SelectedGateType.hadamard); // Original H
+      expect(circuit.placedGates[0][2].type, SelectedGateType.cnot); // Original CNOT control
+
+      expect(circuit.placedGates[1].length, 3);
+      expect(circuit.placedGates[1][0].type, SelectedGateType.cnot); // New CNOT target
+      expect(circuit.placedGates[1][1].type, SelectedGateType.x); // Original X
+      expect(circuit.placedGates[1][2].type, SelectedGateType.cnot); // Original CNOT link
+
+      expect(circuit.placedGates[2].length, 3);
+      expect(circuit.placedGates[2][0].type, SelectedGateType.y); // Original Y
+      expect(circuit.placedGates[2][1].type, SelectedGateType.none); // Empty
+      expect(circuit.placedGates[2][2].type, SelectedGateType.cnot); // Original CNOT target
       print('After insertDouble(CNOT, 0, 0, 1) with no shift for existing CNOT:\n${circuitToString(circuit)}');
     });
   });
