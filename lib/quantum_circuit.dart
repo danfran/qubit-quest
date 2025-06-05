@@ -283,4 +283,49 @@ class QuantumCircuit extends ChangeNotifier {
 // Assuming you have matrix multiplication and identity matrix helper functions
 // List<List<Complex>> multiplyMatrices(List<List<Complex>> matrix1, List<List<Complex>> matrix2) { ... }
 // List<List<Complex>> identityMatrix(int size) { ... }
+
+// Helper to visually represent the circuit state for debugging in tests
+  @override
+  String toString() {
+    if (isCircuitEmpty()) {
+      return "Empty Circuit\n";
+    }
+
+    // Determine max depth across all qubit lines
+    int maxDepth = 0;
+    for (int i = 0; i < numQubits; i++) {
+      if (placedGates[i].length > maxDepth) {
+        maxDepth = placedGates[i].length;
+      }
+    }
+
+    String result = "";
+    for (int q = 0; q < numQubits; q++) {
+      result += "Q$q: ";
+      for (int pos = 0; pos < maxDepth; pos++) {
+        if (pos < placedGates[q].length) {
+          PlacedQuantumGate gate = placedGates[q][pos];
+          // Use a concise representation for each gate type
+          String gateChar = "";
+          if (gate.type == SelectedGateType.hadamard) gateChar = "H";
+          else if (gate.type == SelectedGateType.x) gateChar = "X";
+          else if (gate.type == SelectedGateType.y) gateChar = "Y";
+          else if (gate.type == SelectedGateType.z) gateChar = "Z";
+          else if (gate.type == SelectedGateType.cnot) {
+            if (gate.isControl) gateChar = "C";
+            else if (gate.isTarget) gateChar = "T";
+            else if (gate.isLink) gateChar = "|";
+            else gateChar = "?"; // Should not happen for CNOT
+          }
+          else if (gate.type == SelectedGateType.none) gateChar = "-";
+          else gateChar = "?"; // Unknown gate type
+          result += "$gateChar ";
+        } else {
+          result += "- "; // Represents empty space beyond the end of a line
+        }
+      }
+      result += "\n";
+    }
+    return result;
+  }
 }

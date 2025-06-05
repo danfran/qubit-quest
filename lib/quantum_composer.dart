@@ -69,7 +69,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     print('Interaction mode set to: $_currentMode');
   }
 
-  // New method to handle a gate being dropped onto the circuit area
+  // Method to handle a gate being dropped onto the circuit area
   Offset? _gatePositionToLocal(Offset offset) {
     final RenderBox? renderBox = _gestureDetectorKey.currentContext
         ?.findRenderObject() as RenderBox?;
@@ -81,7 +81,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     return localPosition;
   }
 
-    // New method to handle a gate being dropped onto the circuit area
+  // Method to handle a gate being dropped onto the circuit area
   Future<void> _handleGateDrop(DragTargetDetails<SelectedGateType> details) async {
     // Corrected: Use details.offset for the local drop position
     print('Gate dropped at local position: ${details.offset}'); // localPosition relative to the DragTarget
@@ -118,7 +118,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
       // Optionally provide feedback
       return;
     }
-
 
     print('Dropped on Qubit line: $tappedQubitLine at insertion position: $insertionPosition');
 
@@ -160,6 +159,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
         print('CNOT placement (control line = $tappedQubitLine and target line = $_cnotTargetQubit).');
         circuit.insertDoublePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine, targetQubitLine);
         print("Gate CNOT inserted at position $insertionPosition on qubits $tappedQubitLine and $targetQubitLine.");
+        print(circuit);
       } else {
         print('Invalid CNOT placement (control == target or not enough qubits).');
         // Optionally provide feedback
@@ -168,6 +168,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     } else {
       circuit.insertSinglePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine);
       print("Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
+      print(circuit);
     }
 
     _runSimulation(); // Optionally run simulation after placing
@@ -281,7 +282,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
     });
     print("Simulation finished.");
   }
-
 
   void _clearCircuit() {
     circuit.clearPlacedGates(); // This calls notifyListeners()
