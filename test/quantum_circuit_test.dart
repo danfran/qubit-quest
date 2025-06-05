@@ -226,9 +226,8 @@ void main() {
       expect(circuit.placedGates[0].length, 2);
       expect(circuit.placedGates[0][0].type, SelectedGateType.z);
       expect(circuit.placedGates[0][1].type, SelectedGateType.hadamard);
-      expect(circuit.placedGates[1].length, 2);
-      expect(circuit.placedGates[1][0].type, SelectedGateType.none);
-      expect(circuit.placedGates[1][1].type, SelectedGateType.x);
+      expect(circuit.placedGates[1].length, 1);
+      expect(circuit.placedGates[1][0].type, SelectedGateType.x);
       print('After insertSingle(Z, 0, 0):\n${circuitToString(circuit)}');
     });
 
@@ -293,14 +292,12 @@ void main() {
       expect(circuit.placedGates[0][0].isTarget, isTrue);
       expect(circuit.placedGates[0][1].type, SelectedGateType.hadamard);
 
-      expect(circuit.placedGates[1].length, 2);
+      expect(circuit.placedGates[1].length, 1);
       expect(circuit.placedGates[1][0].type, SelectedGateType.cnot);
       expect(circuit.placedGates[1][0].isControl, isTrue);
-      expect(circuit.placedGates[1][1].type, SelectedGateType.none);
 
-      expect(circuit.placedGates[2].length, 2);
-      expect(circuit.placedGates[2][0].type, SelectedGateType.none);
-      expect(circuit.placedGates[2][1].type, SelectedGateType.x);
+      expect(circuit.placedGates[2].length, 1);
+      expect(circuit.placedGates[2][0].type, SelectedGateType.x);
       print('After insertDouble(CNOT, 0, 1, 0) pushing existing:\n${circuitToString(circuit)}');
     });
 
