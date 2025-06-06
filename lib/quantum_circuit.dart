@@ -153,8 +153,8 @@ class QuantumCircuit extends ChangeNotifier {
             }
             if (canBeMoved) {
               for (int j = i; j <= endLine; j++) {
-                placedGates[i][rightPosition - 1] = rightGate;
-                placedGates[i][rightPosition] = PlacedQuantumGate.emptyGate();
+                placedGates[j][rightPosition - 1] = placedGates[j][rightPosition];
+                placedGates[j][rightPosition] = PlacedQuantumGate.emptyGate();
               }
             }
             i = max(i, endLine);

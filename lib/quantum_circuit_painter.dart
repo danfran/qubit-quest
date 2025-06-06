@@ -146,15 +146,6 @@ class QuantumCircuitPainter extends CustomPainter {
           }
         } else { // from here should only be single gate
           previewCircuit.insertSinglePlacedGateAt(SelectedGateType.draggedGate, gatePosition, qubitLine);
-          // print('Place box at Highlighting qubit line: $qubitLine and gate position: $gatePosition');
-          // var localQubitLine = localPlacedGates[qubitLine];
-          // if (gatePosition > localQubitLine.length) {
-          //   localQubitLine.add(targetGate);
-          // } else if (localQubitLine[gatePosition].type == SelectedGateType.none) {
-          //   localQubitLine[gatePosition] = targetGate;
-          // } else {
-          //   localQubitLine.insert(gatePosition, targetGate);
-          // }
         }
       }
     }

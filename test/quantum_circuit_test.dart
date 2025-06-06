@@ -212,7 +212,7 @@ void main() {
       print('After insertSingle(H, 0, 0) pushing CNOT:\n$circuit');
     });
 
-    test('should insert gate before CNOTs without any overlaps', () {
+    test('should insert single gate before CNOT without any overlaps', () {
       final circuit = createEmptyCircuit(5);
       // Q0: []
       // Q1: []
@@ -249,7 +249,7 @@ void main() {
       // Q1: [-, -, |]
       // Q2: [-, -, T]
 
-      print('After insertSingle(Z, 0, 0) causing CNOT shift:\n$circuit');
+      print('After insertSingle(Z, 1, 4) causing CNOT shift:\n$circuit');
       expect(circuit.placedGates[0].length, 0);
 
       expect(circuit.placedGates[1].length, 0);
@@ -272,6 +272,102 @@ void main() {
       expect(circuit.placedGates[4][1].type, SelectedGateType.z);
       expect(circuit.placedGates[4][2].type, SelectedGateType.cnot);
       expect(circuit.placedGates[4][2].isControl, isTrue);
+    });
+
+    test('should insert single gate before two CNOTs without any overlaps', () {
+      final circuit = createEmptyCircuit(5);
+      // Q0: []
+      // Q1: []
+      // Q2: [-, -, C]
+      // Q3: [-, -, |]
+      // Q4: [-, -, T]
+      circuit.placedGates[0].addAll([
+        PlacedQuantumGate(type: SelectedGateType.cnot, isTarget: true, controlQubitIndex: 4),
+        PlacedQuantumGate(type: SelectedGateType.cnot, isControl: true, targetQubitIndex: 1),
+      ]);
+      circuit.placedGates[1].addAll([
+        PlacedQuantumGate(type: SelectedGateType.cnot, isLink: true),
+        PlacedQuantumGate(type: SelectedGateType.cnot, isTarget: true, controlQubitIndex: 0),
+      ]);
+      circuit.placedGates[2].addAll([
+        PlacedQuantumGate(type: SelectedGateType.cnot, isLink: true),
+        PlacedQuantumGate.emptyGate(),
+        PlacedQuantumGate.emptyGate(),
+        PlacedQuantumGate.emptyGate(),
+        PlacedQuantumGate(type: SelectedGateType.cnot, isTarget: true, controlQubitIndex: 4),
+        PlacedQuantumGate(type: SelectedGateType.y)
+      ]);
+      circuit.placedGates[3].addAll([
+        PlacedQuantumGate(type: SelectedGateType.cnot, isLink: true),
+        PlacedQuantumGate.emptyGate(),
+        PlacedQuantumGate.emptyGate(),
+        PlacedQuantumGate.emptyGate(),
+        PlacedQuantumGate(type: SelectedGateType.cnot, isLink: true),
+      ]);
+      circuit.placedGates[4].addAll([
+        PlacedQuantumGate(type: SelectedGateType.cnot, isControl: true, targetQubitIndex: 0),
+        PlacedQuantumGate(type: SelectedGateType.x),
+        PlacedQuantumGate(type: SelectedGateType.y),
+        PlacedQuantumGate(type: SelectedGateType.x),
+        PlacedQuantumGate(type: SelectedGateType.cnot, isControl: true, targetQubitIndex: 2),
+      ]);
+      print('Initial:\n$circuit');
+
+      // Now insert something at column 0 that would trigger _shiftLeft
+      // For example, calling insertSinglePlacedGateAt which then calls _shiftLeft
+      circuit.insertSinglePlacedGateAt(SelectedGateType.z, 1, 0);
+      // This is not what we expect
+      // Expected:
+      // Q0: [H, C]
+      // Q1: [-, |]
+      // Q2: [-, T]
+      // but:
+      // Q0: [H, -, C]
+      // Q1: [-, -, |]
+      // Q2: [-, -, T]
+
+      print('After insertSingle(Z, 1, 0) causing CNOT shift:\n$circuit');
+      expect(circuit.placedGates[0].length, 3);
+      expect(circuit.placedGates[0][0].type, SelectedGateType.cnot);
+      expect(circuit.placedGates[0][0].isTarget, isTrue);
+      expect(circuit.placedGates[0][1].type, SelectedGateType.z);
+      expect(circuit.placedGates[0][2].type, SelectedGateType.cnot);
+      expect(circuit.placedGates[0][2].isControl, isTrue);
+
+      expect(circuit.placedGates[1].length, 3);
+      expect(circuit.placedGates[1][0].type, SelectedGateType.cnot);
+      expect(circuit.placedGates[1][0].isLink, isTrue);
+      expect(circuit.placedGates[1][1].type, SelectedGateType.none);
+      expect(circuit.placedGates[1][2].type, SelectedGateType.cnot);
+      expect(circuit.placedGates[1][2].isTarget, isTrue);
+
+      expect(circuit.placedGates[2].length, 6);
+      expect(circuit.placedGates[2][0].type, SelectedGateType.cnot);
+      expect(circuit.placedGates[2][0].isLink, isTrue);
+      expect(circuit.placedGates[2][1].type, SelectedGateType.none);
+      expect(circuit.placedGates[2][2].type, SelectedGateType.none);
+      expect(circuit.placedGates[2][3].type, SelectedGateType.none);
+      expect(circuit.placedGates[2][4].type, SelectedGateType.cnot);
+      expect(circuit.placedGates[2][4].isTarget, isTrue);
+      expect(circuit.placedGates[2][5].type, SelectedGateType.y);
+
+      expect(circuit.placedGates[3].length, 5);
+      expect(circuit.placedGates[3][0].type, SelectedGateType.cnot);
+      expect(circuit.placedGates[3][0].isLink, isTrue);
+      expect(circuit.placedGates[3][1].type, SelectedGateType.none);
+      expect(circuit.placedGates[3][2].type, SelectedGateType.none);
+      expect(circuit.placedGates[3][3].type, SelectedGateType.none);
+      expect(circuit.placedGates[3][4].type, SelectedGateType.cnot);
+      expect(circuit.placedGates[3][4].isLink, isTrue);
+
+      expect(circuit.placedGates[4].length, 5);
+      expect(circuit.placedGates[4][0].type, SelectedGateType.cnot);
+      expect(circuit.placedGates[4][0].isControl, isTrue);
+      expect(circuit.placedGates[4][1].type, SelectedGateType.x);
+      expect(circuit.placedGates[4][2].type, SelectedGateType.y);
+      expect(circuit.placedGates[4][3].type, SelectedGateType.x);
+      expect(circuit.placedGates[4][4].type, SelectedGateType.cnot);
+      expect(circuit.placedGates[4][4].isControl, isTrue);
     });
   });
 
