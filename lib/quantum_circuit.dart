@@ -17,7 +17,7 @@ class QuantumCircuit extends ChangeNotifier {
   QubitState currentState;
 
   // Constructor
-  QuantumCircuit({required this.numQubits}) :
+  QuantumCircuit({required this.numQubits}):
   // Initialize the currentState to the ground state |00...0>
   // Assuming QubitState has a constructor or static method to create the initial state
         currentState = QubitState.initial(numQubits), placedGates = List.generate(numQubits, (index) => []);
@@ -146,7 +146,7 @@ class QuantumCircuit extends ChangeNotifier {
             int endLine = rightGate.isTarget ? rightGate.controlQubitIndex! : rightGate.targetQubitIndex!;
             bool canBeMoved = true;
             for (int j = i; j <= endLine; j++) {
-              if (placedGates[i][rightPosition - 1].type != SelectedGateType.none) {
+              if (placedGates[j][rightPosition - 1].type != SelectedGateType.none) {
                 canBeMoved = false;
                 break;
               }
@@ -205,6 +205,8 @@ class QuantumCircuit extends ChangeNotifier {
     // ** Notify listeners that the state has changed **
     notifyListeners();
   }
+
+  // ************** SIMULATION METHODS ******************
 
   // The main simulation method - it returns void and updates the internal currentState property
   void runSimulation() {
@@ -328,4 +330,11 @@ class QuantumCircuit extends ChangeNotifier {
     }
     return result;
   }
+}
+
+class PreviewQuantumCircuit extends QuantumCircuit {
+  PreviewQuantumCircuit({required int numQubits}) : super(numQubits: numQubits);
+
+  List<List<PlacedQuantumGate>> clone(List<List<PlacedQuantumGate>> gates) =>
+      placedGates = gates.map((element) => List<PlacedQuantumGate>.from(element)).toList();
 }

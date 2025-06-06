@@ -29,11 +29,13 @@ class QuantumCircuitPainter extends CustomPainter {
   // ***********************************
 
   final QuantumCircuit circuit; // Painter needs the circuit (with List<PlacedQuantumGate> placedGates)
+  final PreviewQuantumCircuit previewCircuit; // Painter needs the circuit (with List<PlacedQuantumGate> placedGates)
   final ValueNotifier<double> widthNotifier;
   final Offset? draggingOffset;
   final SelectedGateType? draggingGateType; // New: Qubit index for highlight
 
-  QuantumCircuitPainter(this.circuit, this.widthNotifier, this.draggingOffset, this.draggingGateType);
+  QuantumCircuitPainter(this.circuit, this.widthNotifier, this.draggingOffset, this.draggingGateType):
+        previewCircuit = PreviewQuantumCircuit(numQubits: circuit.numQubits);
 
   // Helper getter to calculate the vertical center of a qubit line
   double getQubitCenterY(int qubitIndex) {
@@ -124,7 +126,7 @@ class QuantumCircuitPainter extends CustomPainter {
       print('Highlighting qubit line: $qubitLine and gate position: $gatePosition');
 
       if (qubitLine != null && gatePosition != null) {
-        localPlacedGates = circuit.placedGates.map((element) => List<PlacedQuantumGate>.from(element)).toList();
+        localPlacedGates = previewCircuit.clone(circuit.placedGates);
         gatePosition = circuit.isCircuitEmpty() ? 0 : min(gatePosition, localPlacedGates[qubitLine].length);
 
         PlacedQuantumGate targetGate = PlacedQuantumGate(
@@ -133,6 +135,7 @@ class QuantumCircuitPainter extends CustomPainter {
 
         if (draggingGateType == SelectedGateType.cnot) {
           print('Place CNOT box at Highlighting qubit line: $qubitLine and gate position: $gatePosition');
+          // verify length of the vertical filler always '1'
           for (List<PlacedQuantumGate> gateRow in localPlacedGates) {
             if (gatePosition > gateRow.length) {
               final int lengthFiller = (gateRow.length - gatePosition).abs();
@@ -141,14 +144,17 @@ class QuantumCircuitPainter extends CustomPainter {
             }
             gateRow.insert(gatePosition, targetGate);
           }
-        } else {
-          print('Place box at Highlighting qubit line: $qubitLine and gate position: $gatePosition');
-          var localQubitLine = localPlacedGates[qubitLine];
-          if (gatePosition > localQubitLine.length) {
-            localQubitLine.add(targetGate);
-          } else {
-            localQubitLine.insert(gatePosition, targetGate);
-          }
+        } else { // from here should only be single gate
+          previewCircuit.insertSinglePlacedGateAt(SelectedGateType.draggedGate, gatePosition, qubitLine);
+          // print('Place box at Highlighting qubit line: $qubitLine and gate position: $gatePosition');
+          // var localQubitLine = localPlacedGates[qubitLine];
+          // if (gatePosition > localQubitLine.length) {
+          //   localQubitLine.add(targetGate);
+          // } else if (localQubitLine[gatePosition].type == SelectedGateType.none) {
+          //   localQubitLine[gatePosition] = targetGate;
+          // } else {
+          //   localQubitLine.insert(gatePosition, targetGate);
+          // }
         }
       }
     }
