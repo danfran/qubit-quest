@@ -1,8 +1,9 @@
+import 'dart:math';
+import 'package:advance_math/advance_math.dart';
 import 'package:flutter/foundation.dart'; // Import this for ChangeNotifier
 import 'package:quantumquiz/placed_quantum_gate.dart'; // Import PlacedQuantumGate
+import 'package:quantumquiz/quantum_matrix.dart';
 import 'package:quantumquiz/qubit_state.dart'; // Assuming you have this class
-import 'dart:math';
-
 import 'package:quantumquiz/selected_gate_type.dart';
 
 // Make QuantumCircuit extend ChangeNotifier
@@ -206,85 +207,164 @@ class QuantumCircuit extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ************** SIMULATION METHODS ******************
+  // --- BACKEND MATRIX GENERATION LOGIC ---
 
-  // The main simulation method - it returns void and updates the internal currentState property
-  void runSimulation() {
-    // print("Starting simulation for ${placedGates.length} gates...");
-    //
-    // // Start with the initial state vector for this specific run
-    // QubitState stateVector = QubitState.initial(numQubits);
-    //
-    // // 1. Group placed gates by their horizontal position (column index)
-    // Map<int, List<PlacedQuantumGate>> gatesByPosition = {};
-    // for (var placedGate in placedGates) {
-    //   gatesByPosition.putIfAbsent(placedGate.position, () => []).add(placedGate);
-    // }
-    //
-    // // 2. Get a sorted list of positions (columns) to process them left-to-right
-    // List<int> sortedPositions = gatesByPosition.keys.toList()..sort();
-    //
-    // // 3. Process each column (position) sequentially
-    // for (int position in sortedPositions) {
-    //   List<PlacedQuantumGate> gatesInColumn = gatesByPosition[position]!;
-    //   // print("Processing column $position with ${gatesInColumn.length} gates.");
-    //
-    //   // 4. Calculate the single combined matrix for all gates acting in this column
-    //   List<List<Complex>> columnOverallMatrix = calculateColumnMatrix(gatesInColumn, numQubits); // <-- You need to implement calculateColumnMatrix
-    //
-    //   // 5. Apply the combined column matrix to the current state vector for this run
-    //   stateVector = stateVector.applyMatrix(columnOverallMatrix); // Assuming QubitState has an applyMatrix method
-    //
-    //   // print("State after column $position: ${stateVector.toString()}");
-    // }
-    //
-    // // 6. Update the internal currentState property with the final state vector result
-    // this.currentState = stateVector;
-    //
-    // print("Simulation finished. Internal currentState updated.");
-    // // We don't notifyListeners here because runSimulation is typically called
-    // // right before updating the simulationResult text, and setState is called there.
-  }
-
-  // --- Helper Methods for Simulation (Need Implementation) ---
-
-  // You need to implement this method based on your matrix library and QuantumGate definitions.
-  // List<List<Complex>> calculateColumnMatrix(List<PlacedQuantumGate> gatesInColumn, int numQubits) {
-  //   // This involves building the identity matrix of size 2^numQubits,
-  //   // then for each gate in the column, getting its 2^numQubits x 2^numQubits matrix
-  //   // (tensoring with identities for unaffected qubits), and multiplying these together.
-  //   // The order of multiplication for simultaneous gates in a column doesn't matter mathematically,
-  //   // but implement consistently.
+  /// Returns the canonical 2x2 matrix for a single qubit gate type.
+  // List<List<Complex>> _getSingleQubitGateMatrix(SelectedGateType type) {
+  //   switch (type) {
+  //     case SelectedGateType.hadamard: return HADAMARD_MATRIX;
+  //     case SelectedGateType.x: return QuantumMatrix.pauliX;
+  //     case SelectedGateType.y: return PAULI_Y_MATRIX;
+  //     case SelectedGateType.z: return PAULI_Z_MATRIX;
+  //   // Add other single qubit gates here
+  //     default:
+  //       throw ArgumentError('Unsupported single qubit gate type for matrix: $type');
+  //   }
+  // }
   //
-  //   // Example (Conceptual - implementation depends on your math library):
-  //   // Assuming identityMatrix and multiplyMatrices helpers are available
-  //   List<List<Complex>> identity = identityMatrix(1 << numQubits);
-  //
-  //   List<List<Complex>> combinedMatrix = identity;
-  //
-  //   for (var placedGate in gatesInColumn) {
-  //     // Get the full system matrix for this single placed gate operation
-  //     List<List<Complex>> gateSystemMatrix = buildSystemMatrixForPlacedGate(placedGate, numQubits); // <-- Needs implementation
-  //
-  //     // Multiply the combined matrix by this gate's system matrix
-  //     combinedMatrix = multiplyMatrices(gateSystemMatrix, combinedMatrix); // Assuming multiplyMatrices helper exists
+  // /// Builds the N-qubit CNOT matrix for the given control and target qubits.
+  // /// Qubit ordering: Q0 is LSB, Q(N-1) is MSB.
+  // List<List<Complex>> _buildCNOTMatrix(int numQubits, int controlQubit, int targetQubit) {
+  //   if (controlQubit < 0 || controlQubit >= numQubits || targetQubit < 0 || targetQubit >= numQubits || controlQubit == targetQubit) {
+  //     throw ArgumentError('Invalid CNOT qubit indices or control == target.');
   //   }
   //
-  //   return combinedMatrix;
+  //   int dim = 1 << numQubits; // 2^numQubits
+  //   List<List<Complex>> matrix = QuantumMatrix.identity(dim);
+  //
+  //   for (int i = 0; i < dim; i++) {
+  //     // Check if the control qubit is 1 in the current basis state 'i'
+  //     if (((i >> controlQubit) & 1) == 1) {
+  //       // If control is 1, flip the target qubit.
+  //       int j = i ^ (1 << targetQubit);
+  //
+  //       // Swap rows in the matrix to represent the permutation
+  //       if (i != j) {
+  //         for (int col = 0; col < dim; col++) {
+  //           Complex temp = matrix[i][col];
+  //           matrix[i][col] = matrix[j][col];
+  //           matrix[j][col] = temp;
+  //         }
+  //       }
+  //     }
+  //   }
+  //   return matrix;
   // }
   //
-  // // You need to implement this based on your original QuantumGate definitions and matrix library.
-  // // This function takes a PlacedQuantumGate and returns its 2^numQubits x 2^numQubits matrix representation
-  // List<List<Complex>> buildSystemMatrixForPlacedGate(PlacedQuantumGate placedGate, int numQubits) {
-  //   // This is complex logic depending on the gate type and how your original getMatrix works.
-  //   // You'll need to map the PlacedQuantumGate type and qubits to the correct matrix
-  //   // from your QuantumGate definitions and potentially expand it using tensor products.
-  //   throw UnimplementedError("buildSystemMatrixForPlacedGate needs implementation");
+  // /// Builds the 2^numQubits x 2^numQubits matrix for a single PlacedQuantumGate.
+  // /// This involves tensoring the gate's base matrix with identity matrices for unaffected qubits.
+  // QuantumMatrix _buildSystemMatrixForPlacedGate(PlacedQuantumGate placedGate, int numQubits) {
+  //   if (placedGate.type == SelectedGateType.none) {
+  //     return QuantumMatrix.identity(1 << numQubits); // Empty gate contributes identity
+  //   }
+  //
+  //   if (placedGate.type == SelectedGateType.cnot) {
+  //     // For CNOT, we construct the full N-qubit matrix directly.
+  //     // This method should only be called once per logical CNOT (e.g., via its control part).
+  //     if (placedGate.isControl == true && placedGate.targetQubitIndex != null) {
+  //       return _buildCNOTMatrix(numQubits, placedGate.qubitLine, placedGate.targetQubitIndex!);
+  //     }
+  //     // If it's a target or link part of a CNOT, it contributes identity to avoid
+  //     // re-calculating the full CNOT matrix. The logical gate is processed by its control.
+  //     return QuantumMatrix.identity(1 << numQubits);
+  //   }
+  //
+  //   // Handle single-qubit gates
+  //   List<List<Complex>> baseGateMatrix = _getSingleQubitGateMatrix(placedGate.type);
+  //   int targetQubit = placedGate.qubitLine; // `qubitLine` is the qubit this gate part is on
+  //
+  //   // Tensor product of baseGateMatrix with 2x2 identity matrices for other qubits
+  //   QuantumMatrix fullSystemMatrix = QuantumMatrix.identity(1); // Start with 1x1 identity
+  //
+  //   for (int q = 0; q < numQubits; q++) {
+  //     if (q == targetQubit) {
+  //       fullSystemMatrix = tensorProduct2(fullSystemMatrix, baseGateMatrix);
+  //     } else {
+  //       fullSystemMatrix = tensorProduct2(fullSystemMatrix, QuantumMatrix.identity(2)); // Tensor with 2x2 identity
+  //     }
+  //   }
+  //   return fullSystemMatrix;
+  // }
+  //
+  // /// Calculates the combined matrix for all *logical* gates in a single circuit column (time step).
+  // /// Gates in the same column acting on different qubits act simultaneously.
+  // List<List<Complex>> calculateColumnMatrix(int columnIndex) {
+  //   int dim = 1 << numQubits; // 2^numQubits
+  //   List<List<Complex>> columnOverallMatrix = QuantumMatrix.identity(dim);
+  //
+  //   // Keep track of which logical gates (especially CNOTs) have already been processed
+  //   Set<String> processedLogicalGateIds = {};
+  //
+  //   for (int q = 0; q < numQubits; q++) {
+  //     if (columnIndex >= placedGates[q].length) {
+  //       continue; // No gate on this qubit line at this column index
+  //     }
+  //
+  //     PlacedQuantumGate gate = placedGates[q][columnIndex];
+  //
+  //     if (gate.type == SelectedGateType.none) {
+  //       continue; // Empty slot
+  //     }
+  //
+  //     // If it's part of a multi-qubit gate and we've already processed its logical ID
+  //     if (gate.logicalGateId != null && processedLogicalGateIds.contains(gate.logicalGateId)) {
+  //       continue;
+  //     }
+  //     // If it's a CNOT but not the control part, we'll skip it and let the control part handle it.
+  //     // This assumes `_buildSystemMatrixForPlacedGate` is called only for the 'controlling' element
+  //     // of a logical gate.
+  //     if (gate.type == SelectedGateType.cnot && !gate.isControl) {
+  //       continue;
+  //     }
+  //
+  //
+  //     // Build the full system matrix for this specific logical gate instance
+  //     List<List<Complex>> gateSystemMatrix = _buildSystemMatrixForPlacedGate(gate, numQubits);
+  //
+  //     // Multiply into the column's overall matrix.
+  //     // Order of multiplication for simultaneous gates (e.g., (H on Q0) and (X on Q1))
+  //     // is usually equivalent to (Gate_on_MSB_Qubit_Sys) * (Gate_on_LSB_Qubit_Sys)
+  //     // or (M_MSB_qubit) ⊗ (M_LSB_qubit).
+  //     // Here, we accumulate by multiplying new gate matrix from the left.
+  //     // For Q0 LSB convention, `overallMatrix = multiplyMatrices(gateSystemMatrix, overallMatrix)` is correct.
+  //     columnOverallMatrix = multiplyMatrices(gateSystemMatrix, columnOverallMatrix);
+  //
+  //     // Mark the logical gate as processed if it has an ID
+  //     if (gate.logicalGateId != null) {
+  //       processedLogicalGateIds.add(gate.logicalGateId!);
+  //     }
+  //   }
+  //   return columnOverallMatrix;
   // }
 
-// Assuming you have matrix multiplication and identity matrix helper functions
-// List<List<Complex>> multiplyMatrices(List<List<Complex>> matrix1, List<List<Complex>> matrix2) { ... }
-// List<List<Complex>> identityMatrix(int size) { ... }
+  /// Generates the overall unitary matrix representing the entire quantum circuit.
+  /// This is the "transform operator".
+  // QuantumMatrix getOverallCircuitMatrix() {
+  //   int totalDepth = maxCircuitDepth();
+  //   if (totalDepth == 0) {
+  //     return QuantumMatrix.identity(1 << numQubits); // Empty circuit is identity
+  //   }
+  //
+  //   QuantumMatrix overallMatrix = QuantumMatrix.identity(1 << numQubits);
+  //
+  //   // Iterate through each column (time step) from left to right
+  //   for (int col = 0; col < totalDepth; col++) {
+  //     List<List<Complex>> columnMatrix = calculateColumnMatrix(col);
+  //     // Multiply the current overall matrix by the new column matrix.
+  //     // U_total = U_column_N * U_column_{N-1} * ... * U_column_0
+  //     // So, new_overall = current_column * old_overall
+  //     overallMatrix = multiplyMatrices(columnMatrix, overallMatrix);
+  //   }
+  //   return overallMatrix;
+  // }
+
+  /// Runs the quantum simulation, updating the current state vector.
+  void runSimulation() {
+    // QuantumMatrix circuitMatrix = getOverallCircuitMatrix();
+    // currentState = currentState.applyMatrix(circuitMatrix); // Assuming QubitState has applyMatrix
+    notifyListeners();
+  }
+
 
 // Helper to visually represent the circuit state for debugging in tests
   @override
