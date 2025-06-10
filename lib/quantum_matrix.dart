@@ -36,28 +36,13 @@ class QuantumMatrix {
 
   // Adds two matrices.
   QuantumMatrix add(QuantumMatrix other) {
-    // A.rawMatrix.add(B.rawMatrix);
-    // if (A.length != B.length || A[0].length != B[0].length) {
-    //   throw ArgumentError("Matrices must have the same dimensions for addition.");
-    // }
-    //
-    // int rows = A.length;
-    // int cols = A[0].length;
-    // List<List<Complex>> result = List.generate(rows, (_) => List.filled(cols, Complex.zero()));
-    //
-    // for (int r = 0; r < rows; r++) {
-    //   for (int c = 0; c < cols; c++) {
-    //     result[r][c] = A[r][c] + B[r][c];
-    //   }
-    // }
-    // return result;
     Matrix matrix = _matrix + other.rawMatrix;
     return QuantumMatrix.fromMatrix(matrix);
   }
 
   // --- CNOT Matrix Generation Function ---
 
-  List<List<Complex>> createNQuibitCnotMatrix({
+  static QuantumMatrix createNQubitCnotMatrix({
     required int nQubits,
     required int control,
     required int target,
@@ -70,26 +55,20 @@ class QuantumMatrix {
     }
 
     // Define 1-qubit gate matrices and projectors
-    final List<List<Complex>> I_1q = [
-      [Complex.one(), Complex.zero()],
-      [Complex.zero(), Complex.one()],
-    ];
-    final List<List<Complex>> X_1q = [
-      [Complex.zero(), Complex.one()],
-      [Complex.one(), Complex.zero()],
-    ];
-    final List<List<Complex>> P0_1q = [
+    final QuantumMatrix I_1q = identity(2);
+    final QuantumMatrix X_1q = pauliX();
+    final QuantumMatrix P0_1q = QuantumMatrix([
       [Complex.one(), Complex.zero()],
       [Complex.zero(), Complex.zero()],
-    ]; // |0><0|
-    final List<List<Complex>> P1_1q = [
+    ]); // |0><0|
+    final QuantumMatrix P1_1q = QuantumMatrix([
       [Complex.zero(), Complex.zero()],
       [Complex.zero(), Complex.one()],
-    ]; // |1><1|
+    ]); // |1><1|
 
     // Build the list of operators for each qubit for both terms
-    List<List<List<Complex>>> term0Ops = []; // For control is |0>
-    List<List<List<Complex>>> term1Ops = []; // For control is |1>
+    List<QuantumMatrix> term0Ops = []; // For control is |0>
+    List<QuantumMatrix> term1Ops = []; // For control is |1>
 
     // Qiskit's convention is little-endian (qubit 0 is rightmost in |q2 q1 q0>).
     // When building the tensor product A \otimes B \otimes C,
@@ -111,40 +90,19 @@ class QuantumMatrix {
 
     // Compute the tensor product for Term 0: I_{N-1} \otimes ... \otimes P0_control \otimes ... \otimes I_target \otimes ... \otimes I_0
     // Note: List is built from Q0 to Q_{N-1}. Kronecker product order is reversed (A \otimes B \otimes C for [C, B, A])
-    List<List<Complex>> kronTerm0 = term0Ops[nQubits - 1]; // Start with the leftmost qubit (Q_{N-1})
+    QuantumMatrix kronTerm0 = term0Ops[nQubits - 1]; // Start with the leftmost qubit (Q_{N-1})
     for (int i = nQubits - 2; i >= 0; i--) {
-      kronTerm0 = tensorProduct2(kronTerm0, term0Ops[i]);
+      kronTerm0 = kronTerm0.tensorProduct(term0Ops[i]);
     }
 
     // Compute the tensor product for Term 1: I_{N-1} \otimes ... \otimes P1_control \otimes ... \otimes X_target \otimes ... \otimes I_0
-    List<List<Complex>> kronTerm1 = term1Ops[nQubits - 1]; // Start with the leftmost qubit (Q_{N-1})
+    QuantumMatrix kronTerm1 = term1Ops[nQubits - 1]; // Start with the leftmost qubit (Q_{N-1})
     for (int i = nQubits - 2; i >= 0; i--) {
-      kronTerm1 = tensorProduct2(kronTerm1, term1Ops[i]);
+      kronTerm1 = kronTerm1.tensorProduct(term1Ops[i]);
     }
 
     // The CNOT matrix is the sum of these two terms
-    // return matrixAdd(kronTerm0, kronTerm1);
-    return List<List<Complex>>.empty();
-  }
-
-  List<List<Complex>> tensorProduct2(List<List<Complex>> A, List<List<Complex>> B) {
-    int m = A.length;
-    int n = A[0].length;
-    int p = B.length;
-    int q = B[0].length;
-
-    List<List<Complex>> result = List.generate(m * p, (_) => List.filled(n * q, Complex.zero()));
-
-    for (int i = 0; i < m; i++) {
-      for (int j = 0; j < n; j++) {
-        for (int k = 0; k < p; k++) {
-          for (int l = 0; l < q; l++) {
-            result[i * p + k][j * q + l] = A[i][j] * B[k][l];
-          }
-        }
-      }
-    }
-    return result;
+    return kronTerm0.add(kronTerm1);
   }
 
   // Kronecker Product (Tensor Product) - Essential for multi-qubit systems
