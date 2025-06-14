@@ -19,7 +19,7 @@ void main() {
       ]);
       final hadamard = QuantumMatrix.hadamard();
 
-      final resultState = hadamard.operate(zeroState);
+      final resultState = hadamard.dot(zeroState);
 
       // Expected state: (1/sqrt(2))|0> + (1/sqrt(2))|1>
       final expectedReal = 1 / math.sqrt(2);
@@ -39,7 +39,7 @@ void main() {
       ]);
       final pauliX = QuantumMatrix.pauliX();
 
-      final resultState = pauliX.operate(zeroState);
+      final resultState = pauliX.dot(zeroState);
 
       // Expected state: |1>
       final expectedState = QuantumMatrix([
@@ -58,7 +58,7 @@ void main() {
       ]);
       final pauliX = QuantumMatrix.pauliX();
 
-      final resultState = pauliX.operate(oneState);
+      final resultState = pauliX.dot(oneState);
 
       // Expected state: |0>
       final expectedState = QuantumMatrix([
@@ -177,10 +177,10 @@ void main() {
       final I_tensor_X = identity2.tensorProduct(pauliX);
 
       // Final circuit operator (applied right-to-left)
-      final finalOperator = I_tensor_X.operate(H_tensor_I);
+      final finalOperator = I_tensor_X.dot(H_tensor_I);
 
       // Apply to initial state
-      final finalState = finalOperator.operate(initialZeroZeroState);
+      final finalState = finalOperator.dot(initialZeroZeroState);
 
       // Expected state: (1/sqrt(2))|01> + (1/sqrt(2))|11>
       // As a 4x1 vector: [0, 1/√2, 0, 1/√2]

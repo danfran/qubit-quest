@@ -13,6 +13,44 @@ class QuantumMatrix {
   QuantumMatrix.fromMatrix(Matrix matrix)
       : _matrix = matrix;
 
+  // Utility to create common quantum gates
+  factory QuantumMatrix.identity(int size) {
+    final List<List<Complex>> elements = List.generate(size, (i) => List.filled(size, Complex.zero()));
+    for (int i = 0; i < size; i++) {
+      elements[i][i] = Complex.one();
+    }
+    return QuantumMatrix(elements);
+  }
+
+  factory QuantumMatrix.hadamard() {
+    final complexSqrtHalf = Complex(1 / math.sqrt(2), 0);
+    return QuantumMatrix([
+      [complexSqrtHalf, complexSqrtHalf],
+      [complexSqrtHalf, Complex(-complexSqrtHalf.real, -complexSqrtHalf.imaginary)],
+    ]);
+  }
+
+  factory QuantumMatrix.pauliX() {
+    return QuantumMatrix([
+      [Complex.zero(), Complex.one()],
+      [Complex.one(), Complex.zero()],
+    ]);
+  }
+
+  factory QuantumMatrix.pauliY() {
+    return QuantumMatrix([
+      [Complex.zero(), Complex(-Complex.i().real, -Complex.i().imaginary)],
+      [Complex.one(), Complex.zero()],
+    ]);
+  }
+
+  factory QuantumMatrix.pauliZ() {
+    return QuantumMatrix([
+      [Complex.one(), Complex.zero()],
+      [Complex.zero(), Complex(-Complex.one().real, -Complex.one().imaginary)],
+    ]);
+  }
+
   // Getter for the underlying matrix_utils.Matrix
   Matrix get rawMatrix => _matrix;
 
@@ -28,7 +66,7 @@ class QuantumMatrix {
 
   // Apply a quantum gate (matrix multiplication)
   // This will handle both matrix-matrix and matrix-vector multiplication
-  QuantumMatrix operate(QuantumMatrix other) {
+  QuantumMatrix dot(QuantumMatrix other) {
     final result = _matrix.dot(other.rawMatrix);
     // Ensure the result's elements are correctly cast to List<List<Complex>>
     return QuantumMatrix(result.rows.map((row) => row.cast<Complex>()).toList());
@@ -55,8 +93,8 @@ class QuantumMatrix {
     }
 
     // Define 1-qubit gate matrices and projectors
-    final QuantumMatrix I_1q = identity(2);
-    final QuantumMatrix X_1q = pauliX();
+    final QuantumMatrix I_1q = QuantumMatrix.identity(2);
+    final QuantumMatrix X_1q = QuantumMatrix.pauliX();
     final QuantumMatrix P0_1q = QuantumMatrix([
       [Complex.one(), Complex.zero()],
       [Complex.zero(), Complex.zero()],
@@ -126,44 +164,6 @@ class QuantumMatrix {
       }
     }
     return QuantumMatrix(resultElements);
-  }
-
-  // Utility to create common quantum gates
-  static QuantumMatrix identity(int size) {
-    final List<List<Complex>> elements = List.generate(size, (i) => List.filled(size, Complex.zero()));
-    for (int i = 0; i < size; i++) {
-      elements[i][i] = Complex.one();
-    }
-    return QuantumMatrix(elements);
-  }
-
-  static QuantumMatrix hadamard() {
-    final complexSqrtHalf = Complex(1 / math.sqrt(2), 0);
-    return QuantumMatrix([
-      [complexSqrtHalf, complexSqrtHalf],
-      [complexSqrtHalf, Complex(-complexSqrtHalf.real, -complexSqrtHalf.imaginary)],
-    ]);
-  }
-
-  static QuantumMatrix pauliX() {
-    return QuantumMatrix([
-      [Complex.zero(), Complex.one()],
-      [Complex.one(), Complex.zero()],
-    ]);
-  }
-
-  static QuantumMatrix pauliY() {
-    return QuantumMatrix([
-      [Complex.zero(), Complex(-Complex.i().real, -Complex.i().imaginary)],
-      [Complex.one(), Complex.zero()],
-    ]);
-  }
-
-  static QuantumMatrix pauliZ() {
-    return QuantumMatrix([
-      [Complex.one(), Complex.zero()],
-      [Complex.zero(), Complex(-Complex.one().real, -Complex.one().imaginary)],
-    ]);
   }
 
   // Method to check if two QuantumMatrices are approximately equal (for floating point comparisons)
