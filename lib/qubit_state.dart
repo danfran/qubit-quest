@@ -11,17 +11,15 @@ class QubitState {
 
   // ** Static factory method or constructor to create the initial state **
   factory QubitState.initial(int numQubits) {
-    final int size = 1 << numQubits; // Calculate 2^numQubits
-    // Create a list of complex numbers, initialized to zero
-    List<Complex> initialStateVector = List.generate(size, (_) => Complex.zero());
-
+    final int size = 1 << numQubits;
     // Set the amplitude for the |00...0> state (index 0) to 1.0 + 0.0i
-    initialStateVector[0] = Complex(1.0);
+    List<Complex> initialStateVector = List.generate(1, (_) => Complex.one());
+    List<List<Complex>> initialStateMatrix = List.generate(1, (_) => initialStateVector);
+    for (int i = 1; i < size; i++) {
+      initialStateMatrix.add(List.generate(1, (_) => Complex.zero()));
+    }
 
-    QuantumMatrix initialStateMatrix = QuantumMatrix.transpose(List.filled(1, initialStateVector));
-
-    // Return a new QubitState instance with this initial state vector
-    return QubitState._(initialStateMatrix, numQubits);
+    return QubitState._(QuantumMatrix(initialStateMatrix), numQubits);
   }
 
   QubitState applyMatrix(QuantumMatrix matrix) {
