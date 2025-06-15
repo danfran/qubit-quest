@@ -200,7 +200,7 @@ void main() {
       int q = 2;
       int c = 0;
       int t = 1;
-      final finalState = QuantumMatrix.createNQubitCnotMatrix(nQubits: q, control: c, target: t);
+      final finalState = QuantumMatrix.cnot(nQubits: q, control: c, target: t);
 
       final expectedState = QuantumMatrix([
         [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
@@ -217,7 +217,7 @@ void main() {
       int q = 2;
       int c = 1;
       int t = 0;
-      final finalState = QuantumMatrix.createNQubitCnotMatrix(nQubits: q, control: c, target: t);
+      final finalState = QuantumMatrix.cnot(nQubits: q, control: c, target: t);
 
       final expectedState = QuantumMatrix([
         [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
@@ -234,7 +234,7 @@ void main() {
       int q = 3;
       int c = 0;
       int t = 1;
-      final finalState = QuantumMatrix.createNQubitCnotMatrix(nQubits: q, control: c, target: t);
+      final finalState = QuantumMatrix.cnot(nQubits: q, control: c, target: t);
 
       final expectedState = QuantumMatrix([
         [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
@@ -255,7 +255,7 @@ void main() {
       int q = 3;
       int c = 0;
       int t = 2;
-      final finalState = QuantumMatrix.createNQubitCnotMatrix(nQubits: q, control: c, target: t);
+      final finalState = QuantumMatrix.cnot(nQubits: q, control: c, target: t);
 
       final expectedState = QuantumMatrix([
         [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
@@ -276,7 +276,7 @@ void main() {
       int q = 3;
       int c = 1;
       int t = 0;
-      final finalState = QuantumMatrix.createNQubitCnotMatrix(nQubits: q, control: c, target: t);
+      final finalState = QuantumMatrix.cnot(nQubits: q, control: c, target: t);
 
       final expectedState = QuantumMatrix([
         [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
@@ -297,7 +297,7 @@ void main() {
       int q = 3;
       int c = 1;
       int t = 2;
-      final finalState = QuantumMatrix.createNQubitCnotMatrix(nQubits: q, control: c, target: t);
+      final finalState = QuantumMatrix.cnot(nQubits: q, control: c, target: t);
 
       final expectedState = QuantumMatrix([
         [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
@@ -318,7 +318,7 @@ void main() {
       int q = 3;
       int c = 2;
       int t = 0;
-      final finalState = QuantumMatrix.createNQubitCnotMatrix(nQubits: q, control: c, target: t);
+      final finalState = QuantumMatrix.cnot(nQubits: q, control: c, target: t);
 
       final expectedState = QuantumMatrix([
         [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
@@ -339,7 +339,7 @@ void main() {
       int q = 3;
       int c = 2;
       int t = 1;
-      final finalState = QuantumMatrix.createNQubitCnotMatrix(nQubits: q, control: c, target: t);
+      final finalState = QuantumMatrix.cnot(nQubits: q, control: c, target: t);
 
       final expectedState = QuantumMatrix([
         [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
@@ -360,7 +360,7 @@ void main() {
       int q = 4;
       int c = 2;
       int t = 1;
-      final finalState = QuantumMatrix.createNQubitCnotMatrix(nQubits: q, control: c, target: t);
+      final finalState = QuantumMatrix.cnot(nQubits: q, control: c, target: t);
 
       final expectedState = QuantumMatrix([
         [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
@@ -389,7 +389,7 @@ void main() {
       int q = 5;
       int c = 4;
       int t = 1;
-      final finalState = QuantumMatrix.createNQubitCnotMatrix(nQubits: q, control: c, target: t);
+      final finalState = QuantumMatrix.cnot(nQubits: q, control: c, target: t);
 
       final expectedState = QuantumMatrix([
         [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],

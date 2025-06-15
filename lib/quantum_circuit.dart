@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/foundation.dart'; // Import this for ChangeNotifier
 import 'package:quantumquiz/placed_quantum_gate.dart'; // Import PlacedQuantumGate
@@ -79,7 +78,8 @@ class QuantumCircuit extends ChangeNotifier {
           PlacedQuantumGate controlGate = PlacedQuantumGate(
             type: gateType,
             isControl: true,
-            targetQubitIndex: targetQubitIndex, // for the painter
+            controlQubitIndex: tappedQubitIndex,
+            targetQubitIndex: targetQubitIndex,
           );
           insertGateAt(controlGate, insertionPosition, i);
         } else if (i == targetQubitIndex) {
@@ -87,6 +87,7 @@ class QuantumCircuit extends ChangeNotifier {
             type: gateType,
             isTarget: true,
             controlQubitIndex: tappedQubitIndex,
+            targetQubitIndex: targetQubitIndex,
           );
           insertGateAt(targetGate, insertionPosition, i);
         } else {
@@ -221,7 +222,13 @@ class QuantumCircuit extends ChangeNotifier {
       case SelectedGateType.z:
         return QuantumMatrix.pauliZ();
       case SelectedGateType.cnot: // at this point we consider only CNOT gates control
-        return QuantumMatrix.createNQubitCnotMatrix(nQubits: numQubits, control: gate.controlQubitIndex!, target: gate.targetQubitIndex!);
+        return QuantumMatrix.cnot(
+            nQubits: abs(gate.controlQubitIndex! - gate.targetQubitIndex!) + 1,
+            control: gate.controlQubitIndex!,
+            target: gate.targetQubitIndex!
+        );
+      case SelectedGateType.none:
+        return QuantumMatrix.identity(2);
       default:
         throw UnimplementedError();
     }
@@ -229,24 +236,18 @@ class QuantumCircuit extends ChangeNotifier {
 
   /// Calculates the combined matrix for all *logical* gates in a single circuit column (time step).
   /// Gates in the same column acting on different qubits act simultaneously.
-  QuantumMatrix calculateColumnMatrix(int columnIndex) {
-    int dim = 1 << numQubits; // 2^numQubits
-    QuantumMatrix columnOverallMatrix = QuantumMatrix.identity(dim);
+  QuantumMatrix _calculateColumnMatrix(int columnIndex) {
+    QuantumMatrix? columnOverallMatrix;
 
     // Keep track of which logical gates (especially CNOTs) have already been processed
     for (int q = 0; q < numQubits; q++) {
+      PlacedQuantumGate? gate;
+
       if (columnIndex >= placedGates[q].length) {
-        continue; // No gate on this qubit line at this column index
+        gate = PlacedQuantumGate.emptyGate();
+      } else {
+        gate = placedGates[q][columnIndex];
       }
-
-      PlacedQuantumGate gate = placedGates[q][columnIndex];
-
-      if (gate.type == SelectedGateType.none || gate.type == SelectedGateType.cnot && !gate.isControl) {
-        continue; // Empty slot
-      }
-
-      // Build the full system matrix for this specific logical gate instance
-      QuantumMatrix gateSystemMatrix = _buildSystemMatrixForPlacedGate(gate);
 
       // Multiply into the column's overall matrix.
       // Order of multiplication for simultaneous gates (e.g., (H on Q0) and (X on Q1))
@@ -254,9 +255,18 @@ class QuantumCircuit extends ChangeNotifier {
       // or (M_MSB_qubit) ⊗ (M_LSB_qubit).
       // Here, we accumulate by multiplying new gate matrix from the left.
       // For Q0 LSB convention, `overallMatrix = multiplyMatrices(gateSystemMatrix, overallMatrix)` is correct.
-      columnOverallMatrix = gateSystemMatrix.dot(columnOverallMatrix);
+      QuantumMatrix gateSystemMatrix = _buildSystemMatrixForPlacedGate(gate);
+      columnOverallMatrix = columnOverallMatrix == null ? gateSystemMatrix : gateSystemMatrix.tensorProduct(columnOverallMatrix);
+
+      print(gateSystemMatrix);
+
+      if (gate.type == SelectedGateType.cnot) {
+        // skip to the next qubit after the CNOT
+        q = max(gate.controlQubitIndex!, gate.targetQubitIndex!);
+        continue;
+      }
     }
-    return columnOverallMatrix;
+    return columnOverallMatrix!;
   }
 
   /// Generates the overall unitary matrix representing the entire quantum circuit.
@@ -271,7 +281,7 @@ class QuantumCircuit extends ChangeNotifier {
 
     // Iterate through each column (time step) from left to right
     for (int col = 0; col < totalDepth; col++) {
-      QuantumMatrix columnMatrix = calculateColumnMatrix(col);
+      QuantumMatrix columnMatrix = _calculateColumnMatrix(col);
       // Multiply the current overall matrix by the new column matrix.
       // U_total = U_column_N * U_column_{N-1} * ... * U_column_0
       // So, new_overall = current_column * old_overall
@@ -283,7 +293,8 @@ class QuantumCircuit extends ChangeNotifier {
   /// Runs the quantum simulation, updating the current state vector.
   void runSimulation() {
     QuantumMatrix circuitMatrix = getOverallCircuitMatrix();
-    currentState = currentState.applyMatrix(circuitMatrix); // Assuming QubitState has applyMatrix
+    print(circuitMatrix);
+    currentState = currentState.applyMatrix(circuitMatrix);
     notifyListeners();
   }
 

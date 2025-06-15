@@ -13,6 +13,9 @@ class QuantumMatrix {
   QuantumMatrix.fromMatrix(Matrix matrix)
       : _matrix = matrix;
 
+  QuantumMatrix.transpose(List<List<Complex>> elements)
+      : _matrix = Matrix(elements).transpose();
+
   // Utility to create common quantum gates
   factory QuantumMatrix.identity(int size) {
     final List<List<Complex>> elements = List.generate(size, (i) => List.filled(size, Complex.zero()));
@@ -40,7 +43,7 @@ class QuantumMatrix {
   factory QuantumMatrix.pauliY() {
     return QuantumMatrix([
       [Complex.zero(), Complex(-Complex.i().real, -Complex.i().imaginary)],
-      [Complex.one(), Complex.zero()],
+      [Complex.i(), Complex.zero()],
     ]);
   }
 
@@ -51,36 +54,7 @@ class QuantumMatrix {
     ]);
   }
 
-  // Getter for the underlying matrix_utils.Matrix
-  Matrix get rawMatrix => _matrix;
-
-  int get rowCount => _matrix.rowCount;
-  int get columnCount => _matrix.columnCount;
-
-  Iterable<List> get rows => _matrix.rows;
-  Iterable<List> get cols => _matrix.columns;
-
-  // (a + ib) (c + id) = (ac - bd) + i(ad + bc)
-  Complex multiply(Complex x, Complex y) =>
-      Complex(x.real*y.real - x.imaginary*y.imaginary, x.real*y.imaginary + x.imaginary*y.real);
-
-  // Apply a quantum gate (matrix multiplication)
-  // This will handle both matrix-matrix and matrix-vector multiplication
-  QuantumMatrix dot(QuantumMatrix other) {
-    final result = _matrix.dot(other.rawMatrix);
-    // Ensure the result's elements are correctly cast to List<List<Complex>>
-    return QuantumMatrix(result.rows.map((row) => row.cast<Complex>()).toList());
-  }
-
-  // Adds two matrices.
-  QuantumMatrix add(QuantumMatrix other) {
-    Matrix matrix = _matrix + other.rawMatrix;
-    return QuantumMatrix.fromMatrix(matrix);
-  }
-
-  // --- CNOT Matrix Generation Function ---
-
-  static QuantumMatrix createNQubitCnotMatrix({
+  factory QuantumMatrix.cnot({
     required int nQubits,
     required int control,
     required int target,
@@ -141,6 +115,33 @@ class QuantumMatrix {
 
     // The CNOT matrix is the sum of these two terms
     return kronTerm0.add(kronTerm1);
+  }
+
+  // Getter for the underlying matrix_utils.Matrix
+  Matrix get rawMatrix => _matrix;
+
+  int get rowCount => _matrix.rowCount;
+  int get columnCount => _matrix.columnCount;
+
+  Iterable<List> get rows => _matrix.rows;
+  Iterable<List> get cols => _matrix.columns;
+
+  // (a + ib) (c + id) = (ac - bd) + i(ad + bc)
+  Complex multiply(Complex x, Complex y) =>
+      Complex(x.real*y.real - x.imaginary*y.imaginary, x.real*y.imaginary + x.imaginary*y.real);
+
+  // Apply a quantum gate (matrix multiplication)
+  // This will handle both matrix-matrix and matrix-vector multiplication
+  QuantumMatrix dot(QuantumMatrix other) {
+    final result = _matrix.dot(other.rawMatrix);
+    // Ensure the result's elements are correctly cast to List<List<Complex>>
+    return QuantumMatrix.fromMatrix(result);
+  }
+
+  // Adds two matrices.
+  QuantumMatrix add(QuantumMatrix other) {
+    Matrix matrix = _matrix + other.rawMatrix;
+    return QuantumMatrix.fromMatrix(matrix);
   }
 
   // Kronecker Product (Tensor Product) - Essential for multi-qubit systems

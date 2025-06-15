@@ -1,5 +1,4 @@
 import 'package:advance_math/advance_math.dart';
-import 'package:quantumquiz/placed_quantum_gate.dart';
 import 'package:quantumquiz/probability_histogram.dart';
 import 'package:quantumquiz/quantum_circuit.dart';
 import 'package:quantumquiz/quantum_circuit_painter.dart';
@@ -28,33 +27,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
   SelectedGateType _draggingGateType = SelectedGateType.none;
 
   final ValueNotifier<double> _circuitWidthNotifier = ValueNotifier<double>(0.0);
-
-// You'll likely need a helper to format the QubitState for display
-  String formatStateVector(QubitState state) {
-    // Implement formatting based on your QubitState structure
-    // Example: [a+bi, c+di, ...]
-    String formatted = "[";
-    for (int i = 0; i < state.state.length; i++) {
-      String real = state.state[i].real.toStringAsFixed(2);
-      String imag = state.state[i].imaginary.toStringAsFixed(2);
-      String complexStr;
-      if (state.state[i].imaginary == 0) {
-        complexStr = real;
-      } else if (state.state[i].real == 0) {
-        complexStr = "${imag}i";
-      } else if (state.state[i].imaginary > 0) {
-        complexStr = "$real+$imag" + "i";
-      } else {
-        complexStr = "$real$imag" + "i"; // Imaginary part already has '-'
-      }
-      formatted += complexStr;
-      if (i < state.state.length - 1) {
-        formatted += ", ";
-      }
-    }
-    formatted += "]";
-    return formatted;
-  }
 
   void _setInteractionMode(SelectedGateType mode) {
     setState(() {
@@ -278,7 +250,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     setState(() {
       // Format the final state vector for display
       // Access the state data via the finalState object obtained from circuit.currentState
-      simulationResult = "Final State Vector:\n${formatStateVector(finalState)}"; // Assuming formatStateVector helper
+      simulationResult = "Final State Vector:\n$finalState"; // Assuming formatStateVector helper
     });
     print("Simulation finished.");
   }

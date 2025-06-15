@@ -3,7 +3,7 @@ import 'package:quantumquiz/quantum_matrix.dart';
 
 class QubitState {
   // The list of complex amplitudes representing the state vector
-  List<Complex> state;
+  QuantumMatrix state;
   final int numQubits; // Store the number of qubits this state corresponds to
 
   // Private constructor
@@ -18,8 +18,10 @@ class QubitState {
     // Set the amplitude for the |00...0> state (index 0) to 1.0 + 0.0i
     initialStateVector[0] = Complex(1.0);
 
+    QuantumMatrix initialStateMatrix = QuantumMatrix.transpose(List.filled(1, initialStateVector));
+
     // Return a new QubitState instance with this initial state vector
-    return QubitState._(initialStateVector, numQubits);
+    return QubitState._(initialStateMatrix, numQubits);
   }
 
   QubitState applyMatrix(QuantumMatrix matrix) {
@@ -27,36 +29,14 @@ class QubitState {
     // This involves iterating through the rows of the matrix
     // and calculating the dot product with the state vector.
     // The result is a new state vector.
-    QuantumMatrix stateMatrix = QuantumMatrix(List.filled(1, state));
-    QuantumMatrix finalState = matrix.dot(stateMatrix);
+    QuantumMatrix finalState = matrix.dot(state);
 
     // Return a new QubitState object with the updated state vector
-    return QubitState._(finalState.rows.first.cast(), numQubits);
+    return QubitState._(finalState, numQubits);
   }
 
   @override
   String toString() {
-    // Implement formatting the state vector to a string (like your formatStateVector helper)
-    String formatted = "[";
-    for (int i = 0; i < state.length; i++) {
-      String real = state[i].real.toStringAsFixed(2);
-      String imag = state[i].imaginary.toStringAsFixed(2);
-      String complexStr;
-      if (state[i].imaginary == 0) {
-        complexStr = real;
-      } else if (state[i].real == 0) {
-        complexStr = "${imag}i";
-      } else if (state[i].imaginary > 0) {
-        complexStr = "$real+$imag" + "i";
-      } else {
-        complexStr = "$real$imag" + "i"; // Imaginary part already has '-'
-      }
-      formatted += complexStr;
-      if (i < state.length - 1) {
-        formatted += ", ";
-      }
-    }
-    formatted += "]";
-    return formatted;
+    return state.rawMatrix.transpose().toString();
   }
 }

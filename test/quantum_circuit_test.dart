@@ -1,6 +1,8 @@
+import 'package:advance_math/advance_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/quantum_circuit.dart';
 import 'package:quantumquiz/placed_quantum_gate.dart';
+import 'package:quantumquiz/quantum_matrix.dart';
 import 'package:quantumquiz/selected_gate_type.dart';
 import 'package:quantumquiz/qubit_state.dart'; // Assuming this is minimal for test setup
 
@@ -15,6 +17,8 @@ void main() {
     // For tests, we might want to manually set initial states if not empty.
     return circuit;
   }
+
+  const double tolerance = 1e-9;
 
   group('QuantumCircuit Basic Properties', () {
     test('should initialize with correct number of qubits and empty state', () {
@@ -693,41 +697,33 @@ void main() {
       expect(circuit.placedGates[1].length, 1);
       expect(circuit.placedGates[1][0].type, SelectedGateType.cnot); // Q1 still has the target!
       print('After removing CNOT control (bug observed):\n$circuit');
+    });
 
-      // If `removePlacedGate` were properly implemented for CNOTs (as discussed in previous algorithm):
-      /*
-      // Corrected logic for removePlacedGate would be:
-      void removePlacedGate(int gatePosition, int qubitLine) {
-        PlacedQuantumGate? gateToRemove = placedGates[qubitLine][gatePosition];
-        if (gateToRemove.type == SelectedGateType.none) return; // Already empty
+    group('QuantumCircuit calculate state vector', () {
+      test('should calculate the state for a three qubits and two column circuit', () {
+        final circuit = createEmptyCircuit(3);
+        // CNOT (Q0 ctrl, Q1 target) at pos 0
+        circuit.placedGates[0].add(PlacedQuantumGate(type: SelectedGateType.cnot, isControl: true, controlQubitIndex: 0, targetQubitIndex: 1));
+        circuit.placedGates[1].add(PlacedQuantumGate(type: SelectedGateType.cnot, isTarget: true, controlQubitIndex: 0, targetQubitIndex: 1));
+        circuit.placedGates[2].add(PlacedQuantumGate(type: SelectedGateType.x));
+        circuit.placedGates[1].add(PlacedQuantumGate(type: SelectedGateType.y));
+        print('Initial:\n$circuit');
 
-        if (gateToRemove.type == SelectedGateType.cnot) {
-          // Find all parts of this logical CNOT in this column
-          int controlQ = gateToRemove.isControl ? qubitLine : gateToRemove.controlQubitIndex!;
-          int targetQ = gateToRemove.isTarget ? qubitLine : gateToRemove.targetQubitIndex!;
-          int startQ = min(controlQ, targetQ);
-          int endQ = max(controlQ, targetQ);
+        circuit.runSimulation();
 
-          for (int q = startQ; q <= endQ; q++) {
-            // Check if the gate at this position and qubit line is part of the same CNOT
-            // This needs more robust identification (e.g., a shared CNOT ID/reference)
-            // For now, assuming direct match of type and control/target roles
-            if (gatePosition < placedGates[q].length && placedGates[q][gatePosition].type == SelectedGateType.cnot &&
-                (placedGates[q][gatePosition].isControl == (q == controlQ) ||
-                 placedGates[q][gatePosition].isTarget == (q == targetQ) ||
-                 placedGates[q][gatePosition].isLink)) {
-              placedGates[q][gatePosition] = PlacedQuantumGate.emptyGate(); // Replace with empty
-            }
-          }
-        } else { // Single gate
-          placedGates[quubitLine][gatePosition] = PlacedQuantumGate.emptyGate();
-        }
+        final expectedState = QuantumMatrix([
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.i()],
+          [Complex.zero()],
+        ]);
 
-        _shiftLeft(0); // Compacting after removal
-        trimCircuit();
-        notifyListeners();
-      }
-      */
+        expect(circuit.currentState.state.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'H|0> operation incorrect');
+      });
     });
   });
 }
