@@ -692,10 +692,53 @@ void main() {
       // It should find the linked parts and remove them too.
 
       // For now, testing what the current code does:
-      expect(circuit.placedGates[0].length, 0); // Q0 is now empty
-      expect(circuit.placedGates[1].length, 1);
-      expect(circuit.placedGates[1][0].type, SelectedGateType.cnot); // Q1 still has the target!
       print('After removing CNOT control (bug observed):\n$circuit');
+      expect(circuit.placedGates[0].length, 0); // Q0 is now empty
+      expect(circuit.placedGates[1].length, 0);
+    });
+
+    test('should remove CNOT components when any part is removed and shift left and trim the circuit', () {
+      final circuit = createEmptyCircuit(2);
+      // CNOT (Q0 ctrl, Q1 target) at pos 0
+      circuit.insertSinglePlacedGateAt(SelectedGateType.y, 0, 1);
+      circuit.insertSinglePlacedGateAt(SelectedGateType.x, 1, 1);
+      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 2, 0, 1);
+      print('Initial:\n$circuit');
+
+      // Removing CNOT control at (0,0)
+      circuit.removePlacedGate(2, 0);
+
+      // Current `removePlacedGate` only removes the specific item.
+      // It does NOT remove linked CNOT parts.
+      // This is a bug in the provided `removePlacedGate` implementation for CNOTs.
+      // It should find the linked parts and remove them too.
+
+      // For now, testing what the current code does:
+      print('After removing CNOT control (bug observed):\n$circuit');
+      expect(circuit.placedGates[0].length, 0); // Q0 is now empty
+      expect(circuit.placedGates[1].length, 2);
+    });
+
+    test('should not remove an empty cell', () {
+      final circuit = createEmptyCircuit(2);
+      // CNOT (Q0 ctrl, Q1 target) at pos 0
+      circuit.insertSinglePlacedGateAt(SelectedGateType.y, 0, 1);
+      circuit.insertSinglePlacedGateAt(SelectedGateType.x, 1, 1);
+      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 2, 0, 1);
+      print('Initial:\n$circuit');
+
+      // Removing CNOT control at (0,0)
+      circuit.removePlacedGate(0, 0);
+
+      // Current `removePlacedGate` only removes the specific item.
+      // It does NOT remove linked CNOT parts.
+      // This is a bug in the provided `removePlacedGate` implementation for CNOTs.
+      // It should find the linked parts and remove them too.
+
+      // For now, testing what the current code does:
+      print('After removing CNOT control (bug observed):\n$circuit');
+      expect(circuit.placedGates[0].length, 3); // Q0 is now empty
+      expect(circuit.placedGates[1].length, 3);
     });
 
     group('QuantumCircuit calculate state vector', () {

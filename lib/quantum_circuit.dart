@@ -94,6 +94,8 @@ class QuantumCircuit extends ChangeNotifier {
           PlacedQuantumGate linkGate = PlacedQuantumGate(
             type: gateType,
             isLink: true,
+            controlQubitIndex: tappedQubitIndex,
+            targetQubitIndex: targetQubitIndex,
           );
           insertGateAt(linkGate, insertionPosition, i);
         }
@@ -107,7 +109,8 @@ class QuantumCircuit extends ChangeNotifier {
         PlacedQuantumGate controlGate = PlacedQuantumGate(
           type: gateType,
           isControl: true,
-          targetQubitIndex: targetQubitIndex, // for the painter
+          controlQubitIndex: tappedQubitIndex,
+          targetQubitIndex: targetQubitIndex,
         );
         insertGateAt(controlGate, insertionPosition, i);
       } else if (i == targetQubitIndex) {
@@ -115,12 +118,15 @@ class QuantumCircuit extends ChangeNotifier {
           type: gateType,
           isTarget: true,
           controlQubitIndex: tappedQubitIndex,
+          targetQubitIndex: targetQubitIndex,
         );
         insertGateAt(targetGate, insertionPosition, i);
       } else if (i > tappedQubitIndex && i < targetQubitIndex || i < tappedQubitIndex && i > targetQubitIndex) {
         PlacedQuantumGate linkGate = PlacedQuantumGate(
           type: gateType,
           isLink: true,
+          controlQubitIndex: tappedQubitIndex,
+          targetQubitIndex: targetQubitIndex,
         );
         insertGateAt(linkGate, insertionPosition, i);
       } else {
@@ -135,6 +141,31 @@ class QuantumCircuit extends ChangeNotifier {
     trimCircuit();
 
     // Notify listeners that the state has changed
+    notifyListeners();
+  }
+
+  // Method to remove a specific placed gate instance from the circuit
+  void removePlacedGate(int gatePosition, int qubitLine) {
+    PlacedQuantumGate gateToRemove = placedGates[qubitLine][gatePosition];
+    if (gateToRemove.type == SelectedGateType.none) {
+      return;
+    }
+    else if (gateToRemove.type == SelectedGateType.cnot) {
+      for (int i = min(gateToRemove.controlQubitIndex!, gateToRemove.targetQubitIndex!); i <= max(gateToRemove.controlQubitIndex!, gateToRemove.targetQubitIndex!); i++) {
+        placedGates[i].removeAt(gatePosition);
+      }
+    } else {
+      placedGates[qubitLine].removeAt(gatePosition);
+    }
+
+    print('Gate type [${gateToRemove.type}] removed at qubit line: $qubitLine and gate position: $gatePosition');
+
+    // Second phase, we need to scroll left what is scrollable.
+    shiftLeft(0);
+
+    trimCircuit();
+
+    // ** Notify listeners that the state has changed **
     notifyListeners();
   }
 
@@ -187,15 +218,6 @@ class QuantumCircuit extends ChangeNotifier {
         placedGates[i].removeLast();
       }
     }
-  }
-
-  // Method to remove a specific placed gate instance from the circuit
-  void removePlacedGate(int gatePosition, int qubitLine) {
-    print('Gate removed at qubit line: $qubitLine and gate position: $gatePosition');
-    placedGates[qubitLine].removeAt(gatePosition);
-
-    // ** Notify listeners that the state has changed **
-    notifyListeners();
   }
 
   // Method to clear all placed gates from the circuit
