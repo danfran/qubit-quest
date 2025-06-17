@@ -233,6 +233,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
     // ** Call the void simulation method on the circuit **
     // This method executes the simulation and updates circuit.currentState internally.
+    print(circuit);
     circuit.runSimulation();
 
     // ** Access the updated circuit.currentState property to get the final state **

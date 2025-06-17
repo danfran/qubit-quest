@@ -293,7 +293,7 @@ class QuantumCircuit extends ChangeNotifier {
   /// Runs the quantum simulation, updating the current state vector.
   void runSimulation() {
     QuantumMatrix circuitMatrix = getOverallCircuitMatrix();
-    print(circuitMatrix);
+    print(circuitMatrix.rawMatrix.toString());
     currentState = currentState.applyMatrix(circuitMatrix);
     notifyListeners();
   }

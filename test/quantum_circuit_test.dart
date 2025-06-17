@@ -680,8 +680,7 @@ void main() {
     test('should remove CNOT components when any part is removed', () {
       final circuit = createEmptyCircuit(2);
       // CNOT (Q0 ctrl, Q1 target) at pos 0
-      circuit.placedGates[0].add(PlacedQuantumGate(type: SelectedGateType.cnot, isControl: true, targetQubitIndex: 1));
-      circuit.placedGates[1].add(PlacedQuantumGate(type: SelectedGateType.cnot, isTarget: true, controlQubitIndex: 0));
+      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 0, 1);
       print('Initial:\n$circuit');
 
       // Removing CNOT control at (0,0)
@@ -700,13 +699,12 @@ void main() {
     });
 
     group('QuantumCircuit calculate state vector', () {
-      test('should calculate the state for a three qubits and two column circuit', () {
+      test('should calculate the state for a three qubits and 2 depth circuit', () {
         final circuit = createEmptyCircuit(3);
         // CNOT (Q0 ctrl, Q1 target) at pos 0
-        circuit.placedGates[0].add(PlacedQuantumGate(type: SelectedGateType.cnot, isControl: true, controlQubitIndex: 0, targetQubitIndex: 1));
-        circuit.placedGates[1].add(PlacedQuantumGate(type: SelectedGateType.cnot, isTarget: true, controlQubitIndex: 0, targetQubitIndex: 1));
-        circuit.placedGates[2].add(PlacedQuantumGate(type: SelectedGateType.x));
-        circuit.placedGates[1].add(PlacedQuantumGate(type: SelectedGateType.y));
+        circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 0, 1);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.y, 0, 1);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.x, 0, 2);
         print('Initial:\n$circuit');
 
         circuit.runSimulation();
@@ -722,6 +720,61 @@ void main() {
           [Complex.zero()],
         ]);
 
+        expect(circuit.currentState.state.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'H|0> operation incorrect');
+      });
+
+      test('should calculate the state for a 5 qubits and 4 depth circuit', () {
+        final circuit = createEmptyCircuit(5);
+        // CNOT (Q0 ctrl, Q1 target) at pos 0
+        circuit.insertSinglePlacedGateAt(SelectedGateType.y, 0, 0);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.z, 0, 1);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.x, 0, 2);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.y, 0, 3);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.z, 1, 3);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.x, 0, 4);
+
+        circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 2, 3, 0);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 3, 3);
+        print('Initial:\n$circuit');
+
+        circuit.runSimulation();
+
+        final expectedState = QuantumMatrix([
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex(sqrt1_2, 0)],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex(-sqrt1_2, 0)],
+          [Complex.zero()],
+          [Complex.zero()],
+          [Complex.zero()],
+        ]);
+
+        print(circuit.currentState.state);
         expect(circuit.currentState.state.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'H|0> operation incorrect');
       });
     });
