@@ -659,22 +659,10 @@ void main() {
       // To test compaction on remove, the `removePlacedGate` method itself needs modification.
 
       // For this test, we'll confirm direct removal
-      expect(circuit.placedGates[0].length, 3);
-      expect(circuit.placedGates[0][0].type, SelectedGateType.hadamard);
-      expect(circuit.placedGates[0][1].type, SelectedGateType.none); // Old X slot is now empty due to `removeAt`
-      expect(circuit.placedGates[0][2].type, SelectedGateType.z);
-      print('After remove(1,0) (no auto-compaction):\n$circuit');
-
-      // To properly test compaction *after* removal, you'd need `removePlacedGate` to call `_shiftLeft` / `trimCircuit`
-      // As per our prior discussion:
-      // removePlacedGate should remove it and then call _compactCircuitFromRight()
-      // Let's simulate that for the test for now:
-      circuit.shiftLeft(0); // Calling shiftLeft starting from beginning to compact
-      circuit.trimCircuit();
       expect(circuit.placedGates[0].length, 2);
       expect(circuit.placedGates[0][0].type, SelectedGateType.hadamard);
-      expect(circuit.placedGates[0][1].type, SelectedGateType.z); // Z should have shifted left
-      print('After remove(1,0) and MANUAL compaction:\n$circuit');
+      expect(circuit.placedGates[0][1].type, SelectedGateType.z);
+      print('After remove(1,0) (no auto-compaction):\n$circuit');
     });
 
     test('should remove CNOT components when any part is removed', () {
