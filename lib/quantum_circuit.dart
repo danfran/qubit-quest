@@ -1,8 +1,8 @@
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/foundation.dart'; // Import this for ChangeNotifier
 import 'package:quantumquiz/placed_quantum_gate.dart'; // Import PlacedQuantumGate
-import 'package:quantumquiz/quantum_matrix.dart';
-import 'package:quantumquiz/qubit_state.dart'; // Assuming you have this class
+import 'package:quantumquiz/models/quantum_matrix.dart';
+import 'package:quantumquiz/models/qubit_state.dart'; // Assuming you have this class
 import 'package:quantumquiz/selected_gate_type.dart';
 
 // Make QuantumCircuit extend ChangeNotifier

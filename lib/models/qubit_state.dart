@@ -1,5 +1,5 @@
 import 'package:advance_math/advance_math.dart';
-import 'package:quantumquiz/quantum_matrix.dart';
+import 'package:quantumquiz/models/quantum_matrix.dart';
 
 class QubitState {
   // The list of complex amplitudes representing the state vector

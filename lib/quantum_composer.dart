@@ -4,7 +4,7 @@ import 'package:quantumquiz/quantum_circuit.dart';
 import 'package:quantumquiz/quantum_circuit_painter.dart';
 import 'package:quantumquiz/quantum_doc_dialog.dart';
 import 'package:flutter/material.dart';
-import 'package:quantumquiz/qubit_state.dart';
+import 'package:quantumquiz/models/qubit_state.dart';
 import 'package:quantumquiz/selected_gate_type.dart';
 
 import 'cnot_target_qubit_selection_dialog.dart';

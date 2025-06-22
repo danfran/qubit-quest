@@ -2,9 +2,9 @@ import 'package:advance_math/advance_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/quantum_circuit.dart';
 import 'package:quantumquiz/placed_quantum_gate.dart';
-import 'package:quantumquiz/quantum_matrix.dart';
+import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/selected_gate_type.dart';
-import 'package:quantumquiz/qubit_state.dart'; // Assuming this is minimal for test setup
+import 'package:quantumquiz/models/qubit_state.dart'; // Assuming this is minimal for test setup
 
 
 void main() {
