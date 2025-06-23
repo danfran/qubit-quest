@@ -1,7 +1,10 @@
 // home_page.dart
 
 import 'package:flutter/material.dart';
-import 'package:quantumquiz/quantum_composer.dart'; // Import your QuantumComposer
+import 'package:quantumquiz/quantum_composer.dart';
+
+import 'models/qq_level.dart';
+import 'models/qq_levels.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -50,11 +53,15 @@ class _HomePageState extends State<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.center, // Center options vertically
                     children: [
                       _buildOptionButton(context, "Start/Continue", () {
+                        QQLevel? selectedLevel = getLevel();
+
                         // Navigate to the last unlocked level or first unlocked level
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => QuantumComposer(), // Placeholder, pass level data later
+                            builder: (context) => QuantumComposer(
+                              level: selectedLevel!, // Pass the entire Level object
+                            ), // Placeholder, pass level data later
                           ),
                         );
                       }),
@@ -116,7 +123,9 @@ class _HomePageState extends State<HomePage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => QuantumComposer(), // Pass level data if needed later
+                                  builder: (context) => QuantumComposer(
+                                    level: getQQLevelById(levelNumber)!, // Pass the entire Level object
+                                  ), // Pass level data if needed later
                                 ),
                               );
                             }
@@ -150,6 +159,26 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  QQLevel? getLevel() {
+    int targetLevelId = 1; // Default to level 1
+
+    // Example: Load the last unlocked level. This data would usually come
+    // from shared preferences, a database, or user authentication.
+    // For demonstration, let's assume last unlocked is Level 3.
+    int lastUnlockedLevelId = 1; // Placeholder for actual user progress
+    bool userWantsToContinue = true; // Placeholder for user choice or game state
+
+    if (userWantsToContinue && lastUnlockedLevelId > 0) {
+      targetLevelId = lastUnlockedLevelId;
+    } else {
+      targetLevelId = 1; // Start a new game or re-start level 1
+    }
+
+    // Retrieve the Level object
+    final QQLevel? selectedLevel = getQQLevelById(targetLevelId);
+    return selectedLevel;
   }
 
   // Helper method for building consistent option buttons

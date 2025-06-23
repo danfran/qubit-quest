@@ -8,15 +8,28 @@ import 'package:quantumquiz/models/qubit_state.dart';
 import 'package:quantumquiz/selected_gate_type.dart';
 
 import 'cnot_target_qubit_selection_dialog.dart';
+import 'models/qq_level.dart';
 
 class QuantumComposer extends StatefulWidget {
+  final QQLevel level; // Now, QuantumComposer accepts a Level object
+
+  const QuantumComposer({
+    Key? key,
+    required this.level, // Level is now required
+  }) : super(key: key);
+
   @override
   _QuantumComposerState createState() => _QuantumComposerState();
 }
 
 class _QuantumComposerState extends State<QuantumComposer> {
-  static final int numberQubits = 5;
-  final QuantumCircuit circuit = QuantumCircuit(numQubits: numberQubits);
+  late int _numQubits;
+  late String _taskDescription;
+  late List<Complex> _initialState;
+  late List<SelectedGateType> _availableGates;
+  late List<Complex> _solutionVector;
+  late QuantumCircuit _circuit;
+
   String simulationResult = "Run the circuit to see the result";
   List<double> measurementProbabilities = [0.0, 0.0, 0.0, 0.0];
   SelectedGateType _currentMode = SelectedGateType.none;
@@ -27,6 +40,25 @@ class _QuantumComposerState extends State<QuantumComposer> {
   SelectedGateType _draggingGateType = SelectedGateType.none;
 
   final ValueNotifier<double> _circuitWidthNotifier = ValueNotifier<double>(0.0);
+
+  @override
+  void initState() {
+    super.initState();
+    _numQubits = widget.level.numQubits;
+    _taskDescription = widget.level.taskDescription;
+    _initialState = widget.level.initialQubitsState;
+    _availableGates = widget.level.availableGates;
+    _solutionVector = widget.level.solutionFinalVector;
+    _circuit = QuantumCircuit(numQubits: widget.level.numQubits);
+
+    print('Loading Level ID: ${widget.level.id}');
+    print('Task: $_taskDescription');
+    print('Number of qubits: $_numQubits');
+    print('Initial state: $_initialState');
+    print('Available gates: $_availableGates');
+    print('Solution vector: $_solutionVector');
+  }
+
 
   void _setInteractionMode(SelectedGateType mode) {
     setState(() {
@@ -71,7 +103,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     final dropPosition = localPosition; // Use details.offset
 
     // Use the painter's logic to determine the qubit line and insertion position
-    final painter = QuantumCircuitPainter(circuit, _circuitWidthNotifier, _draggingOffset, _draggingGateType); // Painter knows layout constants
+    final painter = QuantumCircuitPainter(_circuit, _circuitWidthNotifier, _draggingOffset, _draggingGateType); // Painter knows layout constants
 
     // Determine the tapped qubit line based on the vertical drop position
     final tappedQubitLine = painter.getTappedQubitLine(dropPosition);
@@ -110,18 +142,18 @@ class _QuantumComposerState extends State<QuantumComposer> {
       // Target is the next available qubit line, if different from control.
       int? targetQubitLine;
 
-      if (circuit.numQubits == 1) {
+      if (_circuit.numQubits == 1) {
         print('Cannot place CNOT on single qubit or invalid target.');
           // Optionally provide feedback
         return;
-      } else if (circuit.numQubits == 2) {
+      } else if (_circuit.numQubits == 2) {
         if (tappedQubitLine == 0) {
           targetQubitLine = 1;
         } else if (tappedQubitLine == 1) {
           targetQubitLine = 0;
         }
-      } else if (circuit.numQubits > 2){
-        await _showTargetSelectionDialog(context, tappedQubitLine, circuit.numQubits);
+      } else if (_circuit.numQubits > 2){
+        await _showTargetSelectionDialog(context, tappedQubitLine, _circuit.numQubits);
         if (_cnotTargetQubit != null) {
           targetQubitLine = _cnotTargetQubit;
         }
@@ -129,18 +161,18 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
       if (targetQubitLine != null && tappedQubitLine != targetQubitLine) {
         print('CNOT placement (control line = $tappedQubitLine and target line = $_cnotTargetQubit).');
-        circuit.insertDoublePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine, targetQubitLine);
+        _circuit.insertDoublePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine, targetQubitLine);
         print("Gate CNOT inserted at position $insertionPosition on qubits $tappedQubitLine and $targetQubitLine.");
-        print(circuit);
+        print(_circuit);
       } else {
         print('Invalid CNOT placement (control == target or not enough qubits).');
         // Optionally provide feedback
         return;
       }
     } else {
-      circuit.insertSinglePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine);
+      _circuit.insertSinglePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine);
       print("Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
-      print(circuit);
+      print(_circuit);
     }
 
     _runSimulation(); // Optionally run simulation after placing
@@ -200,7 +232,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     print('Local tap position: $localPosition');
 
     // Create a temporary painter instance for hit testing
-    final painter = QuantumCircuitPainter(circuit, _circuitWidthNotifier, _draggingOffset, _draggingGateType);
+    final painter = QuantumCircuitPainter(_circuit, _circuitWidthNotifier, _draggingOffset, _draggingGateType);
 
 
     if (_currentMode == SelectedGateType.delete) {
@@ -233,12 +265,12 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
     // ** Call the void simulation method on the circuit **
     // This method executes the simulation and updates circuit.currentState internally.
-    print(circuit);
-    circuit.runSimulation();
+    print(_circuit);
+    _circuit.runSimulation();
 
     // ** Access the updated circuit.currentState property to get the final state **
     // Now that runSimulation is complete, circuit.currentState holds the result.
-    final QubitState finalState = circuit.currentState;
+    final QubitState finalState = _circuit.currentState;
 
     // ** Calculate measurement probabilities from the final state **
     // measurementProbabilities = finalState.state.map((amplitude) {
@@ -257,7 +289,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }
 
   void _clearCircuit() {
-    circuit.clearPlacedGates(); // This calls notifyListeners()
+    _circuit.clearPlacedGates(); // This calls notifyListeners()
     print('Circuit cleared.');
     _setInteractionMode(SelectedGateType.none); // Reset mode
     _cnotTargetQubit = null;
@@ -331,7 +363,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
         backgroundColor: Colors.black,
       // Modify the AppBar
       appBar: AppBar(
-        title: Text("⟨𝜑|𝜑⟩ Level 05",
+        title: Text("⟨𝜑|𝜑⟩ Level ${widget.level.id}",
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
@@ -391,14 +423,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
 
                           // Calculate the minimum width needed based on the maximum position of placed gates
-                          final int maxPosition = circuit.isCircuitEmpty() ? -1 : circuit.placedGates.map((e) => e.length).reduce(max);
+                          final int maxPosition = _circuit.isCircuitEmpty() ? -1 : _circuit.placedGates.map((e) => e.length).reduce(max);
                           // Add 2 for the next column and some extra space
                           final double minRequiredWidth = (maxPosition + 3) * QuantumCircuitPainter.gateSpacing + QuantumCircuitPainter.padding * 2;
 
 
                           final double sizedBoxWidth = max(minRequiredWidth, availableContainerWidth);
                           // The height of the SizedBox should be fixed based on the number of qubits and spacing
-                          final double sizedBoxHeight = circuit.numQubits * QuantumCircuitPainter.qubitSpacing + QuantumCircuitPainter.padding * 2;
+                          final double sizedBoxHeight = _circuit.numQubits * QuantumCircuitPainter.qubitSpacing + QuantumCircuitPainter.padding * 2;
                           print("  Calculated SizedBox size: Size($sizedBoxWidth, $sizedBoxHeight)"); // Debug SizedBox size
 
                           return DragTarget<SelectedGateType>( // DragTarget wraps the scrollable area
@@ -430,9 +462,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
                                   scrollDirection: Axis.horizontal,
                                   // ** Wrap CustomPaint in ConstrainedBox to force size **
                                   child: CustomPaint(
-                                    painter: QuantumCircuitPainter(circuit, _circuitWidthNotifier, _draggingOffset, _draggingGateType), // Pass the circuit
+                                    painter: QuantumCircuitPainter(_circuit, _circuitWidthNotifier, _draggingOffset, _draggingGateType), // Pass the circuit
                                     child: ListenableBuilder(
-                                      listenable: circuit, // Listen to the circuit object
+                                      listenable: _circuit, // Listen to the circuit object
                                       builder: (context, child) {
                                         print("ListenableBuilder rebuilding CustomPaint."); // Debug rebuild
                                         return Container(
