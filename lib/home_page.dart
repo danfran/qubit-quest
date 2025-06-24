@@ -14,7 +14,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   // Placeholder for the maximum unlocked level.
   // In a real app, this would be loaded from user data (e.g., preferences, database).
-  int _maxUnlockedLevel = 5; // Example: Levels 1 to 5 are unlocked initially
+  int _maxUnlockedLevel = 1; // Example: Levels 1 to 5 are unlocked initially
 
   // Total number of levels (placeholder)
   final int _totalLevels = 100;
@@ -53,7 +53,7 @@ class _HomePageState extends State<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.center, // Center options vertically
                     children: [
                       _buildOptionButton(context, "Start/Continue", () {
-                        QQLevel? selectedLevel = getLevel();
+                        QQLevel? selectedLevel = _getLevel();
 
                         // Navigate to the last unlocked level or first unlocked level
                         Navigator.push(
@@ -161,7 +161,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  QQLevel? getLevel() {
+  QQLevel? _getLevel() {
     int targetLevelId = 1; // Default to level 1
 
     // Example: Load the last unlocked level. This data would usually come

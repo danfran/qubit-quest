@@ -5,6 +5,7 @@ import 'package:quantumquiz/quantum_circuit_painter.dart';
 import 'package:quantumquiz/quantum_doc_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/qubit_state.dart';
+import 'package:quantumquiz/quantum_task_dialog.dart';
 import 'package:quantumquiz/selected_gate_type.dart';
 
 import 'cnot_target_qubit_selection_dialog.dart';
@@ -288,6 +289,15 @@ class _QuantumComposerState extends State<QuantumComposer> {
     print("Simulation finished.");
   }
 
+  void _showTask() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return QuantumTaskDialog(taskDescription: _taskDescription);
+      },
+    );
+  }
+
   void _clearCircuit() {
     _circuit.clearPlacedGates(); // This calls notifyListeners()
     print('Circuit cleared.');
@@ -373,14 +383,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
         actions: [
           // Run Simulation Button (as TextButton)
           TextButton.icon(
-            onPressed: _clearCircuit,
-            icon: Icon(Icons.cleaning_services),
-            label: Text('Clear'), // Shorten text for AppBar
+            onPressed: _showTask,
+            icon: Icon(Icons.task),
+            label: Text('Task'), // Shorten text for AppBar
             style: TextButton.styleFrom(
               foregroundColor: Colors.white, // White text color
             ),
           ),
-          // Info Button (as TextButton.icon)
           TextButton.icon(
             onPressed: _showGateListDialog,
             icon: Icon(Icons.book),
@@ -389,6 +398,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
               foregroundColor: Colors.white, // White icon/text color for contrast on AppBar
               // You might adjust padding if needed to fit
               // padding: EdgeInsets.symmetric(horizontal: 8.0),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: _clearCircuit,
+            icon: Icon(Icons.cleaning_services),
+            label: Text('Clear'), // Shorten text for AppBar
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white, // White text color
             ),
           ),
         ],
