@@ -4,15 +4,17 @@ import 'package:advance_math/advance_math.dart';
 import 'package:quantumquiz/selected_gate_type.dart'; // Your enum for gate types
 
 class QQLevel {
-  final int id; // A unique identifier for the level
+  final int id;
+  final String type;
   final String taskDescription;
   final int numQubits;
   final List<Complex> initialQubitsState; // Assuming this is a state vector (e.g., |00..0>)
   final List<SelectedGateType> availableGates; // List of gates the user can use
-  final List<Complex> solutionFinalVector; // The target state vector
+  final List<List<Complex>> solutionFinalVector; // The target state vector
 
   const QQLevel({
     required this.id,
+    required this.type,
     required this.taskDescription,
     required this.numQubits,
     required this.initialQubitsState,

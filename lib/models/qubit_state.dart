@@ -1,4 +1,5 @@
 import 'package:advance_math/advance_math.dart';
+import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 
 class QubitState {
@@ -13,13 +14,8 @@ class QubitState {
   factory QubitState.initial(int numQubits) {
     final int size = 1 << numQubits;
     // Set the amplitude for the |00...0> state (index 0) to 1.0 + 0.0i
-    List<Complex> initialStateVector = List.generate(1, (_) => Complex.one());
-    List<List<Complex>> initialStateMatrix = List.generate(1, (_) => initialStateVector);
-    for (int i = 1; i < size; i++) {
-      initialStateMatrix.add(List.generate(1, (_) => Complex.zero()));
-    }
-
-    return QubitState._(QuantumMatrix(initialStateMatrix), numQubits);
+    List<Complex> initialStateVector = QQLevel.getZeroStateVector(numQubits);
+    return QubitState._(QuantumMatrix.transpose([initialStateVector]), numQubits);
   }
 
   QubitState applyMatrix(QuantumMatrix matrix) {

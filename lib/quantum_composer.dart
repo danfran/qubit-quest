@@ -28,7 +28,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
   late String _taskDescription;
   late List<Complex> _initialState;
   late List<SelectedGateType> _availableGates;
-  late List<Complex> _solutionVector;
+  late List<List<Complex>> _solutionVector;
   late QuantumCircuit _circuit;
 
   String simulationResult = "Run the circuit to see the result";
