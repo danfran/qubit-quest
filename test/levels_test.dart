@@ -23,8 +23,7 @@ void main() {
 
       final circuit = createEmptyCircuit(level.numQubits);
 
-      circuit.insertGateAt(
-          PlacedQuantumGate(type: SelectedGateType.x), 0, 0); // Insert X at pos 2 on Q0
+      circuit.insertSinglePlacedGateAt(SelectedGateType.x, 0, 0);
 
       expect(circuit.placedGates[0].length, 1);
       print('After insertGateAt(X, 0, 0):\n$circuit');
@@ -39,11 +38,27 @@ void main() {
 
       final circuit = createEmptyCircuit(level.numQubits);
 
-      circuit.insertGateAt(
-          PlacedQuantumGate(type: SelectedGateType.hadamard), 0, 0); // Insert X at pos 2 on Q0
+      circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
 
       expect(circuit.placedGates[0].length, 1);
       print('After insertGateAt(H, 0, 0):\n$circuit');
+
+      circuit.runSimulation();
+
+      expect(circuit.currentState.state.rawMatrix, Matrix(level.solutionFinalVector));
+    });
+
+    test('level 3', () {
+      final level = getQQLevelById(3)!;
+
+      final circuit = createEmptyCircuit(level.numQubits);
+
+      circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
+      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 1, 0, 1);
+
+      expect(circuit.placedGates[0].length, 2);
+      expect(circuit.placedGates[1].length, 2);
+      print('Circuit after inserting gates:\n$circuit');
 
       circuit.runSimulation();
 
