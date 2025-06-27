@@ -17,6 +17,8 @@ void main() {
   _testBody(int levelNumber, Function(QuantumCircuit) body) {
     final level = getQQLevelById(levelNumber)!;
 
+    print('Level $levelNumber: ${level.taskDescription}\n\n');
+
     final circuit = createEmptyCircuit(level.numQubits);
 
     body(circuit);
@@ -26,6 +28,8 @@ void main() {
     circuit.runSimulation();
 
     expect(circuit.currentState.state.rawMatrix, Matrix(level.solutionFinalVector));
+
+    print('\n\n');
   }
 
   group('Test results for all levels', () {
