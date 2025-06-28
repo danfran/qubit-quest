@@ -1,5 +1,6 @@
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/quantum_circuit.dart';
 import 'package:quantumquiz/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
@@ -10,7 +11,7 @@ import 'package:quantumquiz/models/qubit_state.dart'; // Assuming this is minima
 void main() {
   // Helper to create an initial empty circuit for testing
   QuantumCircuit createEmptyCircuit(int numQubits) {
-    final circuit = QuantumCircuit(numQubits: numQubits);
+    final circuit = QuantumCircuit(numQubits: numQubits, initialQubitsState: QQLevel.getZeroStateVector(numQubits));
     // Ensure all qubit lines are initialized as empty lists, matching your constructor's behavior
     // Your constructor: placedGates = List.generate(numQubits, (index) => []);
     // So, placedGates[qubitIndex] is a list of gates on that qubit.

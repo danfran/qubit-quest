@@ -9,17 +9,12 @@ import 'package:quantumquiz/models/qubit_state.dart'; // Assuming this is minima
 
 
 void main() {
-  QuantumCircuit createEmptyCircuit(int numQubits) {
-    final circuit = QuantumCircuit(numQubits: numQubits);
-    return circuit;
-  }
-
   _testBody(int levelNumber, Function(QuantumCircuit) body) {
     final level = getQQLevelById(levelNumber)!;
 
     print('Level $levelNumber: ${level.taskDescription}\n\n');
 
-    final circuit = createEmptyCircuit(level.numQubits);
+    final circuit = QuantumCircuit(numQubits: level.numQubits, initialQubitsState: level.initialQubitsState);
 
     body(circuit);
 
@@ -34,8 +29,12 @@ void main() {
 
   group('Test results for all levels', () {
     var tests = [
-          (QuantumCircuit circuit) {
+      (QuantumCircuit circuit) {
+      // check X is in the avaiable gates
         circuit.insertSinglePlacedGateAt(SelectedGateType.x, 0, 0);
+      },
+      (QuantumCircuit circuit) {
+        circuit.insertSinglePlacedGateAt(SelectedGateType.z, 0, 0);
       },
       (QuantumCircuit circuit) {
         circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);

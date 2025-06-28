@@ -12,15 +12,16 @@ class QuantumCircuit extends ChangeNotifier {
 
   // The number of qubits in the circuit (assuming fixed)
   final int numQubits;
-
+  final List<Complex> initialQubitsState;
   // Property to hold the current/final quantum state vector (updated by simulation)
   QubitState currentState;
 
   // Constructor
-  QuantumCircuit({required this.numQubits}):
+  QuantumCircuit({required this.numQubits, required this.initialQubitsState}):
   // Initialize the currentState to the ground state |00...0>
   // Assuming QubitState has a constructor or static method to create the initial state
-        currentState = QubitState.initial(numQubits), placedGates = List.generate(numQubits, (index) => []);
+        currentState = QubitState.fromList(initialQubitsState, numQubits),
+        placedGates = List.generate(numQubits, (index) => []);
 
   int maxCircuitDepth() => placedGates.map((e) => e.length).reduce(max);
 
@@ -224,7 +225,7 @@ class QuantumCircuit extends ChangeNotifier {
   void clearPlacedGates() {
     placedGates.clear();
     // Reset the currentState back to the initial ground state
-    currentState = QubitState.initial(numQubits);
+    currentState = QubitState.fromList(initialQubitsState, numQubits);
     print("Circuit cleared. Total placed gates: ${placedGates.length}"); // Debug print
     // ** Notify listeners that the state has changed **
     notifyListeners();
@@ -315,8 +316,9 @@ class QuantumCircuit extends ChangeNotifier {
   /// Runs the quantum simulation, updating the current state vector.
   void runSimulation() {
     QuantumMatrix circuitMatrix = getOverallCircuitMatrix();
-    print(circuitMatrix.rawMatrix.toString());
+    print("Initial state: $currentState");
     currentState = currentState.applyMatrix(circuitMatrix);
+    print("Final state: $currentState");
     notifyListeners();
   }
 
@@ -368,7 +370,7 @@ class QuantumCircuit extends ChangeNotifier {
 }
 
 class PreviewQuantumCircuit extends QuantumCircuit {
-  PreviewQuantumCircuit({required int numQubits}) : super(numQubits: numQubits);
+  PreviewQuantumCircuit({required int numQubits}) : super(numQubits: numQubits, initialQubitsState: []);
 
   List<List<PlacedQuantumGate>> clone(List<List<PlacedQuantumGate>> gates) =>
       placedGates = gates.map((element) => List<PlacedQuantumGate>.from(element)).toList();

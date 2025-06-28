@@ -5,7 +5,6 @@ import 'package:quantumquiz/models/qq_level.dart';
 
 final List<QQLevel> allQQLevels = [
   QQLevel(
-    id: 1,
     type: "composer",
     taskDescription: "Your first quantum challenge! Apply a gate to transform |0> to |1>.",
     numQubits: 1,
@@ -14,7 +13,14 @@ final List<QQLevel> allQQLevels = [
     solutionFinalVector: [[Complex.zero()], [Complex.one()]], // Target: |1> state
   ),
   QQLevel(
-    id: 2,
+    type: "composer",
+    taskDescription: "Good, you made the first step! Let's change now only the phase of |1> without flipping the bit.",
+    numQubits: 1,
+    initialQubitsState: QQLevel.getOneStateVector(1), // |0> state: [Complex.one(), Complex.zero()]
+    availableGates: [SelectedGateType.z, SelectedGateType.x, SelectedGateType.y],
+    solutionFinalVector: [[Complex.zero()], [Complex(-Complex.one().real, -Complex.one().imaginary)]], // Target: |1> state
+  ),
+  QQLevel(
     type: "composer",
     taskDescription: "Create a superposition! Turn |0> into |+>.",
     numQubits: 1,
@@ -23,7 +29,6 @@ final List<QQLevel> allQQLevels = [
     solutionFinalVector: [[Complex(1 / sqrt(2))], [Complex(1 / sqrt(2))]], // Target: |+> state
   ),
   QQLevel(
-    id: 3,
     type: "composer",
     taskDescription: "Entangle two qubits! Create the Bell state |00>+|11>.",
     numQubits: 2,
@@ -37,7 +42,6 @@ final List<QQLevel> allQQLevels = [
     ], // Target: (|00> + |11>)/sqrt(2)
   ),
   QQLevel(
-    id: 4,
     type: "composer",
     taskDescription: "Explore 3 qubits! Apply CNOT(Q0, Q2) to |000>.", // Based on your previous 8x8 matrix
     numQubits: 3,
@@ -57,7 +61,7 @@ final List<QQLevel> allQQLevels = [
 // Helper to get a level by ID
 QQLevel? getQQLevelById(int id) {
   try {
-    return allQQLevels.firstWhere((level) => level.id == id);
+    return allQQLevels[id - 1];
   } catch (e) {
     print('QQLevel with ID $id not found: $e');
     return null;

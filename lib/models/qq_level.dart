@@ -4,7 +4,6 @@ import 'package:advance_math/advance_math.dart';
 import 'package:quantumquiz/selected_gate_type.dart'; // Your enum for gate types
 
 class QQLevel {
-  final int id;
   final String type;
   final String taskDescription;
   final int numQubits;
@@ -13,7 +12,6 @@ class QQLevel {
   final List<List<Complex>> solutionFinalVector; // The target state vector
 
   const QQLevel({
-    required this.id,
     required this.type,
     required this.taskDescription,
     required this.numQubits,
@@ -32,6 +30,17 @@ class QQLevel {
     final List<Complex> zeroState = List.filled(dim, Complex.zero());
     zeroState[0] = Complex.one(); // |00...0> state
     return zeroState;
+  }
+
+  // Static helper to get the state vector for N qubits initialized to |1...1>
+  static List<Complex> getOneStateVector(int numQubits) {
+    if (numQubits <= 0) {
+      throw ArgumentError('Number of qubits must be positive.');
+    }
+    final int dim = 1 << numQubits; // 2^numQubits
+    final List<Complex> oneState = List.filled(dim, Complex.zero());
+    oneState[dim - 1] = Complex.one(); // |11...1> state is at the last index (dim - 1)
+    return oneState;
   }
 
 // You might also add a method to load solution from JSON/file if needed

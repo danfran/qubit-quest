@@ -10,13 +10,8 @@ class QubitState {
   // Private constructor
   QubitState._(this.state, this.numQubits);
 
-  // ** Static factory method or constructor to create the initial state **
-  factory QubitState.initial(int numQubits) {
-    final int size = 1 << numQubits;
-    // Set the amplitude for the |00...0> state (index 0) to 1.0 + 0.0i
-    List<Complex> initialStateVector = QQLevel.getZeroStateVector(numQubits);
-    return QubitState._(QuantumMatrix.transpose([initialStateVector]), numQubits);
-  }
+  QubitState.fromList(List<Complex> stateVector, this.numQubits):
+      state  = QuantumMatrix.transpose([stateVector]);
 
   QubitState applyMatrix(QuantumMatrix matrix) {
     // Implement matrix-vector multiplication: matrix * this.state

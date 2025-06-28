@@ -12,10 +12,12 @@ import 'cnot_target_qubit_selection_dialog.dart';
 import 'models/qq_level.dart';
 
 class QuantumComposer extends StatefulWidget {
+  final int levelId;
   final QQLevel level; // Now, QuantumComposer accepts a Level object
 
   const QuantumComposer({
     Key? key,
+    required this.levelId, // Level is now required
     required this.level, // Level is now required
   }) : super(key: key);
 
@@ -50,9 +52,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
     _initialState = widget.level.initialQubitsState;
     _availableGates = widget.level.availableGates;
     _solutionVector = widget.level.solutionFinalVector;
-    _circuit = QuantumCircuit(numQubits: widget.level.numQubits);
+    _circuit = QuantumCircuit(numQubits: widget.level.numQubits, initialQubitsState: widget.level.initialQubitsState);
 
-    print('Loading Level ID: ${widget.level.id}');
     print('Task: $_taskDescription');
     print('Number of qubits: $_numQubits');
     print('Initial state: $_initialState');
@@ -373,7 +374,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
         backgroundColor: Colors.black,
       // Modify the AppBar
       appBar: AppBar(
-        title: Text("⟨𝜑|𝜑⟩ Level ${widget.level.id}",
+        title: Text("⟨𝜑|𝜑⟩ Level ${widget.levelId}",
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,

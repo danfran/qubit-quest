@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/quantum_composer.dart';
 
-import 'models/qq_level.dart';
 import 'models/qq_levels.dart';
 
 class HomePage extends StatefulWidget {
@@ -53,14 +52,15 @@ class _HomePageState extends State<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.center, // Center options vertically
                     children: [
                       _buildOptionButton(context, "Start/Continue", () {
-                        QQLevel? selectedLevel = _getLevel();
+                        int selectedLevel = _getLevel();
 
                         // Navigate to the last unlocked level or first unlocked level
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => QuantumComposer(
-                              level: selectedLevel!, // Pass the entire Level object
+                              levelId: selectedLevel, // Pass the level ID
+                              level: getQQLevelById(selectedLevel)!, // Pass the entire Level object
                             ), // Placeholder, pass level data later
                           ),
                         );
@@ -124,6 +124,7 @@ class _HomePageState extends State<HomePage> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => QuantumComposer(
+                                    levelId: levelNumber,
                                     level: getQQLevelById(levelNumber)!, // Pass the entire Level object
                                   ), // Pass level data if needed later
                                 ),
@@ -161,7 +162,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  QQLevel? _getLevel() {
+  int _getLevel() {
     int targetLevelId = 1; // Default to level 1
 
     // Example: Load the last unlocked level. This data would usually come
@@ -176,9 +177,7 @@ class _HomePageState extends State<HomePage> {
       targetLevelId = 1; // Start a new game or re-start level 1
     }
 
-    // Retrieve the Level object
-    final QQLevel? selectedLevel = getQQLevelById(targetLevelId);
-    return selectedLevel;
+    return targetLevelId;
   }
 
   // Helper method for building consistent option buttons
