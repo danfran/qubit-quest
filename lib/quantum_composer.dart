@@ -541,11 +541,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
                           ),
                         ),
                         SizedBox(width: 4), // Space after divider
-                        _buildDraggableGateButton(SelectedGateType.hadamard),
-                        _buildDraggableGateButton(SelectedGateType.cnot),
-                        _buildDraggableGateButton(SelectedGateType.x),
-                        _buildDraggableGateButton(SelectedGateType.y),
-                        _buildDraggableGateButton(SelectedGateType.z),
+                        // --- Dynamic Draggable Gate Buttons ---
+                        ..._availableGates.map((gateType) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4.0), // Add spacing between dynamic buttons
+                            child: _buildDraggableGateButton(gateType),
+                          );
+                        }), // Convert the iterable to a List<Widget>
                       ],
                     ),
                   ),

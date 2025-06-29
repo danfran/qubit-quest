@@ -370,7 +370,7 @@ class QuantumCircuit extends ChangeNotifier {
 }
 
 class PreviewQuantumCircuit extends QuantumCircuit {
-  PreviewQuantumCircuit({required int numQubits}) : super(numQubits: numQubits, initialQubitsState: []);
+  PreviewQuantumCircuit({required int numQubits, required List<Complex> initialQubitsState}) : super(numQubits: numQubits, initialQubitsState: initialQubitsState);
 
   List<List<PlacedQuantumGate>> clone(List<List<PlacedQuantumGate>> gates) =>
       placedGates = gates.map((element) => List<PlacedQuantumGate>.from(element)).toList();

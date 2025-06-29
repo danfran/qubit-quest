@@ -35,7 +35,7 @@ class QuantumCircuitPainter extends CustomPainter {
   final SelectedGateType? draggingGateType; // New: Qubit index for highlight
 
   QuantumCircuitPainter(this.circuit, this.widthNotifier, this.draggingOffset, this.draggingGateType):
-        previewCircuit = PreviewQuantumCircuit(numQubits: circuit.numQubits);
+        previewCircuit = PreviewQuantumCircuit(numQubits: circuit.numQubits, initialQubitsState: circuit.initialQubitsState);
 
   // Helper getter to calculate the vertical center of a qubit line
   double getQubitCenterY(int qubitIndex) {
