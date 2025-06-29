@@ -31,10 +31,14 @@ void main() {
     var tests = [
       (QuantumCircuit circuit) {
       // check X is in the avaiable gates
+      //   assert(circuit.availableGates.contains(SelectedGateType.x));
         circuit.insertSinglePlacedGateAt(SelectedGateType.x, 0, 0);
       },
       (QuantumCircuit circuit) {
         circuit.insertSinglePlacedGateAt(SelectedGateType.z, 0, 0);
+      },
+      (QuantumCircuit circuit) {
+        circuit.insertSinglePlacedGateAt(SelectedGateType.y, 0, 0);
       },
       (QuantumCircuit circuit) {
         circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);

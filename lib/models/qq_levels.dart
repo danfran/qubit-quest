@@ -22,6 +22,14 @@ final List<QQLevel> allQQLevels = [
   ),
   QQLevel(
     type: "composer",
+    taskDescription: "Great job! Let's change now the phase and flipping the bit from |1> to |0>.",
+    numQubits: 1,
+    initialQubitsState: QQLevel.getOneStateVector(1), // |0> state: [Complex.one(), Complex.zero()]
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.x, SelectedGateType.y],
+    solutionFinalVector: [[Complex(-Complex.i().real, -Complex.i().imaginary)], [Complex.zero()]], // Target: |1> state
+  ),
+  QQLevel(
+    type: "composer",
     taskDescription: "Create a superposition! Turn |0> into |+>.",
     numQubits: 1,
     initialQubitsState: QQLevel.getZeroStateVector(1), // |0> state
@@ -57,6 +65,8 @@ final List<QQLevel> allQQLevels = [
   ),
   // Add more levels here...
 ];
+
+int numberOfLevels = allQQLevels.length;
 
 // Helper to get a level by ID
 QQLevel? getQQLevelById(int id) {

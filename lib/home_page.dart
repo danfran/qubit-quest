@@ -15,9 +15,6 @@ class _HomePageState extends State<HomePage> {
   // In a real app, this would be loaded from user data (e.g., preferences, database).
   int _maxUnlockedLevel = 1; // Example: Levels 1 to 5 are unlocked initially
 
-  // Total number of levels (placeholder)
-  final int _totalLevels = 100;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -111,7 +108,7 @@ class _HomePageState extends State<HomePage> {
                           mainAxisSpacing: 10.0,    // Vertical space between items
                           childAspectRatio: 1.5,    // Make items square
                         ),
-                        itemCount: _totalLevels,
+                        itemCount: numberOfLevels,
                         itemBuilder: (context, index) {
                           final int levelNumber = index + 1;
                           final bool isUnlocked = levelNumber <= _maxUnlockedLevel;
