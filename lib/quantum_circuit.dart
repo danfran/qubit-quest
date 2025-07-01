@@ -1,5 +1,6 @@
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/foundation.dart'; // Import this for ChangeNotifier
+import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/placed_quantum_gate.dart'; // Import PlacedQuantumGate
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/qubit_state.dart'; // Assuming you have this class
@@ -11,17 +12,17 @@ class QuantumCircuit extends ChangeNotifier {
   List<List<PlacedQuantumGate>> placedGates;
 
   // The number of qubits in the circuit (assuming fixed)
-  final int numQubits;
-  final List<Complex> initialQubitsState;
+  final QQLevel currentLevel;
+  // final List<Complex> initialQubitsState;
   // Property to hold the current/final quantum state vector (updated by simulation)
   QubitState currentState;
 
   // Constructor
-  QuantumCircuit({required this.numQubits, required this.initialQubitsState}):
+  QuantumCircuit({required this.currentLevel}):
   // Initialize the currentState to the ground state |00...0>
   // Assuming QubitState has a constructor or static method to create the initial state
-        currentState = QubitState.fromList(initialQubitsState, numQubits),
-        placedGates = List.generate(numQubits, (index) => []);
+        currentState = QubitState.fromList(currentLevel.initialQubitsState, currentLevel.numQubits),
+        placedGates = List.generate(currentLevel.numQubits, (index) => []);
 
   int maxCircuitDepth() => placedGates.map((e) => e.length).reduce(max);
 
@@ -43,7 +44,7 @@ class QuantumCircuit extends ChangeNotifier {
     }
 
     // else, this will fill a vertical line in the circuit with gates as first phase.
-    for (int i = 0; i < numQubits; i++) {
+    for (int i = 0; i < currentLevel.numQubits; i++) {
       if (i == tappedQubitIndex) {
         insertGateAt(gateToInsert, insertionPosition, i);
       } else {
@@ -105,7 +106,7 @@ class QuantumCircuit extends ChangeNotifier {
     }
 
     // Else, this will fill a vertical line in the circuit with gates as first phase.
-    for (int i = 0; i < numQubits; i++) {
+    for (int i = 0; i < currentLevel.numQubits; i++) {
       if (i == tappedQubitIndex) {
         PlacedQuantumGate controlGate = PlacedQuantumGate(
           type: gateType,
@@ -173,7 +174,7 @@ class QuantumCircuit extends ChangeNotifier {
   void shiftLeft(int insertionPosition) {
     int rightPosition = insertionPosition + 1;
     while(rightPosition - 1 < maxCircuitDepth() - 1) {
-      for (int i = 0; i < numQubits; i++) {
+      for (int i = 0; i < currentLevel.numQubits; i++) {
         if (rightPosition < placedGates[i].length && placedGates[i][rightPosition].type != SelectedGateType.none) {
           var rightGate = placedGates[i][rightPosition];
           if (rightGate.type == SelectedGateType.cnot) {
@@ -214,7 +215,7 @@ class QuantumCircuit extends ChangeNotifier {
   }
 
   void trimCircuit() {
-    for (int i = 0; i < numQubits; i++) {
+    for (int i = 0; i < currentLevel.numQubits; i++) {
       while (placedGates[i].isNotEmpty && placedGates[i].last.type == SelectedGateType.none) {
         placedGates[i].removeLast();
       }
@@ -225,7 +226,7 @@ class QuantumCircuit extends ChangeNotifier {
   void clearPlacedGates() {
     placedGates.clear();
     // Reset the currentState back to the initial ground state
-    currentState = QubitState.fromList(initialQubitsState, numQubits);
+    currentState = QubitState.fromList(currentLevel.initialQubitsState, currentLevel.numQubits);
     print("Circuit cleared. Total placed gates: ${placedGates.length}"); // Debug print
     // ** Notify listeners that the state has changed **
     notifyListeners();
@@ -263,7 +264,7 @@ class QuantumCircuit extends ChangeNotifier {
     QuantumMatrix? columnOverallMatrix;
 
     // Keep track of which logical gates (especially CNOTs) have already been processed
-    for (int q = 0; q < numQubits; q++) {
+    for (int q = 0; q < currentLevel.numQubits; q++) {
       PlacedQuantumGate? gate;
 
       if (columnIndex >= placedGates[q].length) {
@@ -297,10 +298,10 @@ class QuantumCircuit extends ChangeNotifier {
   QuantumMatrix getOverallCircuitMatrix() {
     int totalDepth = maxCircuitDepth();
     if (totalDepth == 0) {
-      return QuantumMatrix.identity(1 << numQubits); // Empty circuit is identity
+      return QuantumMatrix.identity(1 << currentLevel.numQubits); // Empty circuit is identity
     }
 
-    QuantumMatrix overallMatrix = QuantumMatrix.identity(1 << numQubits);
+    QuantumMatrix overallMatrix = QuantumMatrix.identity(1 << currentLevel.numQubits);
 
     // Iterate through each column (time step) from left to right
     for (int col = 0; col < totalDepth; col++) {
@@ -332,14 +333,14 @@ class QuantumCircuit extends ChangeNotifier {
 
     // Determine max depth across all qubit lines
     int maxDepth = 0;
-    for (int i = 0; i < numQubits; i++) {
+    for (int i = 0; i < currentLevel.numQubits; i++) {
       if (placedGates[i].length > maxDepth) {
         maxDepth = placedGates[i].length;
       }
     }
 
     String result = "";
-    for (int q = 0; q < numQubits; q++) {
+    for (int q = 0; q < currentLevel.numQubits; q++) {
       result += "Q$q: ";
       for (int pos = 0; pos < maxDepth; pos++) {
         if (pos < placedGates[q].length) {
@@ -370,7 +371,7 @@ class QuantumCircuit extends ChangeNotifier {
 }
 
 class PreviewQuantumCircuit extends QuantumCircuit {
-  PreviewQuantumCircuit({required int numQubits, required List<Complex> initialQubitsState}) : super(numQubits: numQubits, initialQubitsState: initialQubitsState);
+  PreviewQuantumCircuit({required QQLevel currentLevel}) : super(currentLevel: currentLevel);
 
   List<List<PlacedQuantumGate>> clone(List<List<PlacedQuantumGate>> gates) =>
       placedGates = gates.map((element) => List<PlacedQuantumGate>.from(element)).toList();

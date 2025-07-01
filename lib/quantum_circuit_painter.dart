@@ -35,7 +35,7 @@ class QuantumCircuitPainter extends CustomPainter {
   final SelectedGateType? draggingGateType; // New: Qubit index for highlight
 
   QuantumCircuitPainter(this.circuit, this.widthNotifier, this.draggingOffset, this.draggingGateType):
-        previewCircuit = PreviewQuantumCircuit(numQubits: circuit.numQubits, initialQubitsState: circuit.initialQubitsState);
+        previewCircuit = PreviewQuantumCircuit(currentLevel: circuit.currentLevel);
 
   // Helper getter to calculate the vertical center of a qubit line
   double getQubitCenterY(int qubitIndex) {
@@ -69,9 +69,10 @@ class QuantumCircuitPainter extends CustomPainter {
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0); // Blur radius for shadow
 
     // Draw qubit lines and labels
-    for (int i = 0; i < circuit.numQubits; i++) {
+    for (int i = 0; i < circuit.currentLevel.numQubits; i++) {
       // Calculate the vertical center Y for this qubit line
       final double lineY = getQubitCenterY(i);
+      final qubitState = circuit.currentLevel.initialQubitsStateStr[i];
       print("  Painter: Drawing Qubit $i line and hit area at Y: $lineY. Hit range: ${lineY - hitTolerance} to ${lineY + hitTolerance}"); // Debug calculated drawing Y
 
       // Draw the qubit line
@@ -95,7 +96,7 @@ class QuantumCircuitPainter extends CustomPainter {
       // Draw the qubit label (q0, q1, etc.)
       final textPainter = TextPainter(
         text: TextSpan(
-          text: 'q$i', // Label text (e.g., "q0", "q1")
+          text: '|$qubitState>', // Label text (e.g., "q0", "q1")
           style: TextStyle(
             color: qubitLabelColor, // Use the static constant for label color
             fontSize: 14, // Adjust font size as needed
@@ -150,7 +151,7 @@ class QuantumCircuitPainter extends CustomPainter {
       }
     }
 
-    List<int> gateXPosititionPerQubit = List<int>.filled(circuit.numQubits, 0);
+    List<int> gateXPosititionPerQubit = List<int>.filled(circuit.currentLevel.numQubits, 0);
 
     // Draw placed gates
     for (final (primaryDrawingQubit, row) in localPlacedGates.indexed) {
@@ -264,7 +265,7 @@ class QuantumCircuitPainter extends CustomPainter {
     const double hitTolerance = QuantumCircuitPainter.hitTolerance;
     // Iterate through each possible qubit line
     // Assuming circuit.numQubits is available (e.g., passed in constructor or from circuit)
-    for (int i = 0; i < circuit.numQubits; i++) {
+    for (int i = 0; i < circuit.currentLevel.numQubits; i++) {
       // Use the helper for the vertical center of the qubit line
       final double qubitLineCenterY = getQubitCenterY(i);
       print("  Checking Qubit $i. Center Y: $qubitLineCenterY. Hit range: ${qubitLineCenterY - hitTolerance} to ${qubitLineCenterY + hitTolerance}"); // Debug line position and range

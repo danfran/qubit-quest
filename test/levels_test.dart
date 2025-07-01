@@ -14,7 +14,7 @@ void main() {
 
     print('Level $levelNumber: ${level.taskDescription}\n\n');
 
-    final circuit = QuantumCircuit(numQubits: level.numQubits, initialQubitsState: level.initialQubitsState);
+    final circuit = QuantumCircuit(currentLevel: level);
 
     body(circuit);
 

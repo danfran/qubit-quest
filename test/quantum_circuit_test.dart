@@ -11,7 +11,16 @@ import 'package:quantumquiz/models/qubit_state.dart'; // Assuming this is minima
 void main() {
   // Helper to create an initial empty circuit for testing
   QuantumCircuit createEmptyCircuit(int numQubits) {
-    final circuit = QuantumCircuit(numQubits: numQubits, initialQubitsState: QQLevel.getZeroStateVector(numQubits));
+    final level = QQLevel(
+        type: "composer",
+        taskDescription: "test",
+        numQubits: numQubits,
+        initialQubitsStateStr: "",
+        initialQubitsState: QQLevel.getZeroStateVector(numQubits),
+        availableGates: [],
+        solutionFinalVector: []
+    );
+    final circuit = QuantumCircuit(currentLevel: level);
     // Ensure all qubit lines are initialized as empty lists, matching your constructor's behavior
     // Your constructor: placedGates = List.generate(numQubits, (index) => []);
     // So, placedGates[qubitIndex] is a list of gates on that qubit.
@@ -24,7 +33,7 @@ void main() {
   group('QuantumCircuit Basic Properties', () {
     test('should initialize with correct number of qubits and empty state', () {
       final circuit = createEmptyCircuit(3);
-      expect(circuit.numQubits, 3);
+      expect(circuit.currentLevel.numQubits, 3);
       expect(circuit.placedGates.length, 3);
       expect(circuit.isCircuitEmpty(), isTrue);
       expect(circuit.maxCircuitDepth(), 0);

@@ -1,5 +1,4 @@
 import 'package:advance_math/advance_math.dart';
-import 'package:quantumquiz/probability_histogram.dart';
 import 'package:quantumquiz/quantum_circuit.dart';
 import 'package:quantumquiz/quantum_circuit_painter.dart';
 import 'package:quantumquiz/quantum_doc_dialog.dart';
@@ -34,7 +33,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
   late QuantumCircuit _circuit;
 
   String simulationResult = "Run the circuit to see the result";
-  List<double> measurementProbabilities = [0.0, 0.0, 0.0, 0.0];
+  // List<double> measurementProbabilities = [0.0, 0.0, 0.0, 0.0];
   SelectedGateType _currentMode = SelectedGateType.none;
   int? _cnotTargetQubit; // To track the target for CNOT
 
@@ -52,7 +51,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     _initialState = widget.level.initialQubitsState;
     _availableGates = widget.level.availableGates;
     _solutionVector = widget.level.solutionFinalVector;
-    _circuit = QuantumCircuit(numQubits: widget.level.numQubits, initialQubitsState: widget.level.initialQubitsState);
+    _circuit = QuantumCircuit(currentLevel: widget.level);
 
     print('Task: $_taskDescription');
     print('Number of qubits: $_numQubits');
@@ -144,18 +143,18 @@ class _QuantumComposerState extends State<QuantumComposer> {
       // Target is the next available qubit line, if different from control.
       int? targetQubitLine;
 
-      if (_circuit.numQubits == 1) {
+      if (_numQubits == 1) {
         print('Cannot place CNOT on single qubit or invalid target.');
           // Optionally provide feedback
         return;
-      } else if (_circuit.numQubits == 2) {
+      } else if (_numQubits == 2) {
         if (tappedQubitLine == 0) {
           targetQubitLine = 1;
         } else if (tappedQubitLine == 1) {
           targetQubitLine = 0;
         }
-      } else if (_circuit.numQubits > 2){
-        await _showTargetSelectionDialog(context, tappedQubitLine, _circuit.numQubits);
+      } else if (_numQubits > 2){
+        await _showTargetSelectionDialog(context, tappedQubitLine, _numQubits);
         if (_cnotTargetQubit != null) {
           targetQubitLine = _cnotTargetQubit;
         }
@@ -448,7 +447,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
                           final double sizedBoxWidth = max(minRequiredWidth, availableContainerWidth);
                           // The height of the SizedBox should be fixed based on the number of qubits and spacing
-                          final double sizedBoxHeight = _circuit.numQubits * QuantumCircuitPainter.qubitSpacing + QuantumCircuitPainter.padding * 2;
+                          final double sizedBoxHeight = _numQubits * QuantumCircuitPainter.qubitSpacing + QuantumCircuitPainter.padding * 2;
                           print("  Calculated SizedBox size: Size($sizedBoxWidth, $sizedBoxHeight)"); // Debug SizedBox size
 
                           return DragTarget<SelectedGateType>( // DragTarget wraps the scrollable area
@@ -578,7 +577,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                             scrollDirection: Axis.vertical,
                             child: AspectRatio(
                               aspectRatio: 1.8,
-                              child: ProbabilityHistogram(probabilities: measurementProbabilities),
+                              child: Text('placeholder'),
                             ), // Your histogram helper
                           ),
                         ),

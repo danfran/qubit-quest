@@ -1,12 +1,14 @@
 // lib/models/level.dart
 
 import 'package:advance_math/advance_math.dart';
-import 'package:quantumquiz/selected_gate_type.dart'; // Your enum for gate types
+import 'package:quantumquiz/selected_gate_type.dart';
+import 'package:quantumquiz/utils/math_utils.dart'; // Your enum for gate types
 
 class QQLevel {
   final String type;
   final String taskDescription;
   final int numQubits;
+  final String initialQubitsStateStr; // Assuming this is a state vector (e.g., |00..0>)
   final List<Complex> initialQubitsState; // Assuming this is a state vector (e.g., |00..0>)
   final List<SelectedGateType> availableGates; // List of gates the user can use
   final List<List<Complex>> solutionFinalVector; // The target state vector
@@ -15,10 +17,39 @@ class QQLevel {
     required this.type,
     required this.taskDescription,
     required this.numQubits,
+    required this.initialQubitsStateStr,
     required this.initialQubitsState,
     required this.availableGates,
     required this.solutionFinalVector,
   });
+
+  // Factory constructor to create a QQLevel from a binary string initial state
+  factory QQLevel.fromBinaryString({
+    required String type,
+    required String taskDescription,
+    required int numQubits,
+    required String initialQubitsStateString, // Accepts the binary string here
+    required List<SelectedGateType> availableGates,
+    required List<List<Complex>> solutionFinalVector,
+  }) {
+    // Determine numQubits from the string length
+    final int numQubits = initialQubitsStateString.length;
+
+    // Use your existing binaryStringToInitialStateVector logic
+    final List<Complex> convertedInitialState =
+    binaryStringToInitialStateVector(initialQubitsStateString, numQubits);
+
+    // Now, call the primary constructor with the converted state and numQubits
+    return QQLevel(
+      type: type,
+      taskDescription: taskDescription,
+      numQubits: numQubits,
+      initialQubitsStateStr: initialQubitsStateString,
+      initialQubitsState: convertedInitialState,
+      availableGates: availableGates,
+      solutionFinalVector: solutionFinalVector,
+    );
+  }
 
   // Optional: A helper to get the initial state for N qubits initialized to |0...0>
   // You might want to move this into a utility class if it's used broadly.
