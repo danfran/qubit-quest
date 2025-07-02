@@ -1,4 +1,5 @@
 import 'package:advance_math/advance_math.dart';
+import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/quantum_circuit.dart';
 import 'package:quantumquiz/quantum_circuit_painter.dart';
 import 'package:quantumquiz/quantum_doc_dialog.dart';
@@ -40,6 +41,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
   // State to manage the highlight box for drag-and-drop
   Offset? _draggingOffset;
   SelectedGateType _draggingGateType = SelectedGateType.none;
+
+  // level status completion
+  bool _isLevelCompleted = false; // State variable to track completion
 
   final ValueNotifier<double> _circuitWidthNotifier = ValueNotifier<double>(0.0);
 
@@ -271,7 +275,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
     // ** Access the updated circuit.currentState property to get the final state **
     // Now that runSimulation is complete, circuit.currentState holds the result.
-    final QubitState finalState = _circuit.currentState;
 
     // ** Calculate measurement probabilities from the final state **
     // measurementProbabilities = finalState.state.map((amplitude) {
@@ -284,9 +287,83 @@ class _QuantumComposerState extends State<QuantumComposer> {
     setState(() {
       // Format the final state vector for display
       // Access the state data via the finalState object obtained from circuit.currentState
-      simulationResult = "Final State Vector:\n$finalState"; // Assuming formatStateVector helper
+      simulationResult = "Final State Vector:\n${_circuit.currentState}"; // Assuming formatStateVector helper
+      _checkLevelCompletion();
     });
     print("Simulation finished.");
+  }
+
+  void _checkLevelCompletion() {
+    // Only check if not already completed to avoid re-triggering
+    if (!_isLevelCompleted) {
+      // Basic check: vector sizes must match
+      bool match = _circuit.currentState.state.almostEqualTo(QuantumMatrix(_solutionVector));
+
+      if (match) {
+        // _isLevelCompleted = true;
+        _showLevelCompleteDialog(); // Trigger success actions
+      }
+    }
+  }
+
+  void _showLevelCompleteDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User must choose an option
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Column(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green, size: 60),
+              SizedBox(height: 10),
+              Text('Level Complete!', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(
+            'Congratulations! You\'ve successfully solved the puzzle.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16),
+          ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: <Widget>[
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                // TODO: Implement logic to load the next level
+                // Example: Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => QuantumComposerScreen(currentLevel: nextLevel)));
+                print('Navigating to next level...');
+              },
+              icon: const Icon(Icons.arrow_forward),
+              label: const Text('Next Level'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 10), // Space between buttons
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                // TODO: Implement logic to navigate back to level selection
+                // Example: Navigator.popUntil(context, ModalRoute.withName('/level_select'));
+                print('Navigating to level select...');
+              },
+              icon: const Icon(Icons.list),
+              label: const Text('Level Select'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.blueGrey,
+                side: const BorderSide(color: Colors.blueGrey),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showTask() {

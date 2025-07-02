@@ -46,11 +46,11 @@ class QuantumTaskDialog extends StatelessWidget {
                   style: const TeXViewStyle(
                       margin: TeXViewMargin.all(10),
                       padding: TeXViewPadding.all(10),
-                      borderRadius: TeXViewBorderRadius.all(10),
-                      border: TeXViewBorder.all(TeXViewBorderDecoration(
-                          borderWidth: 4,
-                          borderStyle: TeXViewBorderStyle.groove,
-                          borderColor: Colors.yellowAccent))
+                      // borderRadius: TeXViewBorderRadius.all(10),
+                      // border: TeXViewBorder.all(TeXViewBorderDecoration(
+                      //     borderWidth: 4,
+                      //     borderStyle: TeXViewBorderStyle.groove,
+                      //     borderColor: Colors.yellowAccent))
                   ),
                   children: [
                     _buildTaskDescription(
