@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/quantum_composer.dart';
+import 'package:quantumquiz/utils/level_completion_action.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'models/qq_levels.dart';
 
@@ -14,9 +16,67 @@ class _HomePageState extends State<HomePage> {
   // Placeholder for the maximum unlocked level.
   // In a real app, this would be loaded from user data (e.g., preferences, database).
   int _maxUnlockedLevel = 1; // Example: Levels 1 to 5 are unlocked initially
+  bool _isLoadingLevels = true; // To show loading state
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMaxUnlockedLevel();
+  }
+
+  // Load the max unlocked level from SharedPreferences
+  Future<void> _loadMaxUnlockedLevel() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _maxUnlockedLevel = prefs.getInt('maxUnlockedLevel') ?? 1;
+      _isLoadingLevels = false; // Loading complete
+    });
+    print('Loaded max unlocked level: $_maxUnlockedLevel');
+  }
+
+  // Update and save the max unlocked level
+  Future<void> _updateMaxUnlockedLevel(int completedLevelNumber) async {
+    if (completedLevelNumber >= _maxUnlockedLevel) {
+      final newMaxLevel = completedLevelNumber + 1;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('maxUnlockedLevel', newMaxLevel);
+      setState(() {
+        _maxUnlockedLevel = newMaxLevel;
+      });
+      print('Updated and saved max unlocked level: $_maxUnlockedLevel');
+    }
+  }
+
+  // Show a dialog if all levels are completed
+  void _showGameCompleteDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('All Levels Completed!'),
+          content: const Text('Congratulations! You\'ve mastered all the quantum puzzles.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Back to Level Select'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingLevels) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black, // Consistent dark background
       appBar: AppBar(
@@ -49,7 +109,7 @@ class _HomePageState extends State<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.center, // Center options vertically
                     children: [
                       _buildOptionButton(context, "Start/Continue", () {
-                        int selectedLevel = _getLevel();
+                        int selectedLevel = _maxUnlockedLevel;
 
                         // Navigate to the last unlocked level or first unlocked level
                         Navigator.push(
@@ -57,7 +117,7 @@ class _HomePageState extends State<HomePage> {
                           MaterialPageRoute(
                             builder: (context) => QuantumComposer(
                               levelId: selectedLevel, // Pass the level ID
-                              level: getQQLevelById(selectedLevel)!, // Pass the entire Level object
+                              level: getQQLevelById(selectedLevel)!,
                             ), // Placeholder, pass level data later
                           ),
                         );
@@ -115,17 +175,55 @@ class _HomePageState extends State<HomePage> {
 
                           return ElevatedButton(
                             onPressed: isUnlocked
-                                ? () {
-                              // Navigate to the QuantumComposer for the selected level
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => QuantumComposer(
-                                    levelId: levelNumber,
-                                    level: getQQLevelById(levelNumber)!, // Pass the entire Level object
-                                  ), // Pass level data if needed later
-                                ),
-                              );
+                                ? () async {
+                              int currentLevelToPlay = levelNumber; // Start with the level that was tapped
+                              bool continueLevelChain = true;
+
+                              while (continueLevelChain) {
+                                final levelData = getQQLevelById(currentLevelToPlay);
+
+                                if (levelData == null) {
+                                  print('HomePage: Error: Level $currentLevelToPlay data not found. Exiting chain.');
+                                  _showGameCompleteDialog(); // Or an error message
+                                  continueLevelChain = false; // Stop the loop
+                                  break; // Exit the loop
+                                }
+
+                                print('HomePage: Pushing QuantumComposerScreen for Level $currentLevelToPlay...');
+                                // Push the QuantumComposerScreen and AWAIT its result
+                                final result = await Navigator.push<LevelCompletionAction>(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => QuantumComposer(
+                                      levelId: currentLevelToPlay,
+                                      level: levelData, // Pass the entire Level object
+                                    ),
+                                  ),
+                                );
+
+                                print('HomePage: Returned from Composer (Level $currentLevelToPlay) with result: $result');
+
+                                if (result == LevelCompletionAction.nextLevel) {
+                                  // User completed the level and wants the next one
+                                  await _updateMaxUnlockedLevel(currentLevelToPlay); // Unlock the *next* level
+                                  currentLevelToPlay++; // Increment to load the next level in the loop
+                                  print('HomePage: Preparing to load next level: $currentLevelToPlay');
+                                  // The loop will reiterate, pushing the next level
+                                } else if (result == LevelCompletionAction.levelSelect) {
+                                  // User chose to go back to level select (HomePage)
+                                  print('HomePage: User chose Level Select. Exiting chain.');
+                                  continueLevelChain = false; // Stop the loop
+                                  // The QuantumComposerScreen has already popped itself back to HomePage.
+                                } else { // result is LevelCompletionAction.reviewSolution, LevelCompletionAction.none, or null (back button)
+                                  // User chose to review, or pressed back, or dialog dismissed without specific action.
+                                  print('HomePage: User chose Review/Back/None. Exiting chain.');
+                                  continueLevelChain = false; // Stop the loop
+                                  // The QuantumComposerScreen has already popped itself back to HomePage.
+                                }
+                              }
+                              // If result is LevelCompletionAction.reviewSolution or null,
+                              // the ComposerScreen was simply popped, and we are back on HomePage.
+                              // No special action needed here.
                             }
                                 : null, // Disable button if level is locked
                             style: ElevatedButton.styleFrom(
@@ -157,24 +255,6 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
-  }
-
-  int _getLevel() {
-    int targetLevelId = 1; // Default to level 1
-
-    // Example: Load the last unlocked level. This data would usually come
-    // from shared preferences, a database, or user authentication.
-    // For demonstration, let's assume last unlocked is Level 3.
-    int lastUnlockedLevelId = 1; // Placeholder for actual user progress
-    bool userWantsToContinue = true; // Placeholder for user choice or game state
-
-    if (userWantsToContinue && lastUnlockedLevelId > 0) {
-      targetLevelId = lastUnlockedLevelId;
-    } else {
-      targetLevelId = 1; // Start a new game or re-start level 1
-    }
-
-    return targetLevelId;
   }
 
   // Helper method for building consistent option buttons

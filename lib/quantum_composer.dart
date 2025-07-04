@@ -4,9 +4,9 @@ import 'package:quantumquiz/quantum_circuit.dart';
 import 'package:quantumquiz/quantum_circuit_painter.dart';
 import 'package:quantumquiz/quantum_doc_dialog.dart';
 import 'package:flutter/material.dart';
-import 'package:quantumquiz/models/qubit_state.dart';
 import 'package:quantumquiz/quantum_task_dialog.dart';
 import 'package:quantumquiz/selected_gate_type.dart';
+import 'package:quantumquiz/utils/level_completion_action.dart';
 
 import 'cnot_target_qubit_selection_dialog.dart';
 import 'models/qq_level.dart';
@@ -41,9 +41,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
   // State to manage the highlight box for drag-and-drop
   Offset? _draggingOffset;
   SelectedGateType _draggingGateType = SelectedGateType.none;
-
-  // level status completion
-  bool _isLevelCompleted = false; // State variable to track completion
 
   final ValueNotifier<double> _circuitWidthNotifier = ValueNotifier<double>(0.0);
 
@@ -287,27 +284,40 @@ class _QuantumComposerState extends State<QuantumComposer> {
     setState(() {
       // Format the final state vector for display
       // Access the state data via the finalState object obtained from circuit.currentState
-      simulationResult = "Final State Vector:\n${_circuit.currentState}"; // Assuming formatStateVector helper
+      simulationResult = "Final State Vector:\n${_circuit.initialState}"; // Assuming formatStateVector helper
       _checkLevelCompletion();
     });
     print("Simulation finished.");
   }
 
-  void _checkLevelCompletion() {
+  Future<void> _checkLevelCompletion() async {
     // Only check if not already completed to avoid re-triggering
-    if (!_isLevelCompleted) {
-      // Basic check: vector sizes must match
-      bool match = _circuit.currentState.state.almostEqualTo(QuantumMatrix(_solutionVector));
+    // expect(circuit.currentState.state.rawMatrix, Matrix(level.solutionFinalVector));
+    bool match = _circuit.currentState.state.almostEqualTo(QuantumMatrix(_solutionVector));
+    if (match) {
+      final action = await _showLevelCompleteDialog(); // Trigger success actions
 
-      if (match) {
-        // _isLevelCompleted = true;
-        _showLevelCompleteDialog(); // Trigger success actions
+      // Now, based on the user's choice in the dialog, pop the QuantumComposerScreen itself.
+      // This will complete the 'await Navigator.push' call back in HomePage.
+      if (action == LevelCompletionAction.nextLevel || action == LevelCompletionAction.levelSelect) {
+        // If user chose to go to next level or level select, pop this composer screen
+        // and pass the action back to HomePage.
+        Navigator.of(context).pop(action);
+      } else if (action == LevelCompletionAction.reviewSolution) {
+        // If user chose to review, pop the composer screen and return to HomePage.
+        // HomePage will then simply be visible again.
+        Navigator.of(context).pop(action);
+      } else {
+        // Default case: dialog might have been dismissed without a specific action
+        // (e.g., tapping outside if barrierDismissible was true, or system back button on dialog).
+        // In this case, also pop the composer screen, returning 'none'.
+        Navigator.of(context).pop(LevelCompletionAction.none);
       }
     }
   }
 
-  void _showLevelCompleteDialog() {
-    showDialog(
+  Future<LevelCompletionAction?> _showLevelCompleteDialog() {
+    return showDialog<LevelCompletionAction>(
       context: context,
       barrierDismissible: false, // User must choose an option
       builder: (BuildContext context) {
@@ -329,10 +339,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
           actions: <Widget>[
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-                // TODO: Implement logic to load the next level
-                // Example: Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => QuantumComposerScreen(currentLevel: nextLevel)));
-                print('Navigating to next level...');
+                print('Going to the next level.');
+                Navigator.of(context).pop(LevelCompletionAction.nextLevel); // Close dialog
               },
               icon: const Icon(Icons.arrow_forward),
               label: const Text('Next Level'),
@@ -346,10 +354,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
             const SizedBox(height: 10), // Space between buttons
             OutlinedButton.icon(
               onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-                // TODO: Implement logic to navigate back to level selection
-                // Example: Navigator.popUntil(context, ModalRoute.withName('/level_select'));
-                print('Navigating to level select...');
+                Navigator.of(context).pop(LevelCompletionAction.levelSelect); // Close dialog
               },
               icon: const Icon(Icons.list),
               label: const Text('Level Select'),

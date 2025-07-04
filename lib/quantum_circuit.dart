@@ -15,13 +15,15 @@ class QuantumCircuit extends ChangeNotifier {
   final QQLevel currentLevel;
   // final List<Complex> initialQubitsState;
   // Property to hold the current/final quantum state vector (updated by simulation)
+  final QubitState initialState;
   QubitState currentState;
 
   // Constructor
   QuantumCircuit({required this.currentLevel}):
   // Initialize the currentState to the ground state |00...0>
   // Assuming QubitState has a constructor or static method to create the initial state
-        currentState = QubitState.fromList(currentLevel.initialQubitsState, currentLevel.numQubits),
+        initialState = QubitState.fromList(currentLevel.initialQubitsState),
+        currentState = QubitState.fromList(currentLevel.initialQubitsState),
         placedGates = List.generate(currentLevel.numQubits, (index) => []);
 
   int maxCircuitDepth() => placedGates.map((e) => e.length).reduce(max);
@@ -226,7 +228,7 @@ class QuantumCircuit extends ChangeNotifier {
   void clearPlacedGates() {
     placedGates.clear();
     // Reset the currentState back to the initial ground state
-    currentState = QubitState.fromList(currentLevel.initialQubitsState, currentLevel.numQubits);
+    currentState = QubitState.fromList(currentLevel.initialQubitsState);
     print("Circuit cleared. Total placed gates: ${placedGates.length}"); // Debug print
     // ** Notify listeners that the state has changed **
     notifyListeners();
@@ -317,9 +319,9 @@ class QuantumCircuit extends ChangeNotifier {
   /// Runs the quantum simulation, updating the current state vector.
   void runSimulation() {
     QuantumMatrix circuitMatrix = getOverallCircuitMatrix();
-    print("Initial state: $currentState");
-    currentState = currentState.applyMatrix(circuitMatrix);
-    print("Final state: $currentState");
+    print("Initial state: $initialState");
+    currentState = initialState.applyMatrix(circuitMatrix);
+    print("Final state: $initialState");
     notifyListeners();
   }
 

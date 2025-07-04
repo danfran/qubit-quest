@@ -53,13 +53,13 @@ final List<QQLevel> allQQLevels = [
     type: "composer",
     taskDescription: "Explore 3 qubits! Apply CNOT(Q0, Q2) to |000>.", // Based on your previous 8x8 matrix
     numQubits: 3,
-    initialQubitsStateString: "000", // |000> state
+    initialQubitsStateString: "101", // |000> state
     availableGates: [
       SelectedGateType.x, SelectedGateType.hadamard, SelectedGateType.cnot,
       SelectedGateType.z, SelectedGateType.y // Example more gates
     ],
     solutionFinalVector: [ // CNOT(Q0, Q2) applied to |000> results in |000>
-      [Complex.one()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
+      [Complex.zero()], [Complex.one()], [Complex.zero()], [Complex.zero()],
       [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
     ],
   ),

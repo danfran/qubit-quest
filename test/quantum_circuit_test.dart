@@ -37,7 +37,7 @@ void main() {
       expect(circuit.placedGates.length, 3);
       expect(circuit.isCircuitEmpty(), isTrue);
       expect(circuit.maxCircuitDepth(), 0);
-      expect(circuit.currentState, isA<QubitState>());
+      expect(circuit.initialState, isA<QubitState>());
     });
 
     test('isEmpty and maxCircuitDepth should reflect circuit state', () {
