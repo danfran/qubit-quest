@@ -26,7 +26,7 @@ class QuantumMatrix {
   }
 
   factory QuantumMatrix.hadamard() {
-    final complexSqrtHalf = Complex(1 / math.sqrt(2), 0);
+    final complexSqrtHalf = Complex(sqrt1_2, 0);
     return QuantumMatrix([
       [complexSqrtHalf, complexSqrtHalf],
       [complexSqrtHalf, Complex(-complexSqrtHalf.real, -complexSqrtHalf.imaginary)],

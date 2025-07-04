@@ -34,7 +34,7 @@ final List<QQLevel> allQQLevels = [
     numQubits: 1,
     initialQubitsStateString: "0", // |0> state
     availableGates: [SelectedGateType.x, SelectedGateType.hadamard, SelectedGateType.z],
-    solutionFinalVector: [[Complex(1 / sqrt(2))], [Complex(1 / sqrt(2))]], // Target: |+> state
+    solutionFinalVector: [[Complex(sqrt1_2)], [Complex(sqrt1_2)]], // Target: |+> state
   ),
   QQLevel.fromBinaryString(
     type: "composer",
@@ -43,15 +43,15 @@ final List<QQLevel> allQQLevels = [
     initialQubitsStateString: "00", // |00> state
     availableGates: [SelectedGateType.x, SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.z],
     solutionFinalVector: [
-      [Complex(1 / sqrt(2))],
+      [Complex(sqrt1_2)],
       [Complex.zero()],
       [Complex.zero()],
-      [Complex(1 / sqrt(2))],
+      [Complex(sqrt1_2)],
     ], // Target: (|00> + |11>)/sqrt(2)
   ),
   QQLevel.fromBinaryString(
     type: "composer",
-    taskDescription: "Explore 3 qubits! Apply CNOT(Q0, Q2) to |000>.", // Based on your previous 8x8 matrix
+    taskDescription: "Explore 3 qubits! Apply CNOT(Q0, Q2) to |101>.", // Based on your previous 8x8 matrix
     numQubits: 3,
     initialQubitsStateString: "101", // |000> state
     availableGates: [

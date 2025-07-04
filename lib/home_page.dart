@@ -58,7 +58,7 @@ class _HomePageState extends State<HomePage> {
           content: const Text('Congratulations! You\'ve mastered all the quantum puzzles.'),
           actions: <Widget>[
             TextButton(
-              child: const Text('Back to Level Select'),
+              child: const Text('Close'),
               onPressed: () {
                 Navigator.of(context).pop(); // Close dialog
               },

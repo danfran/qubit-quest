@@ -22,10 +22,10 @@ void main() {
       final resultState = hadamard.dot(zeroState);
 
       // Expected state: (1/sqrt(2))|0> + (1/sqrt(2))|1>
-      final expectedReal = 1 / math.sqrt(2);
+      // final expectedReal = 1 / math.sqrt(2);
       final expectedState = QuantumMatrix([
-        [Complex(expectedReal, 0)],
-        [Complex(expectedReal, 0)],
+        [Complex(sqrt1_2, 0)],
+        [Complex(sqrt1_2, 0)],
       ]);
 
       expect(resultState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'H|0> operation incorrect');
@@ -139,7 +139,7 @@ void main() {
 
       final hTensorI = h.tensorProduct(i);
 
-      final complexSqrtHalf = Complex(1 / math.sqrt(2), 0);
+      final complexSqrtHalf = Complex(sqrt1_2, 0);
       // Expected H ⊗ I matrix:
       // [[1/√2, 0, 1/√2, 0],
       //  [0, 1/√2, 0, 1/√2],
@@ -184,12 +184,12 @@ void main() {
 
       // Expected state: (1/sqrt(2))|01> + (1/sqrt(2))|11>
       // As a 4x1 vector: [0, 1/√2, 0, 1/√2]
-      final expectedReal = 1 / math.sqrt(2);
+      // final expectedReal = 1 / math.sqrt(2);
       final expectedState = QuantumMatrix([
         [Complex.zero()],
-        [Complex(expectedReal, 0)],
+        [Complex(sqrt1_2, 0)],
         [Complex.zero()],
-        [Complex(expectedReal, 0)],
+        [Complex(sqrt1_2, 0)],
       ]);
 
       expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'H on Q0 then X on Q1 simulation incorrect');
