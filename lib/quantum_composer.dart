@@ -452,7 +452,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: Color(0xFF1E1E2C),
       // Modify the AppBar
       appBar: AppBar(
         title: Text("⟨𝜑|𝜑⟩ Level ${widget.levelId}",
@@ -508,8 +508,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
                     // color: Colors.grey[900],
                     decoration: BoxDecoration(
                         shape: BoxShape.rectangle,
-                        color: Colors.grey[900],
-                        border: Border.all(color: Colors.yellowAccent, width: 4),
+                        color: Color(0xFF1E1E2C),
+                        border: Border.all(color: Color(0xFF4D4D5C), width: 1),
                         borderRadius: BorderRadius.circular(12.0),
                     ),
                     padding: EdgeInsets.all(2.0),

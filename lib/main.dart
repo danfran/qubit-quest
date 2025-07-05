@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
           labelSmall: TextStyle(color: Colors.white),
         ),
         dialogTheme: DialogTheme(
-          backgroundColor: Colors.grey[900], // Dark background for the dialog
+          backgroundColor: Color(0xFF1E1E2C), // Dark background for the dialog
           titleTextStyle: const TextStyle(
             color: Colors.white, // Explicitly set title color
             fontSize: 22,
@@ -64,7 +64,7 @@ class MyApp extends StatelessWidget {
         ),
         visualDensity: VisualDensity.adaptivePlatformDensity,
         appBarTheme: AppBarTheme(
-          backgroundColor: Colors.black, // Ensure app bar is dark
+          backgroundColor: Color(0xFF1E1E2C), // Ensure app bar is dark
           foregroundColor: Colors.white, // Default icon/text color in app bar
         ),
       ),

@@ -78,7 +78,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.black, // Consistent dark background
+      backgroundColor: Color(0xFF1E1E2C), // Consistent dark background
       appBar: AppBar(
         title: Text(
           "⟨𝜑ubit|𝜑uest⟩", // App name
@@ -88,7 +88,7 @@ class _HomePageState extends State<HomePage> {
             color: Colors.white,
           ),
         ),
-        backgroundColor: Colors.black, // Dark app bar
+        backgroundColor: Color(0xFF1E1E2C), // Dark app bar
         centerTitle: true,
       ),
       body: SafeArea( // Ensures content avoids notches/cutouts

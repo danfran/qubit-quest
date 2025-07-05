@@ -36,7 +36,7 @@ dependencies:
   advance_math: ^5.3.2
   flutter_math_fork: ^0.7.3
   flutter_tex: ^5.0.5
-  shared_preferences: ^2.0.15 # Use the latest version
+  shared_preferences: ^2.5.3 # Use the latest version
 
 dev_dependencies:
   flutter_test:

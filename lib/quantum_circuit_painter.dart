@@ -25,7 +25,7 @@ class QuantumCircuitPainter extends CustomPainter {
   // Add colors for other gate types as needed
 
   // ** Debugging color for hit areas **
-  static const Color debugHitAreaColor = Colors.redAccent; // Color to visualize hit areas
+  static const Color debugHitAreaColor = Color(0xFF1E1E2C); // Color to visualize hit areas
   // ***********************************
 
   final QuantumCircuit circuit; // Painter needs the circuit (with List<PlacedQuantumGate> placedGates)
