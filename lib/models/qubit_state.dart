@@ -2,13 +2,15 @@ import 'package:advance_math/advance_math.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 
 class QubitState {
-  // The list of complex amplitudes representing the state vector
   QuantumMatrix state;
+  // The list of complex amplitudes representing the state vector
+  List<Complex> stateVector;
 
   // Private constructor
-  QubitState._(this.state);
+  QubitState._(this.state):
+      stateVector = state.rawMatrix.transpose().first.map((item) => item as Complex).toList();
 
-  QubitState.fromList(List<Complex> stateVector):
+  QubitState.fromList(this.stateVector):
       state  = QuantumMatrix.transpose([stateVector]);
 
   QubitState applyMatrix(QuantumMatrix matrix) {

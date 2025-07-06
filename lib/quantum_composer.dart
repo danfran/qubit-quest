@@ -6,6 +6,7 @@ import 'package:quantumquiz/quantum_doc_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/quantum_task_dialog.dart';
 import 'package:quantumquiz/selected_gate_type.dart';
+import 'package:quantumquiz/state_vector_display.dart';
 import 'package:quantumquiz/utils/level_completion_action.dart';
 
 import 'cnot_target_qubit_selection_dialog.dart';
@@ -33,7 +34,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
   late List<List<Complex>> _solutionVector;
   late QuantumCircuit _circuit;
 
-  String simulationResult = "Run the circuit to see the result";
+  String simulationResult = "Changes to the Composer will affect the State Vector";
   // List<double> measurementProbabilities = [0.0, 0.0, 0.0, 0.0];
   SelectedGateType _currentMode = SelectedGateType.none;
   int? _cnotTargetQubit; // To track the target for CNOT
@@ -44,9 +45,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   final ValueNotifier<double> _circuitWidthNotifier = ValueNotifier<double>(0.0);
 
+  late ScrollController _taskTextScrollController;
+
   @override
   void initState() {
     super.initState();
+    _taskTextScrollController = ScrollController(); // Initialize the controller
+
     _numQubits = widget.level.numQubits;
     _taskDescription = widget.level.taskDescription;
     _initialState = widget.level.initialQubitsState;
@@ -61,6 +66,11 @@ class _QuantumComposerState extends State<QuantumComposer> {
     print('Solution vector: $_solutionVector');
   }
 
+  @override
+  void dispose() {
+    _taskTextScrollController.dispose(); // Dispose the controller
+    super.dispose();
+  }
 
   void _setInteractionMode(SelectedGateType mode) {
     setState(() {
@@ -284,7 +294,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     setState(() {
       // Format the final state vector for display
       // Access the state data via the finalState object obtained from circuit.currentState
-      simulationResult = "Final State Vector:\n${_circuit.initialState}"; // Assuming formatStateVector helper
+      // simulationResult = "Final State Vector:\n${_circuit.initialState}"; // Assuming formatStateVector helper
       _checkLevelCompletion();
     });
     print("Simulation finished.");
@@ -367,15 +377,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
             ),
           ],
         );
-      },
-    );
-  }
-
-  void _showTask() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return QuantumTaskDialog(taskDescription: _taskDescription);
       },
     );
   }
@@ -464,14 +465,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
         // ** Add the actions list here **
         actions: [
           // Run Simulation Button (as TextButton)
-          TextButton.icon(
-            onPressed: _showTask,
-            icon: Icon(Icons.task),
-            label: Text('Task'), // Shorten text for AppBar
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white, // White text color
-            ),
-          ),
           TextButton.icon(
             onPressed: _showGateListDialog,
             icon: Icon(Icons.book),
@@ -645,26 +638,61 @@ class _QuantumComposerState extends State<QuantumComposer> {
                   child:
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: Column(children: [
-                        Text(
-                            simulationResult,
-                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start, // Align content to the left
+                        children: [
+                          // TOP SECTION: Scrollable Task Text
+                          Flexible( // Use Flexible to allow the task text to take some space, but not too much
+                            flex: 35, // Adjust this flex to control vertical space distribution (e.g., 20% of right column's height)
+                            child: Column( // <--- NEW: Column to stack "Task:" label and text
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text( // <--- "Task:" label
+                                  "Task:",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    fontSize: 16, // Font size 16 for the label
+                                  ),
+                                ),
+                                Expanded( // <--- Ensures the task description text takes available space and scrolls
+                                  child: Scrollbar(
+                                    controller: _taskTextScrollController, // <-- Assign controller to Scrollbar
+                                    thumbVisibility: true,
+                                    child: SingleChildScrollView(
+                                      controller: _taskTextScrollController, // <-- Assign controller to SingleChildScrollView
+                                      child: Text(
+                                        _taskDescription,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        Divider(),
-                        SizedBox(height: 10.0),
-                        Container(
-                          padding: EdgeInsets.all(8.0),
-                          // The histogram content itself is scrollable inside _buildProbabilityHistogram if needed
-                          child: SingleChildScrollView( // Scroll the whole histogram section if needed
-                            scrollDirection: Axis.vertical,
-                            child: AspectRatio(
-                              aspectRatio: 1.8,
-                              child: Text('placeholder'),
-                            ), // Your histogram helper
+                          Divider(),
+                          // SizedBox(height: 10.0),
+                          Expanded(
+                            flex: 65, // Changed from 8 to 6 for 60% vertical space
+                            child: Container(
+                              padding: const EdgeInsets.all(8.0),
+                              decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  border: Border.all(color: Colors.blueGrey.withOpacity(0.5), width: 0.5)
+                              ),
+                              child: StateVectorDisplay(
+                                stateVector: _circuit.currentState.stateVector,
+                                numQubits: _numQubits,
+                              ),
+                            ),
                           ),
-                        ),
-                        // State Vector Display (Below buttons)
-                      ]),
+                          // State Vector Display (Below buttons)
+                        ]),
                     ),
                 ),
               ],
