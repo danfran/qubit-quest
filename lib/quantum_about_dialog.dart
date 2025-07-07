@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tex/flutter_tex.dart';
 
-class QuantumTaskDialog extends StatelessWidget {
+class QuantumAboutDialog extends StatelessWidget {
   final String taskDescription;
 
-  const QuantumTaskDialog({
+  const QuantumAboutDialog({
     Key? key,
     required this.taskDescription, // Level is now required
   }) : super(key: key);

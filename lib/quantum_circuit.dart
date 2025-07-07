@@ -226,7 +226,8 @@ class QuantumCircuit extends ChangeNotifier {
 
   // Method to clear all placed gates from the circuit
   void clearPlacedGates() {
-    placedGates.clear();
+    // placedGates.clear();
+    placedGates = List.generate(currentLevel.numQubits, (index) => []);
     // Reset the currentState back to the initial ground state
     currentState = QubitState.fromList(currentLevel.initialQubitsState);
     print("Circuit cleared. Total placed gates: ${placedGates.length}"); // Debug print

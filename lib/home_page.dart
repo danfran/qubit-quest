@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:quantumquiz/quantum_composer.dart';
 import 'package:quantumquiz/utils/level_completion_action.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'models/qq_levels.dart';
 
@@ -18,10 +19,36 @@ class _HomePageState extends State<HomePage> {
   int _maxUnlockedLevel = 1; // Example: Levels 1 to 5 are unlocked initially
   bool _isLoadingLevels = true; // To show loading state
 
+  late PackageInfo _packageInfo;
+  late List<MapEntry<String, String>> _aboutData; // Data for the about dialog
+
   @override
   void initState() {
     super.initState();
     _loadMaxUnlockedLevel();
+    _initPackageInfo();
+  }
+
+  Future<void> _initPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    setState(() {
+      _packageInfo = info;
+      _populateAboutData(); // Populate the data once package info is loaded
+    });
+  }
+
+  void _populateAboutData() {
+    // This method creates the list of data to display in the grid
+    _aboutData = [
+      MapEntry('App name', _packageInfo.appName),
+      MapEntry('Author', 'aion'),
+      MapEntry('Package name', _packageInfo.packageName),
+      MapEntry('App version', _packageInfo.version),
+      MapEntry('Build number', _packageInfo.buildNumber),
+      MapEntry('Build signature', _packageInfo.buildSignature),
+      MapEntry('Installer store', _packageInfo.installerStore ?? 'not available'),
+      MapEntry('Contact', 'dfrancesconi12@gmail.com'),
+    ];
   }
 
   // Load the max unlocked level from SharedPreferences
@@ -61,6 +88,99 @@ class _HomePageState extends State<HomePage> {
               child: const Text('Close'),
               onPressed: () {
                 Navigator.of(context).pop(); // Close dialog
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Show aabout if all
+  Widget _infoTile(String title, String subtitle) {
+    return ListTile(
+      title: Text(title),
+      subtitle: Text(subtitle.isEmpty ? 'Not set' : subtitle),
+    );
+  }
+
+  void _showAboutDialog() {
+    // Ensure data is ready before showing the dialog
+    if (!mounted || _aboutData == null) {
+      // You might want to show a loading indicator or handle this case
+      print('About data not yet loaded.');
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('About'),
+          content: SizedBox(
+            width: double.maxFinite, // Allows dialog to expand horizontally
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min, // Keep column compact vertically
+                children: <Widget>[
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 4, // <--- CORRECTED: Now 4 columns, as requested!
+                      crossAxisSpacing: 4.0, // Reduced horizontal gap between boxes
+                      mainAxisSpacing: 4.0,  // Reduced vertical gap between rows
+                      childAspectRatio: 4.0, // <--- ADJUSTED: Increased for narrower columns (width/height)
+                      // You might need to fine-tune this value further (e.g., 4.5, 5.0)
+                    ),
+                    itemCount: _aboutData.length, // Still one item per data pair
+                    itemBuilder: (context, index) {
+                      final dataEntry = _aboutData[index];
+
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0), // Reduced internal padding
+                        alignment: Alignment.centerLeft,
+                        decoration: BoxDecoration(
+                          color: Colors.blueGrey.shade800,
+                          borderRadius: BorderRadius.circular(4.0), // Slightly smaller radius
+                        ),
+                        child: RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '${dataEntry.key}: ',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11, // <--- ADJUSTED: Slightly smaller font for tighter space
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              TextSpan(
+                                text: dataEntry.value,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13, // <--- ADJUSTED: Slightly smaller font for tighter space
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                          maxLines: 2, // Allow wrapping to 2 lines
+                          overflow: TextOverflow.ellipsis, // Add ellipsis if it overflows
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop();
               },
             ),
           ],
@@ -132,9 +252,7 @@ class _HomePageState extends State<HomePage> {
                       SizedBox(height: 20),
                       _buildOptionButton(context, "About", () {
                         // TODO: Implement navigation to about page
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('About this app coming soon!')),
-                        );
+                        _showAboutDialog();
                       }),
                     ],
                   ),

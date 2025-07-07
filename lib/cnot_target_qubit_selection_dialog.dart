@@ -42,7 +42,7 @@ class CNOTTargetQubitSelectionDialog extends StatelessWidget {
                 Navigator.of(context).pop(qubitIndex); // Return selected qubit index
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF1E1E2C), // Button background color
+                backgroundColor: Colors.blueAccent[700], // Button background color
                 foregroundColor: Colors.white, // Text color for the button
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.0),

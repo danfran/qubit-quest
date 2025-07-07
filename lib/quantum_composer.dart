@@ -4,7 +4,6 @@ import 'package:quantumquiz/quantum_circuit.dart';
 import 'package:quantumquiz/quantum_circuit_painter.dart';
 import 'package:quantumquiz/quantum_doc_dialog.dart';
 import 'package:flutter/material.dart';
-import 'package:quantumquiz/quantum_task_dialog.dart';
 import 'package:quantumquiz/selected_gate_type.dart';
 import 'package:quantumquiz/state_vector_display.dart';
 import 'package:quantumquiz/utils/level_completion_action.dart';
