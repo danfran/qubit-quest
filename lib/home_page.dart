@@ -229,18 +229,13 @@ class _HomePageState extends State<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.center, // Center options vertically
                     children: [
                       _buildOptionButton(context, "Start/Continue", () {
-                        int selectedLevel = _maxUnlockedLevel;
-
-                        // Navigate to the last unlocked level or first unlocked level
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => QuantumComposer(
-                              levelId: selectedLevel, // Pass the level ID
-                              level: getQQLevelById(selectedLevel)!,
-                            ), // Placeholder, pass level data later
-                          ),
-                        );
+                        // Check if all levels are already completed
+                        if (_maxUnlockedLevel > numberOfLevels) {
+                          _showGameCompleteDialog(); // Game already completed, just show dialog
+                          return;
+                        }
+                        // Start the level sequence from the last unlocked level
+                        _playLevelSequence(_maxUnlockedLevel, context);
                       }),
                       SizedBox(height: 20),
                       _buildOptionButton(context, "Documentation", () {
@@ -294,51 +289,7 @@ class _HomePageState extends State<HomePage> {
                           return ElevatedButton(
                             onPressed: isUnlocked
                                 ? () async {
-                              int currentLevelToPlay = levelNumber; // Start with the level that was tapped
-                              bool continueLevelChain = true;
-
-                              while (continueLevelChain) {
-                                final levelData = getQQLevelById(currentLevelToPlay);
-
-                                if (levelData == null) {
-                                  print('HomePage: Error: Level $currentLevelToPlay data not found. Exiting chain.');
-                                  _showGameCompleteDialog(); // Or an error message
-                                  continueLevelChain = false; // Stop the loop
-                                  break; // Exit the loop
-                                }
-
-                                print('HomePage: Pushing QuantumComposerScreen for Level $currentLevelToPlay...');
-                                // Push the QuantumComposerScreen and AWAIT its result
-                                final result = await Navigator.push<LevelCompletionAction>(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => QuantumComposer(
-                                      levelId: currentLevelToPlay,
-                                      level: levelData, // Pass the entire Level object
-                                    ),
-                                  ),
-                                );
-
-                                print('HomePage: Returned from Composer (Level $currentLevelToPlay) with result: $result');
-
-                                if (result == LevelCompletionAction.nextLevel) {
-                                  // User completed the level and wants the next one
-                                  await _updateMaxUnlockedLevel(currentLevelToPlay); // Unlock the *next* level
-                                  currentLevelToPlay++; // Increment to load the next level in the loop
-                                  print('HomePage: Preparing to load next level: $currentLevelToPlay');
-                                  // The loop will reiterate, pushing the next level
-                                } else if (result == LevelCompletionAction.levelSelect) {
-                                  // User chose to go back to level select (HomePage)
-                                  print('HomePage: User chose Level Select. Exiting chain.');
-                                  continueLevelChain = false; // Stop the loop
-                                  // The QuantumComposerScreen has already popped itself back to HomePage.
-                                } else { // result is LevelCompletionAction.reviewSolution, LevelCompletionAction.none, or null (back button)
-                                  // User chose to review, or pressed back, or dialog dismissed without specific action.
-                                  print('HomePage: User chose Review/Back/None. Exiting chain.');
-                                  continueLevelChain = false; // Stop the loop
-                                  // The QuantumComposerScreen has already popped itself back to HomePage.
-                                }
-                              }
+                              await _playLevelSequence(levelNumber, context);
                               // If result is LevelCompletionAction.reviewSolution or null,
                               // the ComposerScreen was simply popped, and we are back on HomePage.
                               // No special action needed here.
@@ -373,6 +324,54 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  Future<void> _playLevelSequence(int levelNumber, BuildContext context) async {
+    int currentLevelToPlay = levelNumber; // Start with the level that was tapped
+    bool continueLevelChain = true;
+
+    while (continueLevelChain) {
+      final levelData = getQQLevelById(currentLevelToPlay);
+
+      if (levelData == null) {
+        print('HomePage: Error: Level $currentLevelToPlay data not found. Exiting chain.');
+        _showGameCompleteDialog(); // Or an error message
+        continueLevelChain = false; // Stop the loop
+        break; // Exit the loop
+      }
+
+      print('HomePage: Pushing QuantumComposerScreen for Level $currentLevelToPlay...');
+      // Push the QuantumComposerScreen and AWAIT its result
+      final result = await Navigator.push<LevelCompletionAction>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => QuantumComposer(
+            levelId: currentLevelToPlay,
+            level: levelData, // Pass the entire Level object
+          ),
+        ),
+      );
+
+      print('HomePage: Returned from Composer (Level $currentLevelToPlay) with result: $result');
+
+      if (result == LevelCompletionAction.nextLevel) {
+        // User completed the level and wants the next one
+        await _updateMaxUnlockedLevel(currentLevelToPlay); // Unlock the *next* level
+        currentLevelToPlay++; // Increment to load the next level in the loop
+        print('HomePage: Preparing to load next level: $currentLevelToPlay');
+        // The loop will reiterate, pushing the next level
+      } else if (result == LevelCompletionAction.levelSelect) {
+        // User chose to go back to level select (HomePage)
+        print('HomePage: User chose Level Select. Exiting chain.');
+        continueLevelChain = false; // Stop the loop
+        // The QuantumComposerScreen has already popped itself back to HomePage.
+      } else { // result is LevelCompletionAction.reviewSolution, LevelCompletionAction.none, or null (back button)
+        // User chose to review, or pressed back, or dialog dismissed without specific action.
+        print('HomePage: User chose Review/Back/None. Exiting chain.');
+        continueLevelChain = false; // Stop the loop
+        // The QuantumComposerScreen has already popped itself back to HomePage.
+      }
+    }
   }
 
   // Helper method for building consistent option buttons

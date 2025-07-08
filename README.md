@@ -18,3 +18,15 @@ samples, guidance on mobile development, and a full API reference.
 
 ## create AAB
 
+
+
+### tasks
+
+* add levels
+* complete documentation gates
+* add more gates
+* add app documentation
+* ~~fix start/continue~~
+* Documentation button in home page can be split in gates/app documentation
+* add button "rate us"
+* add button "privacy policy"
