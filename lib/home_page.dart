@@ -1,10 +1,12 @@
 // home_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:in_app_review/in_app_review.dart';
 import 'package:quantumquiz/quantum_composer.dart';
 import 'package:quantumquiz/utils/level_completion_action.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'models/qq_levels.dart';
 
@@ -21,6 +23,10 @@ class _HomePageState extends State<HomePage> {
 
   late PackageInfo _packageInfo;
   late List<MapEntry<String, String>> _aboutData; // Data for the about dialog
+
+  final InAppReview _inAppReview = InAppReview.instance;
+
+  static const String _privacyPolicyUrl = 'https://danfran.github.io/qubit-quest/privacy-policy.html';
 
   @override
   void initState() {
@@ -189,6 +195,47 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _launchPrivacyPolicyUrl() async {
+    final Uri url = Uri.parse(_privacyPolicyUrl);
+    // Use LaunchMode.externalApplication to open in the device's default browser
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      // Handle error if the URL cannot be launched
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open privacy policy. Please check your internet connection or URL.'),
+          ),
+        );
+      }
+    }
+  }
+
+  // NEW: Method to handle rating the app
+  Future<void> _rateApp() async {
+    if (await _inAppReview.isAvailable()) {
+      // If in-app review is available (iOS 10.3+, Android 5.0+),
+      // it will show the native rating prompt.
+      await _inAppReview.requestReview();
+    } else {
+      // If in-app review is not available (e.g., on older OS versions, or
+      // if the user has already been prompted too many times),
+      // it will open the store listing page.
+      // You should replace 'com.your.app.id' with your actual app ID
+      // from Google Play Console or Apple App Store Connect.
+      try {
+        await _inAppReview.openStoreListing(
+          appStoreId: '1234567890', // Your Apple App Store ID (for iOS)
+          microsoftStoreId: null,   // Your Microsoft Store ID (for Windows)
+        );
+      } catch (e) {
+        print('Error opening store listing: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open store page.')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoadingLevels) {
@@ -213,7 +260,7 @@ class _HomePageState extends State<HomePage> {
       ),
       body: SafeArea( // Ensures content avoids notches/cutouts
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
           child: Row( // Changed from Column to Row for two-column layout
             children: [
               // Left side: Options list (30% width)
@@ -223,7 +270,7 @@ class _HomePageState extends State<HomePage> {
                   padding: const EdgeInsets.all(8.0),
                   decoration: BoxDecoration(
                     color: Colors.grey[900], // Slightly lighter background for the options panel
-                    borderRadius: BorderRadius.circular(12.0),
+                    borderRadius: BorderRadius.circular(2.0),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center, // Center options vertically
@@ -237,16 +284,23 @@ class _HomePageState extends State<HomePage> {
                         // Start the level sequence from the last unlocked level
                         _playLevelSequence(_maxUnlockedLevel, context);
                       }),
-                      SizedBox(height: 20),
+                      SizedBox(height: 6),
                       _buildOptionButton(context, "Documentation", () {
                         // TODO: Implement navigation to documentation page
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Documentation coming soon!')),
                         );
                       }),
-                      SizedBox(height: 20),
+                      SizedBox(height: 6),
+                      _buildOptionButton(context, "Rate Us", () {
+                        _rateApp();
+                      }),
+                      SizedBox(height: 6),
+                      _buildOptionButton(context, "Privacy Policy", () {
+                        _launchPrivacyPolicyUrl();
+                      }),
+                      SizedBox(height: 6),
                       _buildOptionButton(context, "About", () {
-                        // TODO: Implement navigation to about page
                         _showAboutDialog();
                       }),
                     ],
@@ -383,9 +437,9 @@ class _HomePageState extends State<HomePage> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blueGrey[700], // Darker button color
           foregroundColor: Colors.white,
-          padding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+          padding: EdgeInsets.symmetric(vertical: 2, horizontal: 8),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.0),
+            borderRadius: BorderRadius.circular(2.0),
           ),
           elevation: 3,
         ),

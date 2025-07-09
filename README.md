@@ -28,5 +28,9 @@ samples, guidance on mobile development, and a full API reference.
 * add app documentation
 * ~~fix start/continue~~
 * Documentation button in home page can be split in gates/app documentation
-* add button "rate us"
-* add button "privacy policy"
+* ~~add button "rate us"~~
+* check "rate us" button if actually works - around the end
+* ~~add button "privacy policy"~~
+* fix privacy policy web page
+* fix other documentation web pages
+* fix the button for "next level" dialog
