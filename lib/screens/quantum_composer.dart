@@ -33,7 +33,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
   late List<List<Complex>> _solutionVector;
   late QuantumCircuit _circuit;
 
-  String simulationResult = "Changes to the Composer will affect the State Vector";
   // List<double> measurementProbabilities = [0.0, 0.0, 0.0, 0.0];
   SelectedGateType _currentMode = SelectedGateType.none;
   int? _cnotTargetQubit; // To track the target for CNOT
@@ -41,6 +40,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
   // State to manage the highlight box for drag-and-drop
   Offset? _draggingOffset;
   SelectedGateType _draggingGateType = SelectedGateType.none;
+
+  String _currentInstructionMessage = "Drag a gate onto the circuit.";
 
   final ValueNotifier<double> _circuitWidthNotifier = ValueNotifier<double>(0.0);
 
@@ -76,10 +77,11 @@ class _QuantumComposerState extends State<QuantumComposer> {
       _currentMode = mode;
       _cnotTargetQubit = null; // Reset CNOT control on mode change
       if (mode == SelectedGateType.delete) {
-        simulationResult = "Tap on a gate to delete it.";
+        _currentInstructionMessage = "Tap on a gate to delete it.";
       } else {
-        simulationResult = "Drag a gate onto the circuit."; // Default message for drag mode
+        _currentInstructionMessage = "Drag a gate onto the circuit."; // Default message for drag mode
       }
+
     });
     print('Interaction mode set to: $_currentMode');
   }
@@ -214,13 +216,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
     setState(() {
       _currentMode = gateType;
       _cnotTargetQubit = null; // Reset CNOT control on new gate selection
-      simulationResult = "Tap on a qubit line to place the gate.";
+      _currentInstructionMessage = "Tap on a qubit line to place the gate.";
       if (gateType == SelectedGateType.cnot) {
-        simulationResult = "Tap on the control qubit for CNOT.";
+        _currentInstructionMessage = "Tap on the control qubit for CNOT.";
       } else if (gateType == SelectedGateType.none) {
-        simulationResult = "Run the circuit to see the result";
+        _currentInstructionMessage = "Run the circuit to see the result";
       } else if (gateType == SelectedGateType.delete) {
-        simulationResult = "Tap on a gate to delete it."; // Updated message
+        _currentInstructionMessage = "Tap on a gate to delete it."; // Updated message
       }
     });
     print('Selected gate type for placement: $_currentMode');
@@ -255,7 +257,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
         _runSimulation(); // Update simulation after deletion
         setState(() {
           _currentMode = SelectedGateType.none; // Reset mode after successful deletion
-          simulationResult = "Gate deleted. Drag a gate onto the circuit."; // Reset message
+          _currentInstructionMessage = "Gate deleted. Drag a gate onto the circuit."; // Reset message
         });
 
       } else {
@@ -467,7 +469,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
           TextButton.icon(
             onPressed: _showGateListDialog,
             icon: Icon(Icons.book),
-            label: Text('Doc'),
+            label: Text('Gates Doc'),
             style: TextButton.styleFrom(
               foregroundColor: Colors.white, // White icon/text color for contrast on AppBar
               // You might adjust padding if needed to fit
@@ -646,6 +648,21 @@ class _QuantumComposerState extends State<QuantumComposer> {
                             child: Column( // <--- NEW: Column to stack "Task:" label and text
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                Container(
+                                  width: double.infinity, // This container will try to fill its parent's horizontal space
+                                  padding: const EdgeInsets.all(2.0),
+                                  margin: const EdgeInsets.only(bottom: 12.0),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blueGrey[700],
+                                    borderRadius: BorderRadius.circular(8.0),
+                                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2))],
+                                  ),
+                                  child: Text(
+                                    _currentInstructionMessage,
+                                    style: const TextStyle(color: Colors.white, fontSize: 14, fontStyle: FontStyle.italic),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
                                 const Text( // <--- "Task:" label
                                   "Task:",
                                   style: TextStyle(
@@ -676,7 +693,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                           Divider(),
                           // SizedBox(height: 10.0),
                           Expanded(
-                            flex: 65, // Changed from 8 to 6 for 60% vertical space
+                            flex: 40, // Changed from 8 to 6 for 60% vertical space
                             child: Container(
                               padding: const EdgeInsets.all(8.0),
                               decoration: BoxDecoration(
