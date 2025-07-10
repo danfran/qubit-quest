@@ -34,3 +34,4 @@ samples, guidance on mobile development, and a full API reference.
 * fix privacy policy web page
 * fix other documentation web pages
 * fix the button for "next level" dialog
+* interactive messages display

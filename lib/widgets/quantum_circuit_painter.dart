@@ -2,9 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'dart:math'; // For min/max
-import 'package:quantumquiz/placed_quantum_gate.dart'; // Import PlacedQuantumGate
-import 'package:quantumquiz/quantum_circuit.dart'; // Import QuantumCircuit
-import 'package:quantumquiz/selected_gate_type.dart'; // Import SelectedGateType
+import 'package:quantumquiz/models/placed_quantum_gate.dart'; // Import PlacedQuantumGate
+import 'package:quantumquiz/models/quantum_circuit.dart'; // Import QuantumCircuit
+import 'package:quantumquiz/models/selected_gate_type.dart'; // Import SelectedGateType
 
 
 class QuantumCircuitPainter extends CustomPainter {

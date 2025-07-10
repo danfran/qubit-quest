@@ -1,15 +1,15 @@
 import 'package:advance_math/advance_math.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
-import 'package:quantumquiz/quantum_circuit.dart';
-import 'package:quantumquiz/quantum_circuit_painter.dart';
-import 'package:quantumquiz/quantum_doc_dialog.dart';
+import 'package:quantumquiz/models/quantum_circuit.dart';
+import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
+import 'package:quantumquiz/screens/quantum_doc_dialog.dart';
 import 'package:flutter/material.dart';
-import 'package:quantumquiz/selected_gate_type.dart';
-import 'package:quantumquiz/state_vector_display.dart';
+import 'package:quantumquiz/models/selected_gate_type.dart';
+import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/utils/level_completion_action.dart';
 
 import 'cnot_target_qubit_selection_dialog.dart';
-import 'models/qq_level.dart';
+import '../models/qq_level.dart';
 
 class QuantumComposer extends StatefulWidget {
   final int levelId;

@@ -1,5 +1,5 @@
 import 'package:advance_math/advance_math.dart';
-import 'package:quantumquiz/selected_gate_type.dart';
+import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 
 

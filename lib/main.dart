@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Import for orientation control
 import 'package:flutter_tex/flutter_tex.dart';
-import 'package:quantumquiz/home_page.dart';
-import 'package:quantumquiz/quantum_composer.dart';
+import 'package:quantumquiz/screens/home_page.dart';
+import 'package:quantumquiz/screens/quantum_composer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

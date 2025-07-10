@@ -2,13 +2,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:in_app_review/in_app_review.dart';
-import 'package:quantumquiz/quantum_composer.dart';
+import 'package:quantumquiz/screens/quantum_composer.dart';
 import 'package:quantumquiz/utils/level_completion_action.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'models/qq_levels.dart';
+import '../models/qq_levels.dart';
 
 class HomePage extends StatefulWidget {
   @override
