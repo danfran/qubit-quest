@@ -416,12 +416,19 @@ class _HomePageState extends State<HomePage> {
         // The loop will reiterate, pushing the next level
       } else if (result == LevelCompletionAction.levelSelect) {
         // User chose to go back to level select (HomePage)
+        await _updateMaxUnlockedLevel(currentLevelToPlay); // Unlock the *next* level
         print('HomePage: User chose Level Select. Exiting chain.');
         continueLevelChain = false; // Stop the loop
         // The QuantumComposerScreen has already popped itself back to HomePage.
-      } else { // result is LevelCompletionAction.reviewSolution, LevelCompletionAction.none, or null (back button)
+      } else if (result == LevelCompletionAction.reviewSolution) {
+        // User chose to go back to level select (HomePage)
+        await _updateMaxUnlockedLevel(currentLevelToPlay); // Unlock the *next* level
+        print('HomePage: User chose Review Solution. Exiting chain.');
+        continueLevelChain = false; // Stop the loop
+        // The QuantumComposerScreen has already popped itself back to HomePage.
+      } else { // result is LevelCompletionAction.none, or null (back button)
         // User chose to review, or pressed back, or dialog dismissed without specific action.
-        print('HomePage: User chose Review/Back/None. Exiting chain.');
+        print('HomePage: User chose Back/None. Exiting chain.');
         continueLevelChain = false; // Stop the loop
         // The QuantumComposerScreen has already popped itself back to HomePage.
       }

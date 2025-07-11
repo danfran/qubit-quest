@@ -317,7 +317,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
       } else if (action == LevelCompletionAction.reviewSolution) {
         // If user chose to review, pop the composer screen and return to HomePage.
         // HomePage will then simply be visible again.
-        Navigator.of(context).pop(action);
+        print("Review solution selected. Staying on QuantumComposerScreen.");
       } else {
         // Default case: dialog might have been dismissed without a specific action
         // (e.g., tapping outside if barrierDismissible was true, or system back button on dialog).
@@ -348,16 +348,15 @@ class _QuantumComposerState extends State<QuantumComposer> {
           ),
           actionsAlignment: MainAxisAlignment.center,
           actions: <Widget>[
-            ElevatedButton.icon(
+            OutlinedButton.icon(
               onPressed: () {
-                print('Going to the next level.');
-                Navigator.of(context).pop(LevelCompletionAction.nextLevel); // Close dialog
+                Navigator.of(context).pop(LevelCompletionAction.reviewSolution); // Close dialog
               },
-              icon: const Icon(Icons.arrow_forward),
-              label: const Text('Next Level'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
+              icon: const Icon(Icons.list),
+              label: const Text('Review Solution'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.blueGrey,
+                side: const BorderSide(color: Colors.blueGrey),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
@@ -372,6 +371,21 @@ class _QuantumComposerState extends State<QuantumComposer> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.blueGrey,
                 side: const BorderSide(color: Colors.blueGrey),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 10), // Space between buttons
+            ElevatedButton.icon(
+              onPressed: () {
+                print('Going to the next level.');
+                Navigator.of(context).pop(LevelCompletionAction.nextLevel); // Close dialog
+              },
+              icon: const Icon(Icons.arrow_forward),
+              label: const Text('Next Level'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
@@ -638,6 +652,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                   flex: 3,
                   child:
                     Padding(
+                      // padding: const EdgeInsets.only(left: 8.0, right: 8.0),
                       padding: const EdgeInsets.all(8.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start, // Align content to the left
