@@ -14,11 +14,13 @@ import '../models/qq_level.dart';
 class QuantumComposer extends StatefulWidget {
   final int levelId;
   final QQLevel level; // Now, QuantumComposer accepts a Level object
+  final Function(int unlockedLevel)? onLevelUnlocked;
 
   const QuantumComposer({
     Key? key,
-    required this.levelId, // Level is now required
-    required this.level, // Level is now required
+    required this.levelId,
+    required this.level,
+    required this.onLevelUnlocked,
   }) : super(key: key);
 
   @override
@@ -306,18 +308,34 @@ class _QuantumComposerState extends State<QuantumComposer> {
     // expect(circuit.currentState.state.rawMatrix, Matrix(level.solutionFinalVector));
     bool match = _circuit.currentState.state.almostEqualTo(QuantumMatrix(_solutionVector));
     if (match) {
-      final action = await _showLevelCompleteDialog(); // Trigger success actions
+      final dialogResult = await _showLevelCompleteDialog(); // Trigger success actions
 
-      // Now, based on the user's choice in the dialog, pop the QuantumComposerScreen itself.
-      // This will complete the 'await Navigator.push' call back in HomePage.
-      if (action == LevelCompletionAction.nextLevel || action == LevelCompletionAction.levelSelect) {
-        // If user chose to go to next level or level select, pop this composer screen
-        // and pass the action back to HomePage.
-        Navigator.of(context).pop(action);
-      } else if (action == LevelCompletionAction.reviewSolution) {
-        // If user chose to review, pop the composer screen and return to HomePage.
-        // HomePage will then simply be visible again.
-        print("Review solution selected. Staying on QuantumComposerScreen.");
+      if (dialogResult != null) {
+        final LevelCompletionAction action = dialogResult['action'];
+        final bool shouldUnlock = dialogResult['shouldUnlock'];
+
+        // Perform unlock if indicated by the dialog
+        if (shouldUnlock) {
+          widget.onLevelUnlocked?.call(widget.levelId + 1);
+        }
+
+        // Now, based on the user's choice in the dialog, pop the QuantumComposerScreen itself.
+        // This will complete the 'await Navigator.push' call back in HomePage.
+        if (action == LevelCompletionAction.nextLevel ||
+            action == LevelCompletionAction.levelSelect) {
+          // If user chose to go to next level or level select, pop this composer screen
+          // and pass the action back to HomePage.
+          Navigator.of(context).pop(action);
+        } else if (action == LevelCompletionAction.reviewSolution) {
+          // If user chose to review, pop the composer screen and return to HomePage.
+          // HomePage will then simply be visible again.
+          print("Review solution selected. Staying on QuantumComposerScreen.");
+        } else {
+          // Default case: dialog might have been dismissed without a specific action
+          // (e.g., tapping outside if barrierDismissible was true, or system back button on dialog).
+          // In this case, also pop the composer screen, returning 'none'.
+          Navigator.of(context).pop(LevelCompletionAction.none);
+        }
       } else {
         // Default case: dialog might have been dismissed without a specific action
         // (e.g., tapping outside if barrierDismissible was true, or system back button on dialog).
@@ -327,8 +345,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
     }
   }
 
-  Future<LevelCompletionAction?> _showLevelCompleteDialog() {
-    return showDialog<LevelCompletionAction>(
+  Future<Map<String, dynamic>?> _showLevelCompleteDialog() {
+    return showDialog<Map<String, dynamic>>(
       context: context,
       barrierDismissible: false, // User must choose an option
       builder: (BuildContext context) {
@@ -350,7 +368,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
           actions: <Widget>[
             OutlinedButton.icon(
               onPressed: () {
-                Navigator.of(context).pop(LevelCompletionAction.reviewSolution); // Close dialog
+                Navigator.of(context).pop({
+                  'action': LevelCompletionAction.reviewSolution,
+                  'shouldUnlock': true, // Indicate that the level should be unlocked
+                }); // Close dialog
               },
               icon: const Icon(Icons.list),
               label: const Text('Review Solution'),
@@ -364,7 +385,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
             const SizedBox(height: 10), // Space between buttons
             OutlinedButton.icon(
               onPressed: () {
-                Navigator.of(context).pop(LevelCompletionAction.levelSelect); // Close dialog
+                Navigator.of(context).pop({
+                  'action': LevelCompletionAction.levelSelect,
+                  'shouldUnlock': true, // Next level implies unlock
+                }); // Close dialog
               },
               icon: const Icon(Icons.list),
               label: const Text('Level Select'),
@@ -379,7 +403,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
             ElevatedButton.icon(
               onPressed: () {
                 print('Going to the next level.');
-                Navigator.of(context).pop(LevelCompletionAction.nextLevel); // Close dialog
+                Navigator.of(context).pop({
+                  'action': LevelCompletionAction.nextLevel,
+                  'shouldUnlock': true, // Next level implies unlock
+                }); // Close dialog
               },
               icon: const Icon(Icons.arrow_forward),
               label: const Text('Next Level'),

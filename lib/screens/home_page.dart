@@ -401,7 +401,8 @@ class _HomePageState extends State<HomePage> {
         MaterialPageRoute(
           builder: (context) => QuantumComposer(
             levelId: currentLevelToPlay,
-            level: levelData, // Pass the entire Level object
+            level: levelData,
+            onLevelUnlocked: _updateMaxUnlockedLevel, // Pass the entire Level object
           ),
         ),
       );
@@ -410,19 +411,16 @@ class _HomePageState extends State<HomePage> {
 
       if (result == LevelCompletionAction.nextLevel) {
         // User completed the level and wants the next one
-        await _updateMaxUnlockedLevel(currentLevelToPlay); // Unlock the *next* level
         currentLevelToPlay++; // Increment to load the next level in the loop
         print('HomePage: Preparing to load next level: $currentLevelToPlay');
         // The loop will reiterate, pushing the next level
       } else if (result == LevelCompletionAction.levelSelect) {
         // User chose to go back to level select (HomePage)
-        await _updateMaxUnlockedLevel(currentLevelToPlay); // Unlock the *next* level
         print('HomePage: User chose Level Select. Exiting chain.');
         continueLevelChain = false; // Stop the loop
         // The QuantumComposerScreen has already popped itself back to HomePage.
       } else if (result == LevelCompletionAction.reviewSolution) {
         // User chose to go back to level select (HomePage)
-        await _updateMaxUnlockedLevel(currentLevelToPlay); // Unlock the *next* level
         print('HomePage: User chose Review Solution. Exiting chain.');
         continueLevelChain = false; // Stop the loop
         // The QuantumComposerScreen has already popped itself back to HomePage.

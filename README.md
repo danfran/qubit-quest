@@ -36,7 +36,5 @@ samples, guidance on mobile development, and a full API reference.
 * ~~fix the button for "next level" dialog~~
 * ~~interactive messages display~~
 * the gates on the bottom of the compose should be wrapped in a horizontal scrollable area
-* ~~"next level" dialog still has "select level option" - when that gets selected, 
-   the new level that has just been unlocked is still not unlocked~~
-* "review solution" - when that gets selected,
-    the new level that has just been unlocked is still not unlocked
+* ~~"next level" dialog still has "select level option" - when that gets selected, the new level that has just been unlocked is still not unlocked~~
+* ~~"review solution" - when that gets selected, the new level that has just been unlocked is still not unlocked~~
