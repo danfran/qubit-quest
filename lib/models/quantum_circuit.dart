@@ -242,9 +242,11 @@ class QuantumCircuit extends ChangeNotifier {
     switch (gate.type) {
       case SelectedGateType.hadamard:
         return QuantumMatrix.hadamard();
+      case SelectedGateType.s:
+        return QuantumMatrix.phaseS();
       case SelectedGateType.x:
         return QuantumMatrix.pauliX();
-        case SelectedGateType.y:
+      case SelectedGateType.y:
         return QuantumMatrix.pauliY();
       case SelectedGateType.z:
         return QuantumMatrix.pauliZ();
@@ -350,18 +352,18 @@ class QuantumCircuit extends ChangeNotifier {
           PlacedQuantumGate gate = placedGates[q][pos];
           // Use a concise representation for each gate type
           String gateChar = "";
-          if (gate.type == SelectedGateType.hadamard) gateChar = "H";
-          else if (gate.type == SelectedGateType.x) gateChar = "X";
-          else if (gate.type == SelectedGateType.y) gateChar = "Y";
-          else if (gate.type == SelectedGateType.z) gateChar = "Z";
-          else if (gate.type == SelectedGateType.cnot) {
+          if (gate.type == SelectedGateType.cnot) {
             if (gate.isControl) gateChar = "C";
             else if (gate.isTarget) gateChar = "T";
             else if (gate.isLink) gateChar = "|";
             else gateChar = "?"; // Should not happen for CNOT
           }
-          else if (gate.type == SelectedGateType.none) gateChar = "-";
-          else gateChar = "?"; // Unknown gate type
+          else if (gate.type == SelectedGateType.none) {
+            gateChar = "-";
+          }
+          else {
+            gateChar = gate.type.label;
+          }
           result += "$gateChar ";
         } else {
           result += "- "; // Represents empty space beyond the end of a line

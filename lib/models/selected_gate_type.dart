@@ -4,6 +4,7 @@ enum SelectedGateType {
   none,
   hadamard,
   cnot,
+  s,
   x,
   y,
   z,
@@ -21,6 +22,8 @@ extension GateVisualProperties on SelectedGateType {
         return 'CNOT';
       case SelectedGateType.delete:
         return 'Del'; // Not typically placed visually
+      case SelectedGateType.s:
+        return 'S';
       case SelectedGateType.x:
         return 'X';
       case SelectedGateType.y:
@@ -40,6 +43,8 @@ extension GateVisualProperties on SelectedGateType {
         return Colors.blue;
       case SelectedGateType.delete:
         return Colors.green; // Not typically placed visually
+      case SelectedGateType.s:
+        return Colors.yellowAccent;
       case SelectedGateType.x:
         return Colors.lightBlueAccent;
       case SelectedGateType.y:

@@ -13,16 +13,16 @@ class QuantumDocDialog extends StatelessWidget {
         TeXViewDocument(
           name,
           style: TeXViewStyle(
-              padding: const TeXViewPadding.all(10),
-              borderRadius: TeXViewBorderRadius.all(10),
+              padding: const TeXViewPadding.all(4),
+              borderRadius: TeXViewBorderRadius.all(4),
               textAlign: TeXViewTextAlign.center,
               // width: 250,
               margin: const TeXViewMargin.zeroAuto(),
               backgroundColor: Colors.blueGrey[700],
               contentColor: Colors.white,),
         ),
-        TeXViewDocument(description, style: const TeXViewStyle(margin: TeXViewMargin.only(top: 10), contentColor: Colors.green)),
-        TeXViewDocument(matrixLatex, style: const TeXViewStyle(margin: TeXViewMargin.only(top:10, bottom: 10), contentColor: Colors.green)),
+        TeXViewDocument(description, style: const TeXViewStyle(margin: TeXViewMargin.only(top: 10), contentColor: Colors.white)),
+        TeXViewDocument(matrixLatex, style: const TeXViewStyle(margin: TeXViewMargin.only(top:10, bottom: 10), contentColor: Colors.white)),
       ]
       ),
     );
@@ -84,35 +84,35 @@ class QuantumDocDialog extends StatelessWidget {
                   ),
                   children: [
                     _buildGateDescription(
-                        r"<h2>Pauli-X (\( X \))</h2>",
+                        r"<h3>Pauli-X (\( X \))</h3>",
                         r"<p>Performs a bit flip, equivalent to a rotation of \( \pi \) radians around the X-axis of the Bloch sphere.</p>",
                         r"<p>$$X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} \Rightarrow \begin{cases} X|0\rangle = |1\rangle \\ X|1\rangle = |0\rangle \end{cases}$$</p>"
                     ),
                     _buildGateDescription(
-                        r"<h2>Pauli-Y (\( Y \))</h2>",
+                        r"<h3>Pauli-Y (\( Y \))</h3>",
                         r"<p>Performs a rotation of \( \pi \) radians around the Y-axis of the Bloch sphere.</p>",
                         r"<p>$$Y = \begin{pmatrix} 0 & -i \\ i & 0 \end{pmatrix} \Rightarrow \begin{cases} Y|0\rangle = i|1\rangle \\ Y|1\rangle = -i|0\rangle \end{cases}$$</p>"
                     ),
                     _buildGateDescription(
-                        r"<h2>Pauli-Z (\( Z \))</h2>",
+                        r"<h3>Pauli-Z (\( Z \))</h3>",
                         r"<p>Performs a rotation of \( \pi \) radians around the Z-axis of the Bloch sphere.</p>",
                         r"<p>$$Z = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix} \Rightarrow \begin{cases} Z|0\rangle = |0\rangle \\ Z|1\rangle = -|1\rangle \end{cases}$$</p>"
                     ),
                     _buildGateDescription(
-                        r"<h2>Hadamard (H)</h2>",
+                        r"<h3>Hadamard (H)</h3>",
                         r"<p>Creates an equal superposition of \( |0\rangle \) and \( |1\rangle \).</p>",
                         r"<p>$$H = \frac{1}{\sqrt{2}}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix} \Rightarrow \begin{cases} H|0\rangle = \frac{1}{\sqrt{2}}(|0\rangle + |1\rangle) \\ H|1\rangle = \frac{1}{\sqrt{2}}(|0\rangle - |1\rangle) \end{cases}$$</p>"
                     ),
                     _buildGateDescription(
-                        r"<h2>Controlled-NOT (\( CNOT \) or \( CX \))</h2>",
+                        r"<h3>Controlled-NOT (\( CNOT \) or \( CX \))</h3>",
                         r"<p>A two-qubit gate. Flips the target qubit if the control qubit is in the \( |1\rangle \) state. If control is \( |0\rangle \), the target is unchanged. Creates entanglement between the control and target qubits.</p>",
                         r"<p>$$CNOT = \begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{pmatrix}\Rightarrow \begin{cases} CNOT|00\rangle = |00\rangle \\ CNOT|01\rangle = |01\rangle \\ CNOT|10\rangle = |11\rangle \\ CNOT|11\rangle = |10\rangle \end{cases}$$</p>"
                     ),
-                    // _buildGateDescription(
-                    //     "Phase (S or Z¹/²)",
-                    //     "A Z-axis rotation by \$ \\pi/2 \$ radians. Maps \$ |0\\rangle \\to |0\\rangle \$ and \$ |1\\rangle \\to i|1\\rangle \$.",
-                    //     "\\begin{pmatrix} 1 & 0 \\\\ 0 & i \\end{pmatrix}"
-                    // ),
+                    _buildGateDescription(
+                        r"<h3>Phase S (\( Z¹/² \))</h3>",
+                        r"<p>A Z-axis rotation by \( \pi / 2 \) radians. Maps \( |0\rangle \) to \( |0\rangle \) and \( |1\rangle \) to \( i|1\rangle \).</p>",
+                        r"<p>$$S = \begin{pmatrix} 1 & 0 \\ 0 & i \end{pmatrix} \Rightarrow \begin{cases} S|0\rangle = |0\rangle \\ S|1\rangle = i|1\rangle \end{cases}$$</p>"
+                    ),
                     // _buildGateDescription(
                     //     "\\(\\pi/8\\) (T or S¹/²)",
                     //     "A Z-axis rotation by \$ \\pi/4 \$ radians. Maps \$ |0\\rangle \\to |0\\rangle \$ and \$ |1\\rangle \\to e^{i\\pi/4}|1\\rangle \$. The H and T gates are a universal set.",

@@ -33,6 +33,13 @@ class QuantumMatrix {
     ]);
   }
 
+  factory QuantumMatrix.phaseS() {
+    return QuantumMatrix([
+      [Complex.one(), Complex.zero()],
+      [Complex.zero(), Complex.i()],
+    ]);
+  }
+
   factory QuantumMatrix.pauliX() {
     return QuantumMatrix([
       [Complex.zero(), Complex.one()],

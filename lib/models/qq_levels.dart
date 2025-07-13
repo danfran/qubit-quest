@@ -38,6 +38,14 @@ final List<QQLevel> allQQLevels = [
   ),
   QQLevel.fromBinaryString(
     type: "composer",
+    taskDescription: "Transform the initial state of the qubit from ∣0⟩ to the target state ∣+i⟩=2​1​(∣0⟩+i∣1⟩).",
+    numQubits: 1,
+    initialQubitsStateString: "0", // |0> state
+    availableGates: [SelectedGateType.x, SelectedGateType.hadamard, SelectedGateType.s, SelectedGateType.z],
+    solutionFinalVector: [[Complex(sqrt1_2)], [Complex(0, sqrt1_2)]], // Target: |+> state
+  ),
+  QQLevel.fromBinaryString(
+    type: "composer",
     taskDescription: "Entangle two qubits! Create the Bell state |00>+|11>.",
     numQubits: 2,
     initialQubitsStateString: "00", // |00> state
