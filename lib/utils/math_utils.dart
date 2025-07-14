@@ -15,3 +15,7 @@ List<Complex> binaryStringToInitialStateVector(String binaryQubitString, int exp
   stateVector[initialBasisIndex] = Complex.one();
   return stateVector;
 }
+
+Complex fromEuler(double angleRadians) {
+  return Complex(cos(angleRadians), sin(angleRadians));
+}

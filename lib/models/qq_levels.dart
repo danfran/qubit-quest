@@ -46,6 +46,14 @@ final List<QQLevel> allQQLevels = [
   ),
   QQLevel.fromBinaryString(
     type: "composer",
+    taskDescription: "You're at ∣0⟩. Your goal is a specific phase that's between the X and Y axes on the sphere. Which gate makes a precise quarter turn?.",
+    numQubits: 1,
+    initialQubitsStateString: "0", // |0> state
+    availableGates: [SelectedGateType.y, SelectedGateType.hadamard, SelectedGateType.t, SelectedGateType.z],
+    solutionFinalVector: [[Complex(sqrt1_2)], [Complex(0.5, 0.5)]], // Target: |+> state
+  ),
+  QQLevel.fromBinaryString(
+    type: "composer",
     taskDescription: "Entangle two qubits! Create the Bell state |00>+|11>.",
     numQubits: 2,
     initialQubitsStateString: "00", // |00> state

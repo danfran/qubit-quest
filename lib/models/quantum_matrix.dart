@@ -1,6 +1,8 @@
 import 'package:advance_math/advance_math.dart';
 
-import 'dart:math' as math; // Import math for sqrt
+import 'dart:math' as math;
+
+import 'package:quantumquiz/utils/math_utils.dart'; // Import math for sqrt
 
 // A wrapper for matrix_utils.Matrix to add quantum-specific operations
 class QuantumMatrix {
@@ -37,6 +39,15 @@ class QuantumMatrix {
     return QuantumMatrix([
       [Complex.one(), Complex.zero()],
       [Complex.zero(), Complex.i()],
+    ]);
+  }
+
+  factory QuantumMatrix.t() {
+    final double piOver4 = pi / 4; // π/4 radians
+    final Complex expIPiOver4 = fromEuler(piOver4);
+    return QuantumMatrix([
+      [Complex.one(), Complex.zero()],
+      [Complex.zero(), expIPiOver4],
     ]);
   }
 

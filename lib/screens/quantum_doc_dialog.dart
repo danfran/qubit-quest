@@ -113,11 +113,11 @@ class QuantumDocDialog extends StatelessWidget {
                         r"<p>A Z-axis rotation by \( \pi / 2 \) radians. Maps \( |0\rangle \) to \( |0\rangle \) and \( |1\rangle \) to \( i|1\rangle \).</p>",
                         r"<p>$$S = \begin{pmatrix} 1 & 0 \\ 0 & i \end{pmatrix} \Rightarrow \begin{cases} S|0\rangle = |0\rangle \\ S|1\rangle = i|1\rangle \end{cases}$$</p>"
                     ),
-                    // _buildGateDescription(
-                    //     "\\(\\pi/8\\) (T or S¹/²)",
-                    //     "A Z-axis rotation by \$ \\pi/4 \$ radians. Maps \$ |0\\rangle \\to |0\\rangle \$ and \$ |1\\rangle \\to e^{i\\pi/4}|1\\rangle \$. The H and T gates are a universal set.",
-                    //     "\\begin{pmatrix} 1 & 0 \\\\ 0 & e^{i\\pi/4} \\end{pmatrix}"
-                    // ),
+                    _buildGateDescription(
+                        r"<h3>T ( \( \pi / 8 \) or \( S¹/² \))</h3>",
+                        r"<p>A Z-axis rotation by \( \pi / 4 \) radians. Maps \( |0\rangle \) to \( |0\rangle \) and \( |1\rangle \) to \( e^{i\pi/4}|1\rangle \). The H and T gates are a universal set.</p>",
+                        r"<p>$$T = \begin{pmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{pmatrix} \Rightarrow \begin{cases} T|0\rangle = |0\rangle \\ T|1\rangle = e^{i\pi/4}|1\rangle \end{cases}$$</p>"
+                    ),
                     // _buildGateDescription(
                     //     "Rotation (R\$_k\$(\$\\theta\$))",
                     //     // Rephrased slightly to avoid \$ k \$-axis directly

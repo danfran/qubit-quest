@@ -244,6 +244,8 @@ class QuantumCircuit extends ChangeNotifier {
         return QuantumMatrix.hadamard();
       case SelectedGateType.s:
         return QuantumMatrix.phaseS();
+      case SelectedGateType.t:
+        return QuantumMatrix.t();
       case SelectedGateType.x:
         return QuantumMatrix.pauliX();
       case SelectedGateType.y:

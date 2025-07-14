@@ -6,7 +6,7 @@ import 'package:quantumquiz/screens/quantum_doc_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
-import 'package:quantumquiz/utils/level_completion_action.dart';
+import 'package:quantumquiz/models/level_completion_action.dart';
 
 import 'cnot_target_qubit_selection_dialog.dart';
 import '../models/qq_level.dart';

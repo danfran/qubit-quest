@@ -22,7 +22,7 @@ void main() {
 
     circuit.runSimulation();
 
-    expect(circuit.currentState.state.rawMatrix, Matrix(level.solutionFinalVector));
+    expect(circuit.currentState.state.almostEqualTo(QuantumMatrix(level.solutionFinalVector)), true);
 
     print('\n\n');
   }
@@ -46,6 +46,10 @@ void main() {
       (QuantumCircuit circuit) {
         circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
         circuit.insertSinglePlacedGateAt(SelectedGateType.s, 1, 0);
+      },
+      (QuantumCircuit circuit) {
+        circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.t, 1, 0);
       },
       (QuantumCircuit circuit) {
         circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
