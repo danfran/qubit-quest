@@ -61,11 +61,11 @@ class _QuantumComposerState extends State<QuantumComposer> {
     _solutionVector = widget.level.solutionFinalVector;
     _circuit = QuantumCircuit(currentLevel: widget.level);
 
-    print('Task: $_taskDescription');
-    print('Number of qubits: $_numQubits');
-    print('Initial state: $_initialState');
-    print('Available gates: $_availableGates');
-    print('Solution vector: $_solutionVector');
+    debugPrint('Task: $_taskDescription');
+    debugPrint('Number of qubits: $_numQubits');
+    debugPrint('Initial state: $_initialState');
+    debugPrint('Available gates: $_availableGates');
+    debugPrint('Solution vector: $_solutionVector');
   }
 
   @override
@@ -85,7 +85,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
       }
 
     });
-    print('Interaction mode set to: $_currentMode');
+    debugPrint('Interaction mode set to: $_currentMode');
   }
 
   // Method to handle a gate being dropped onto the circuit area
@@ -93,7 +93,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     final RenderBox? renderBox = _gestureDetectorKey.currentContext
         ?.findRenderObject() as RenderBox?;
     if (renderBox == null) {
-      print('Error: Could not find RenderBox for GestureDetector.');
+      debugPrint('Error: Could not find RenderBox for GestureDetector.');
       return null;
     }
     final localPosition = renderBox.globalToLocal(offset);
@@ -103,13 +103,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
   // Method to handle a gate being dropped onto the circuit area
   Future<void> _handleGateDrop(DragTargetDetails<SelectedGateType> details) async {
     // Corrected: Use details.offset for the local drop position
-    print('Gate dropped at local position: ${details.offset}'); // localPosition relative to the DragTarget
-    print('Dropped gate type: ${details.data}'); // The data from the Draggable
+    debugPrint('Gate dropped at local position: ${details.offset}'); // localPosition relative to the DragTarget
+    debugPrint('Dropped gate type: ${details.data}'); // The data from the Draggable
 
     final localPosition = _gatePositionToLocal(details.offset);
 
     if (localPosition == null) {
-      print('Error: Could not convert global position to local.');
+      debugPrint('Error: Could not convert global position to local.');
       return;
     }
 
@@ -124,7 +124,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     final tappedQubitLine = painter.getTappedQubitLine(dropPosition);
 
     if (tappedQubitLine == null) {
-      print('Dropped outside qubit lines. Ignoring drop.');
+      debugPrint('Dropped outside qubit lines. Ignoring drop.');
       // Optionally provide feedback to the user
       return;
     }
@@ -133,12 +133,12 @@ class _QuantumComposerState extends State<QuantumComposer> {
     final insertionPosition = painter.getInsertionPosition(dropPosition); // <-- Need to implement this in Painter
 
     if (insertionPosition == null) {
-      print('Could not determine valid insertion position. Ignoring drop.');
+      debugPrint('Could not determine valid insertion position. Ignoring drop.');
       // Optionally provide feedback
       return;
     }
 
-    print('Dropped on Qubit line: $tappedQubitLine at insertion position: $insertionPosition');
+    debugPrint('Dropped on Qubit line: $tappedQubitLine at insertion position: $insertionPosition');
 
     if (droppedGateType == SelectedGateType.cnot) {
       // For CNOT drag and drop, we need to select control/target after dropping.
@@ -158,7 +158,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
       int? targetQubitLine;
 
       if (_numQubits == 1) {
-        print('Cannot place CNOT on single qubit or invalid target.');
+        debugPrint('Cannot place CNOT on single qubit or invalid target.');
           // Optionally provide feedback
         return;
       } else if (_numQubits == 2) {
@@ -175,19 +175,19 @@ class _QuantumComposerState extends State<QuantumComposer> {
       }
 
       if (targetQubitLine != null && tappedQubitLine != targetQubitLine) {
-        print('CNOT placement (control line = $tappedQubitLine and target line = $_cnotTargetQubit).');
+        debugPrint('CNOT placement (control line = $tappedQubitLine and target line = $_cnotTargetQubit).');
         _circuit.insertDoublePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine, targetQubitLine);
-        print("Gate CNOT inserted at position $insertionPosition on qubits $tappedQubitLine and $targetQubitLine.");
-        print(_circuit);
+        debugPrint("Gate CNOT inserted at position $insertionPosition on qubits $tappedQubitLine and $targetQubitLine.");
+        debugPrint(_circuit.toString());
       } else {
-        print('Invalid CNOT placement (control == target or not enough qubits).');
+        debugPrint('Invalid CNOT placement (control == target or not enough qubits).');
         // Optionally provide feedback
         return;
       }
     } else {
       _circuit.insertSinglePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine);
-      print("Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
-      print(_circuit);
+      debugPrint("Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
+      debugPrint(_circuit.toString());
     }
 
     _runSimulation(); // Optionally run simulation after placing
@@ -227,7 +227,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
         _currentInstructionMessage = "Tap on a gate to delete it."; // Updated message
       }
     });
-    print('Selected gate type for placement: $_currentMode');
+    debugPrint('Selected gate type for placement: $_currentMode');
   }
 
   // ** Add a GlobalKey for the GestureDetector **
@@ -236,22 +236,22 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
 
   void _handleCircuitTap(TapDownDetails details) {
-    print('Tap detected.');
+    debugPrint('Tap detected.');
     // final localPosition = _gatePositionToLocal(details.globalPosition);
     final localPosition = details.localPosition;
 
     if (localPosition == null) {
-      print('Error: Could not convert global position to local.');
+      debugPrint('Error: Could not convert global position to local.');
       return;
     }
-    print('Local tap position: $localPosition');
+    debugPrint('Local tap position: $localPosition');
 
     // Create a temporary painter instance for hit testing
     final painter = QuantumCircuitPainter(_circuit, _circuitWidthNotifier, _draggingOffset, _draggingGateType);
 
 
     if (_currentMode == SelectedGateType.delete) {
-      print('In delete mode.');
+      debugPrint('In delete mode.');
       // Use the painter's hit-testing method to find if a gate was tapped
       bool gateRemoved = painter.removeGateAtTap(localPosition);
 
@@ -263,7 +263,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
         });
 
       } else {
-        print('Tapped outside gates in delete mode.');
+        debugPrint('Tapped outside gates in delete mode.');
         // Optional: Provide feedback or reset mode if user taps outside gates
         // setState(() { simulationResult = "No gate tapped. Exiting delete mode."; }); // Example feedback
         // _setInteractionMode(SelectedGateType.none); // Example: Exit delete mode on tap outside
@@ -272,15 +272,15 @@ class _QuantumComposerState extends State<QuantumComposer> {
     }
 
     // If not in delete mode, taps on the circuit might be ignored or used for other interactions later
-    print('Tapped on circuit in non-delete mode. Ignoring for now.');
+    debugPrint('Tapped on circuit in non-delete mode. Ignoring for now.');
   }
 
   void _runSimulation() {
-    print("Running simulation...");
+    debugPrint("Running simulation...");
 
     // ** Call the void simulation method on the circuit **
     // This method executes the simulation and updates circuit.currentState internally.
-    print(_circuit);
+    debugPrint(_circuit.toString());
     _circuit.runSimulation();
 
     // ** Access the updated circuit.currentState property to get the final state **
@@ -291,7 +291,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     //   return amplitude.abs() * amplitude.abs();
     // }).cast<double>().toList();
     //
-    // print("Calculated probabilities: $measurementProbabilities");
+    // debugPrint("Calculated probabilities: $measurementProbabilities");
 
     // ** Update the UI state variables to trigger a rebuild **
     setState(() {
@@ -300,7 +300,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
       // simulationResult = "Final State Vector:\n${_circuit.initialState}"; // Assuming formatStateVector helper
       _checkLevelCompletion();
     });
-    print("Simulation finished.");
+    debugPrint("Simulation finished.");
   }
 
   Future<void> _checkLevelCompletion() async {
@@ -329,7 +329,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
         } else if (action == LevelCompletionAction.reviewSolution) {
           // If user chose to review, pop the composer screen and return to HomePage.
           // HomePage will then simply be visible again.
-          print("Review solution selected. Staying on QuantumComposerScreen.");
+          debugPrint("Review solution selected. Staying on QuantumComposerScreen.");
         } else {
           // Default case: dialog might have been dismissed without a specific action
           // (e.g., tapping outside if barrierDismissible was true, or system back button on dialog).
@@ -402,7 +402,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
             const SizedBox(height: 10), // Space between buttons
             ElevatedButton.icon(
               onPressed: () {
-                print('Going to the next level.');
+                debugPrint('Going to the next level.');
                 Navigator.of(context).pop({
                   'action': LevelCompletionAction.nextLevel,
                   'shouldUnlock': true, // Next level implies unlock
@@ -425,7 +425,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   void _clearCircuit() {
     _circuit.clearPlacedGates(); // This calls notifyListeners()
-    print('Circuit cleared.');
+    debugPrint('Circuit cleared.');
     _setInteractionMode(SelectedGateType.none); // Reset mode
     _cnotTargetQubit = null;
     _runSimulation(); // Run simulation - empty circuit
@@ -476,7 +476,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
       final localPosition = _gatePositionToLocal(offset);
 
       if (localPosition == null) {
-        print('Error: Could not convert global position to local.');
+        debugPrint('Error: Could not convert global position to local.');
         return;
       }
 
@@ -550,10 +550,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
                     padding: EdgeInsets.all(2.0),
                     child: LayoutBuilder( // LayoutBuilder gets bounded constraints from Container/Expanded
                         builder: (context, constraints) {
-                          print("  LayoutBuilder constraints: $constraints"); // Debug constraints
+                          debugPrint("  LayoutBuilder constraints: $constraints"); // Debug constraints
                           final double availableContainerWidth = constraints.maxWidth;
                           final double availableContainerHeight = constraints.maxHeight;
-                          print("  Available container size: Size($availableContainerWidth, $availableContainerHeight)"); // Debug available size
+                          debugPrint("  Available container size: Size($availableContainerWidth, $availableContainerHeight)"); // Debug available size
 
 
                           // Calculate the minimum width needed based on the maximum position of placed gates
@@ -565,7 +565,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                           final double sizedBoxWidth = max(minRequiredWidth, availableContainerWidth);
                           // The height of the SizedBox should be fixed based on the number of qubits and spacing
                           final double sizedBoxHeight = _numQubits * QuantumCircuitPainter.qubitSpacing + QuantumCircuitPainter.padding * 2;
-                          print("  Calculated SizedBox size: Size($sizedBoxWidth, $sizedBoxHeight)"); // Debug SizedBox size
+                          debugPrint("  Calculated SizedBox size: Size($sizedBoxWidth, $sizedBoxHeight)"); // Debug SizedBox size
 
                           return DragTarget<SelectedGateType>( // DragTarget wraps the scrollable area
                             // onWillAccept: (data) => data != null && data != SelectedGateType.delete, // Accept any gate type except delete
@@ -600,7 +600,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                                     child: ListenableBuilder(
                                       listenable: _circuit, // Listen to the circuit object
                                       builder: (context, child) {
-                                        print("ListenableBuilder rebuilding CustomPaint."); // Debug rebuild
+                                        debugPrint("ListenableBuilder rebuilding CustomPaint."); // Debug rebuild
                                         return Container(
                                             width: max(sizedBoxWidth, _circuitWidthNotifier.value),
                                             // color: isDraggingOver ? Colors.white.withOpacity(0.1) : Colors.transparent, // Subtle overlay when dragging over

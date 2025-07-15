@@ -1,4 +1,5 @@
 import 'package:advance_math/advance_math.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
@@ -12,19 +13,19 @@ void main() {
   _testBody(int levelNumber, Function(QuantumCircuit) body) {
     final level = getQQLevelById(levelNumber)!;
 
-    print('Level $levelNumber: ${level.taskDescription}\n\n');
+    debugPrint('Level $levelNumber: ${level.taskDescription}\n\n');
 
     final circuit = QuantumCircuit(currentLevel: level);
 
     body(circuit);
 
-    print('Circuit after inserting gates:\n$circuit');
+    debugPrint('Circuit after inserting gates:\n$circuit');
 
     circuit.runSimulation();
 
     expect(circuit.currentState.state.almostEqualTo(QuantumMatrix(level.solutionFinalVector)), true);
 
-    print('\n\n');
+    debugPrint('\n\n');
   }
 
   group('Test results for all levels', () {

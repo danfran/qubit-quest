@@ -162,7 +162,7 @@ class QuantumCircuit extends ChangeNotifier {
       placedGates[qubitLine].removeAt(gatePosition);
     }
 
-    print('Gate type [${gateToRemove.type}] removed at qubit line: $qubitLine and gate position: $gatePosition');
+    debugPrint('Gate type [${gateToRemove.type}] removed at qubit line: $qubitLine and gate position: $gatePosition');
 
     // Second phase, we need to scroll left what is scrollable.
     shiftLeft(0);
@@ -230,7 +230,7 @@ class QuantumCircuit extends ChangeNotifier {
     placedGates = List.generate(currentLevel.numQubits, (index) => []);
     // Reset the currentState back to the initial ground state
     currentState = QubitState.fromList(currentLevel.initialQubitsState);
-    print("Circuit cleared. Total placed gates: ${placedGates.length}"); // Debug print
+    debugPrint("Circuit cleared. Total placed gates: ${placedGates.length}"); // Debug debugPrint
     // ** Notify listeners that the state has changed **
     notifyListeners();
   }
@@ -289,7 +289,7 @@ class QuantumCircuit extends ChangeNotifier {
       QuantumMatrix gateSystemMatrix = _buildSystemMatrixForPlacedGate(gate);
       columnOverallMatrix = columnOverallMatrix == null ? gateSystemMatrix : gateSystemMatrix.tensorProduct(columnOverallMatrix);
 
-      print(gateSystemMatrix);
+      debugPrint(gateSystemMatrix);
 
       if (gate.type == SelectedGateType.cnot) {
         // skip to the next qubit after the CNOT
@@ -324,9 +324,9 @@ class QuantumCircuit extends ChangeNotifier {
   /// Runs the quantum simulation, updating the current state vector.
   void runSimulation() {
     QuantumMatrix circuitMatrix = getOverallCircuitMatrix();
-    print("Initial state: $initialState");
+    debugPrint("Initial state: $initialState");
     currentState = initialState.applyMatrix(circuitMatrix);
-    print("Final state: $initialState");
+    debugPrint("Final state: $initialState");
     notifyListeners();
   }
 

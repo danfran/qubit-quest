@@ -1,4 +1,5 @@
 import 'package:advance_math/advance_math.dart';
+import 'package:flutter/foundation.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 
@@ -89,7 +90,7 @@ QQLevel? getQQLevelById(int id) {
   try {
     return allQQLevels[id - 1];
   } catch (e) {
-    print('QQLevel with ID $id not found: $e');
+    debugPrint('QQLevel with ID $id not found: $e');
     return null;
   }
 }

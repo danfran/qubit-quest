@@ -44,7 +44,7 @@ class QuantumCircuitPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    print("Painting circuit. Canvas size: $size"); // Debug canvas size
+    debugPrint("Painting circuit. Canvas size: $size"); // Debug canvas size
     final linePaint = Paint()
       ..color = gridLinesColor // Use the static constant for lines
       ..strokeWidth = 1.0; // Ensure consistent stroke width
@@ -73,7 +73,7 @@ class QuantumCircuitPainter extends CustomPainter {
       // Calculate the vertical center Y for this qubit line
       final double lineY = getQubitCenterY(i);
       final qubitState = circuit.currentLevel.initialQubitsStateStr[i];
-      print("  Painter: Drawing Qubit $i line and hit area at Y: $lineY. Hit range: ${lineY - hitTolerance} to ${lineY + hitTolerance}"); // Debug calculated drawing Y
+      debugPrint("  Painter: Drawing Qubit $i line and hit area at Y: $lineY. Hit range: ${lineY - hitTolerance} to ${lineY + hitTolerance}"); // Debug calculated drawing Y
 
       // Draw the qubit line
       canvas.drawLine(
@@ -116,7 +116,7 @@ class QuantumCircuitPainter extends CustomPainter {
 
     List<List<PlacedQuantumGate>> localPlacedGates = circuit.placedGates;
 
-    print('Highlighting Offset: $draggingOffset');
+    debugPrint('Highlighting Offset: $draggingOffset');
 
     // **** HIGHLIGHT BOX
     // Draw the highlight box if a cell is highlighted
@@ -124,7 +124,7 @@ class QuantumCircuitPainter extends CustomPainter {
       int? qubitLine = getTappedQubitLine(draggingOffset!);
       int? gatePosition = getInsertionPosition(draggingOffset!);
 
-      print('Highlighting qubit line: $qubitLine and gate position: $gatePosition');
+      debugPrint('Highlighting qubit line: $qubitLine and gate position: $gatePosition');
 
       if (qubitLine != null && gatePosition != null) {
         localPlacedGates = previewCircuit.clone(circuit.placedGates);
@@ -135,7 +135,7 @@ class QuantumCircuitPainter extends CustomPainter {
         );
 
         if (draggingGateType == SelectedGateType.cnot) {
-          print('Place CNOT box at Highlighting qubit line: $qubitLine and gate position: $gatePosition');
+          debugPrint('Place CNOT box at Highlighting qubit line: $qubitLine and gate position: $gatePosition');
           // verify length of the vertical filler always '1'
           for (List<PlacedQuantumGate> gateRow in localPlacedGates) {
             if (gatePosition > gateRow.length) {
@@ -161,7 +161,7 @@ class QuantumCircuitPainter extends CustomPainter {
           // Drawing logic for CNOT not target
           // int currentX = gateXPosititionPerQubit.reduce(max);
           final double gateColumnCenterX = padding + currentX * gateSpacing + gateSpacing / 2;
-          print('  Drawing CNOT at $gateColumnCenterX');
+          debugPrint('  Drawing CNOT at $gateColumnCenterX');
 
           gateXPosititionPerQubit[primaryDrawingQubit] += 1; // Increment for next gate
 
@@ -203,7 +203,7 @@ class QuantumCircuitPainter extends CustomPainter {
 
           final double gateColumnCenterX = padding + gateXPosititionPerQubit[primaryDrawingQubit] * gateSpacing + gateSpacing / 2;
 
-          print('  Drawing GATE at $gateColumnCenterX');
+          debugPrint('  Drawing GATE at $gateColumnCenterX');
 
           gateXPosititionPerQubit[primaryDrawingQubit] += 1; // Increment for next gate
 
@@ -249,7 +249,7 @@ class QuantumCircuitPainter extends CustomPainter {
     int? qubitLine = getTappedQubitLine(tapPosition);
     int? gatePosition = getInsertionPosition(tapPosition);
 
-    print('Gate remove tap qubit line: $qubitLine and gate position: $gatePosition');
+    debugPrint('Gate remove tap qubit line: $qubitLine and gate position: $gatePosition');
 
     if (qubitLine != null && gatePosition != null && gatePosition < circuit.placedGates[qubitLine].length) {
       circuit.removePlacedGate(gatePosition, qubitLine);
@@ -268,16 +268,16 @@ class QuantumCircuitPainter extends CustomPainter {
     for (int i = 0; i < circuit.currentLevel.numQubits; i++) {
       // Use the helper for the vertical center of the qubit line
       final double qubitLineCenterY = getQubitCenterY(i);
-      print("  Checking Qubit $i. Center Y: $qubitLineCenterY. Hit range: ${qubitLineCenterY - hitTolerance} to ${qubitLineCenterY + hitTolerance}"); // Debug line position and range
+      debugPrint("  Checking Qubit $i. Center Y: $qubitLineCenterY. Hit range: ${qubitLineCenterY - hitTolerance} to ${qubitLineCenterY + hitTolerance}"); // Debug line position and range
 
       // Check if the tap's y-coordinate is close to this qubit line center within tolerance
       if (tapPosition.dy >= qubitLineCenterY - hitTolerance && tapPosition.dy <= qubitLineCenterY + hitTolerance) {
-        print("  Tap position ${tapPosition.dy} is within range for Qubit $i. Returning $i."); // Debug hit
+        debugPrint("  Tap position ${tapPosition.dy} is within range for Qubit $i. Returning $i."); // Debug hit
         return i; // Return the index of the tapped qubit line
       }
-      print("  Tap position ${tapPosition.dy} is outside range for Qubit $i."); // Debug miss
+      debugPrint("  Tap position ${tapPosition.dy} is outside range for Qubit $i."); // Debug miss
     }
-    print("No qubit line tapped. Returning null."); // Debug null return
+    debugPrint("No qubit line tapped. Returning null."); // Debug null return
     return null; // If no qubit line was tapped within tolerance
   }
 
@@ -306,19 +306,19 @@ class QuantumCircuitPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant QuantumCircuitPainter oldDelegate) {
     return true;
-    // // print("shouldRepaint called.");
-    // // print("New circuit placedGates length: ${circuit.placedGates.length}");
-    // // print("Old circuit placedGates length: ${oldDelegate.circuit.placedGates.length}");
+    // // debugPrint("shouldRepaint called.");
+    // // debugPrint("New circuit placedGates length: ${circuit.placedGates.length}");
+    // // debugPrint("Old circuit placedGates length: ${oldDelegate.circuit.placedGates.length}");
     //
     // // Check if the list reference is different.
     // if (circuit.placedGates != oldDelegate.circuit.placedGates) {
-    //   // print("shouldRepaint: true (list reference changed).");
+    //   // debugPrint("shouldRepaint: true (list reference changed).");
     //   return true;
     // }
     //
     // // Check if the list length has changed.
     // if (circuit.placedGates.length != oldDelegate.circuit.placedGates.length) {
-    //   // print("shouldRepaint: true (list length changed).");
+    //   // debugPrint("shouldRepaint: true (list length changed).");
     //   return true;
     // }
     //
@@ -334,22 +334,22 @@ class QuantumCircuitPainter extends CustomPainter {
     //       newGate.singleQubitIndex != oldGate.singleQubitIndex ||
     //       newGate.controlQubitIndex != oldGate.controlQubitIndex ||
     //       newGate.targetQubitIndex != oldGate.targetQubitIndex) {
-    //     // print("shouldRepaint: true (gate properties changed at index $i).");
+    //     // debugPrint("shouldRepaint: true (gate properties changed at index $i).");
     //     return true; // A gate's properties has changed, need to repaint
     //   }
-    //   // Add debug prints to see if properties are being compared and if they match
-    //   // print("Comparing gate at index $i:");
-    //   // print("  New: type=${newGate.type}, pos=${newGate.position}, single=${newGate.singleQubitIndex}, control=${newGate.controlQubitIndex}, target=${newGate.targetQubitIndex}");
-    //   // print("  Old: type=${oldGate.type}, pos=${oldGate.position}, single=${oldGate.singleQubitIndex}, control=${oldGate.controlQubitIndex}, target=${oldGate.targetQubitIndex}");
-    //   // if (newGate.type != oldGate.type) print("    Type mismatch!");
-    //   // if (newGate.position != oldGate.position) print("    Position mismatch!");
-    //   // if (newGate.singleQubitIndex != oldGate.singleQubitIndex) print("    Single Qubit mismatch!");
-    //   // if (newGate.controlQubitIndex != oldGate.controlQubitIndex) print("    Control Qubit mismatch!");
-    //   // if (newGate.targetQubitIndex != oldGate.targetQubitIndex) print("    Target Qubit mismatch!");
+    //   // Add debug debugPrints to see if properties are being compared and if they match
+    //   // debugPrint("Comparing gate at index $i:");
+    //   // debugPrint("  New: type=${newGate.type}, pos=${newGate.position}, single=${newGate.singleQubitIndex}, control=${newGate.controlQubitIndex}, target=${newGate.targetQubitIndex}");
+    //   // debugPrint("  Old: type=${oldGate.type}, pos=${oldGate.position}, single=${oldGate.singleQubitIndex}, control=${oldGate.controlQubitIndex}, target=${oldGate.targetQubitIndex}");
+    //   // if (newGate.type != oldGate.type) debugPrint("    Type mismatch!");
+    //   // if (newGate.position != oldGate.position) debugPrint("    Position mismatch!");
+    //   // if (newGate.singleQubitIndex != oldGate.singleQubitIndex) debugPrint("    Single Qubit mismatch!");
+    //   // if (newGate.controlQubitIndex != oldGate.controlQubitIndex) debugPrint("    Control Qubit mismatch!");
+    //   // if (newGate.targetQubitIndex != oldGate.targetQubitIndex) debugPrint("    Target Qubit mismatch!");
     // }
     //
     // // If none of the checks above indicate a change, no need to repaint.
-    // // print("shouldRepaint: false (no changes detected after deep comparison).");
+    // // debugPrint("shouldRepaint: false (no changes detected after deep comparison).");
     // return false;
   }
 }

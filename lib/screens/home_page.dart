@@ -64,7 +64,7 @@ class _HomePageState extends State<HomePage> {
       _maxUnlockedLevel = prefs.getInt('maxUnlockedLevel') ?? 1;
       _isLoadingLevels = false; // Loading complete
     });
-    print('Loaded max unlocked level: $_maxUnlockedLevel');
+    debugPrint('Loaded max unlocked level: $_maxUnlockedLevel');
   }
 
   // Update and save the max unlocked level
@@ -76,7 +76,7 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _maxUnlockedLevel = newMaxLevel;
       });
-      print('Updated and saved max unlocked level: $_maxUnlockedLevel');
+      debugPrint('Updated and saved max unlocked level: $_maxUnlockedLevel');
     }
   }
 
@@ -114,7 +114,7 @@ class _HomePageState extends State<HomePage> {
     // Ensure data is ready before showing the dialog
     if (!mounted || _aboutData == null) {
       // You might want to show a loading indicator or handle this case
-      print('About data not yet loaded.');
+      debugPrint('About data not yet loaded.');
       return;
     }
 
@@ -228,7 +228,7 @@ class _HomePageState extends State<HomePage> {
           microsoftStoreId: null,   // Your Microsoft Store ID (for Windows)
         );
       } catch (e) {
-        print('Error opening store listing: $e');
+        debugPrint('Error opening store listing: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not open store page.')),
         );
@@ -388,13 +388,13 @@ class _HomePageState extends State<HomePage> {
       final levelData = getQQLevelById(currentLevelToPlay);
 
       if (levelData == null) {
-        print('HomePage: Error: Level $currentLevelToPlay data not found. Exiting chain.');
+        debugPrint('HomePage: Error: Level $currentLevelToPlay data not found. Exiting chain.');
         _showGameCompleteDialog(); // Or an error message
         continueLevelChain = false; // Stop the loop
         break; // Exit the loop
       }
 
-      print('HomePage: Pushing QuantumComposerScreen for Level $currentLevelToPlay...');
+      debugPrint('HomePage: Pushing QuantumComposerScreen for Level $currentLevelToPlay...');
       // Push the QuantumComposerScreen and AWAIT its result
       final result = await Navigator.push<LevelCompletionAction>(
         context,
@@ -407,26 +407,26 @@ class _HomePageState extends State<HomePage> {
         ),
       );
 
-      print('HomePage: Returned from Composer (Level $currentLevelToPlay) with result: $result');
+      debugPrint('HomePage: Returned from Composer (Level $currentLevelToPlay) with result: $result');
 
       if (result == LevelCompletionAction.nextLevel) {
         // User completed the level and wants the next one
         currentLevelToPlay++; // Increment to load the next level in the loop
-        print('HomePage: Preparing to load next level: $currentLevelToPlay');
+        debugPrint('HomePage: Preparing to load next level: $currentLevelToPlay');
         // The loop will reiterate, pushing the next level
       } else if (result == LevelCompletionAction.levelSelect) {
         // User chose to go back to level select (HomePage)
-        print('HomePage: User chose Level Select. Exiting chain.');
+        debugPrint('HomePage: User chose Level Select. Exiting chain.');
         continueLevelChain = false; // Stop the loop
         // The QuantumComposerScreen has already popped itself back to HomePage.
       } else if (result == LevelCompletionAction.reviewSolution) {
         // User chose to go back to level select (HomePage)
-        print('HomePage: User chose Review Solution. Exiting chain.');
+        debugPrint('HomePage: User chose Review Solution. Exiting chain.');
         continueLevelChain = false; // Stop the loop
         // The QuantumComposerScreen has already popped itself back to HomePage.
       } else { // result is LevelCompletionAction.none, or null (back button)
         // User chose to review, or pressed back, or dialog dismissed without specific action.
-        print('HomePage: User chose Back/None. Exiting chain.');
+        debugPrint('HomePage: User chose Back/None. Exiting chain.');
         continueLevelChain = false; // Stop the loop
         // The QuantumComposerScreen has already popped itself back to HomePage.
       }
