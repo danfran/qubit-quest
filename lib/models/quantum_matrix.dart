@@ -135,6 +135,90 @@ class QuantumMatrix {
     return kronTerm0.add(kronTerm1);
   }
 
+  factory QuantumMatrix.ccnot({
+    required int nQubits,
+    required int control1,
+    required int control2,
+    required int target,
+  }) {
+    // 1. Validation for CCNOT
+    if (control1 < 0 || control1 >= nQubits ||
+        control2 < 0 || control2 >= nQubits ||
+        target < 0 || target >= nQubits) {
+      throw ArgumentError("Control or target qubit index out of range (0 to ${nQubits - 1}).");
+    }
+    if (control1 == control2 || control1 == target || control2 == target) {
+      throw ArgumentError("Control and target qubits must be distinct for CCNOT.");
+    }
+    if (nQubits < 3) {
+      throw ArgumentError("CCNOT gate requires at least 3 qubits.");
+    }
+
+    // 2. Define 1-qubit gate matrices and projectors (re-using from CNOT logic)
+    final QuantumMatrix I_1q = QuantumMatrix.identity(2);
+    final QuantumMatrix X_1q = QuantumMatrix.pauliX();
+    final QuantumMatrix P0_1q = QuantumMatrix([
+      [Complex.one(), Complex.zero()],
+      [Complex.zero(), Complex.zero()],
+    ]); // |0><0|
+    final QuantumMatrix P1_1q = QuantumMatrix([
+      [Complex.zero(), Complex.zero()],
+      [Complex.zero(), Complex.one()],
+    ]); // |1><1|
+
+    // 3. Initialize lists of operators for each of the four terms
+    // Each list corresponds to a (Control1_state, Control2_state, Target_gate) scenario
+    List<QuantumMatrix> term00Ops = []; // C1=0, C2=0, Target=I
+    List<QuantumMatrix> term01Ops = []; // C1=0, C2=1, Target=I
+    List<QuantumMatrix> term10Ops = []; // C1=1, C2=0, Target=I
+    List<QuantumMatrix> term11Ops = []; // C1=1, C2=1, Target=X
+
+    // 4. Populate the lists by iterating through all qubits (little-endian convention)
+    for (int i = 0; i < nQubits; i++) {
+      if (i == control1) {
+        term00Ops.add(P0_1q); // C1 is 0
+        term01Ops.add(P0_1q); // C1 is 0
+        term10Ops.add(P1_1q); // C1 is 1
+        term11Ops.add(P1_1q); // C1 is 1
+      } else if (i == control2) {
+        term00Ops.add(P0_1q); // C2 is 0
+        term01Ops.add(P1_1q); // C2 is 1
+        term10Ops.add(P0_1q); // C2 is 0
+        term11Ops.add(P1_1q); // C2 is 1
+      } else if (i == target) {
+        term00Ops.add(I_1q); // Target is I
+        term01Ops.add(I_1q); // Target is I
+        term10Ops.add(I_1q); // Target is I
+        term11Ops.add(X_1q); // Target is X only if both controls are 1
+      } else {
+        // For all other qubits, apply Identity
+        term00Ops.add(I_1q);
+        term01Ops.add(I_1q);
+        term10Ops.add(I_1q);
+        term11Ops.add(I_1q);
+      }
+    }
+
+    // Helper function to compute the tensor product of a list of matrices
+    // This maintains the little-endian convention (Q_N-1 \otimes ... \otimes Q_0)
+    QuantumMatrix _computeFullTensorProduct(List<QuantumMatrix> ops) {
+      QuantumMatrix result = ops[nQubits - 1]; // Start with the highest indexed qubit (leftmost in tensor product)
+      for (int i = nQubits - 2; i >= 0; i--) {
+        result = result.tensorProduct(ops[i]);
+      }
+      return result;
+    }
+
+    // 5. Compute tensor products for each of the four terms
+    QuantumMatrix kronTerm00 = _computeFullTensorProduct(term00Ops);
+    QuantumMatrix kronTerm01 = _computeFullTensorProduct(term01Ops);
+    QuantumMatrix kronTerm10 = _computeFullTensorProduct(term10Ops);
+    QuantumMatrix kronTerm11 = _computeFullTensorProduct(term11Ops);
+
+    // 6. Sum the four terms to get the final CCNOT matrix
+    return kronTerm00.add(kronTerm01).add(kronTerm10).add(kronTerm11);
+  }
+
   // Getter for the underlying matrix_utils.Matrix
   Matrix get rawMatrix => _matrix;
 

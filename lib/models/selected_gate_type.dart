@@ -4,6 +4,7 @@ enum SelectedGateType {
   none,
   hadamard,
   cnot,
+  ccnot,
   s,
   t,
   x,
@@ -17,12 +18,14 @@ enum SelectedGateType {
 extension GateVisualProperties on SelectedGateType {
   String get label {
     switch (this) {
-      case SelectedGateType.hadamard:
-        return 'H';
       case SelectedGateType.cnot:
         return 'CNOT';
+      case SelectedGateType.ccnot:
+        return 'CCNOT';
       case SelectedGateType.delete:
         return 'Del'; // Not typically placed visually
+      case SelectedGateType.hadamard:
+        return 'H';
       case SelectedGateType.s:
         return 'S';
       case SelectedGateType.t:
@@ -40,12 +43,14 @@ extension GateVisualProperties on SelectedGateType {
 
   Color get color {
     switch (this) {
-      case SelectedGateType.hadamard:
-        return Colors.red;
       case SelectedGateType.cnot:
+        return Colors.blue;
+      case SelectedGateType.ccnot:
         return Colors.blue;
       case SelectedGateType.delete:
         return Colors.green; // Not typically placed visually
+      case SelectedGateType.hadamard:
+        return Colors.red;
       case SelectedGateType.s:
         return Colors.blueAccent;
       case SelectedGateType.t:
