@@ -99,14 +99,9 @@ class QuantumDocDialog extends StatelessWidget {
                         r"<p>$$Z = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix} \Rightarrow \begin{cases} Z|0\rangle = |0\rangle \\ Z|1\rangle = -|1\rangle \end{cases}$$</p>"
                     ),
                     _buildGateDescription(
-                        r"<h3>Hadamard (H)</h3>",
+                        r"<h3>Hadamard (\( H \))</h3>",
                         r"<p>Creates an equal superposition of \( |0\rangle \) and \( |1\rangle \).</p>",
                         r"<p>$$H = \frac{1}{\sqrt{2}}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix} \Rightarrow \begin{cases} H|0\rangle = \frac{1}{\sqrt{2}}(|0\rangle + |1\rangle) \\ H|1\rangle = \frac{1}{\sqrt{2}}(|0\rangle - |1\rangle) \end{cases}$$</p>"
-                    ),
-                    _buildGateDescription(
-                        r"<h3>Controlled-NOT (\( CNOT \) or \( CX \))</h3>",
-                        r"<p>A two-qubit gate. Flips the target qubit if the control qubit is in the \( |1\rangle \) state. If control is \( |0\rangle \), the target is unchanged. Creates entanglement between the control and target qubits.</p>",
-                        r"<p>$$CNOT = \begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{pmatrix}\Rightarrow \begin{cases} CNOT|00\rangle = |00\rangle \\ CNOT|01\rangle = |01\rangle \\ CNOT|10\rangle = |11\rangle \\ CNOT|11\rangle = |10\rangle \end{cases}$$</p>"
                     ),
                     _buildGateDescription(
                         r"<h3>Phase S (\( Z¹/² \))</h3>",
@@ -117,6 +112,17 @@ class QuantumDocDialog extends StatelessWidget {
                         r"<h3>T ( \( \pi / 8 \) or \( S¹/² \))</h3>",
                         r"<p>A Z-axis rotation by \( \pi / 4 \) radians. Maps \( |0\rangle \) to \( |0\rangle \) and \( |1\rangle \) to \( e^{i\pi/4}|1\rangle \). The H and T gates are a universal set.</p>",
                         r"<p>$$T = \begin{pmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{pmatrix} \Rightarrow \begin{cases} T|0\rangle = |0\rangle \\ T|1\rangle = e^{i\pi/4}|1\rangle \end{cases}$$</p>"
+                    ),
+                    _buildGateDescription(
+                        r"<h3>Controlled-NOT (\( CNOT \) or \( CX \))</h3>",
+                        r"<p>A two-qubit gate. Flips the target qubit if the control qubit is in the \( |1\rangle \) state. If control is \( |0\rangle \), the target is unchanged. Creates entanglement between the control and target qubits.</p>",
+                        r"<p>$$CNOT = \begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{pmatrix}\Rightarrow \begin{cases} CNOT|00\rangle = |00\rangle \\ CNOT|01\rangle = |01\rangle \\ CNOT|10\rangle = |11\rangle \\ CNOT|11\rangle = |10\rangle \end{cases}$$</p>"
+                    ),
+                    _buildGateDescription(
+                        r"<h3>Toffoli (\( CCNOT \) or \( CCX \))</h3>",
+                        r"<p>A three-qubit gate. Flips the target qubit if and only if both control qubits are in the \( |1\rangle \) state. A universal classical gate from which any classical circuit can be built.</p>",
+                        // 8x8 matrix representation is large, showing block form
+                        r"<p>$$CCNOT (Toffoli) = \begin{pmatrix} 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\ 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \end{pmatrix}\Rightarrow \begin{cases} CCNOT|000\rangle = |000\rangle \\ CCNOT|001\rangle = |001\rangle \\ CCNOT|010\rangle = |010\rangle \\ CCNOT|011\rangle = |011\rangle \\ CCNOT|100\rangle = |100\rangle \\ CCNOT|101\rangle = |101\rangle \\ CCNOT|110\rangle = |111\rangle \\ CCNOT|111\rangle = |110\rangle \end{cases}$$</p>"
                     ),
                     // _buildGateDescription(
                     //     "Rotation (R\$_k\$(\$\\theta\$))",
@@ -139,12 +145,6 @@ class QuantumDocDialog extends StatelessWidget {
                     //     "SWAP",
                     //     "A two-qubit gate that swaps the states of two qubits. Maps \$ |01\\rangle \\to |10\\rangle \$ and \$ |10\\rangle \\to |01\\rangle \$, leaving \$ |00\\rangle \$ and \$ |11\\rangle \$ unchanged.",
                     //     "\\begin{pmatrix} 1 & 0 & 0 & 0 \\\\ 0 & 0 & 1 & 0 \\\\ 0 & 1 & 0 & 0 \\\\ 0 & 0 & 0 & 1 \\end{pmatrix}"
-                    // ),
-                    // _buildGateDescription(
-                    //     "Toffoli (CCNOT or CCX)",
-                    //     "A three-qubit gate. Flips the target qubit if and only if both control qubits are in the \$ |1\\rangle \$ state. A universal classical gate from which any classical circuit can be built.",
-                    //     // 8x8 matrix representation is large, showing block form
-                    //     "\\begin{pmatrix} I_6 & 0 \\\\ 0 & X \\end{pmatrix}"
                     // ),
                     // _buildGateDescription(
                     //     "Fredkin (CSWAP)",

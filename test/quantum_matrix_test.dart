@@ -6,10 +6,10 @@ import 'dart:math' as math;
 import 'package:quantumquiz/models/quantum_matrix.dart';
 
 void main() {
-  group('QuantumMatrix Operations', () {
-    // Define a tolerance for floating point comparisons
-    const double tolerance = 1e-9;
+  // Define a tolerance for floating point comparisons
+  const double tolerance = 1e-9;
 
+  group('QuantumMatrix Operations', () {
     // --- Test Matrix Multiplication (Gate Application) ---
     test('Applying Hadamard to |0> state results in superposition', () {
       // |0> state vector
@@ -28,7 +28,8 @@ void main() {
         [Complex(sqrt1_2, 0)],
       ]);
 
-      expect(resultState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'H|0> operation incorrect');
+      expect(resultState.almostEqualTo(expectedState, tolerance: tolerance),
+          isTrue, reason: 'H|0> operation incorrect');
     });
 
     test('Applying Pauli-X to |0> state results in |1>', () {
@@ -47,7 +48,8 @@ void main() {
         [Complex.one()],
       ]);
 
-      expect(resultState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'X|0> operation incorrect');
+      expect(resultState.almostEqualTo(expectedState, tolerance: tolerance),
+          isTrue, reason: 'X|0> operation incorrect');
     });
 
     test('Applying Pauli-X to |1> state results in |0>', () {
@@ -66,7 +68,8 @@ void main() {
         [Complex.zero()],
       ]);
 
-      expect(resultState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'X|1> operation incorrect');
+      expect(resultState.almostEqualTo(expectedState, tolerance: tolerance),
+          isTrue, reason: 'X|1> operation incorrect');
     });
 
     test('Sum (+) of two matrices 2X2', () {
@@ -87,7 +90,8 @@ void main() {
         [Complex(1, 5), Complex(4, 1)],
       ]);
 
-      expect(resultState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: '"+" operation incorrect');
+      expect(resultState.almostEqualTo(expectedState, tolerance: tolerance),
+          isTrue, reason: '"+" operation incorrect');
     });
 
     // --- Tests Kronecker Product (Tensor Product) ---
@@ -111,7 +115,8 @@ void main() {
         [Complex.zero(), Complex.zero(), Complex(7, 35), Complex(-21, 7)],
       ]);
 
-      expect(resultState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: '"⊗" operation incorrect');
+      expect(resultState.almostEqualTo(expectedState, tolerance: tolerance),
+          isTrue, reason: '"⊗" operation incorrect');
     });
 
     test('Tensor product of two Pauli-X gates is correct', () {
@@ -130,7 +135,8 @@ void main() {
         [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
       ]);
 
-      expect(x2.almostEqualTo(expectedX2, tolerance: tolerance), isTrue, reason: 'X ⊗ X product incorrect');
+      expect(x2.almostEqualTo(expectedX2, tolerance: tolerance), isTrue,
+          reason: 'X ⊗ X product incorrect');
     });
 
     test('Tensor product of Hadamard and Identity is correct', () {
@@ -148,11 +154,22 @@ void main() {
       final expectedHTensorI = QuantumMatrix([
         [complexSqrtHalf, Complex.zero(), complexSqrtHalf, Complex.zero()],
         [Complex.zero(), complexSqrtHalf, Complex.zero(), complexSqrtHalf],
-        [complexSqrtHalf, Complex.zero(), Complex(-complexSqrtHalf.real, -complexSqrtHalf.imaginary), Complex.zero()], // CORRECTED
-        [Complex.zero(), complexSqrtHalf, Complex.zero(), Complex(-complexSqrtHalf.real, -complexSqrtHalf.imaginary)], // CORRECTED
+        [
+          complexSqrtHalf,
+          Complex.zero(),
+          Complex(-complexSqrtHalf.real, -complexSqrtHalf.imaginary),
+          Complex.zero()
+        ], // CORRECTED
+        [
+          Complex.zero(),
+          complexSqrtHalf,
+          Complex.zero(),
+          Complex(-complexSqrtHalf.real, -complexSqrtHalf.imaginary)
+        ], // CORRECTED
       ]);
 
-      expect(hTensorI.almostEqualTo(expectedHTensorI, tolerance: tolerance), isTrue, reason: 'H ⊗ I product incorrect');
+      expect(hTensorI.almostEqualTo(expectedHTensorI, tolerance: tolerance),
+          isTrue, reason: 'H ⊗ I product incorrect');
     });
 
     // --- Test a Simple Circuit (H on Q0, then X on Q1) ---
@@ -192,9 +209,13 @@ void main() {
         [Complex(sqrt1_2, 0)],
       ]);
 
-      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'H on Q0 then X on Q1 simulation incorrect');
+      expect(
+          finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue,
+          reason: 'H on Q0 then X on Q1 simulation incorrect');
     });
+  });
 
+  group('CNOT Gate', () {
     test('Create CNOT matrix for qubits 2, control 0, target 1', () {
       // Apply to initial state
       int q = 2;
@@ -211,6 +232,7 @@ void main() {
 
       expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CNOT Matrix q=$q, c=$c, t=$t');
     });
+
 
     test('Create CNOT matrix for qubits 2, control 1, target 0', () {
       // Apply to initial state
@@ -427,6 +449,216 @@ void main() {
       ]);
 
       expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CNOT Matrix q=$q, c=$c, t=$t');
+    });
+  });
+
+  group('CCNOT Gate', () {
+    test('Create CCNOT matrix for qubits 3, control 0, control 1, target 2', () {
+      // Apply to initial state
+      int q = 3;
+      int c = 0;
+      int c2 = 1;
+      int t = 2;
+      final finalState = QuantumMatrix.ccnot(nQubits: q, control1: c, control2: c2, target: t);
+
+      final expectedState = QuantumMatrix([
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+      ]);
+
+      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CCNOT Matrix q=$q, c1=$c, c2=$c2, t=$t');
+    });
+
+    test('Create CCNOT matrix for qubits 3, control 0, control 2, target 1', () {
+      // Apply to initial state
+      int q = 3;
+      int c = 0;
+      int c2 = 2;
+      int t = 1;
+      final finalState = QuantumMatrix.ccnot(nQubits: q, control1: c, control2: c2, target: t);
+
+      final expectedState = QuantumMatrix([
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+      ]);
+
+      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CCNOT Matrix q=$q, c1=$c, c2=$c2, t=$t');
+    });
+
+    test('Create CCNOT matrix for qubits 3, control 1, control 2, target 0', () {
+      // Apply to initial state
+      int q = 3;
+      int c = 1;
+      int c2 = 2;
+      int t = 0;
+      final finalState = QuantumMatrix.ccnot(nQubits: q, control1: c, control2: c2, target: t);
+
+      final expectedState = QuantumMatrix([
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+      ]);
+
+      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CCNOT Matrix q=$q, c1=$c, c2=$c2, t=$t');
+    });
+
+    test('Create CCNOT matrix for qubits 3, control 1, control 0, target 2', () {
+      // Apply to initial state
+      int q = 3;
+      int c = 1;
+      int c2 = 0;
+      int t = 2;
+      final finalState = QuantumMatrix.ccnot(nQubits: q, control1: c, control2: c2, target: t);
+
+      final expectedState = QuantumMatrix([
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+      ]);
+
+      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CCNOT Matrix q=$q, c1=$c, c2=$c2, t=$t');
+    });
+
+    test('Create CCNOT matrix for qubits 3, control 2, control 1, target 0', () {
+      // Apply to initial state
+      int q = 3;
+      int c = 2;
+      int c2 = 1;
+      int t = 0;
+      final finalState = QuantumMatrix.ccnot(nQubits: q, control1: c, control2: c2, target: t);
+
+      final expectedState = QuantumMatrix([
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+      ]);
+
+      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CCNOT Matrix q=$q, c1=$c, c2=$c2, t=$t');
+    });
+
+    test('Create CCNOT matrix for qubits 3, control 2, control 0, target 1', () {
+      // Apply to initial state
+      int q = 3;
+      int c = 2;
+      int c2 = 0;
+      int t = 1;
+      final finalState = QuantumMatrix.ccnot(nQubits: q, control1: c, control2: c2, target: t);
+
+      final expectedState = QuantumMatrix([
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+      ]);
+
+      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CCNOT Matrix q=$q, c1=$c, c2=$c2, t=$t');
+    });
+
+    test('Create CCNOT matrix for qubits 4, control 2, control 0, target 1', () {
+      // Apply to initial state
+      int q = 4;
+      int c = 2;
+      int c2 = 0;
+      int t = 1;
+      final finalState = QuantumMatrix.ccnot(nQubits: q, control1: c, control2: c2, target: t);
+
+      final expectedState = QuantumMatrix([
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+      ]);
+
+      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CCNOT Matrix q=$q, c1=$c, c2=$c2, t=$t');
+    });
+
+    test('Create CCNOT matrix for qubits 5, control 4, control 2, target 1', () {
+      // Apply to initial state
+      int q = 5;
+      int c = 4;
+      int c2 = 2;
+      int t = 1;
+      final finalState = QuantumMatrix.ccnot(nQubits: q, control1: c, control2: c2, target: t);
+
+      final expectedState = QuantumMatrix([
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+      ]);
+
+      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CCNOT Matrix q=$q, c1=$c, c2=$c2, t=$t');
     });
   });
 }

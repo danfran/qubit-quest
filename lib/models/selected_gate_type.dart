@@ -19,9 +19,9 @@ extension GateVisualProperties on SelectedGateType {
   String get label {
     switch (this) {
       case SelectedGateType.cnot:
-        return 'CNOT';
+        return 'CX';
       case SelectedGateType.ccnot:
-        return 'CCNOT';
+        return 'CCX';
       case SelectedGateType.delete:
         return 'Del'; // Not typically placed visually
       case SelectedGateType.hadamard:

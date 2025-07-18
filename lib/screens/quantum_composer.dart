@@ -8,6 +8,7 @@ import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 
+import 'ccnot_target_qubits_selection_dialog.dart';
 import 'cnot_target_qubit_selection_dialog.dart';
 import '../models/qq_level.dart';
 
@@ -38,6 +39,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
   // List<double> measurementProbabilities = [0.0, 0.0, 0.0, 0.0];
   SelectedGateType _currentMode = SelectedGateType.none;
   int? _cnotTargetQubit; // To track the target for CNOT
+
+  int? _ccnotControl1Qubit; // To track the control 1 for CCNOT
+  int? _ccnotControl2Qubit; // To track the control 2 for CCNOT
 
   // State to manage the highlight box for drag-and-drop
   Offset? _draggingOffset;
@@ -168,7 +172,32 @@ class _QuantumComposerState extends State<QuantumComposer> {
           targetQubitLine = 0;
         }
       } else if (_numQubits > 2){
-        await _showTargetSelectionDialog(context, tappedQubitLine, _numQubits);
+        await _showCNOTTargetSelectionDialog(context, tappedQubitLine, _numQubits);
+        if (_cnotTargetQubit != null) {
+          targetQubitLine = _cnotTargetQubit;
+        }
+      }
+
+      if (targetQubitLine != null && tappedQubitLine != targetQubitLine) {
+        debugPrint('CNOT placement (control line = $tappedQubitLine and target line = $_cnotTargetQubit).');
+        _circuit.insertDoublePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine, targetQubitLine);
+        debugPrint("Gate CNOT inserted at position $insertionPosition on qubits $tappedQubitLine and $targetQubitLine.");
+        debugPrint(_circuit.toString());
+      } else {
+        debugPrint('Invalid CNOT placement (control == target or not enough qubits).');
+        // Optionally provide feedback
+        return;
+      }
+    } else if (droppedGateType == SelectedGateType.ccnot) {
+
+      int? targetQubitLine;
+
+      if (_numQubits < 3) {
+        debugPrint('Cannot place CCNOT on less than 3 qubits circuit or invalid target.');
+          // Optionally provide feedback
+        return;
+      } else if (_numQubits >= 3) {
+        await _showCCNOTTargetSelectionDialog(context, tappedQubitLine, _numQubits);
         if (_cnotTargetQubit != null) {
           targetQubitLine = _cnotTargetQubit;
         }
@@ -193,7 +222,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     _runSimulation(); // Optionally run simulation after placing
   }
 
-  Future<void> _showTargetSelectionDialog(BuildContext context, int controlQubit, int numQubits) async {
+  Future<void> _showCNOTTargetSelectionDialog(BuildContext context, int controlQubit, int numQubits) async {
     // Ensure dialog is not already shown
     if (ModalRoute.of(context)?.isCurrent != true || Navigator.of(context).canPop() == false) {
       // This is a crude check to avoid showing multiple dialogs.
@@ -214,15 +243,37 @@ class _QuantumComposerState extends State<QuantumComposer> {
     _cnotTargetQubit = selectedTarget;
   }
 
+  Future<void> _showCCNOTTargetSelectionDialog(BuildContext context, int targetQubit, int numQubits) async {
+    // Ensure dialog is not already shown
+    if (ModalRoute.of(context)?.isCurrent != true || Navigator.of(context).canPop() == false) {
+      // This is a crude check to avoid showing multiple dialogs.
+      // A more robust solution might involve a global boolean or state for dialog visibility.
+      return;
+    }
+
+    final Map<String, dynamic>? selectedQubits = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return CCNOTTargetQubitsSelectionDialog(
+          targetQubitIndex: targetQubit,
+          numQubits: numQubits,
+        );
+      },
+    );
+
+    _ccnotControl1Qubit = selectedQubits?['control1'];
+    _ccnotControl2Qubit = selectedQubits?['control2'];
+  }
+
   void _selectGateForPlacement(SelectedGateType gateType) {
     setState(() {
       _currentMode = gateType;
       _cnotTargetQubit = null; // Reset CNOT control on new gate selection
-      _currentInstructionMessage = "Tap on a qubit line to place the gate.";
+      _currentInstructionMessage = "Drag to place a gate.";
       if (gateType == SelectedGateType.cnot) {
-        _currentInstructionMessage = "Tap on the control qubit for CNOT.";
-      } else if (gateType == SelectedGateType.none) {
-        _currentInstructionMessage = "Run the circuit to see the result";
+        _currentInstructionMessage = "Drag to the control qubit for CNOT.";
+      } else if (gateType == SelectedGateType.ccnot) {
+        _currentInstructionMessage = "Drag to the first control qubit for CCNOT.";
       } else if (gateType == SelectedGateType.delete) {
         _currentInstructionMessage = "Tap on a gate to delete it."; // Updated message
       }
@@ -762,7 +813,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }
 
   Widget _buildDraggableGateButton(SelectedGateType type) {
-    double fontSizeW = type == SelectedGateType.cnot ? 10 : 18;
+    double fontSizeW = type == SelectedGateType.ccnot ? 14 : 18;
     return Draggable<SelectedGateType>( // Draggable for Hadamard
       data: type, // Data carried by the drag
       feedback: Container( // Visual feedback while dragging

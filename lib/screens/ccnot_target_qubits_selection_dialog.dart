@@ -3,12 +3,12 @@ import 'package:flutter/widgets.dart';
 
 class CCNOTTargetQubitsSelectionDialog extends StatefulWidget {
   final int targetQubitIndex;
-  final int totalQubits;
+  final int numQubits;
 
   const CCNOTTargetQubitsSelectionDialog({
     super.key,
     required this.targetQubitIndex,
-    required this.totalQubits,
+    required this.numQubits,
   });
 
   @override
@@ -26,10 +26,10 @@ class _CCNOTTargetQubitsSelectionDialogState extends State<CCNOTTargetQubitsSele
   @override
   void initState() {
     super.initState();
-    _allQubitIndices = List.generate(widget.totalQubits, (i) => i);
+    _allQubitIndices = List.generate(widget.numQubits, (i) => i);
 
     // Initial validation and pre-selection
-    if (widget.totalQubits < 3) {
+    if (widget.numQubits < 3) {
       // A Toffoli gate requires 3 distinct qubits (1 target, 2 controls)
       _errorMessage = "Not enough qubits for a Toffoli gate (requires 3 distinct qubits).";
     } else {
@@ -38,7 +38,7 @@ class _CCNOTTargetQubitsSelectionDialogState extends State<CCNOTTargetQubitsSele
       int? firstAvailableControl;
       int? secondAvailableControl;
 
-      for (int i = 0; i < widget.totalQubits; i++) {
+      for (int i = 0; i < widget.numQubits; i++) {
         if (i == widget.targetQubitIndex) continue; // Skip target qubit
 
         if (firstAvailableControl == null) {

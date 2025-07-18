@@ -1,7 +1,5 @@
 import 'package:advance_math/advance_math.dart';
 
-import 'dart:math' as math;
-
 import 'package:quantumquiz/utils/math_utils.dart'; // Import math for sqrt
 
 // A wrapper for matrix_utils.Matrix to add quantum-specific operations
