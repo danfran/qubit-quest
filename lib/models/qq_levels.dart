@@ -80,6 +80,20 @@ final List<QQLevel> allQQLevels = [
       [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
     ],
   ),
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: "Turn |101> into |111>.", // Based on your previous 8x8 matrix
+    numQubits: 3,
+    initialQubitsStateString: "101", // |000> state
+    availableGates: [
+      SelectedGateType.hadamard, SelectedGateType.ccnot,
+      SelectedGateType.z, // Example more gates
+    ],
+    solutionFinalVector: [
+      [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
+      [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.one()],
+    ],
+  ),
   // Add more levels here...
 ];
 

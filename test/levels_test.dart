@@ -59,6 +59,9 @@ void main() {
       (QuantumCircuit circuit) {
         circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 0, 2);
       },
+      (QuantumCircuit circuit) {
+        circuit.insertTriplePlacedGateAt(SelectedGateType.ccnot, 0, 0, 1, 2);
+      },
     ];
 
     for (int i = 1; i <= tests.length; i++) {
