@@ -190,26 +190,21 @@ class _QuantumComposerState extends State<QuantumComposer> {
       }
     } else if (droppedGateType == SelectedGateType.ccnot) {
 
-      int? targetQubitLine;
-
       if (_numQubits < 3) {
         debugPrint('Cannot place CCNOT on less than 3 qubits circuit or invalid target.');
-          // Optionally provide feedback
+        // Optionally provide feedback
         return;
       } else if (_numQubits >= 3) {
         await _showCCNOTTargetSelectionDialog(context, tappedQubitLine, _numQubits);
-        if (_cnotTargetQubit != null) {
-          targetQubitLine = _cnotTargetQubit;
-        }
       }
 
-      if (targetQubitLine != null && tappedQubitLine != targetQubitLine) {
-        debugPrint('CNOT placement (control line = $tappedQubitLine and target line = $_cnotTargetQubit).');
-        _circuit.insertDoublePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine, targetQubitLine);
-        debugPrint("Gate CNOT inserted at position $insertionPosition on qubits $tappedQubitLine and $targetQubitLine.");
+      if (_ccnotControl1Qubit != null && _ccnotControl2Qubit != null && tappedQubitLine != _ccnotControl1Qubit && tappedQubitLine != _ccnotControl2Qubit) {
+        debugPrint('CCNOT placement (control line 1 = $_ccnotControl1Qubit, control line 2 = $_ccnotControl2Qubit and target line = $tappedQubitLine).');
+        _circuit.insertTriplePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine, _ccnotControl1Qubit!, _ccnotControl2Qubit!);
+        debugPrint("Gate CCNOT inserted at position $insertionPosition on qubits $tappedQubitLine, $_ccnotControl1Qubit and $_ccnotControl2Qubit.");
         debugPrint(_circuit.toString());
       } else {
-        debugPrint('Invalid CNOT placement (control == target or not enough qubits).');
+        debugPrint('Invalid CCNOT placement (control == target or not enough qubits).');
         // Optionally provide feedback
         return;
       }

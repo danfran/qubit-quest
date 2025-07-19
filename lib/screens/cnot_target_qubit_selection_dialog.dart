@@ -22,7 +22,7 @@ class CNOTTargetQubitSelectionDialog extends StatelessWidget {
     final int crossAxisCount = min(numQubits - 1, availableTargetQubits.length);
 
     return AlertDialog(
-      title: const Text('Select Target Qubit', style: const TextStyle(color: Colors.white)),
+      title: Text('Select Target Qubit(Target Qubit: Q$controlQubitIndex)', style: const TextStyle(color: Colors.white)),
       content: SizedBox( // Use SizedBox to give the grid a defined height if needed, or let it size itself
         width: MediaQuery.of(context).size.width * 0.38, // Take 70% of screen width for content
         child: GridView.builder(

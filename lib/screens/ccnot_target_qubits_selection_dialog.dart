@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
@@ -28,132 +30,140 @@ class _CCNOTTargetQubitsSelectionDialogState extends State<CCNOTTargetQubitsSele
     super.initState();
     _allQubitIndices = List.generate(widget.numQubits, (i) => i);
 
-    // Initial validation and pre-selection
     if (widget.numQubits < 3) {
-      // A Toffoli gate requires 3 distinct qubits (1 target, 2 controls)
       _errorMessage = "Not enough qubits for a Toffoli gate (requires 3 distinct qubits).";
-    } else {
-      // Try to pre-select initial distinct controls that are not the target qubit.
-      // This improves UX by giving the user a starting point.
-      int? firstAvailableControl;
-      int? secondAvailableControl;
-
-      for (int i = 0; i < widget.numQubits; i++) {
-        if (i == widget.targetQubitIndex) continue; // Skip target qubit
-
-        if (firstAvailableControl == null) {
-          firstAvailableControl = i;
-        } else if (secondAvailableControl == null) {
-          secondAvailableControl = i;
-          break; // Found two distinct controls
-        }
-      }
-      _control1Index = firstAvailableControl;
-      _control2Index = secondAvailableControl;
-
-      // If pre-selection couldn't find two distinct controls (e.g. 2 qubits only, target=0, control1=1, no control2)
-      if (_control1Index == null || _control2Index == null || _control1Index == _control2Index) {
-        _errorMessage = "Could not auto-select controls. Please select manually.";
-      }
     }
   }
 
   // --- Validation Logic ---
-  // This checks if the current selections are valid for applying the gate
   bool _isSelectionValid() {
     if (_control1Index == null || _control2Index == null) {
-      return false; // Both controls must be selected
+      return false; // Not all selected
     }
     if (_control1Index == _control2Index) {
-      return false; // Control qubits must be distinct
+      return false; // Controls are the same
     }
     if (_control1Index == widget.targetQubitIndex || _control2Index == widget.targetQubitIndex) {
-      return false; // Control qubits cannot be the target qubit itself
+      return false; // Controls are the target
     }
-    return true; // All validation checks passed
+    return true; // All good
   }
 
-  // --- Submission Handler ---
   void _validateAndSubmit() {
-    // Re-check validation just before submission
-    if (!_isSelectionValid()) {
-      setState(() {
-        if (_control1Index == null || _control2Index == null) {
+    setState(() {
+      if (!_isSelectionValid()) {
+        if (widget.numQubits < 3) {
+          _errorMessage = "Not enough qubits for a Toffoli gate (requires 3 distinct qubits).";
+        } else if (_control1Index == null || _control2Index == null) {
           _errorMessage = "Please select both control qubits.";
         } else if (_control1Index == _control2Index) {
           _errorMessage = "Control qubits must be distinct.";
         } else if (_control1Index == widget.targetQubitIndex || _control2Index == widget.targetQubitIndex) {
           _errorMessage = "Control qubits cannot be the target qubit.";
         }
-      });
-      return; // Do not proceed if validation fails
-    }
+        return; // Stop here if invalid
+      }
+      _errorMessage = null; // Clear previous errors if valid
 
-    // Validation passed, return the selected indices to the caller
-    Navigator.of(context).pop({
-      'control1': _control1Index!,
-      'control2': _control2Index!,
+      Navigator.of(context).pop({
+        'control1': _control1Index!,
+        'control2': _control2Index!,
+      });
     });
+  }
+
+  // Helper to build a qubit selection grid
+  Widget _buildQubitGrid({
+    required String title,
+    required int? selectedQubit, // The qubit selected for *this* control slot
+    required Function(int?) onSelect, // Function to update the selected qubit, now can pass null
+    required int? otherSelectedQubit, // The qubit selected for the *other* control slot
+    required int targetQubitIndex,    // The target qubit index
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 14, color: Colors.white)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8.0,
+          runSpacing: 8.0,
+          children: _allQubitIndices.map<Widget>((int qubitIndex) {
+            bool isSelected = qubitIndex == selectedQubit; // Is this button currently selected for *this* control?
+
+            // A button is "disabled" if it's the target qubit OR
+            // if it's the *other* control qubit (unless it's the one we're currently trying to deselect).
+            bool isDisabled = (qubitIndex == targetQubitIndex) ||
+                (qubitIndex == otherSelectedQubit && !isSelected);
+
+            return ElevatedButton(
+              // If the button is disabled, onPressed is null.
+              // Otherwise, if it's currently selected, tapping it should deselect (pass null).
+              // If it's not selected, tapping it should select it (pass qubitIndex).
+              onPressed: isDisabled
+                  ? null
+                  : () {
+                onSelect(isSelected ? null : qubitIndex); // Pass null to deselect
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isSelected ? Colors.blueAccent[700] : Colors.blueGrey[700],
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                elevation: isSelected ? 8 : 2,
+              ),
+              child: Text(
+                'q$qubitIndex',
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Configure Toffoli Gate (CCNOT)'),
-      content: SingleChildScrollView( // Allows content to scroll if it exceeds screen height
+      title: Text('Select Control Qubits (Target Qubit: Q${widget.targetQubitIndex})', style: TextStyle(color: Colors.white)),
+      backgroundColor: Colors.grey[850], // Dark background for the dialog
+      content: SingleChildScrollView( // <--- REINTRODUCE SingleChildScrollView here
         child: Column(
-          mainAxisSize: MainAxisSize.min, // Column takes minimum space required by children
-          crossAxisAlignment: CrossAxisAlignment.start, // Align text to the left
+          mainAxisSize: MainAxisSize.min, // Keep this, it's still good practice for Columns in dialogs
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Display the target qubit prominently
-            Text(
-              'Target Qubit: Q${widget.targetQubitIndex}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            // Control Qubit 1 selection
+            _buildQubitGrid(
+              title: 'Select Control Qubit 1:',
+              selectedQubit: _control1Index,
+              onSelect: (q) {
+                setState(() {
+                  _control1Index = q;
+                  _errorMessage = null;
+                });
+              },
+              otherSelectedQubit: _control2Index,
+              targetQubitIndex: widget.targetQubitIndex,
             ),
             const SizedBox(height: 20),
 
-            // Dropdown for Control Qubit 1
-            const Text('Select Control Qubit 1:', style: TextStyle(fontSize: 14)),
-            DropdownButton<int>(
-              value: _control1Index,
-              hint: const Text('Select Qubit'),
-              isExpanded: true, // Makes the dropdown fill available width
-              onChanged: (int? newValue) {
+            // Control Qubit 2 selection
+            _buildQubitGrid(
+              title: 'Select Control Qubit 2:',
+              selectedQubit: _control2Index,
+              onSelect: (q) {
                 setState(() {
-                  _control1Index = newValue;
-                  _errorMessage = null; // Clear error when user makes a change
+                  _control2Index = q;
+                  _errorMessage = null;
                 });
               },
-              items: _allQubitIndices.map<DropdownMenuItem<int>>((int value) {
-                return DropdownMenuItem<int>(
-                  value: value,
-                  child: Text('Q$value'),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
-
-            // Dropdown for Control Qubit 2
-            const Text('Select Control Qubit 2:', style: TextStyle(fontSize: 14)),
-            DropdownButton<int>(
-              value: _control2Index,
-              hint: const Text('Select Qubit'),
-              isExpanded: true,
-              onChanged: (int? newValue) {
-                setState(() {
-                  _control2Index = newValue;
-                  _errorMessage = null; // Clear error when user makes a change
-                });
-              },
-              items: _allQubitIndices.map<DropdownMenuItem<int>>((int value) {
-                return DropdownMenuItem<int>(
-                  value: value,
-                  child: Text('Q$value'),
-                );
-              }).toList(),
+              otherSelectedQubit: _control1Index,
+              targetQubitIndex: widget.targetQubitIndex,
             ),
 
-            // Display error message if any
             if (_errorMessage != null)
               Padding(
                 padding: const EdgeInsets.only(top: 20.0),
@@ -166,17 +176,19 @@ class _CCNOTTargetQubitsSelectionDialogState extends State<CCNOTTargetQubitsSele
         ),
       ),
       actions: [
-        // Cancel button
         TextButton(
           onPressed: () {
-            Navigator.of(context).pop(); // Dismiss dialog without returning data
+            Navigator.of(context).pop();
           },
-          child: const Text('Cancel'),
+          child: const Text('Cancel', style: TextStyle(color: Colors.white)),
         ),
-        // Apply button (enabled only if selection is valid)
         ElevatedButton(
-          onPressed: _isSelectionValid() ? _validateAndSubmit : null, // Button is disabled if _isSelectionValid() is false
+          onPressed: _isSelectionValid() ? _validateAndSubmit : null,
           child: const Text('Apply'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blueAccent[700],
+            foregroundColor: Colors.white,
+          ),
         ),
       ],
     );
