@@ -75,9 +75,9 @@ class QuantumMatrix {
     required int control,
     required int target,
   }) {
-    if (control < 0 || control >= nQubits || target < 0 || target >= nQubits) {
-      throw ArgumentError("Control or target qubit index out of range (0 to ${nQubits - 1}).");
-    }
+    // if (control < 0 || control >= nQubits || target < 0 || target >= nQubits) {
+    //   throw ArgumentError("Control or target qubit index out of range (0 to ${nQubits - 1}).");
+    // }
     if (control == target) {
       throw ArgumentError("Control and target qubits cannot be the same.");
     }
@@ -140,11 +140,11 @@ class QuantumMatrix {
     required int target,
   }) {
     // 1. Validation for CCNOT
-    if (control1 < 0 || control1 >= nQubits ||
-        control2 < 0 || control2 >= nQubits ||
-        target < 0 || target >= nQubits) {
-      throw ArgumentError("Control or target qubit index out of range (0 to ${nQubits - 1}).");
-    }
+    // if (control1 < 0 || control1 >= nQubits ||
+    //     control2 < 0 || control2 >= nQubits ||
+    //     target < 0 || target >= nQubits) {
+    //   throw ArgumentError("Control or target qubit index out of range (0 to ${nQubits - 1}).");
+    // }
     if (control1 == control2 || control1 == target || control2 == target) {
       throw ArgumentError("Control and target qubits must be distinct for CCNOT.");
     }

@@ -389,7 +389,7 @@ void main() {
   group('QuantumCircuit insertDoublePlacedGateAt (CNOT specific)', () {
     test('should insert CNOT into empty circuit', () {
       final circuit = createEmptyCircuit(3);
-      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 0, 2); // CNOT Q0(ctrl) to Q2(target) at pos 0
+      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 2, 0); // CNOT Q0(ctrl) to Q2(target) at pos 0
       // Expected: Q0:[C], Q1:[|], Q2:[T]
       expect(circuit.placedGates[0].length, 1);
       expect(circuit.placedGates[0][0].type, SelectedGateType.cnot);
@@ -411,7 +411,7 @@ void main() {
       // Initial: Q0:[H], Q1:[], Q2:[X]
       debugPrint('Initial:\n$circuit');
 
-      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 1, 0); // CNOT Q1(ctrl) to Q0(target) at pos 0
+      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 0, 1); // CNOT Q1(ctrl) to Q0(target) at pos 0
       // This will check the range for allEmpty, find it's not fully empty (Q0 and Q2 have gates at pos 0)
       // so it goes to the 'else' (insert full column then shift).
       // Expected after full column insert then shift:
@@ -441,7 +441,7 @@ void main() {
       debugPrint('Initial:\n$circuit');
 
       // Now insert CNOT (Q0 as control, Q1 as target) at position 0
-      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 0, 1);
+      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 1, 0);
       // Expected after internal full column insert + _shiftLeft:
       // Q0: [C, H]
       // Q1: [T, X]
@@ -744,7 +744,7 @@ void main() {
       test('should calculate the state for a three qubits and 2 depth circuit', () {
         final circuit = createEmptyCircuit(3);
         // CNOT (Q0 ctrl, Q1 target) at pos 0
-        circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 0, 1);
+        circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 1, 0);
         circuit.insertSinglePlacedGateAt(SelectedGateType.y, 0, 1);
         circuit.insertSinglePlacedGateAt(SelectedGateType.x, 0, 2);
         debugPrint('Initial:\n$circuit');
@@ -775,7 +775,7 @@ void main() {
         circuit.insertSinglePlacedGateAt(SelectedGateType.z, 1, 3);
         circuit.insertSinglePlacedGateAt(SelectedGateType.x, 0, 4);
 
-        circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 2, 3, 0);
+        circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 2, 0, 3);
         circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 3, 3);
         debugPrint('Initial:\n$circuit');
 

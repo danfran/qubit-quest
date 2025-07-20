@@ -1,68 +1,162 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
-class CNOTTargetQubitSelectionDialog extends StatelessWidget {
-  final int controlQubitIndex;
+class CNOTTargetQubitSelectionDialog extends StatefulWidget {
+  final int targetQubitIndex;
   final int numQubits;
 
   const CNOTTargetQubitSelectionDialog({
     super.key,
-    required this.controlQubitIndex,
+    required this.targetQubitIndex,
     required this.numQubits,
   });
 
   @override
-  Widget build(BuildContext context) {
-    List<int> availableTargetQubits = List.generate(numQubits, (i) => i)
-        .where((i) => i != controlQubitIndex)
-        .toList();
+  State<CNOTTargetQubitSelectionDialog> createState() => _CNOTTargetQubitSelectionDialogState();
+}
 
-    // Calculate the actual number of columns to use, ensuring it doesn't exceed the number of available qubits
-    final int crossAxisCount = min(numQubits - 1, availableTargetQubits.length);
+class _CNOTTargetQubitSelectionDialogState extends State<CNOTTargetQubitSelectionDialog> {
+  int? _control1Index;
+  String? _errorMessage; // To display validation errors
 
-    return AlertDialog(
-      title: Text('Select Target Qubit(Target Qubit: Q$controlQubitIndex)', style: const TextStyle(color: Colors.white)),
-      content: SizedBox( // Use SizedBox to give the grid a defined height if needed, or let it size itself
-        width: MediaQuery.of(context).size.width * 0.38, // Take 70% of screen width for content
-        child: GridView.builder(
-          shrinkWrap: true, // Important: Makes GridView take only necessary space
-          physics: const NeverScrollableScrollPhysics(), // Disable scrolling if content fits
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount == 0 ? 1 : crossAxisCount, // Ensure at least 1 column if no qubits (though handled by empty check)
-            crossAxisSpacing: 8.0, // Horizontal space between buttons
-            mainAxisSpacing: 8.0, // Vertical space between buttons
-            childAspectRatio: 2.0, // Adjust this ratio for button shape (width / height)
-          ),
-          itemCount: availableTargetQubits.length,
-          itemBuilder: (context, index) {
-            final int qubitIndex = availableTargetQubits[index];
+  // List of all available qubit indices (e.g., [0, 1, 2, 3])
+  List<int> _allQubitIndices = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _allQubitIndices = List.generate(widget.numQubits, (i) => i);
+
+    if (widget.numQubits < 3) {
+      _errorMessage = "Not enough qubits for a CNOT gate (requires 3 distinct qubits).";
+    }
+  }
+
+  bool _isSelectionValid() {
+    if (_control1Index == null) {
+      return false; // Not all selected
+    }
+    return true; // All good
+  }
+
+  void _validateAndSubmit() {
+    setState(() {
+      if (!_isSelectionValid()) {
+        if (widget.numQubits < 2) {
+          _errorMessage = "Not enough qubits for a CNOT gate (requires 2 distinct qubits).";
+        } else if (_control1Index == null) {
+          _errorMessage = "Please select control qubit.";
+        } else if (_control1Index == widget.targetQubitIndex) {
+          _errorMessage = "Control qubits cannot be the target qubit.";
+        }
+        return; // Stop here if invalid
+      }
+      _errorMessage = null; // Clear previous errors if valid
+
+      Navigator.of(context).pop({
+        'control1': _control1Index!,
+      });
+    });
+  }
+
+  // Helper to build a qubit selection grid
+  Widget _buildQubitGrid({
+    required String title,
+    required int? selectedQubit, // The qubit selected for *this* control slot
+    required Function(int?) onSelect, // Function to update the selected qubit, now can pass null
+    required int targetQubitIndex,    // The target qubit index
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 14, color: Colors.white)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8.0,
+          runSpacing: 8.0,
+          children: _allQubitIndices.map<Widget>((int qubitIndex) {
+            bool isSelected = qubitIndex == selectedQubit; // Is this button currently selected for *this* control?
+
+            // A button is "disabled" if it's the target qubit OR
+            bool isDisabled = (qubitIndex == targetQubitIndex);
+
             return ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop(qubitIndex); // Return selected qubit index
+              // If the button is disabled, onPressed is null.
+              // Otherwise, if it's currently selected, tapping it should deselect (pass null).
+              // If it's not selected, tapping it should select it (pass qubitIndex).
+              onPressed: isDisabled
+                  ? null
+                  : () {
+                onSelect(isSelected ? null : qubitIndex); // Pass null to deselect
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent[700], // Button background color
-                foregroundColor: Colors.white, // Text color for the button
+                backgroundColor: isSelected ? Colors.blueAccent[700] : Colors.blueGrey[700],
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.0),
                 ),
-                // padding: const EdgeInsets.symmetric(vertical: 10.0), // Adjust button internal padding
+                elevation: isSelected ? 8 : 2,
               ),
               child: Text(
                 'q$qubitIndex',
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
             );
-          },
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Select Control Qubit (Target Qubit: ${widget.targetQubitIndex})', style: TextStyle(color: Colors.white)),
+      backgroundColor: Colors.grey[850], // Dark background for the dialog
+      content: SingleChildScrollView( // <--- REINTRODUCE SingleChildScrollView here
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // Keep this, it's still good practice for Columns in dialogs
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Control Qubit 1 selection
+            _buildQubitGrid(
+              title: 'Select Control Qubit:',
+              selectedQubit: _control1Index,
+              onSelect: (q) {
+                setState(() {
+                  _control1Index = q;
+                  _errorMessage = null;
+                });
+              },
+              targetQubitIndex: widget.targetQubitIndex,
+            ),
+            const SizedBox(height: 20),
+
+            if (_errorMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 20.0),
+                child: Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                ),
+              ),
+          ],
         ),
       ),
-      actions: <Widget>[
+      actions: [
         TextButton(
-          child: const Text('Cancel', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
           onPressed: () {
-            Navigator.of(context).pop(null); // Return null on cancel
+            Navigator.of(context).pop();
           },
+          child: const Text('Cancel', style: TextStyle(color: Colors.white)),
+        ),
+        ElevatedButton(
+          onPressed: _isSelectionValid() ? _validateAndSubmit : null,
+          child: const Text('Apply'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blueAccent[700],
+            foregroundColor: Colors.white,
+          ),
         ),
       ],
     );

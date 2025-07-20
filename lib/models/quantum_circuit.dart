@@ -65,10 +65,13 @@ class QuantumCircuit extends ChangeNotifier {
   }
 
   // currently specific to CNOT only
-  void insertDoublePlacedGateAt(SelectedGateType gateType, int insertionPosition, int tappedQubitIndex, int targetQubitIndex) {
+  void insertDoublePlacedGateAt(SelectedGateType gateType, int insertionPosition, int targetQubitIndex, int controlQubitIndex) {
     // need to check if the area to place the gate is fully empty then,
+    int from = min(controlQubitIndex, targetQubitIndex);
+    int to = max(controlQubitIndex, targetQubitIndex);
+
     bool allEmpty = true;
-    for (int i = min(tappedQubitIndex, targetQubitIndex); i <= max(tappedQubitIndex, targetQubitIndex); i++) {
+    for (int i = from; i <= to; i++) {
       if(insertionPosition < placedGates[i].length && placedGates[i][insertionPosition].type != SelectedGateType.none) {
         allEmpty = false;
         break;
@@ -77,12 +80,12 @@ class QuantumCircuit extends ChangeNotifier {
 
     // There is no need to scroll,
     if (allEmpty) {
-      for (int i = min(tappedQubitIndex, targetQubitIndex); i <= max(tappedQubitIndex, targetQubitIndex); i++) {
-        if (i == tappedQubitIndex) {
+      for (int i = from; i <= to; i++) {
+        if (i == controlQubitIndex) {
           PlacedQuantumGate controlGate = PlacedQuantumGate(
             type: gateType,
             isControl: true,
-            controlQubitIndex: tappedQubitIndex,
+            controlQubitIndex: controlQubitIndex,
             targetQubitIndex: targetQubitIndex,
           );
           insertGateAt(controlGate, insertionPosition, i);
@@ -90,7 +93,7 @@ class QuantumCircuit extends ChangeNotifier {
           PlacedQuantumGate targetGate = PlacedQuantumGate(
             type: gateType,
             isTarget: true,
-            controlQubitIndex: tappedQubitIndex,
+            controlQubitIndex: controlQubitIndex,
             targetQubitIndex: targetQubitIndex,
           );
           insertGateAt(targetGate, insertionPosition, i);
@@ -98,7 +101,7 @@ class QuantumCircuit extends ChangeNotifier {
           PlacedQuantumGate linkGate = PlacedQuantumGate(
             type: gateType,
             isLink: true,
-            controlQubitIndex: tappedQubitIndex,
+            controlQubitIndex: controlQubitIndex,
             targetQubitIndex: targetQubitIndex,
           );
           insertGateAt(linkGate, insertionPosition, i);
@@ -109,11 +112,11 @@ class QuantumCircuit extends ChangeNotifier {
 
     // Else, this will fill a vertical line in the circuit with gates as first phase.
     for (int i = 0; i < currentLevel.numQubits; i++) {
-      if (i == tappedQubitIndex) {
+      if (i == controlQubitIndex) {
         PlacedQuantumGate controlGate = PlacedQuantumGate(
           type: gateType,
           isControl: true,
-          controlQubitIndex: tappedQubitIndex,
+          controlQubitIndex: controlQubitIndex,
           targetQubitIndex: targetQubitIndex,
         );
         insertGateAt(controlGate, insertionPosition, i);
@@ -121,15 +124,15 @@ class QuantumCircuit extends ChangeNotifier {
         PlacedQuantumGate targetGate = PlacedQuantumGate(
           type: gateType,
           isTarget: true,
-          controlQubitIndex: tappedQubitIndex,
+          controlQubitIndex: controlQubitIndex,
           targetQubitIndex: targetQubitIndex,
         );
         insertGateAt(targetGate, insertionPosition, i);
-      } else if (i > tappedQubitIndex && i < targetQubitIndex || i < tappedQubitIndex && i > targetQubitIndex) {
+      } else if (i > controlQubitIndex && i < targetQubitIndex || i < controlQubitIndex && i > targetQubitIndex) {
         PlacedQuantumGate linkGate = PlacedQuantumGate(
           type: gateType,
           isLink: true,
-          controlQubitIndex: tappedQubitIndex,
+          controlQubitIndex: controlQubitIndex,
           targetQubitIndex: targetQubitIndex,
         );
         insertGateAt(linkGate, insertionPosition, i);

@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
@@ -128,7 +126,7 @@ class _CCNOTTargetQubitsSelectionDialogState extends State<CCNOTTargetQubitsSele
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Select Control Qubits (Target Qubit: Q${widget.targetQubitIndex})', style: TextStyle(color: Colors.white)),
+      title: Text('Select Control Qubits (Target Qubit: ${widget.targetQubitIndex})', style: TextStyle(color: Colors.white)),
       backgroundColor: Colors.grey[850], // Dark background for the dialog
       content: SingleChildScrollView( // <--- REINTRODUCE SingleChildScrollView here
         child: Column(

@@ -38,7 +38,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   // List<double> measurementProbabilities = [0.0, 0.0, 0.0, 0.0];
   SelectedGateType _currentMode = SelectedGateType.none;
-  int? _cnotTargetQubit; // To track the target for CNOT
+  int? _cnotControlQubit; // To track the target for CNOT
 
   int? _ccnotControl1Qubit; // To track the control 1 for CCNOT
   int? _ccnotControl2Qubit; // To track the control 2 for CCNOT
@@ -81,7 +81,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
   void _setInteractionMode(SelectedGateType mode) {
     setState(() {
       _currentMode = mode;
-      _cnotTargetQubit = null; // Reset CNOT control on mode change
+      _cnotControlQubit = null; // Reset CNOT control on mode change
+      _ccnotControl1Qubit = null;
+      _ccnotControl2Qubit = null;
       if (mode == SelectedGateType.delete) {
         _currentInstructionMessage = "Tap on a gate to delete it.";
       } else {
@@ -159,7 +161,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
       // Let's go with the simpler approach for now: Drop implies control qubit.
       // Target is the next available qubit line, if different from control.
-      int? targetQubitLine;
+      int? controlQubitLine;
 
       if (_numQubits == 1) {
         debugPrint('Cannot place CNOT on single qubit or invalid target.');
@@ -167,21 +169,21 @@ class _QuantumComposerState extends State<QuantumComposer> {
         return;
       } else if (_numQubits == 2) {
         if (tappedQubitLine == 0) {
-          targetQubitLine = 1;
+          controlQubitLine = 1;
         } else if (tappedQubitLine == 1) {
-          targetQubitLine = 0;
+          controlQubitLine = 0;
         }
       } else if (_numQubits > 2){
         await _showCNOTTargetSelectionDialog(context, tappedQubitLine, _numQubits);
-        if (_cnotTargetQubit != null) {
-          targetQubitLine = _cnotTargetQubit;
+        if (_cnotControlQubit != null) {
+          controlQubitLine = _cnotControlQubit;
         }
       }
 
-      if (targetQubitLine != null && tappedQubitLine != targetQubitLine) {
-        debugPrint('CNOT placement (control line = $tappedQubitLine and target line = $_cnotTargetQubit).');
-        _circuit.insertDoublePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine, targetQubitLine);
-        debugPrint("Gate CNOT inserted at position $insertionPosition on qubits $tappedQubitLine and $targetQubitLine.");
+      if (controlQubitLine != null && tappedQubitLine != controlQubitLine) {
+        debugPrint('CNOT placement (control line = $_cnotControlQubit and target line = $tappedQubitLine).');
+        _circuit.insertDoublePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine, controlQubitLine);
+        debugPrint("Gate CNOT inserted at position $insertionPosition on qubits $tappedQubitLine and $controlQubitLine.");
         debugPrint(_circuit.toString());
       } else {
         debugPrint('Invalid CNOT placement (control == target or not enough qubits).');
@@ -217,7 +219,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     _runSimulation(); // Optionally run simulation after placing
   }
 
-  Future<void> _showCNOTTargetSelectionDialog(BuildContext context, int controlQubit, int numQubits) async {
+  Future<void> _showCNOTTargetSelectionDialog(BuildContext context, int targetQubit, int numQubits) async {
     // Ensure dialog is not already shown
     if (ModalRoute.of(context)?.isCurrent != true || Navigator.of(context).canPop() == false) {
       // This is a crude check to avoid showing multiple dialogs.
@@ -225,17 +227,17 @@ class _QuantumComposerState extends State<QuantumComposer> {
       return;
     }
 
-    final int? selectedTarget = await showDialog<int>(
+    final Map<String, dynamic>? selectedQubit = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (BuildContext dialogContext) {
         return CNOTTargetQubitSelectionDialog(
-          controlQubitIndex: controlQubit,
+          targetQubitIndex: targetQubit,
           numQubits: numQubits,
         );
       },
     );
 
-    _cnotTargetQubit = selectedTarget;
+    _cnotControlQubit = selectedQubit?['control1'];
   }
 
   Future<void> _showCCNOTTargetSelectionDialog(BuildContext context, int targetQubit, int numQubits) async {
@@ -263,12 +265,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
   void _selectGateForPlacement(SelectedGateType gateType) {
     setState(() {
       _currentMode = gateType;
-      _cnotTargetQubit = null; // Reset CNOT control on new gate selection
+      _cnotControlQubit = null; // Reset CNOT control on new gate selection
+      _ccnotControl1Qubit = null;
+      _ccnotControl2Qubit = null;
       _currentInstructionMessage = "Drag to place a gate.";
       if (gateType == SelectedGateType.cnot) {
-        _currentInstructionMessage = "Drag to the control qubit for CNOT.";
+        _currentInstructionMessage = "Drag to the target qubit for CNOT.";
       } else if (gateType == SelectedGateType.ccnot) {
-        _currentInstructionMessage = "Drag to the first control qubit for CCNOT.";
+        _currentInstructionMessage = "Drag to the target qubit for CCNOT.";
       } else if (gateType == SelectedGateType.delete) {
         _currentInstructionMessage = "Tap on a gate to delete it."; // Updated message
       }
@@ -473,7 +477,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
     _circuit.clearPlacedGates(); // This calls notifyListeners()
     debugPrint('Circuit cleared.');
     _setInteractionMode(SelectedGateType.none); // Reset mode
-    _cnotTargetQubit = null;
+    _cnotControlQubit = null;
+    _ccnotControl1Qubit = null;
+    _ccnotControl2Qubit = null;
     _runSimulation(); // Run simulation - empty circuit
     _circuitWidthNotifier.value = 0; // Reset width notifier
   }
