@@ -1,4 +1,5 @@
 import 'package:advance_math/advance_math.dart';
+import 'package:flutter_tex/flutter_tex.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
@@ -771,12 +772,34 @@ class _QuantumComposerState extends State<QuantumComposer> {
                                     thumbVisibility: true,
                                     child: SingleChildScrollView(
                                       controller: _taskTextScrollController, // <-- Assign controller to SingleChildScrollView
-                                      child: Text(
-                                        _taskDescription,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                        ),
+                                      child: TeXWidget(
+                                        math: _taskDescription,
+                                        textWidgetBuilder: (context, text) {
+                                          return TextSpan(
+                                            text: text,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                            ),
+                                          );
+                                        },
+                                        inlineFormulaWidgetBuilder: (context, inlineFormula) {
+                                          return TeX2SVG(
+                                            math: inlineFormula,
+                                            formulaWidgetBuilder: (context, svg) {
+                                              double displayFontSize = 16;
+                                              return SvgPicture.string(
+                                                svg,
+                                                colorFilter: const ColorFilter.mode(
+                                                    Colors.white, BlendMode.srcIn),
+                                                height: displayFontSize,
+                                                width: displayFontSize,
+                                                fit: BoxFit.contain,
+                                                alignment: Alignment.center,
+                                              );
+                                            },
+                                          );
+                                        },
                                       ),
                                     ),
                                   ),
