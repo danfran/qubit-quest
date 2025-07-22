@@ -33,6 +33,7 @@ samples, guidance on mobile development, and a full API reference.
 * ~~change CNOT placement, first target then control qubit~~
 * ~~CNOT dialog should be more consistent with CCNOT dialog~~
 * ~~in the task description add Latex visualisation and fix the H-S level text. Also, should open a task dialog if the text is tapped?~~
+* ~~the gates on the bottom of the compose should be wrapped in a horizontal scrollable area~~
 * add levels
 * add more gates
 * add app documentation
@@ -42,5 +43,4 @@ samples, guidance on mobile development, and a full API reference.
 * check "rate us" button if actually works - around the end
 * fix privacy policy web page
 * fix other documentation web pages
-* the gates on the bottom of the compose should be wrapped in a horizontal scrollable area
-* Level 5, the Tex formula for the target state is too small as font size
+* Level 5, the Tex formula for the target state is too small as font size - maybe should be used a dialog too?

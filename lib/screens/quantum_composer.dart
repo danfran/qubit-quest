@@ -53,11 +53,20 @@ class _QuantumComposerState extends State<QuantumComposer> {
   final ValueNotifier<double> _circuitWidthNotifier = ValueNotifier<double>(0.0);
 
   late ScrollController _taskTextScrollController;
+  late ScrollController _gatesScrollController;
+
+  bool _canScrollLeft = false;
+  bool _canScrollRight = false;
 
   @override
   void initState() {
     super.initState();
     _taskTextScrollController = ScrollController(); // Initialize the controller
+    _gatesScrollController = ScrollController()
+    ..addListener(_updateScrollButtonStates);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateScrollButtonStates();
+    });
 
     _numQubits = widget.level.numQubits;
     _taskDescription = widget.level.taskDescription;
@@ -76,6 +85,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
   @override
   void dispose() {
     _taskTextScrollController.dispose(); // Dispose the controller
+    _gatesScrollController.removeListener(_updateScrollButtonStates);
+    _gatesScrollController.dispose(); // Dispose the controller
     super.dispose();
   }
 
@@ -545,6 +556,57 @@ class _QuantumComposerState extends State<QuantumComposer> {
     });
   }
 
+  void _updateScrollButtonStates() {
+    if (!_gatesScrollController.hasClients) return; // Ensure controller is attached to a view
+    final position = _gatesScrollController.position;
+
+    // Debug prints (helpful to see the values if issues persist)
+    print('Current Pixels: ${position.pixels}');
+    print('Min Scroll Extent: ${position.minScrollExtent}');
+    print('Max Scroll Extent: ${position.maxScrollExtent}');
+    print('Viewport Dimension: ${position.viewportDimension}');
+    print('Extent Before: ${position.extentBefore}');
+    print('Extent After: ${position.extentAfter}');
+    print('---');
+
+    // Determine if there's content to scroll before the current view
+    bool newCanScrollLeft = position.extentBefore > 0.1; // If > 0.1, there's content to the left
+
+    // Determine if there's content to scroll after the current view
+    bool newCanScrollRight = position.extentAfter > 0.1; // If > 0.1, there's content to the right
+
+    // Only call setState if the scrollability state has actually changed
+    if (_canScrollLeft != newCanScrollLeft || _canScrollRight != newCanScrollRight) {
+      setState(() {
+        _canScrollLeft = newCanScrollLeft;
+        _canScrollRight = newCanScrollRight;
+      });
+    }
+  }
+
+  void _scroll(double offset) {
+    if (!_gatesScrollController.hasClients) return;
+    _gatesScrollController.animateTo(
+      _gatesScrollController.position.pixels + offset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _scrollLeft() {
+    if (!_gatesScrollController.hasClients) return;
+    double scrollAmount = _gatesScrollController.position.viewportDimension;
+    _scroll(-scrollAmount/3);
+  }
+
+  void _scrollRight() {
+    if (!_gatesScrollController.hasClients) return;
+    double scrollAmount = _gatesScrollController.position.viewportDimension;
+    _scroll(scrollAmount/3);
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -675,50 +737,68 @@ class _QuantumComposerState extends State<QuantumComposer> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Add/Remove Gates:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  // SizedBox(height: 8),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () => _selectGateForPlacement(SelectedGateType.delete),
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize), // Use gate size for button size
-                            padding: EdgeInsets.zero, // Remove internal padding
-                            backgroundColor: Colors.green[700], // Red color for delete
-                            foregroundColor: Colors.white, // White text/icon color
-                            shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),), // Square shape
-                          ),
-                          child: FittedBox(
-                              fit: BoxFit.fitWidth,
-                              child: Icon(Icons.delete, size: 18)),
-                          // child: Text('DEL', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), // Button text
-                        ),
-
-                        SizedBox(width: 4), // Space after Delete button
-                        // ** Add the Vertical Divider **
-                        Container( // Wrap divider in Container to give it a height matching buttons
-                          height: QuantumCircuitPainter.gateSize * 0.75, // Match button height
-                          child: VerticalDivider(
-                            width: 1,
-                            thickness: 2,
-                            indent: 0, // Adjust indent/endIndent if buttons have different padding
-                            endIndent: 0,
-                            color: Colors.white, // White divider for visibility on black background
-                          ),
-                        ),
-                        SizedBox(width: 4), // Space after divider
-                        // --- Dynamic Draggable Gate Buttons ---
-                        ..._availableGates.map((gateType) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4.0), // Add spacing between dynamic buttons
-                            child: _buildDraggableGateButton(gateType),
-                          );
-                        }), // Convert the iterable to a List<Widget>
-                      ],
+                  Row(children: [
+                    Text("Add/Remove Gates:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Spacer(),
+                    IconButton(
+                      icon: Icon(Icons.arrow_left, color: _canScrollLeft ? Colors.white : Colors.grey),
+                      onPressed: _canScrollLeft ? _scrollLeft : null,
+                      tooltip: 'Scroll Left',
                     ),
+                    IconButton(
+                      icon: Icon(Icons.arrow_right, color: _canScrollRight ? Colors.white : Colors.grey),
+                      onPressed: _canScrollRight ? _scrollRight : null,
+                      tooltip: 'Scroll Right',
+                    ),
+                  ]),
+                  // SizedBox(height: 8),
+                  Scrollbar(
+                    controller: _gatesScrollController, // <-- Assign controller to Scrollbar
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        controller: _gatesScrollController, // <-- Assign controller to Scrollbar
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () => _selectGateForPlacement(SelectedGateType.delete),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize), // Use gate size for button size
+                                padding: EdgeInsets.zero, // Remove internal padding
+                                backgroundColor: Colors.green[700], // Red color for delete
+                                foregroundColor: Colors.white, // White text/icon color
+                                shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),), // Square shape
+                              ),
+                              child: FittedBox(
+                                  fit: BoxFit.fitWidth,
+                                  child: Icon(Icons.delete, size: 18)),
+                              // child: Text('DEL', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), // Button text
+                            ),
+
+                            SizedBox(width: 4), // Space after Delete button
+                            // ** Add the Vertical Divider **
+                            Container( // Wrap divider in Container to give it a height matching buttons
+                              height: QuantumCircuitPainter.gateSize * 0.75, // Match button height
+                              child: VerticalDivider(
+                                width: 1,
+                                thickness: 2,
+                                indent: 0, // Adjust indent/endIndent if buttons have different padding
+                                endIndent: 0,
+                                color: Colors.white, // White divider for visibility on black background
+                              ),
+                            ),
+                            SizedBox(width: 4), // Space after divider
+                            // --- Dynamic Draggable Gate Buttons ---
+                            ..._availableGates.map((gateType) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4.0), // Add spacing between dynamic buttons
+                                child: _buildDraggableGateButton(gateType),
+                              );
+                            }), // Convert the iterable to a List<Widget>
+                          ],
+                        ),
+                      ),
                   ),
                 ],
               ),

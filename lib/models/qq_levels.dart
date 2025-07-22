@@ -39,7 +39,7 @@ final List<QQLevel> allQQLevels = [
   ),
   QQLevel.fromBinaryString(
     type: "composer",
-    taskDescription: r"Transform the initial state of the qubit from \( |0\rangle \) to the target state \( |+i\rangle = \frac{1}{\sqrt{2}}(|0\rangle + |i\rangle) \).",
+    taskDescription: r"Transform the initial state of the qubit from \( |0\rangle \) to the target state \( |+i\rangle = (|0\rangle + |i\rangle)/\sqrt{2} \).",
     numQubits: 1,
     initialQubitsStateString: "0", // |0> state
     availableGates: [SelectedGateType.x, SelectedGateType.hadamard, SelectedGateType.s, SelectedGateType.z],
