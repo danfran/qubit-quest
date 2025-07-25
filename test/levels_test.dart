@@ -42,6 +42,9 @@ void main() {
         circuit.insertSinglePlacedGateAt(SelectedGateType.y, 0, 0);
       },
       (QuantumCircuit circuit) {
+        circuit.insertSinglePlacedGateAt(SelectedGateType.y, 0, 0);
+      },
+      (QuantumCircuit circuit) {
         circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
       },
       (QuantumCircuit circuit) {

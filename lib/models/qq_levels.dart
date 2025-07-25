@@ -15,7 +15,7 @@ final List<QQLevel> allQQLevels = [
   ),
   QQLevel.fromBinaryString(
     type: "composer",
-    taskDescription: r"Good, you made the first step! Let's change now only the phase of \( |1\rangle \) without flipping the bit.",
+    taskDescription: r"Let's change now only the phase of \( |1\rangle \) without flipping the bit. Transform \( |1\rangle \) to \( -|1\rangle \).",
     numQubits: 1,
     initialQubitsStateString: "1", // |0> state: [Complex.one(), Complex.zero()]
     availableGates: [SelectedGateType.z, SelectedGateType.x, SelectedGateType.y],
@@ -23,11 +23,19 @@ final List<QQLevel> allQQLevels = [
   ),
   QQLevel.fromBinaryString(
     type: "composer",
-    taskDescription: r"Great job! Let's change now the phase and flipping the bit from \( |1\rangle \) to \( |0\rangle \).",
+    taskDescription: r"Let's change now the phase and flipping the bit from \( |1\rangle \) to \( |0\rangle \).",
     numQubits: 1,
     initialQubitsStateString: "1", // |0> state: [Complex.one(), Complex.zero()]
     availableGates: [SelectedGateType.hadamard, SelectedGateType.x, SelectedGateType.y],
     solutionFinalVector: [[Complex(-Complex.i().real, -Complex.i().imaginary)], [Complex.zero()]], // Target: |1> state
+  ),
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |0\rangle \), reach \( |1\rangle \) with a phase of \( i \). This state is \( |i\rangle \).",
+    numQubits: 1,
+    initialQubitsStateString: "0",
+    availableGates: [SelectedGateType.x, SelectedGateType.y, SelectedGateType.z], // Provide a few to make them think
+    solutionFinalVector: [[Complex.zero()], [Complex.i()]], // Target: |i> state (Y|0> = i|1>)
   ),
   QQLevel.fromBinaryString(
     type: "composer",
@@ -47,7 +55,7 @@ final List<QQLevel> allQQLevels = [
   ),
   QQLevel.fromBinaryString(
     type: "composer",
-    taskDescription: r"You're at \( |0\rangle \). Your goal is a specific phase that's between the X and Y axes on the sphere. Which gate makes a precise quarter turn?.",
+    taskDescription: r"You're at \( |0\rangle \). Apply gates to reach a state where the \( |1\rangle \) amplitude has a phase of \( e^{i\pi/4} \). This is \( (|0\rangle + e^{i\pi/4}|1\rangle)/\sqrt{2} \).",
     numQubits: 1,
     initialQubitsStateString: "0", // |0> state
     availableGates: [SelectedGateType.y, SelectedGateType.hadamard, SelectedGateType.t, SelectedGateType.z],
@@ -71,10 +79,7 @@ final List<QQLevel> allQQLevels = [
     taskDescription: r"Explore 3 qubits! Transform \( |101\rangle \) to \( |100\rangle \).", // Based on your previous 8x8 matrix
     numQubits: 3,
     initialQubitsStateString: "101", // |000> state
-    availableGates: [
-      SelectedGateType.hadamard, SelectedGateType.cnot,
-      SelectedGateType.z, SelectedGateType.y // Example more gates
-    ],
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.z, SelectedGateType.y],
     solutionFinalVector: [ // CNOT(Q0, Q2) applied to |000> results in |000>
       [Complex.zero()], [Complex.one()], [Complex.zero()], [Complex.zero()],
       [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
@@ -85,16 +90,12 @@ final List<QQLevel> allQQLevels = [
     taskDescription: r"Turn \( |101\rangle \) into \( |111\rangle \).", // Based on your previous 8x8 matrix
     numQubits: 3,
     initialQubitsStateString: "101", // |000> state
-    availableGates: [
-      SelectedGateType.hadamard, SelectedGateType.ccnot,
-      SelectedGateType.z, // Example more gates
-    ],
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.ccnot, SelectedGateType.z,],
     solutionFinalVector: [
       [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
       [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.one()],
     ],
   ),
-  // Add more levels here...
 ];
 
 int numberOfLevels = allQQLevels.length;
