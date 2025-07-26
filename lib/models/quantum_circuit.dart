@@ -107,45 +107,44 @@ class QuantumCircuit extends ChangeNotifier {
           insertGateAt(linkGate, insertionPosition, i);
         }
       }
-      return;
-    }
-
-    // Else, this will fill a vertical line in the circuit with gates as first phase.
-    for (int i = 0; i < currentLevel.numQubits; i++) {
-      if (i == controlQubitIndex) {
-        PlacedQuantumGate controlGate = PlacedQuantumGate(
-          type: gateType,
-          isControl: true,
-          controlQubitIndex: controlQubitIndex,
-          targetQubitIndex: targetQubitIndex,
-        );
-        insertGateAt(controlGate, insertionPosition, i);
-      } else if (i == targetQubitIndex) {
-        PlacedQuantumGate targetGate = PlacedQuantumGate(
-          type: gateType,
-          isTarget: true,
-          controlQubitIndex: controlQubitIndex,
-          targetQubitIndex: targetQubitIndex,
-        );
-        insertGateAt(targetGate, insertionPosition, i);
-      } else if (i > controlQubitIndex && i < targetQubitIndex || i < controlQubitIndex && i > targetQubitIndex) {
-        PlacedQuantumGate linkGate = PlacedQuantumGate(
-          type: gateType,
-          isLink: true,
-          controlQubitIndex: controlQubitIndex,
-          targetQubitIndex: targetQubitIndex,
-        );
-        insertGateAt(linkGate, insertionPosition, i);
-      } else {
-        PlacedQuantumGate emptyGate = PlacedQuantumGate.emptyGate();
-        insertGateAt(emptyGate, insertionPosition, i);
+    } else {
+      // This will fill a vertical line in the circuit with gates as first phase.
+      for (int i = 0; i < currentLevel.numQubits; i++) {
+        if (i == controlQubitIndex) {
+          PlacedQuantumGate controlGate = PlacedQuantumGate(
+            type: gateType,
+            isControl: true,
+            controlQubitIndex: controlQubitIndex,
+            targetQubitIndex: targetQubitIndex,
+          );
+          insertGateAt(controlGate, insertionPosition, i);
+        } else if (i == targetQubitIndex) {
+          PlacedQuantumGate targetGate = PlacedQuantumGate(
+            type: gateType,
+            isTarget: true,
+            controlQubitIndex: controlQubitIndex,
+            targetQubitIndex: targetQubitIndex,
+          );
+          insertGateAt(targetGate, insertionPosition, i);
+        } else if (i > controlQubitIndex && i < targetQubitIndex || i < controlQubitIndex && i > targetQubitIndex) {
+          PlacedQuantumGate linkGate = PlacedQuantumGate(
+            type: gateType,
+            isLink: true,
+            controlQubitIndex: controlQubitIndex,
+            targetQubitIndex: targetQubitIndex,
+          );
+          insertGateAt(linkGate, insertionPosition, i);
+        } else {
+          PlacedQuantumGate emptyGate = PlacedQuantumGate.emptyGate();
+          insertGateAt(emptyGate, insertionPosition, i);
+        }
       }
+
+      // Second phase, we need to scroll left what is scrollable.
+      shiftLeft(insertionPosition-1);
+
+      trimCircuit();
     }
-
-    // Second phase, we need to scroll left what is scrollable.
-    shiftLeft(insertionPosition);
-
-    trimCircuit();
 
     // Notify listeners that the state has changed
     notifyListeners();
@@ -207,57 +206,56 @@ class QuantumCircuit extends ChangeNotifier {
           insertGateAt(linkGate, insertionPosition, i);
         }
       }
-      return;
-    }
-
-    // Else, this will fill a vertical line in the circuit with gates as first phase.
-    for (int i = 0; i < currentLevel.numQubits; i++) {
-      if (i == control1QubitIndex) {
-        PlacedQuantumGate controlGate = PlacedQuantumGate(
-          type: gateType,
-          isControl: true,
-          controlQubitIndex: control1QubitIndex,
-          control2QubitIndex: control2QubitIndex,
-          targetQubitIndex: targetQubitIndex,
-        );
-        insertGateAt(controlGate, insertionPosition, i);
-      } else if (i == targetQubitIndex) {
-        PlacedQuantumGate targetGate = PlacedQuantumGate(
-          type: gateType,
-          isTarget: true,
-          controlQubitIndex: control1QubitIndex,
-          control2QubitIndex: control2QubitIndex,
-          targetQubitIndex: targetQubitIndex,
-        );
-        insertGateAt(targetGate, insertionPosition, i);
-      } else if (i == control2QubitIndex) {
-        PlacedQuantumGate control2Gate = PlacedQuantumGate(
-          type: gateType,
-          isControl2: true,
-          controlQubitIndex: control1QubitIndex,
-          control2QubitIndex: control2QubitIndex,
-          targetQubitIndex: targetQubitIndex,
-        );
-        insertGateAt(control2Gate, insertionPosition, i);
-      } else if (i > control1QubitIndex && i < targetQubitIndex || i < control1QubitIndex && i > targetQubitIndex) {
-        PlacedQuantumGate linkGate = PlacedQuantumGate(
-          type: gateType,
-          isLink: true,
-          controlQubitIndex: control1QubitIndex,
-          control2QubitIndex: control2QubitIndex,
-          targetQubitIndex: targetQubitIndex,
-        );
-        insertGateAt(linkGate, insertionPosition, i);
-      } else {
-        PlacedQuantumGate emptyGate = PlacedQuantumGate.emptyGate();
-        insertGateAt(emptyGate, insertionPosition, i);
+    } else {
+      // This will fill a vertical line in the circuit with gates as first phase.
+      for (int i = 0; i < currentLevel.numQubits; i++) {
+        if (i == control1QubitIndex) {
+          PlacedQuantumGate controlGate = PlacedQuantumGate(
+            type: gateType,
+            isControl: true,
+            controlQubitIndex: control1QubitIndex,
+            control2QubitIndex: control2QubitIndex,
+            targetQubitIndex: targetQubitIndex,
+          );
+          insertGateAt(controlGate, insertionPosition, i);
+        } else if (i == targetQubitIndex) {
+          PlacedQuantumGate targetGate = PlacedQuantumGate(
+            type: gateType,
+            isTarget: true,
+            controlQubitIndex: control1QubitIndex,
+            control2QubitIndex: control2QubitIndex,
+            targetQubitIndex: targetQubitIndex,
+          );
+          insertGateAt(targetGate, insertionPosition, i);
+        } else if (i == control2QubitIndex) {
+          PlacedQuantumGate control2Gate = PlacedQuantumGate(
+            type: gateType,
+            isControl2: true,
+            controlQubitIndex: control1QubitIndex,
+            control2QubitIndex: control2QubitIndex,
+            targetQubitIndex: targetQubitIndex,
+          );
+          insertGateAt(control2Gate, insertionPosition, i);
+        } else if (i > control1QubitIndex && i < targetQubitIndex || i < control1QubitIndex && i > targetQubitIndex) {
+          PlacedQuantumGate linkGate = PlacedQuantumGate(
+            type: gateType,
+            isLink: true,
+            controlQubitIndex: control1QubitIndex,
+            control2QubitIndex: control2QubitIndex,
+            targetQubitIndex: targetQubitIndex,
+          );
+          insertGateAt(linkGate, insertionPosition, i);
+        } else {
+          PlacedQuantumGate emptyGate = PlacedQuantumGate.emptyGate();
+          insertGateAt(emptyGate, insertionPosition, i);
+        }
       }
+
+      // Second phase, we need to scroll left what is scrollable.
+      shiftLeft(insertionPosition);
+
+      trimCircuit();
     }
-
-    // Second phase, we need to scroll left what is scrollable.
-    shiftLeft(insertionPosition);
-
-    trimCircuit();
 
     // Notify listeners that the state has changed
     notifyListeners();
