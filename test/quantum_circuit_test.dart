@@ -191,6 +191,8 @@ void main() {
       debugPrint('Initial:\n$circuit');
 
       circuit.insertSinglePlacedGateAt(SelectedGateType.z, 0, 0); // Z on Q0 at pos 0
+      debugPrint('After insertSingle(Z, 0, 0):\n$circuit');
+
       // This path: insertGateAt on all qubits, then _shiftLeft.
       // Expected (after internal full column insert + _shiftLeft):
       // Q0: [Z, H], Q1: [-, X]
@@ -199,7 +201,6 @@ void main() {
       expect(circuit.placedGates[0][1].type, SelectedGateType.hadamard);
       expect(circuit.placedGates[1].length, 1);
       expect(circuit.placedGates[1][0].type, SelectedGateType.x);
-      debugPrint('After insertSingle(Z, 0, 0):\n$circuit');
     });
 
     test('should correctly shift CNOTs when inserting a single gate', () {
@@ -485,8 +486,10 @@ void main() {
       circuit.placedGates[1].insert(0, PlacedQuantumGate.emptyGate());
       debugPrint('After manual "insertion":\n$circuit');
 
-      circuit.shiftLeft(0); // Call _shiftLeft starting from column 0
+      circuit.shiftLeft(); // Call _shiftLeft starting from column 0
       circuit.trimCircuit(); // Trim after shift for accurate state
+
+      debugPrint('After shift/trim:\n$circuit');
 
       // Expected:
       // Q0: [Z, H, X] (Z was inserted, H shifted left from pos 1 to 0, X remains)
@@ -496,15 +499,29 @@ void main() {
       expect(circuit.placedGates[0][1].type, SelectedGateType.hadamard);
       expect(circuit.placedGates[0][2].type, SelectedGateType.x);
 
-      expect(circuit.placedGates[1].length, 3);
-      expect(circuit.placedGates[1][0].type, SelectedGateType.none);
-      expect(circuit.placedGates[1][1].type, SelectedGateType.none);
-      expect(circuit.placedGates[1][2].type, SelectedGateType.y);
+      expect(circuit.placedGates[1].length, 1);
+      expect(circuit.placedGates[1][0].type, SelectedGateType.y);
+    });
 
-      // we need to revert only one insert not the whole line
-      // expect(circuit.placedGates[1].length, 1);
-      // expect(circuit.placedGates[1][0].type, SelectedGateType.y);
-      debugPrint('After _shiftLeft(0):\n$circuit');
+    test('should shift left when multiple empty spaces are available', () {
+      final circuit = createEmptyCircuit(1);
+      circuit.placedGates[0].addAll([
+        PlacedQuantumGate.emptyGate(),
+        PlacedQuantumGate.emptyGate(),
+        PlacedQuantumGate.emptyGate(),
+        PlacedQuantumGate(type: SelectedGateType.y)
+      ]);
+      debugPrint('Initial:\n$circuit');
+
+      circuit.shiftLeft(); // Call _shiftLeft starting from column 0
+
+      debugPrint('After shift/trim:\n$circuit');
+
+      expect(circuit.placedGates[0].length, 4);
+      expect(circuit.placedGates[0][0].type, SelectedGateType.y);
+      expect(circuit.placedGates[0][1].type, SelectedGateType.none);
+      expect(circuit.placedGates[0][2].type, SelectedGateType.none);
+      expect(circuit.placedGates[0][2].type, SelectedGateType.none);
     });
 
     test('should shift CNOTs left when their entire footdebugPrint is empty to the left', () {
@@ -674,6 +691,31 @@ void main() {
       expect(circuit.placedGates[0][0].type, SelectedGateType.hadamard);
       expect(circuit.placedGates[0][1].type, SelectedGateType.z);
       debugPrint('After remove(1,0) (no auto-compaction):\n$circuit');
+    });
+
+    test('should remove a CNOT gate and compact the circuit', () {
+      final circuit = createEmptyCircuit(2);
+      // Q0: [-, C, H]
+      // Q1: [X, T, -]
+      circuit.placedGates[0].addAll([
+        PlacedQuantumGate.emptyGate(),
+        PlacedQuantumGate(type: SelectedGateType.cnot, isControl: true, targetQubitIndex: 1, controlQubitIndex: 0),
+        PlacedQuantumGate(type: SelectedGateType.hadamard),
+      ]);
+      circuit.placedGates[1].addAll([
+        PlacedQuantumGate(type: SelectedGateType.x),
+        PlacedQuantumGate(type: SelectedGateType.cnot, isTarget: true, targetQubitIndex: 1, controlQubitIndex: 0),
+        PlacedQuantumGate.emptyGate(),
+      ]);
+
+      debugPrint('Initial:\n$circuit');
+      circuit.removePlacedGate(1, 0); // Remove C at pos 1 on Q0
+      debugPrint('After remove(1,0) (no auto-compaction):\n$circuit');
+
+      // For this test, we'll confirm direct removal
+      expect(circuit.maxCircuitDepth(), 1);
+      expect(circuit.placedGates[0][0].type, SelectedGateType.hadamard);
+      expect(circuit.placedGates[1][0].type, SelectedGateType.x);
     });
 
     test('should remove CNOT components when any part is removed', () {
