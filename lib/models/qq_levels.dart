@@ -55,6 +55,14 @@ final List<QQLevel> allQQLevels = [
   ),
   QQLevel.fromBinaryString(
     type: "composer",
+    taskDescription: r"From \( |+\rangle \), achieve \( |-i\rangle = (|0\rangle - i|1\rangle)/\sqrt{2} \).",
+    numQubits: 1,
+    initialQubitsStateString: "0", // Requires H and ZS or YS or something
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.s, SelectedGateType.z, SelectedGateType.x, SelectedGateType.y],
+    solutionFinalVector: [[Complex(sqrt1_2, 0)], [Complex(0, -sqrt1_2)]], // Target: |-i> state (e.g., HZ then S)
+  ),
+  QQLevel.fromBinaryString(
+    type: "composer",
     taskDescription: r"You're at \( |0\rangle \). Apply gates to reach a state where the \( |1\rangle \) amplitude has a phase of \( e^{i\pi/4} \). This is \( (|0\rangle + e^{i\pi/4}|1\rangle)/\sqrt{2} \).",
     numQubits: 1,
     initialQubitsStateString: "0", // |0> state
