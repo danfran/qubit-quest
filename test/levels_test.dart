@@ -45,7 +45,16 @@ void main() {
         circuit.insertSinglePlacedGateAt(SelectedGateType.y, 0, 0);
       },
       (QuantumCircuit circuit) {
+        circuit.insertSinglePlacedGateAt(SelectedGateType.x, 0, 0);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.z, 1, 0);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.x, 2, 0);
+      },
+      (QuantumCircuit circuit) {
         circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
+      },
+      (QuantumCircuit circuit) {
+        circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.t, 1, 0);
       },
       (QuantumCircuit circuit) {
         circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
@@ -58,14 +67,16 @@ void main() {
       },
       (QuantumCircuit circuit) {
         circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
-        circuit.insertSinglePlacedGateAt(SelectedGateType.t, 1, 0);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.s, 1, 0);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.t, 2, 0);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.z, 3, 0);
+      },
+      (QuantumCircuit circuit) {
+        circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 2, 0);
       },
       (QuantumCircuit circuit) {
         circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
         circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 1, 1, 0);
-      },
-      (QuantumCircuit circuit) {
-        circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 2, 0);
       },
       (QuantumCircuit circuit) {
         circuit.insertTriplePlacedGateAt(SelectedGateType.ccnot, 0, 1, 0, 2);

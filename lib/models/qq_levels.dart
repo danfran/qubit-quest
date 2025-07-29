@@ -3,8 +3,12 @@ import 'package:flutter/foundation.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 
+Complex get negOne => Complex(-1.0, 0.0); // -1
+Complex get negI => Complex(0.0, -1.0); // -i
+
 
 final List<QQLevel> allQQLevels = [
+  // X
   QQLevel.fromBinaryString(
     type: "composer",
     taskDescription: r"Your first quantum challenge! Apply a gate to transform \( |0\rangle \) to \( |1\rangle \).",
@@ -13,22 +17,25 @@ final List<QQLevel> allQQLevels = [
     availableGates: [SelectedGateType.x, SelectedGateType.hadamard, SelectedGateType.y],
     solutionFinalVector: [[Complex.zero()], [Complex.one()]], // Target: |1> state
   ),
+  // Z
   QQLevel.fromBinaryString(
     type: "composer",
     taskDescription: r"Let's change now only the phase of \( |1\rangle \) without flipping the bit. Transform \( |1\rangle \) to \( -|1\rangle \).",
     numQubits: 1,
     initialQubitsStateString: "1", // |0> state: [Complex.one(), Complex.zero()]
     availableGates: [SelectedGateType.z, SelectedGateType.x, SelectedGateType.y],
-    solutionFinalVector: [[Complex.zero()], [Complex(-Complex.one().real, -Complex.one().imaginary)]], // Target: |1> state
+    solutionFinalVector: [[Complex.zero()], [negOne]], // Target: |1> state
   ),
+  // Y
   QQLevel.fromBinaryString(
     type: "composer",
     taskDescription: r"Let's change now the phase and flipping the bit from \( |1\rangle \) to \( |0\rangle \).",
     numQubits: 1,
     initialQubitsStateString: "1", // |0> state: [Complex.one(), Complex.zero()]
     availableGates: [SelectedGateType.hadamard, SelectedGateType.x, SelectedGateType.y],
-    solutionFinalVector: [[Complex(-Complex.i().real, -Complex.i().imaginary)], [Complex.zero()]], // Target: |1> state
+    solutionFinalVector: [[negI], [Complex.zero()]], // Target: |1> state
   ),
+  // Y
   QQLevel.fromBinaryString(
     type: "composer",
     taskDescription: r"From \( |0\rangle \), reach \( |1\rangle \) with a phase of \( i \). This state is \( |i\rangle \).",
@@ -37,6 +44,16 @@ final List<QQLevel> allQQLevels = [
     availableGates: [SelectedGateType.x, SelectedGateType.y, SelectedGateType.z], // Provide a few to make them think
     solutionFinalVector: [[Complex.zero()], [Complex.i()]], // Target: |i> state (Y|0> = i|1>)
   ),
+  // X + Z + X
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"Starting from \( |0\rangle \), achieve \( -|0\rangle \).",
+    numQubits: 1,
+    initialQubitsStateString: "0",
+    availableGates: [SelectedGateType.x, SelectedGateType.z, SelectedGateType.y],
+    solutionFinalVector: [[negOne], [Complex.zero()]], // Target: -|0> state (e.g., XZX)
+  ),
+  // H
   QQLevel.fromBinaryString(
     type: "composer",
     taskDescription: r"Create a superposition! Turn \( |0\rangle \) into \( |+\rangle \).",
@@ -45,22 +62,7 @@ final List<QQLevel> allQQLevels = [
     availableGates: [SelectedGateType.x, SelectedGateType.hadamard, SelectedGateType.z],
     solutionFinalVector: [[Complex(sqrt1_2)], [Complex(sqrt1_2)]], // Target: |+> state
   ),
-  QQLevel.fromBinaryString(
-    type: "composer",
-    taskDescription: r"Transform the initial state of the qubit from \( |0\rangle \) to the target state \( |+i\rangle = (|0\rangle + |i\rangle)/\sqrt{2} \).",
-    numQubits: 1,
-    initialQubitsStateString: "0", // |0> state
-    availableGates: [SelectedGateType.x, SelectedGateType.hadamard, SelectedGateType.s, SelectedGateType.z],
-    solutionFinalVector: [[Complex(sqrt1_2)], [Complex(0, sqrt1_2)]], // Target: |+> state
-  ),
-  QQLevel.fromBinaryString(
-    type: "composer",
-    taskDescription: r"From \( |+\rangle \), achieve \( |-i\rangle = (|0\rangle - i|1\rangle)/\sqrt{2} \).",
-    numQubits: 1,
-    initialQubitsStateString: "0", // Requires H and ZS or YS or something
-    availableGates: [SelectedGateType.hadamard, SelectedGateType.s, SelectedGateType.z, SelectedGateType.x, SelectedGateType.y],
-    solutionFinalVector: [[Complex(sqrt1_2, 0)], [Complex(0, -sqrt1_2)]], // Target: |-i> state (e.g., HZ then S)
-  ),
+  // H + T
   QQLevel.fromBinaryString(
     type: "composer",
     taskDescription: r"You're at \( |0\rangle \). Apply gates to reach a state where the \( |1\rangle \) amplitude has a phase of \( e^{i\pi/4} \). This is \( (|0\rangle + e^{i\pi/4}|1\rangle)/\sqrt{2} \).",
@@ -69,6 +71,46 @@ final List<QQLevel> allQQLevels = [
     availableGates: [SelectedGateType.y, SelectedGateType.hadamard, SelectedGateType.t, SelectedGateType.z],
     solutionFinalVector: [[Complex(sqrt1_2)], [Complex(0.5, 0.5)]], // Target: |+> state
   ),
+  // H + S
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"Transform the initial state of the qubit from \( |0\rangle \) to the target state \( |+i\rangle = (|0\rangle + |i\rangle)/\sqrt{2} \).",
+    numQubits: 1,
+    initialQubitsStateString: "0", // |0> state
+    availableGates: [SelectedGateType.x, SelectedGateType.hadamard, SelectedGateType.s, SelectedGateType.z],
+    solutionFinalVector: [[Complex(sqrt1_2)], [Complex(0, sqrt1_2)]], // Target: |+> state
+  ),
+  // H + S + Z
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |+\rangle \), achieve \( |-i\rangle = (|0\rangle - i|1\rangle)/\sqrt{2} \).",
+    numQubits: 1,
+    initialQubitsStateString: "0", // Requires H and ZS or YS or something
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.s, SelectedGateType.z, SelectedGateType.x, SelectedGateType.y],
+    solutionFinalVector: [[Complex(sqrt1_2, 0)], [Complex(0, -sqrt1_2)]], // Target: |-i> state (e.g., HZ then S)
+  ),
+  // H + S + T + Z
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |0\rangle \), reach \( (|0\rangle + e^{-i\pi/4}|1\rangle)/\sqrt{2} \).",
+    numQubits: 1,
+    initialQubitsStateString: "0",
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.t, SelectedGateType.s, SelectedGateType.z, SelectedGateType.y],
+    solutionFinalVector: [[Complex(sqrt1_2, 0)], [Complex(0.5, -0.5)]], // Target: HZ T |0> (HT then Z) or (H then T.conjugate())
+  ),
+  // CX (0,2)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"Explore 3 qubits! Transform \( |101\rangle \) to \( |100\rangle \).", // Based on your previous 8x8 matrix
+    numQubits: 3,
+    initialQubitsStateString: "101", // |000> state
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.z, SelectedGateType.y],
+    solutionFinalVector: [ // CNOT(Q0, Q2) applied to |000> results in |000>
+      [Complex.zero()], [Complex.one()], [Complex.zero()], [Complex.zero()],
+      [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
+    ],
+  ),
+  // H + CX
   QQLevel.fromBinaryString(
     type: "composer",
     taskDescription: r"Entangle two qubits! Create the Bell state \( |00\rangle + |11\rangle\).",
@@ -82,17 +124,7 @@ final List<QQLevel> allQQLevels = [
       [Complex(sqrt1_2)],
     ], // Target: (|00> + |11>)/sqrt(2)
   ),
-  QQLevel.fromBinaryString(
-    type: "composer",
-    taskDescription: r"Explore 3 qubits! Transform \( |101\rangle \) to \( |100\rangle \).", // Based on your previous 8x8 matrix
-    numQubits: 3,
-    initialQubitsStateString: "101", // |000> state
-    availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.z, SelectedGateType.y],
-    solutionFinalVector: [ // CNOT(Q0, Q2) applied to |000> results in |000>
-      [Complex.zero()], [Complex.one()], [Complex.zero()], [Complex.zero()],
-      [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
-    ],
-  ),
+  // CCX (1,0,2)
   QQLevel.fromBinaryString(
     type: "composer",
     taskDescription: r"Turn \( |101\rangle \) into \( |111\rangle \).", // Based on your previous 8x8 matrix
