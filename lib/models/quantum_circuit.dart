@@ -19,12 +19,21 @@ class QuantumCircuit extends ChangeNotifier {
   QubitState currentState;
 
   // Constructor
-  QuantumCircuit({required this.currentLevel}):
+  QuantumCircuit._internal({required this.currentLevel}):
   // Initialize the currentState to the ground state |00...0>
   // Assuming QubitState has a constructor or static method to create the initial state
         initialState = QubitState.fromList(currentLevel.initialQubitsState),
         currentState = QubitState.fromList(currentLevel.initialQubitsState),
         placedGates = List.generate(currentLevel.numQubits, (index) => []);
+
+  factory QuantumCircuit({required QQLevel currentLevel}) {
+    var quantumCircuit = QuantumCircuit._internal(currentLevel: currentLevel);
+    if (currentLevel.preInsertedGates != null) {
+      Function(QuantumCircuit) body = currentLevel.preInsertedGates!;
+      body(quantumCircuit);
+    }
+    return quantumCircuit;
+  }
 
   int maxCircuitDepth() => placedGates.map((e) => e.length).reduce(max);
 
@@ -389,6 +398,9 @@ class QuantumCircuit extends ChangeNotifier {
     notifyListeners();
   }
 
+  List<List<PlacedQuantumGate>> clone(List<List<PlacedQuantumGate>> gates) =>
+      placedGates = gates.map((element) => List<PlacedQuantumGate>.from(element)).toList();
+
   // --- BACKEND MATRIX GENERATION LOGIC ---
 
   /// Builds the system matrix for a single placed quantum gate.
@@ -548,11 +560,4 @@ class QuantumCircuit extends ChangeNotifier {
     }
     return result;
   }
-}
-
-class PreviewQuantumCircuit extends QuantumCircuit {
-  PreviewQuantumCircuit({required QQLevel currentLevel}) : super(currentLevel: currentLevel);
-
-  List<List<PlacedQuantumGate>> clone(List<List<PlacedQuantumGate>> gates) =>
-      placedGates = gates.map((element) => List<PlacedQuantumGate>.from(element)).toList();
 }

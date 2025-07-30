@@ -1,5 +1,6 @@
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/foundation.dart';
+import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 
@@ -80,6 +81,15 @@ final List<QQLevel> allQQLevels = [
     availableGates: [SelectedGateType.x, SelectedGateType.hadamard, SelectedGateType.s, SelectedGateType.z],
     solutionFinalVector: [[Complex(sqrt1_2)], [Complex(0, sqrt1_2)]], // Target: |+> state
   ),
+  // H + Z
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"Transform \( |+\rangle \) to \( |-\rangle \).",
+    numQubits: 1,
+    initialQubitsStateString: "0", // Requires creating |+> first
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.z, SelectedGateType.y, SelectedGateType.x],
+    solutionFinalVector: [[Complex(sqrt1_2, 0)], [Complex(-sqrt1_2, 0)]], // Target: |-> state (H then Z)
+  ),
   // H + S + Z
   QQLevel.fromBinaryString(
     type: "composer",
@@ -88,6 +98,20 @@ final List<QQLevel> allQQLevels = [
     initialQubitsStateString: "0", // Requires H and ZS or YS or something
     availableGates: [SelectedGateType.hadamard, SelectedGateType.s, SelectedGateType.z, SelectedGateType.x, SelectedGateType.y],
     solutionFinalVector: [[Complex(sqrt1_2, 0)], [Complex(0, -sqrt1_2)]], // Target: |-i> state (e.g., HZ then S)
+  ),
+  // (H + S + Z) + S + H + X
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"You're at \( (|0\rangle - i|1\rangle) \)/\sqrt{2}. Transform this state back to \( |1\rangle \).",
+    numQubits: 1,
+    initialQubitsStateString: "0", // User must reach the initial state first, then transform.
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.s, SelectedGateType.x, SelectedGateType.z, SelectedGateType.y],
+    solutionFinalVector: [[Complex.zero()], [Complex.one()]], // Target: |1> state (e.g., first create initial state with H S Z, then apply S H X)
+    preInsertedGates: (QuantumCircuit circuit) {
+      circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
+      circuit.insertSinglePlacedGateAt(SelectedGateType.s, 1, 0);
+      circuit.insertSinglePlacedGateAt(SelectedGateType.z, 2, 0);
+    },
   ),
   // H + S + T + Z
   QQLevel.fromBinaryString(

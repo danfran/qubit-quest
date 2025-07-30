@@ -1,6 +1,7 @@
 // lib/models/level.dart
 
 import 'package:advance_math/advance_math.dart';
+import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/utils/math_utils.dart'; // Your enum for gate types
 
@@ -10,8 +11,9 @@ class QQLevel {
   final int numQubits;
   final String initialQubitsStateStr; // Assuming this is a state vector (e.g., |00..0>)
   final List<Complex> initialQubitsState; // Assuming this is a state vector (e.g., |00..0>)
+  final Function(QuantumCircuit)? preInsertedGates; // The target state vector
   final List<SelectedGateType> availableGates; // List of gates the user can use
-  final List<List<Complex>> solutionFinalVector; // The target state vector
+  final List<List<Complex>> solutionFinalVector;
 
   const QQLevel({
     required this.type,
@@ -21,6 +23,7 @@ class QQLevel {
     required this.initialQubitsState,
     required this.availableGates,
     required this.solutionFinalVector,
+    this.preInsertedGates,
   });
 
   // Factory constructor to create a QQLevel from a binary string initial state
@@ -31,6 +34,7 @@ class QQLevel {
     required String initialQubitsStateString, // Accepts the binary string here
     required List<SelectedGateType> availableGates,
     required List<List<Complex>> solutionFinalVector,
+    Function(QuantumCircuit)? preInsertedGates,
   }) {
     // Determine numQubits from the string length
     final int numQubits = initialQubitsStateString.length;
@@ -48,6 +52,7 @@ class QQLevel {
       initialQubitsState: convertedInitialState,
       availableGates: availableGates,
       solutionFinalVector: solutionFinalVector,
+      preInsertedGates: preInsertedGates,
     );
   }
 
