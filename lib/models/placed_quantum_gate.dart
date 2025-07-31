@@ -10,6 +10,7 @@ class PlacedQuantumGate {
   final bool isLink;
   final bool isControl;
   final bool isControl2;
+  final bool isDeletable;
 
   static PlacedQuantumGate emptyGate() => PlacedQuantumGate(type: SelectedGateType.none);
 
@@ -25,7 +26,8 @@ class PlacedQuantumGate {
               isLink == other.isLink &&
               controlQubitIndex == other.controlQubitIndex &&
               control2QubitIndex == other.control2QubitIndex &&
-              targetQubitIndex == other.targetQubitIndex;
+              targetQubitIndex == other.targetQubitIndex &&
+              isDeletable == other.isDeletable;
 
   PlacedQuantumGate({
     required this.type,
@@ -36,6 +38,7 @@ class PlacedQuantumGate {
     this.isControl2 = false,
     this.isTarget = false,
     this.isLink = false,
+    this.isDeletable = true,
   });
 
   @override
@@ -47,5 +50,6 @@ class PlacedQuantumGate {
       isLink.hashCode ^
       controlQubitIndex.hashCode ^
       control2QubitIndex.hashCode ^
-      targetQubitIndex.hashCode;
+      targetQubitIndex.hashCode ^
+      isDeletable.hashCode;
 }

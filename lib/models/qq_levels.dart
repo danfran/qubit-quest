@@ -108,9 +108,9 @@ final List<QQLevel> allQQLevels = [
     availableGates: [SelectedGateType.hadamard, SelectedGateType.s, SelectedGateType.x, SelectedGateType.z, SelectedGateType.y],
     solutionFinalVector: [[Complex.zero()], [Complex.one()]], // Target: |1> state (e.g., first create initial state with H S Z, then apply S H X)
     preInsertedGates: (QuantumCircuit circuit) {
-      circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
-      circuit.insertSinglePlacedGateAt(SelectedGateType.s, 1, 0);
-      circuit.insertSinglePlacedGateAt(SelectedGateType.z, 2, 0);
+      circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0, isDeletable: false);
+      circuit.insertSinglePlacedGateAt(SelectedGateType.s, 1, 0, isDeletable: false);
+      circuit.insertSinglePlacedGateAt(SelectedGateType.z, 2, 0, isDeletable: false);
     },
   ),
   // H + S + T + Z

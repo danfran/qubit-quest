@@ -321,11 +321,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
         _runSimulation(); // Update simulation after deletion
         setState(() {
           _currentMode = SelectedGateType.none; // Reset mode after successful deletion
-          _currentInstructionMessage = "Gate deleted. Drag a gate onto the circuit."; // Reset message
+          _currentInstructionMessage = "Gate deleted."; // Reset message
         });
 
       } else {
-        debugPrint('Tapped outside gates in delete mode.');
+        debugPrint('Gate not deleted.');
+        setState(() {
+          _currentInstructionMessage = "Gate not deleted."; // Reset message
+        });
         // Optional: Provide feedback or reset mode if user taps outside gates
         // setState(() { simulationResult = "No gate tapped. Exiting delete mode."; }); // Example feedback
         // _setInteractionMode(SelectedGateType.none); // Example: Exit delete mode on tap outside

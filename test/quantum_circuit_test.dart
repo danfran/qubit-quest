@@ -733,9 +733,39 @@ void main() {
       // It should find the linked parts and remove them too.
 
       // For now, testing what the current code does:
-      debugPrint('After removing CNOT control (bug observed):\n$circuit');
+      debugPrint('After removing CNOT control:\n$circuit');
       expect(circuit.placedGates[0].length, 0); // Q0 is now empty
       expect(circuit.placedGates[1].length, 0);
+    });
+
+    test('should not remove single gate as not deletable', () {
+      final circuit = createEmptyCircuit(1);
+      // CNOT (Q0 ctrl, Q1 target) at pos 0
+      circuit.insertSinglePlacedGateAt(SelectedGateType.x, 0, 0, isDeletable: false);
+      debugPrint('Initial:\n$circuit');
+
+      // Removing CNOT control at (0,0)
+      circuit.removePlacedGate(0, 0);
+
+      // For now, testing what the current code does:
+      debugPrint('After removing single gate:\n$circuit');
+      expect(circuit.placedGates[0].length, 1); // Q0 is now empty
+    });
+
+    test('should not remove CNOT components when any part is removed as not deletable', () {
+      final circuit = createEmptyCircuit(2);
+      // CNOT (Q0 ctrl, Q1 target) at pos 0
+      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 0, 1, isDeletable: false);
+      debugPrint('Initial:\n$circuit');
+
+      // Removing CNOT control at (0,0) and target (1,0)
+      circuit.removePlacedGate(0, 0);
+      circuit.removePlacedGate(0, 1);
+
+      // For now, testing what the current code does:
+      debugPrint('After removing CNOT control:\n$circuit');
+      expect(circuit.placedGates[0].length, 1); // Q0 is now empty
+      expect(circuit.placedGates[1].length, 1);
     });
 
     test('should remove CNOT components when any part is removed and shift left and trim the circuit', () {

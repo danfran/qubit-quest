@@ -56,6 +56,13 @@ class QQLevel {
     );
   }
 
+  void preInsertGates(QuantumCircuit quantumCircuit) {
+    if (preInsertedGates != null) {
+      Function(QuantumCircuit) body = preInsertedGates!;
+      body(quantumCircuit);
+    }
+  }
+
   // Optional: A helper to get the initial state for N qubits initialized to |0...0>
   // You might want to move this into a utility class if it's used broadly.
   static List<Complex> getZeroStateVector(int numQubits) {

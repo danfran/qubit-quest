@@ -310,8 +310,7 @@ class QuantumCircuitPainter extends CustomPainter {
     debugPrint('Gate remove tap qubit line: $qubitLine and gate position: $gatePosition');
 
     if (qubitLine != null && gatePosition != null && gatePosition < circuit.placedGates[qubitLine].length) {
-      circuit.removePlacedGate(gatePosition, qubitLine);
-      return true;
+      return circuit.removePlacedGate(gatePosition, qubitLine);
     }
 
     return false;
