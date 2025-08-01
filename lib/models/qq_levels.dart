@@ -134,6 +134,18 @@ final List<QQLevel> allQQLevels = [
       [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
     ],
   ),
+  // CCX (1,0,2)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"Turn \( |101\rangle \) into \( |111\rangle \).", // Based on your previous 8x8 matrix
+    numQubits: 3,
+    initialQubitsStateString: "101", // |000> state
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.ccnot, SelectedGateType.z,],
+    solutionFinalVector: [
+      [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
+      [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.one()],
+    ],
+  ),
   // H + CX
   QQLevel.fromBinaryString(
     type: "composer",
@@ -148,17 +160,19 @@ final List<QQLevel> allQQLevels = [
       [Complex(sqrt1_2)],
     ], // Target: (|00> + |11>)/sqrt(2)
   ),
-  // CCX (1,0,2)
+  // H + CX
   QQLevel.fromBinaryString(
     type: "composer",
-    taskDescription: r"Turn \( |101\rangle \) into \( |111\rangle \).", // Based on your previous 8x8 matrix
-    numQubits: 3,
-    initialQubitsStateString: "101", // |000> state
-    availableGates: [SelectedGateType.hadamard, SelectedGateType.ccnot, SelectedGateType.z,],
+    taskDescription: r"From \( |01\rangle \), create the Bell state \( |\Psi^+\rangle = (|01\rangle + |10\rangle)/\sqrt{2} \).",
+    numQubits: 2,
+    initialQubitsStateString: "10",
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.x],
     solutionFinalVector: [
-      [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
-      [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.one()],
-    ],
+      [Complex.zero()],
+      [Complex(sqrt1_2, 0)],
+      [Complex(sqrt1_2, 0)],
+      [Complex.zero()],
+    ], // Target: (1/sqrt(2))|01> + (1/sqrt(2))|10>
   ),
 ];
 
