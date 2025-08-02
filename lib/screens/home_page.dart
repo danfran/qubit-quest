@@ -260,10 +260,14 @@ class _HomePageState extends State<HomePage> {
                         _playLevelSequence(_maxUnlockedLevel, context);
                       }),
                       SizedBox(height: 6),
-                      _buildOptionButton(context, "Documentation", () {
-                        // TODO: Implement navigation to documentation page
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Documentation coming soon!')),
+                      _buildOptionButton(context, "App Documentation", () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const WebViewPage(
+                              title: 'App Documentation',
+                              url: 'https://danfran.github.io/qubit-quest/app-documentation.html',
+                            ),
+                          ),
                         );
                       }),
                       SizedBox(height: 6),
