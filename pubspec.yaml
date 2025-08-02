@@ -39,7 +39,7 @@ dependencies:
   shared_preferences: ^2.5.3 # Use the latest version
   package_info_plus: ^8.3.0
   in_app_review: ^2.0.10
-  url_launcher: ^6.3.1
+  webview_flutter: ^4.13.0
 
 dev_dependencies:
   flutter_test:

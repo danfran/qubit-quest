@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
+import 'package:quantumquiz/widgets/webview_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../models/qq_levels.dart';
 
@@ -25,8 +25,6 @@ class _HomePageState extends State<HomePage> {
   late List<MapEntry<String, String>> _aboutData; // Data for the about dialog
 
   final InAppReview _inAppReview = InAppReview.instance;
-
-  static const String _privacyPolicyUrl = 'https://danfran.github.io/qubit-quest/privacy-policy.html';
 
   @override
   void initState() {
@@ -99,14 +97,6 @@ class _HomePageState extends State<HomePage> {
           ],
         );
       },
-    );
-  }
-
-  // Show aabout if all
-  Widget _infoTile(String title, String subtitle) {
-    return ListTile(
-      title: Text(title),
-      subtitle: Text(subtitle.isEmpty ? 'Not set' : subtitle),
     );
   }
 
@@ -193,21 +183,6 @@ class _HomePageState extends State<HomePage> {
         );
       },
     );
-  }
-
-  Future<void> _launchPrivacyPolicyUrl() async {
-    final Uri url = Uri.parse(_privacyPolicyUrl);
-    // Use LaunchMode.externalApplication to open in the device's default browser
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      // Handle error if the URL cannot be launched
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not open privacy policy. Please check your internet connection or URL.'),
-          ),
-        );
-      }
-    }
   }
 
   // NEW: Method to handle rating the app
@@ -297,7 +272,14 @@ class _HomePageState extends State<HomePage> {
                       }),
                       SizedBox(height: 6),
                       _buildOptionButton(context, "Privacy Policy", () {
-                        _launchPrivacyPolicyUrl();
+                        Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const WebViewPage(
+                                title: 'Privacy Policy',
+                                url: 'https://danfran.github.io/qubit-quest/privacy-policy.html',
+                              ),
+                            ),
+                        );
                       }),
                       SizedBox(height: 6),
                       _buildOptionButton(context, "About", () {

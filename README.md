@@ -44,3 +44,4 @@ samples, guidance on mobile development, and a full API reference.
 * fix privacy policy web page
 * fix other documentation web pages
 * Level 5, the Tex formula for the target state is too small as font size - maybe should be used a dialog too?
+* when a level is completed, pressing quickly the "next level" button, unlock many level - should be only the next one
