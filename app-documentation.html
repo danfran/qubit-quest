@@ -14,21 +14,7 @@
             background-color: #0d1117; /* Dark background similar to GitHub Dark */
             color: #c9d1d9; /* Light grey text */
         }
-        .latex-display {
-            display: block;
-            text-align: center;
-            margin: 1.5rem 0;
-            font-size: 1.125rem; /* text-lg */
-            font-weight: 500; /* font-medium */
-            line-height: 1.5;
-            color: #58a6ff; /* A blue for equations */
-        }
-        .latex-inline {
-            font-family: 'Inter', sans-serif; /* Ensure font consistency */
-            font-size: 1rem; /* text-base */
-            font-weight: 500; /* font-medium */
-            color: #58a6ff; /* A blue for equations */
-        }
+        /* Removed custom .latex-display and .latex-inline CSS. MathJax will render them. */
         /* Custom scrollbar for better aesthetics */
         ::-webkit-scrollbar {
             width: 8px;
@@ -47,6 +33,8 @@
             background: #444c56;
         }
     </style>
+    <!-- MathJax CDN for LaTeX rendering -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body class="p-4 sm:p-6 md:p-8 lg:p-10">
 
@@ -90,17 +78,19 @@
                 <div>
                     <h3 class="text-xl font-medium text-[#58a6ff] mb-2">Qubits</h3>
                     <p>
-                        Unlike classical bits that are either 0 or 1, a quantum bit (qubit) can exist in a superposition of both states simultaneously. This is represented as a linear combination of the basis states <span class="latex-inline">$|0\rangle$</span> and <span class="latex-inline">$|1\rangle$</span>:
+                        Unlike classical bits that are either 0 or 1, a quantum bit (qubit) can exist in a superposition of both states simultaneously. This is represented as a linear combination of the basis states \(|0\rangle\) and \(|1\rangle\):
                     </p>
-                    <pre class="latex-display">$$ |\psi\rangle = \alpha|0\rangle + \beta|1\rangle $$</pre>
+                    <div class="text-center my-4">
+                        \[ |\psi\rangle = \alpha|0\rangle + \beta|1\rangle \]
+                    </div>
                     <p>
-                        where <span class="latex-inline">$\alpha$</span> and <span class="latex-inline">$\beta$</span> are complex probability amplitudes, and <span class="latex-inline">$|\alpha|^2 + |\beta|^2 = 1$</span>.
+                        where \(\alpha\) and \(\beta\) are complex probability amplitudes, and \(|\alpha|^2 + |\beta|^2 = 1\).
                     </p>
                 </div>
                 <div>
                     <h3 class="text-xl font-medium text-[#58a6ff] mb-2">Superposition</h3>
                     <p>
-                        A qubit in superposition is like a spinning coin before it lands – it's both heads and tails until measured. The Hadamard gate (<span class="latex-inline">$H$</span>) is commonly used to create superposition from a basis state.
+                        A qubit in superposition is like a spinning coin before it lands – it's both heads and tails until measured. The Hadamard gate (\(H\)) is commonly used to create superposition from a basis state.
                     </p>
                 </div>
                 <div>
@@ -123,80 +113,96 @@
                 <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
                     <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.1 Pauli-X Gate (NOT Gate)</h3>
                     <p class="text-base text-[#8b949e]">
-                        The Pauli-X gate is the quantum equivalent of a classical NOT gate. It flips the state of a qubit: <span class="latex-inline">$|0\rangle \leftrightarrow |1\rangle$</span>. It rotates the qubit by <span class="latex-inline">$\pi$</span> radians around the X-axis on the Bloch sphere.
+                        The Pauli-X gate is the quantum equivalent of a classical NOT gate. It flips the state of a qubit: \(|0\rangle \leftrightarrow |1\rangle\). It rotates the qubit by \(\pi\) radians around the X-axis on the Bloch sphere.
                     </p>
-                    <pre class="latex-display">$$ X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} $$</pre>
-                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$X|0\rangle = |1\rangle$</span>, <span class="latex-inline">$X|1\rangle = |0\rangle$</span></p>
+                    <div class="text-center my-4">
+                        \[ X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} \]
+                    </div>
+                    <p class="text-sm text-[#8b949e]">Effect: \(X|0\rangle = |1\rangle\), \(X|1\rangle = |0\rangle\)</p>
                 </div>
 
                 <!-- Y Gate -->
                 <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
                     <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.2 Pauli-Y Gate</h3>
                     <p class="text-base text-[#8b949e]">
-                        The Pauli-Y gate rotates the qubit by <span class="latex-inline">$\pi$</span> radians around the Y-axis on the Bloch sphere. It flips the state and applies a phase shift.
+                        The Pauli-Y gate rotates the qubit by \(\pi\) radians around the Y-axis on the Bloch sphere. It flips the state and applies a phase shift.
                     </p>
-                    <pre class="latex-display">$$ Y = \begin{pmatrix} 0 & -i \\ i & 0 \end{pmatrix} $$</pre>
-                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$Y|0\rangle = i|1\rangle$</span>, <span class="latex-inline">$Y|1\rangle = -i|0\rangle$</span></p>
+                    <div class="text-center my-4">
+                        \[ Y = \begin{pmatrix} 0 & -i \\ i & 0 \end{pmatrix} \]
+                    </div>
+                    <p class="text-sm text-[#8b949e]">Effect: \(Y|0\rangle = i|1\rangle\), \(Y|1\rangle = -i|0\rangle\)</p>
                 </div>
 
                 <!-- Z Gate -->
                 <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
                     <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.3 Pauli-Z Gate</h3>
                     <p class="text-base text-[#8b949e]">
-                        The Pauli-Z gate applies a phase flip. It rotates the qubit by <span class="latex-inline">$\pi$</span> radians around the Z-axis on the Bloch sphere. <span class="latex-inline">$|0\rangle$</span> remains unchanged, while <span class="latex-inline">$|1\rangle$</span> gains a negative phase.
+                        The Pauli-Z gate applies a phase flip. It rotates the qubit by \(\pi\) radians around the Z-axis on the Bloch sphere. \(|0\rangle\) remains unchanged, while \(|1\rangle\) gains a negative phase.
                     </p>
-                    <pre class="latex-display">$$ Z = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix} $$</pre>
-                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$Z|0\rangle = |0\rangle$</span>, <span class="latex-inline">$Z|1\rangle = -|1\rangle$</span></p>
+                    <div class="text-center my-4">
+                        \[ Z = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix} \]
+                    </div>
+                    <p class="text-sm text-[#8b949e]">Effect: \(Z|0\rangle = |0\rangle\), \(Z|1\rangle = -|1\rangle\)</p>
                 </div>
 
                 <!-- Hadamard Gate -->
                 <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
                     <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.4 Hadamard Gate (H)</h3>
                     <p class="text-base text-[#8b949e]">
-                        The Hadamard gate creates a superposition. It transforms basis states into superpositions of <span class="latex-inline">$|0\rangle$</span> and <span class="latex-inline">$|1\rangle$</span>.
+                        The Hadamard gate creates a superposition. It transforms basis states into superpositions of \(|0\rangle\) and \(|1\rangle\).
                     </p>
-                    <pre class="latex-display">$$ H = \frac{1}{\sqrt{2}}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix} $$</pre>
-                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$H|0\rangle = |+\rangle$</span>, <span class="latex-inline">$H|1\rangle = |-\rangle$</span></p>
+                    <div class="text-center my-4">
+                        \[ H = \frac{1}{\sqrt{2}}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix} \]
+                    </div>
+                    <p class="text-sm text-[#8b949e]">Effect: \(H|0\rangle = |+\rangle\), \(H|1\rangle = |-\rangle\)</p>
                 </div>
 
                 <!-- S Gate (Phase Gate) -->
                 <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
                     <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.5 S Gate (Phase Gate)</h3>
                     <p class="text-base text-[#8b949e]">
-                        The S gate applies a <span class="latex-inline">$\pi/2$</span> (90-degree) phase shift to the <span class="latex-inline">$|1\rangle$</span> component of a qubit. It rotates the qubit by <span class="latex-inline">$\pi/2$</span> radians around the Z-axis on the Bloch sphere.
+                        The S gate applies a \(\pi/2\) (90-degree) phase shift to the \(|1\rangle\) component of a qubit. It rotates the qubit by \(\pi/2\) radians around the Z-axis on the Bloch sphere.
                     </p>
-                    <pre class="latex-display">$$ S = \begin{pmatrix} 1 & 0 \\ 0 & i \end{pmatrix} $$</pre>
-                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$S|0\rangle = |0\rangle$</span>, <span class="latex-inline">$S|1\rangle = i|1\rangle$</span></p>
+                    <div class="text-center my-4">
+                        \[ S = \begin{pmatrix} 1 & 0 \\ 0 & i \end{pmatrix} \]
+                    </div>
+                    <p class="text-sm text-[#8b949e]">Effect: \(S|0\rangle = |0\rangle\), \(S|1\rangle = i|1\rangle\)</p>
                 </div>
 
                 <!-- T Gate (Pi/8 Gate) -->
                 <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
-                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.6 T Gate (<span class="latex-inline">$\pi/8$</span> Gate)</h3>
+                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.6 T Gate (\(\pi/8\) Gate)</h3>
                     <p class="text-base text-[#8b949e]">
-                        The T gate applies a <span class="latex-inline">$\pi/4$</span> (45-degree) phase shift to the <span class="latex-inline">$|1\rangle$</span> component. It's a fundamental gate for universal quantum computation.
+                        The T gate applies a \(\pi/4\) (45-degree) phase shift to the \(|1\rangle\) component. It's a fundamental gate for universal quantum computation.
                     </p>
-                    <pre class="latex-display">$$ T = \begin{pmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{pmatrix} $$</pre>
-                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$T|0\rangle = |0\rangle$</span>, <span class="latex-inline">$T|1\rangle = e^{i\pi/4}|1\rangle$</span></p>
+                    <div class="text-center my-4">
+                        \[ T = \begin{pmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{pmatrix} \]
+                    </div>
+                    <p class="text-sm text-[#8b949e]">Effect: \(T|0\rangle = |0\rangle\), \(T|1\rangle = e^{i\pi/4}|1\rangle\)</p>
                 </div>
 
                 <!-- CNOT Gate (Controlled-NOT) -->
                 <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
                     <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.7 CNOT Gate (Controlled-NOT)</h3>
                     <p class="text-base text-[#8b949e]">
-                        The CNOT gate operates on two qubits: a control qubit and a target qubit. It flips the target qubit **if and only if** the control qubit is in the <span class="latex-inline">$|1\rangle$</span> state. Otherwise, the target qubit remains unchanged.
+                        The CNOT gate operates on two qubits: a control qubit and a target qubit. It flips the target qubit **if and only if** the control qubit is in the \(|1\rangle\) state. Otherwise, the target qubit remains unchanged.
                     </p>
-                    <pre class="latex-display">$$ CNOT = \begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{pmatrix} $$</pre>
-                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$CNOT|00\rangle = |00\rangle$</span>, <span class="latex-inline">$CNOT|01\rangle = |01\rangle$</span>, <span class="latex-inline">$CNOT|10\rangle = |11\rangle$</span>, <span class="latex-inline">$CNOT|11\rangle = |10\rangle$</span></p>
+                    <div class="text-center my-4">
+                        \[ CNOT = \begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{pmatrix} \]
+                    </div>
+                    <p class="text-sm text-[#8b949e]">Effect: \(CNOT|00\rangle = |00\rangle\), \(CNOT|01\rangle = |01\rangle\), \(CNOT|10\rangle = |11\rangle\), \(CNOT|11\rangle = |10\rangle\)</p>
                 </div>
 
                 <!-- CCNOT Gate (Toffoli Gate) -->
                 <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
                     <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.8 CCNOT Gate (Toffoli Gate)</h3>
                     <p class="text-base text-[#8b949e]">
-                        The CCNOT gate, or Toffoli gate, is a three-qubit gate with two control qubits and one target qubit. It flips the target qubit **if and only if** *both* control qubits are in the <span class="latex-inline">$|1\rangle$</span> state. Otherwise, the target qubit remains unchanged. It is a universal classical logic gate.
+                        The CCNOT gate, or Toffoli gate, is a three-qubit gate with two control qubits and one target qubit. It flips the target qubit **if and only if** *both* control qubits are in the \(|1\rangle\) state. Otherwise, the target qubit remains unchanged. It is a universal classical logic gate.
                     </p>
-                    <pre class="latex-display">$$ CCNOT = \begin{pmatrix} 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\ 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \end{pmatrix} $$</pre>
-                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$CCNOT|000\rangle = |000\rangle$</span>, <span class="latex-inline">$CCNOT|001\rangle = |001\rangle$</span>, <span class="latex-inline">$CCNOT|010\rangle = |010\rangle$</span>, <span class="latex-inline">$CCNOT|011\rangle = |011\rangle$</span>, <span class="latex-inline">$CCNOT|100\rangle = |100\rangle$</span>, <span class="latex-inline">$CCNOT|101\rangle = |101\rangle$</span>, <span class="latex-inline">$CCNOT|110\rangle = |111\rangle$</span>, <span class="latex-inline">$CCNOT|111\rangle = |110\rangle$</span></p>
+                    <div class="text-center my-4">
+                        \[ CCNOT = \begin{pmatrix} 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\ 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \end{pmatrix} \]
+                    </div>
+                    <p class="text-sm text-[#8b949e]">Effect: \(CCNOT|000\rangle = |000\rangle\), \(CCNOT|001\rangle = |001\rangle\), \(CCNOT|010\rangle = |010\rangle\), \(CCNOT|011\rangle = |011\rangle\), \(CCNOT|100\rangle = |100\rangle\), \(CCNOT|101\rangle = |101\rangle\), \(CCNOT|110\rangle = |111\rangle\), \(CCNOT|111\rangle = |110\rangle\)</p>
                 </div>
             </div>
         </section>
