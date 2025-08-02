@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qubit Quest: Documentation</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Dark background similar to GitHub Dark */
+            color: #c9d1d9; /* Light grey text */
+        }
+        .latex-display {
+            display: block;
+            text-align: center;
+            margin: 1.5rem 0;
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 500; /* font-medium */
+            line-height: 1.5;
+            color: #58a6ff; /* A blue for equations */
+        }
+        .latex-inline {
+            font-family: 'Inter', sans-serif; /* Ensure font consistency */
+            font-size: 1rem; /* text-base */
+            font-weight: 500; /* font-medium */
+            color: #58a6ff; /* A blue for equations */
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #161b22;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 10px;
+            border: 2px solid #161b22;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444c56;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8 lg:p-10">
+
+    <div class="max-w-4xl mx-auto bg-[#161b22] p-6 sm:p-8 md:p-10 rounded-lg shadow-xl border border-[#30363d]">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl sm:text-4xl font-bold text-[#58a6ff] mb-2">Qubit Quest: Documentation</h1>
+            <p class="text-md sm:text-lg text-[#8b949e]">Your guide to building and understanding quantum circuits.</p>
+        </header>
+
+        <section id="introduction" class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d]">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">1. Introduction</h2>
+            <p class="text-base leading-relaxed text-[#8b949e] mb-4">
+                Welcome to the Qubit Quest documentation! This app provides an interactive and intuitive platform to explore the fascinating world of quantum computing. Whether you're a beginner curious about qubits or a student looking to visualize quantum gates, this guide will help you navigate the app and understand the underlying principles.
+            </p>
+            <p class="text-base leading-relaxed text-[#8b949e]">
+                In this documentation, you'll find explanations of core quantum concepts, a detailed reference for all available quantum gates, and instructions on how to use the circuit composer to build and simulate your own quantum circuits.
+            </p>
+        </section>
+
+        <section id="getting-started" class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d]">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">2. Getting Started</h2>
+            <p class="text-base leading-relaxed text-[#8b949e] mb-4">
+                Upon launching the app, you'll be greeted by the home screen. Here are your main options:
+            </p>
+            <ul class="list-disc list-inside text-base text-[#8b949e] space-y-2">
+                <li><strong>Start/Continue:</strong> Dive directly into the quantum circuit composer or resume your last session.</li>
+                <li><strong>Multi-Level Select:</strong> Choose from a series of curated levels designed to teach quantum concepts step-by-step.</li>
+                <li><strong>Documentation:</strong> (You are here!) Access this comprehensive guide.</li>
+                <li><strong>Rate Us:</strong> Share your feedback and support the app.</li>
+                <li><strong>Privacy Policy:</strong> Understand how your data is handled.</li>
+                <li><strong>About:</strong> Learn more about the app and its creators.</li>
+            </ul>
+            <p class="text-base leading-relaxed text-[#8b949e] mt-4">
+                To begin composing circuits, select "Start/Continue" or choose a level from "Multi-Level Select."
+            </p>
+        </section>
+
+        <section id="core-concepts" class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d]">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">3. Core Quantum Concepts</h2>
+            <div class="space-y-6 text-base text-[#8b949e]">
+                <div>
+                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">Qubits</h3>
+                    <p>
+                        Unlike classical bits that are either 0 or 1, a quantum bit (qubit) can exist in a superposition of both states simultaneously. This is represented as a linear combination of the basis states <span class="latex-inline">$|0\rangle$</span> and <span class="latex-inline">$|1\rangle$</span>:
+                    </p>
+                    <pre class="latex-display">$$ |\psi\rangle = \alpha|0\rangle + \beta|1\rangle $$</pre>
+                    <p>
+                        where <span class="latex-inline">$\alpha$</span> and <span class="latex-inline">$\beta$</span> are complex probability amplitudes, and <span class="latex-inline">$|\alpha|^2 + |\beta|^2 = 1$</span>.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">Superposition</h3>
+                    <p>
+                        A qubit in superposition is like a spinning coin before it lands – it's both heads and tails until measured. The Hadamard gate (<span class="latex-inline">$H$</span>) is commonly used to create superposition from a basis state.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">Entanglement</h3>
+                    <p>
+                        When two or more qubits become entangled, their fates are linked, regardless of the distance between them. Measuring one entangled qubit instantly influences the state of the others. The CNOT gate is key to creating entanglement.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="gate-reference" class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d]">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">4. Quantum Gate Reference</h2>
+            <p class="text-base leading-relaxed text-[#8b949e] mb-6">
+                Quantum gates are the building blocks of quantum circuits, performing operations on qubits. Here's a reference for the gates available in the circuit composer:
+            </p>
+
+            <div class="space-y-8">
+                <!-- X Gate -->
+                <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
+                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.1 Pauli-X Gate (NOT Gate)</h3>
+                    <p class="text-base text-[#8b949e]">
+                        The Pauli-X gate is the quantum equivalent of a classical NOT gate. It flips the state of a qubit: <span class="latex-inline">$|0\rangle \leftrightarrow |1\rangle$</span>. It rotates the qubit by <span class="latex-inline">$\pi$</span> radians around the X-axis on the Bloch sphere.
+                    </p>
+                    <pre class="latex-display">$$ X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} $$</pre>
+                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$X|0\rangle = |1\rangle$</span>, <span class="latex-inline">$X|1\rangle = |0\rangle$</span></p>
+                </div>
+
+                <!-- Y Gate -->
+                <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
+                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.2 Pauli-Y Gate</h3>
+                    <p class="text-base text-[#8b949e]">
+                        The Pauli-Y gate rotates the qubit by <span class="latex-inline">$\pi$</span> radians around the Y-axis on the Bloch sphere. It flips the state and applies a phase shift.
+                    </p>
+                    <pre class="latex-display">$$ Y = \begin{pmatrix} 0 & -i \\ i & 0 \end{pmatrix} $$</pre>
+                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$Y|0\rangle = i|1\rangle$</span>, <span class="latex-inline">$Y|1\rangle = -i|0\rangle$</span></p>
+                </div>
+
+                <!-- Z Gate -->
+                <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
+                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.3 Pauli-Z Gate</h3>
+                    <p class="text-base text-[#8b949e]">
+                        The Pauli-Z gate applies a phase flip. It rotates the qubit by <span class="latex-inline">$\pi$</span> radians around the Z-axis on the Bloch sphere. <span class="latex-inline">$|0\rangle$</span> remains unchanged, while <span class="latex-inline">$|1\rangle$</span> gains a negative phase.
+                    </p>
+                    <pre class="latex-display">$$ Z = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix} $$</pre>
+                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$Z|0\rangle = |0\rangle$</span>, <span class="latex-inline">$Z|1\rangle = -|1\rangle$</span></p>
+                </div>
+
+                <!-- Hadamard Gate -->
+                <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
+                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.4 Hadamard Gate (H)</h3>
+                    <p class="text-base text-[#8b949e]">
+                        The Hadamard gate creates a superposition. It transforms basis states into superpositions of <span class="latex-inline">$|0\rangle$</span> and <span class="latex-inline">$|1\rangle$</span>.
+                    </p>
+                    <pre class="latex-display">$$ H = \frac{1}{\sqrt{2}}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix} $$</pre>
+                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$H|0\rangle = |+\rangle$</span>, <span class="latex-inline">$H|1\rangle = |-\rangle$</span></p>
+                </div>
+
+                <!-- S Gate (Phase Gate) -->
+                <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
+                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.5 S Gate (Phase Gate)</h3>
+                    <p class="text-base text-[#8b949e]">
+                        The S gate applies a <span class="latex-inline">$\pi/2$</span> (90-degree) phase shift to the <span class="latex-inline">$|1\rangle$</span> component of a qubit. It rotates the qubit by <span class="latex-inline">$\pi/2$</span> radians around the Z-axis on the Bloch sphere.
+                    </p>
+                    <pre class="latex-display">$$ S = \begin{pmatrix} 1 & 0 \\ 0 & i \end{pmatrix} $$</pre>
+                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$S|0\rangle = |0\rangle$</span>, <span class="latex-inline">$S|1\rangle = i|1\rangle$</span></p>
+                </div>
+
+                <!-- T Gate (Pi/8 Gate) -->
+                <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
+                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.6 T Gate (<span class="latex-inline">$\pi/8$</span> Gate)</h3>
+                    <p class="text-base text-[#8b949e]">
+                        The T gate applies a <span class="latex-inline">$\pi/4$</span> (45-degree) phase shift to the <span class="latex-inline">$|1\rangle$</span> component. It's a fundamental gate for universal quantum computation.
+                    </p>
+                    <pre class="latex-display">$$ T = \begin{pmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{pmatrix} $$</pre>
+                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$T|0\rangle = |0\rangle$</span>, <span class="latex-inline">$T|1\rangle = e^{i\pi/4}|1\rangle$</span></p>
+                </div>
+
+                <!-- CNOT Gate (Controlled-NOT) -->
+                <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
+                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.7 CNOT Gate (Controlled-NOT)</h3>
+                    <p class="text-base text-[#8b949e]">
+                        The CNOT gate operates on two qubits: a control qubit and a target qubit. It flips the target qubit **if and only if** the control qubit is in the <span class="latex-inline">$|1\rangle$</span> state. Otherwise, the target qubit remains unchanged.
+                    </p>
+                    <pre class="latex-display">$$ CNOT = \begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{pmatrix} $$</pre>
+                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$CNOT|00\rangle = |00\rangle$</span>, <span class="latex-inline">$CNOT|01\rangle = |01\rangle$</span>, <span class="latex-inline">$CNOT|10\rangle = |11\rangle$</span>, <span class="latex-inline">$CNOT|11\rangle = |10\rangle$</span></p>
+                </div>
+
+                <!-- CCNOT Gate (Toffoli Gate) -->
+                <div class="p-4 bg-[#161b22] rounded-lg border border-[#30363d]">
+                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">4.8 CCNOT Gate (Toffoli Gate)</h3>
+                    <p class="text-base text-[#8b949e]">
+                        The CCNOT gate, or Toffoli gate, is a three-qubit gate with two control qubits and one target qubit. It flips the target qubit **if and only if** *both* control qubits are in the <span class="latex-inline">$|1\rangle$</span> state. Otherwise, the target qubit remains unchanged. It is a universal classical logic gate.
+                    </p>
+                    <pre class="latex-display">$$ CCNOT = \begin{pmatrix} 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\ 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \end{pmatrix} $$</pre>
+                    <p class="text-sm text-[#8b949e]">Effect: <span class="latex-inline">$CCNOT|000\rangle = |000\rangle$</span>, <span class="latex-inline">$CCNOT|001\rangle = |001\rangle$</span>, <span class="latex-inline">$CCNOT|010\rangle = |010\rangle$</span>, <span class="latex-inline">$CCNOT|011\rangle = |011\rangle$</span>, <span class="latex-inline">$CCNOT|100\rangle = |100\rangle$</span>, <span class="latex-inline">$CCNOT|101\rangle = |101\rangle$</span>, <span class="latex-inline">$CCNOT|110\rangle = |111\rangle$</span>, <span class="latex-inline">$CCNOT|111\rangle = |110\rangle$</span></p>
+                </div>
+            </div>
+        </section>
+
+        <section id="circuit-composer" class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d]">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">5. Using the Circuit Composer</h2>
+            <p class="text-base leading-relaxed text-[#8b949e] mb-4">
+                The circuit composer allows you to build circuits by dragging and dropping gates onto qubit lines.
+            </p>
+            <ul class="list-disc list-inside text-base text-[#8b949e] space-y-2">
+                <li><strong>Drag & Drop:</strong> Select a gate from the "Add/Remove Gates" panel and drag it onto the desired qubit line at any available column.</li>
+                <li><strong>Multi-Qubit Gates:</strong> For gates like CNOT and CCNOT, a dialog will appear prompting you to select control and target qubits after dropping the gate.</li>
+                <li><strong>Remove Gates:</strong> Drag the "Delete" icon onto an existing gate to remove it from the circuit.</li>
+                <li><strong>Visualize State:</strong> As you add gates, the quantum state vector and Bloch sphere visualization will update in real-time, showing the effect of your circuit.</li>
+                <li><strong>Reset:</strong> Use the reset option to clear your circuit and start over.</li>
+            </ul>
+        </section>
+
+        <section id="levels-challenges" class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d]">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">6. Levels and Challenges</h2>
+            <p class="text-base leading-relaxed text-[#8b949e] mb-4">
+                The app features a multi-level challenge mode designed to progressively teach you quantum computing concepts. Each level presents a specific task: transform an initial quantum state into a target state using a limited set of available gates.
+            </p>
+            <ul class="list-disc list-inside text-base text-[#8b949e] space-y-2">
+                <li><strong>Task Description:</strong> Clearly states the goal for the level, often including the initial and target states.</li>
+                <li><strong>Available Gates:</strong> Only a subset of gates will be available for each level, encouraging you to think strategically.</li>
+                <li><strong>Solution Validation:</strong> Your circuit will be automatically checked against the target state.</li>
+                <li><strong>Pre-inserted Gates:</strong> Some advanced levels might start with pre-configured gates to set up a specific initial scenario.</li>
+            </ul>
+        </section>
+
+        <section id="tips-tricks" class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d]">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">7. Tips & Tricks</h2>
+            <ul class="list-disc list-inside text-base text-[#8b949e] space-y-2">
+                <li>Experiment! Don't be afraid to try different gate combinations.</li>
+                <li>Pay attention to the Bloch Sphere and state vector updates – they provide crucial visual feedback.</li>
+                <li>For multi-qubit gates, remember the control and target qubit roles.</li>
+                <li>Review the gate reference often if you forget a gate's exact effect.</li>
+            </ul>
+        </section>
+
+        <section id="troubleshooting-faq" class="p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d]">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">8. Troubleshooting & FAQ</h2>
+            <div class="space-y-4 text-base text-[#8b949e]">
+                <div>
+                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">Q: My gates aren't affecting the state!</h3>
+                    <p>A: Ensure you've placed them on the correct qubit line and in an empty column. For multi-qubit gates, verify your control and target selections.</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">Q: The app seems slow or unresponsive.</h3>
+                    <p>A: Try restarting the app. For complex circuits with many qubits and gates, performance might be affected on older devices.</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-medium text-[#58a6ff] mb-2">Q: How do I know if my solution is correct?</h3>
+                    <p>A: The app will typically provide a "Success!" or "Level Complete" message when your circuit's final state matches the target state.</p>
+                </div>
+            </div>
+        </section>
+
+        <footer class="mt-10 text-center text-sm text-[#8b949e] pt-6 border-t border-[#30363d]">
+            <p>&copy; 2025 Qubit Quest App. All rights reserved.</p>
+        </footer>
+    </div>
+
+</body>
+</html>
