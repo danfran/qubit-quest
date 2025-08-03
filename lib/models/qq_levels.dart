@@ -90,6 +90,20 @@ final List<QQLevel> allQQLevels = [
     availableGates: [SelectedGateType.hadamard, SelectedGateType.z, SelectedGateType.y, SelectedGateType.x],
     solutionFinalVector: [[Complex(sqrt1_2, 0)], [Complex(-sqrt1_2, 0)]], // Target: |-> state (H then Z)
   ),
+  // H(1) + X(0)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |00\rangle \), create the product state \( |+\rangle \otimes |1\rangle = (|01\rangle + |11\rangle)/\sqrt{2} \).",
+    numQubits: 2,
+    initialQubitsStateString: "00",
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.x, SelectedGateType.z],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex(sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex(sqrt1_2, 0)],
+    ], // Target: (1/sqrt(2))|01> + (1/sqrt(2))|11> (Solution: H on Q0, X on Q1, CNOT(0,1))
+  ),
   // H + S + Z
   QQLevel.fromBinaryString(
     type: "composer",
@@ -121,6 +135,20 @@ final List<QQLevel> allQQLevels = [
     initialQubitsStateString: "0",
     availableGates: [SelectedGateType.hadamard, SelectedGateType.t, SelectedGateType.s, SelectedGateType.z, SelectedGateType.y],
     solutionFinalVector: [[Complex(sqrt1_2, 0)], [Complex(0.5, -0.5)]], // Target: HZ T |0> (HT then Z) or (H then T.conjugate())
+  ),
+  // CX(1,0)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"Transform \( |01\rangle \) to \( |11\rangle \).",
+    numQubits: 2,
+    initialQubitsStateString: "01",
+    availableGates: [SelectedGateType.cnot, SelectedGateType.y],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()], // |11>
+      [Complex.one()],
+    ], // Target: |11> (CNOT_10 |01> = |11>)
   ),
   // CX (0,2)
   QQLevel.fromBinaryString(
@@ -173,6 +201,102 @@ final List<QQLevel> allQQLevels = [
       [Complex(sqrt1_2, 0)],
       [Complex.zero()],
     ], // Target: (1/sqrt(2))|01> + (1/sqrt(2))|10>
+  ),
+  // (H + CX) + H + CX
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"Time for disentangling Bell State. Can you reverse the process to get back to \( |00\rangle \)?",
+    numQubits: 2,
+    initialQubitsStateString: "00",
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.x, SelectedGateType.y, SelectedGateType.cnot],
+    preInsertedGates: (QuantumCircuit circuit) {
+      circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0, isDeletable: false);
+      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 1, 1, 0, isDeletable: false);
+    },
+    solutionFinalVector: [
+      [Complex.one()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+    ], // Target: |00>
+  ),
+  // H + CX + Z(1)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |00\rangle \), create the Bell state \( |\Psi^-\rangle = (|01\rangle - |10\rangle)/\sqrt{2} \).",
+    numQubits: 2,
+    initialQubitsStateString: "10",
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.z, SelectedGateType.y],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex(sqrt1_2, 0)],
+      [Complex(-sqrt1_2, 0)],
+      [Complex.zero()],
+    ], // Target: (1/sqrt(2))|01> - (1/sqrt(2))|10> (Solution: H on Q0, CNOT(0,1), Z on Q0)
+  ),
+  // (H + CX + Z) + Z + CX + H
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"This circuit is pre-configured to \( |\Psi^-\rangle \). Your task is to transform this state back to \( |00\rangle \).",
+    numQubits: 2,
+    initialQubitsStateString: "00", // The simulation starts from |00>
+    preInsertedGates: (QuantumCircuit circuit) {
+      circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0, isDeletable: false);
+      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 1, 1, 0, isDeletable: false);
+      circuit.insertSinglePlacedGateAt(SelectedGateType.z, 2, 0, isDeletable: false);
+    },
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.z, SelectedGateType.x],
+    solutionFinalVector: [
+      [Complex.one()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+    ], // Target: |00> (Solution: Z on Q0, CNOT(0,1), H on Q0 to reverse)
+  ),
+  // CX(0,1) +  CX(1,0) + CX(0,1)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |10\rangle \), swap the states of the two qubits to achieve \( |01\rangle \). This can be done using only CX gates.",
+    numQubits: 2,
+    initialQubitsStateString: "10",
+    availableGates: [SelectedGateType.cnot], // Only CNOTs
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()],
+      [Complex.zero()],
+      [Complex.zero()],
+    ], // Target: |01> (Solution: CNOT(0,1), CNOT(1,0), CNOT(0,1))
+  ),
+  // H(1) + CX(0,1) + H(1)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |00\rangle \), flip the phase of \( |11\rangle \).",
+    numQubits: 2,
+    initialQubitsStateString: "00",
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.y],
+    solutionFinalVector: [
+      [Complex.one()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+    ], // Target: |00> (CZ|00> = |00>) (Solution: H on Q1, CNOT(0,1), H on Q1)
+  ),
+
+  // Level 23: Mixed Operations (H, X, CNOT)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |00\rangle \), create the Bell state \( |\Psi^+\rangle = (|01\rangle + |10\rangle)/\sqrt{2} \).",
+    numQubits: 2,
+    initialQubitsStateString: "00",
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.x, SelectedGateType.y, SelectedGateType.cnot],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex(sqrt1_2, 0)],
+      [Complex(sqrt1_2, 0)],
+      [Complex.zero()],
+    ], // Target: (1/sqrt(2))|01> + (1/sqrt(2))|10> (Psi+ Bell state)
+    // Solution: H on Q0, X on Q1, CNOT(0,1)
+    // |00> -> H0 -> (1/sqrt2)(|00> + |10>) -> X1 -> (1/sqrt2)(|01> + |11>) -> CNOT01 -> (1/sqrt2)(|01> + |10>)
   ),
 ];
 

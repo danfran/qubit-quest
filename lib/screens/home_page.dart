@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
-import 'package:quantumquiz/widgets/webview_page.dart';
+import 'package:quantumquiz/screens/webview_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
