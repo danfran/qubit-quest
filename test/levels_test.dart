@@ -130,6 +130,12 @@ void main() {
         circuit.insertSinglePlacedGateAt(SelectedGateType.x, 0, 1);
         circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 1, 1, 0);
       },
+      (QuantumCircuit circuit) { // to check if double solution present
+        circuit.insertSinglePlacedGateAt(SelectedGateType.x, 0, 1);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
+        circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 1, 1, 0);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.z, 2, 0);
+      },
     ];
 
     for (int i = 1; i <= tests.length; i++) {

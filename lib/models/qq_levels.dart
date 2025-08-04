@@ -281,8 +281,7 @@ final List<QQLevel> allQQLevels = [
       [Complex.zero()],
     ], // Target: |00> (CZ|00> = |00>) (Solution: H on Q1, CNOT(0,1), H on Q1)
   ),
-
-  // Level 23: Mixed Operations (H, X, CNOT)
+  // H(0) + X(1) + CX(0,1)
   QQLevel.fromBinaryString(
     type: "composer",
     taskDescription: r"From \( |00\rangle \), create the Bell state \( |\Psi^+\rangle = (|01\rangle + |10\rangle)/\sqrt{2} \).",
@@ -295,9 +294,213 @@ final List<QQLevel> allQQLevels = [
       [Complex(sqrt1_2, 0)],
       [Complex.zero()],
     ], // Target: (1/sqrt(2))|01> + (1/sqrt(2))|10> (Psi+ Bell state)
-    // Solution: H on Q0, X on Q1, CNOT(0,1)
-    // |00> -> H0 -> (1/sqrt2)(|00> + |10>) -> X1 -> (1/sqrt2)(|01> + |11>) -> CNOT01 -> (1/sqrt2)(|01> + |10>)
   ),
+  // X(1) + H(0) + CX(0,1) + Z(0)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |10\rangle \), create the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle) \)/\sqrt{2}.",
+    numQubits: 2,
+    initialQubitsStateString: "10",
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.x, SelectedGateType.z],
+    solutionFinalVector: [
+      [Complex(sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(-sqrt1_2, 0)],
+    ], // Target: (1/sqrt(2))|00> - (1/sqrt(2))|11>
+    // Solution: X on Q0, H on Q0, CNOT(0,1), Z on Q0. Or simpler: H on Q1, CNOT(0,1), Z on Q1, X on Q0
+  ),
+
+  // Level 25: Controlled-X (another application)
+  // QQLevel.fromBinaryString(
+  //   type: "composer",
+  //   taskDescription: r"From \( |11\rangle \), apply a CNOT gate with qubit 0 as control and qubit 1 as target. Then, apply an X gate to qubit 0. What is the final state?",
+  //   numQubits: 2,
+  //   initialQubitsStateString: "11",
+  //   availableGates: [SelectedGateType.cnot, SelectedGateType.x],
+  //   solutionFinalVector: [
+  //     [Complex.zero()],
+  //     [Complex.one()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //   ], // Target: |01>
+    // Solution: CNOT(0,1), X on Q0
+    // |11> -> CNOT(0,1) -> |10> -> X on Q0 -> |00> (Wait, this is |00>, not |01>)
+    // Let's re-evaluate the target for this task.
+    // If |11> -> CNOT(0,1) -> |10> -> X on Q0 -> |00>
+    // If task is to reach |01>, then from |00> it's just X on Q1.
+    // Let's make it a transformation to |00>
+    // Task: r"From \( |11\rangle \), apply a CNOT gate with qubit 0 as control and qubit 1 as target. Then, apply an X gate to qubit 0. What is the final state?"
+    // Solution: CNOT(0,1), X on Q0
+    // Target: |00>
+    // `solutionFinalVector: [[Complex.one()], [Complex.zero()], [Complex.zero()], [Complex.zero()]]`
+  // ),
+
+  // // Level 26: Swap with pre-inserted gates (Part 1 of 3 CNOTs)
+  // QQLevel.fromBinaryString(
+  //   type: "composer",
+  //   taskDescription: r"This circuit is pre-configured with the first CNOT of a qubit swap. Complete the swap of qubits 0 and 1, so \( |01\rangle \) becomes \( |10\rangle \).",
+  //   numQubits: 2,
+  //   initialQubitsStateString: "01",
+  //   preInsertedGates: [
+  //     [ // Qubit 0 line
+  //       PlacedQuantumGate(type: SelectedGateType.cnot, qubitIndex: 0, column: 0, controlQubitIndex: 0, targetQubitIndex: 1),
+  //     ],
+  //     [ // Qubit 1 line
+  //       PlacedQuantumGate(type: SelectedGateType.cnot, qubitIndex: 1, column: 0, controlQubitIndex: 0, targetQubitIndex: 1),
+  //     ]
+  //   ],
+  //   availableGates: [SelectedGateType.cnot],
+  //   solutionFinalVector: [
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.one()],
+  //     [Complex.zero()],
+  //   ], // Target: |10> (Solution: CNOT(1,0), CNOT(0,1) after pre-inserted CNOT(0,1))
+  // ),
+  //
+  // // --- Start of Phase 3: Three-Qubit & Toffoli (CCNOT) ---
+  //
+  // // Level 31: CCNOT with different controls/target
+  // QQLevel.fromBinaryString(
+  //   type: "composer",
+  //   taskDescription: r"From \( |000\rangle \), apply a Toffoli gate where Qubit 1 and Qubit 2 are controls, and Qubit 0 is the target. What is the final state?",
+  //   numQubits: 3,
+  //   initialQubitsStateString: "000",
+  //   availableGates: [SelectedGateType.ccnot],
+  //   solutionFinalVector: [
+  //     [Complex.one()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //   ], // Target: |000> (no change, as controls are not |11>)
+  // ),
+  //
+  // // Level 32: Building AND gate (classical logic)
+  // QQLevel.fromBinaryString(
+  //   type: "composer",
+  //   taskDescription: r"You have two input qubits (Q0, Q1) and an ancilla qubit (Q2) initialized to \( |0\rangle \). Use a Toffoli gate to compute the logical AND of Q0 and Q1, storing the result on Q2. Start with \( |110\rangle \).",
+  //   numQubits: 3,
+  //   initialQubitsStateString: "110",
+  //   availableGates: [SelectedGateType.ccnot],
+  //   solutionFinalVector: [
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.one()],
+  //   ], // Target: |111> (1 AND 1 = 1, stored on Q2)
+  // ),
+  //
+  // // Level 33: Building XOR gate (classical logic with CNOT)
+  // QQLevel.fromBinaryString(
+  //   type: "composer",
+  //   taskDescription: r"You have two input qubits (Q0, Q1) and an ancilla qubit (Q2) initialized to \( |0\rangle \). Use CNOT gates to compute the logical XOR of Q0 and Q1, storing the result on Q2. Start with \( |100\rangle \).",
+  //   numQubits: 3,
+  //   initialQubitsStateString: "100",
+  //   availableGates: [SelectedGateType.cnot],
+  //   solutionFinalVector: [
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.one()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //   ], // Target: |101> (1 XOR 0 = 1, stored on Q2)
+  //   // Solution: CNOT(0,2), CNOT(1,2)
+  // ),
+  //
+  // // Level 34: 3-qubit state transformation (complex)
+  // QQLevel.fromBinaryString(
+  //   type: "composer",
+  //   taskDescription: r"Transform \( |010\rangle \) to \( |111\rangle \). This requires a careful sequence of gates.",
+  //   numQubits: 3,
+  //   initialQubitsStateString: "010",
+  //   availableGates: [SelectedGateType.x, SelectedGateType.cnot, SelectedGateType.ccnot, SelectedGateType.hadamard],
+  //   solutionFinalVector: [
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.one()],
+  //   ], // Target: |111>
+  //   // Solution: X on Q0, CNOT(0,1), CNOT(1,2)
+  // ),
+  //
+  // // Level 35: GHZ state manipulation (applying X)
+  // QQLevel.fromBinaryString(
+  //   type: "composer",
+  //   taskDescription: r"This circuit is pre-configured to the GHZ state \( \frac{1}{\sqrt{2}}(|000\rangle + |111\rangle) \). Apply a single X gate to Qubit 0. What is the final state?",
+  //   numQubits: 3,
+  //   initialQubitsStateString: "000", // Base for pre-inserted gates
+  //   preInsertedGates: [
+  //     [ // Qubit 0 line
+  //       PlacedQuantumGate(type: SelectedGateType.hadamard, qubitIndex: 0, column: 0),
+  //       PlacedQuantumGate(type: SelectedGateType.cnot, qubitIndex: 0, column: 1, controlQubitIndex: 0, targetQubitIndex: 1),
+  //     ],
+  //     [ // Qubit 1 line
+  //       PlacedQuantumGate(type: SelectedGateType.cnot, qubitIndex: 1, column: 1, controlQubitIndex: 0, targetQubitIndex: 1),
+  //       PlacedQuantumGate(type: SelectedGateType.cnot, qubitIndex: 1, column: 2, controlQubitIndex: 1, targetQubitIndex: 2),
+  //     ],
+  //     [ // Qubit 2 line
+  //       PlacedQuantumGate(type: SelectedGateType.cnot, qubitIndex: 2, column: 2, controlQubitIndex: 1, targetQubitIndex: 2),
+  //     ]
+  //   ],
+  //   availableGates: [SelectedGateType.x],
+  //   solutionFinalVector: [
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex(sqrt1_2, 0)],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex(sqrt1_2, 0)],
+  //   ], // Target: (1/sqrt(2))(|100> + |011>)
+  //   // Solution: X on Q0
+  // ),
+  //
+  // // Level 36: Reversing CCNOT operation
+  // QQLevel.fromBinaryString(
+  //   type: "composer",
+  //   taskDescription: r"This circuit is pre-configured with a state that resulted from applying a Toffoli gate to \( |110\rangle \). Transform this state back to \( |110\rangle \).",
+  //   numQubits: 3,
+  //   initialQubitsStateString: "110", // Base for pre-inserted gates
+  //   preInsertedGates: [
+  //     [ // Qubit 0 line
+  //       PlacedQuantumGate(type: SelectedGateType.ccnot, qubitIndex: 0, column: 0, controlQubitIndex: 0, control2QubitIndex: 1, targetQubitIndex: 2),
+  //     ],
+  //     [ // Qubit 1 line
+  //       PlacedQuantumGate(type: SelectedGateType.ccnot, qubitIndex: 1, column: 0, controlQubitIndex: 0, control2QubitIndex: 1, targetQubitIndex: 2),
+  //     ],
+  //     [ // Qubit 2 line
+  //       PlacedQuantumGate(type: SelectedGateType.ccnot, qubitIndex: 2, column: 0, controlQubitIndex: 0, control2QubitIndex: 1, targetQubitIndex: 2),
+  //     ]
+  //   ],
+  //   availableGates: [SelectedGateType.ccnot],
+  //   solutionFinalVector: [
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.one()],
+  //     [Complex.zero()],
+  //   ], // Target: |110> (Solution: Apply CCNOT again)
+  // ),
 ];
 
 int numberOfLevels = allQQLevels.length;
