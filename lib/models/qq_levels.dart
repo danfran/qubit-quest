@@ -162,6 +162,20 @@ final List<QQLevel> allQQLevels = [
       [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
     ],
   ),
+  // CX(0,1) + X(0)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |11\rangle \), transform the state to \( |00\rangle \).",
+    numQubits: 2,
+    initialQubitsStateString: "11",
+    availableGates: [SelectedGateType.cnot, SelectedGateType.x],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ], // Target: |01>
+  ),
   // CCX (1,0,2)
   QQLevel.fromBinaryString(
     type: "composer",
@@ -310,31 +324,6 @@ final List<QQLevel> allQQLevels = [
     ], // Target: (1/sqrt(2))|00> - (1/sqrt(2))|11>
     // Solution: X on Q0, H on Q0, CNOT(0,1), Z on Q0. Or simpler: H on Q1, CNOT(0,1), Z on Q1, X on Q0
   ),
-
-  // Level 25: Controlled-X (another application)
-  // QQLevel.fromBinaryString(
-  //   type: "composer",
-  //   taskDescription: r"From \( |11\rangle \), apply a CNOT gate with qubit 0 as control and qubit 1 as target. Then, apply an X gate to qubit 0. What is the final state?",
-  //   numQubits: 2,
-  //   initialQubitsStateString: "11",
-  //   availableGates: [SelectedGateType.cnot, SelectedGateType.x],
-  //   solutionFinalVector: [
-  //     [Complex.zero()],
-  //     [Complex.one()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //   ], // Target: |01>
-    // Solution: CNOT(0,1), X on Q0
-    // |11> -> CNOT(0,1) -> |10> -> X on Q0 -> |00> (Wait, this is |00>, not |01>)
-    // Let's re-evaluate the target for this task.
-    // If |11> -> CNOT(0,1) -> |10> -> X on Q0 -> |00>
-    // If task is to reach |01>, then from |00> it's just X on Q1.
-    // Let's make it a transformation to |00>
-    // Task: r"From \( |11\rangle \), apply a CNOT gate with qubit 0 as control and qubit 1 as target. Then, apply an X gate to qubit 0. What is the final state?"
-    // Solution: CNOT(0,1), X on Q0
-    // Target: |00>
-    // `solutionFinalVector: [[Complex.one()], [Complex.zero()], [Complex.zero()], [Complex.zero()]]`
-  // ),
 
   // // Level 26: Swap with pre-inserted gates (Part 1 of 3 CNOTs)
   // QQLevel.fromBinaryString(
