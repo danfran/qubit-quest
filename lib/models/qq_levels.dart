@@ -188,6 +188,27 @@ final List<QQLevel> allQQLevels = [
       [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.one()],
     ],
   ),
+  // CCX(0,1,2)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |011\rangle \), transform the state to \( |111\rangle \).",
+    numQubits: 3,
+    initialQubitsStateString: "110",
+    availableGates: [SelectedGateType.ccnot, SelectedGateType.y, SelectedGateType.z],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ], // Target: |111>
+    // Solution (for your internal reference):
+    // Apply CCNOT with Qubit 1 as Control 1, Qubit 2 as Control 2, and Qubit 0 as Target.
+    // |011> --(CCNOT_{1,2;0})--> |111>
+  ),
   // H + CX
   QQLevel.fromBinaryString(
     type: "composer",
@@ -344,25 +365,8 @@ final List<QQLevel> allQQLevels = [
 
   // // --- Start of Phase 3: Three-Qubit & Toffoli (CCNOT) ---
   //
-  // // Level 31: CCNOT with different controls/target
-  // QQLevel.fromBinaryString(
-  //   type: "composer",
-  //   taskDescription: r"From \( |000\rangle \), apply a Toffoli gate where Qubit 1 and Qubit 2 are controls, and Qubit 0 is the target. What is the final state?",
-  //   numQubits: 3,
-  //   initialQubitsStateString: "000",
-  //   availableGates: [SelectedGateType.ccnot],
-  //   solutionFinalVector: [
-  //     [Complex.one()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //   ], // Target: |000> (no change, as controls are not |11>)
-  // ),
-  //
+
+
   // // Level 32: Building AND gate (classical logic)
   // QQLevel.fromBinaryString(
   //   type: "composer",
