@@ -140,6 +140,10 @@ void main() {
         circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 1, 1, 0);
         circuit.insertSinglePlacedGateAt(SelectedGateType.z, 2, 0);
       },
+      (QuantumCircuit circuit) {
+        circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 1, 0, 1);
+        circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 2, 1, 0);
+      },
     ];
 
     for (int i = 1; i <= tests.length; i++) {

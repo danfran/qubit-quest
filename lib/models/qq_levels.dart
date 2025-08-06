@@ -324,30 +324,24 @@ final List<QQLevel> allQQLevels = [
     ], // Target: (1/sqrt(2))|00> - (1/sqrt(2))|11>
     // Solution: X on Q0, H on Q0, CNOT(0,1), Z on Q0. Or simpler: H on Q1, CNOT(0,1), Z on Q1, X on Q0
   ),
+  // (CNOT(0,1)) + CNOT(1,0) + CNOT(0,1)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"This circuit is pre-configured with the first CNOT of a qubit swap. Complete the swap of qubits 0 and 1, so \( |01\rangle \) becomes \( |10\rangle \).",
+    numQubits: 2,
+    initialQubitsStateString: "01",
+    preInsertedGates: (QuantumCircuit circuit) {
+      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 1, 0, isDeletable: false);
+    },
+    availableGates: [SelectedGateType.cnot,SelectedGateType.y, SelectedGateType.z],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+      [Complex.zero()],
+    ], // Target: |10> (Solution: CNOT(1,0), CNOT(0,1) after pre-inserted CNOT(0,1))
+  ),
 
-  // // Level 26: Swap with pre-inserted gates (Part 1 of 3 CNOTs)
-  // QQLevel.fromBinaryString(
-  //   type: "composer",
-  //   taskDescription: r"This circuit is pre-configured with the first CNOT of a qubit swap. Complete the swap of qubits 0 and 1, so \( |01\rangle \) becomes \( |10\rangle \).",
-  //   numQubits: 2,
-  //   initialQubitsStateString: "01",
-  //   preInsertedGates: [
-  //     [ // Qubit 0 line
-  //       PlacedQuantumGate(type: SelectedGateType.cnot, qubitIndex: 0, column: 0, controlQubitIndex: 0, targetQubitIndex: 1),
-  //     ],
-  //     [ // Qubit 1 line
-  //       PlacedQuantumGate(type: SelectedGateType.cnot, qubitIndex: 1, column: 0, controlQubitIndex: 0, targetQubitIndex: 1),
-  //     ]
-  //   ],
-  //   availableGates: [SelectedGateType.cnot],
-  //   solutionFinalVector: [
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.one()],
-  //     [Complex.zero()],
-  //   ], // Target: |10> (Solution: CNOT(1,0), CNOT(0,1) after pre-inserted CNOT(0,1))
-  // ),
-  //
   // // --- Start of Phase 3: Three-Qubit & Toffoli (CCNOT) ---
   //
   // // Level 31: CCNOT with different controls/target
