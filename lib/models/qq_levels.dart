@@ -209,6 +209,24 @@ final List<QQLevel> allQQLevels = [
     // Apply CCNOT with Qubit 1 as Control 1, Qubit 2 as Control 2, and Qubit 0 as Target.
     // |011> --(CCNOT_{1,2;0})--> |111>
   ),
+  // X(2) + CCNOT(0,1,2)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |010\rangle \), transform the state to \( |111\rangle \).",
+    numQubits: 3,
+    initialQubitsStateString: "010",
+    availableGates: [SelectedGateType.ccnot, SelectedGateType.x, SelectedGateType.z, SelectedGateType.y],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ], // Target: |111> (1 AND 1 = 1, stored on Q2)
+  ),
   // H + CX
   QQLevel.fromBinaryString(
     type: "composer",
@@ -363,29 +381,6 @@ final List<QQLevel> allQQLevels = [
     ], // Target: |10> (Solution: CNOT(1,0), CNOT(0,1) after pre-inserted CNOT(0,1))
   ),
 
-  // // --- Start of Phase 3: Three-Qubit & Toffoli (CCNOT) ---
-  //
-
-
-  // // Level 32: Building AND gate (classical logic)
-  // QQLevel.fromBinaryString(
-  //   type: "composer",
-  //   taskDescription: r"You have two input qubits (Q0, Q1) and an ancilla qubit (Q2) initialized to \( |0\rangle \). Use a Toffoli gate to compute the logical AND of Q0 and Q1, storing the result on Q2. Start with \( |110\rangle \).",
-  //   numQubits: 3,
-  //   initialQubitsStateString: "110",
-  //   availableGates: [SelectedGateType.ccnot],
-  //   solutionFinalVector: [
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.one()],
-  //   ], // Target: |111> (1 AND 1 = 1, stored on Q2)
-  // ),
-  //
   // // Level 33: Building XOR gate (classical logic with CNOT)
   // QQLevel.fromBinaryString(
   //   type: "composer",
