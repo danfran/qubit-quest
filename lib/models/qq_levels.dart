@@ -380,27 +380,25 @@ final List<QQLevel> allQQLevels = [
       [Complex.zero()],
     ], // Target: |10> (Solution: CNOT(1,0), CNOT(0,1) after pre-inserted CNOT(0,1))
   ),
+  // CNOT(2,0) + CNOT(2,1)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |100\rangle \), transform the state to \( |101\rangle \).",
+    numQubits: 3,
+    initialQubitsStateString: "001",
+    availableGates: [SelectedGateType.cnot],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],   // Amplitude for |101>
+      [Complex.zero()],
+      [Complex.zero()],
+    ], // Target: |101>
+  ),
 
-  // // Level 33: Building XOR gate (classical logic with CNOT)
-  // QQLevel.fromBinaryString(
-  //   type: "composer",
-  //   taskDescription: r"You have two input qubits (Q0, Q1) and an ancilla qubit (Q2) initialized to \( |0\rangle \). Use CNOT gates to compute the logical XOR of Q0 and Q1, storing the result on Q2. Start with \( |100\rangle \).",
-  //   numQubits: 3,
-  //   initialQubitsStateString: "100",
-  //   availableGates: [SelectedGateType.cnot],
-  //   solutionFinalVector: [
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.one()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //   ], // Target: |101> (1 XOR 0 = 1, stored on Q2)
-  //   // Solution: CNOT(0,2), CNOT(1,2)
-  // ),
-  //
   // // Level 34: 3-qubit state transformation (complex)
   // QQLevel.fromBinaryString(
   //   type: "composer",
