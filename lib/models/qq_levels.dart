@@ -420,7 +420,7 @@ final List<QQLevel> allQQLevels = [
   // Level 35: GHZ state manipulation (applying X)
   QQLevel.fromBinaryString(
     type: "composer",
-    taskDescription: r"This circuit is pre-configured to the GHZ state \( (|000\rangle + |111\rangle)/\sqrt{2} \). Apply a single X gate to Qubit 0. What is the final state?",
+    taskDescription: r"This circuit is pre-configured to the GHZ state \( (|000\rangle + |111\rangle)/\sqrt{2} \). Transform this state to \( (|001\rangle + |110\rangle)/\sqrt{2} \).",
     numQubits: 3,
     initialQubitsStateString: "000", // Base for pre-inserted gates
     preInsertedGates: (QuantumCircuit circuit) {
@@ -428,7 +428,7 @@ final List<QQLevel> allQQLevels = [
       circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 1, 1, 0, isDeletable: false);
       circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 2, 2, 1, isDeletable: false);
     },
-    availableGates: [SelectedGateType.x, SelectedGateType.y, SelectedGateType.z],
+    availableGates: [SelectedGateType.z, SelectedGateType.x, SelectedGateType.y],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex(sqrt1_2, 0)],
