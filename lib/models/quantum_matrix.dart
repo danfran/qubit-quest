@@ -71,7 +71,6 @@ class QuantumMatrix {
   }
 
   factory QuantumMatrix.cnot({
-    required int nQubits,
     required int control,
     required int target,
   }) {
@@ -80,6 +79,14 @@ class QuantumMatrix {
     // }
     if (control == target) {
       throw ArgumentError("Control and target qubits cannot be the same.");
+    }
+
+    // should adapt control and target position relative to the number of qubits
+    int nQubits = abs(control - target) + 1;
+    int relPosition = max(control, target) - nQubits + 1;
+    if (relPosition > 0) {
+      control -= relPosition;
+      target -= relPosition;
     }
 
     // Define 1-qubit gate matrices and projectors
@@ -134,7 +141,6 @@ class QuantumMatrix {
   }
 
   factory QuantumMatrix.ccnot({
-    required int nQubits,
     required int control1,
     required int control2,
     required int target,
@@ -148,8 +154,19 @@ class QuantumMatrix {
     if (control1 == control2 || control1 == target || control2 == target) {
       throw ArgumentError("Control and target qubits must be distinct for CCNOT.");
     }
+
+    // should adapt control and target position relative to the number of qubits
+    var lowestQubit = [control1, control2, target].reduce(min);
+    var highestQubit = [control1, control2, target].reduce(max);
+    int nQubits = highestQubit - lowestQubit + 1;
     if (nQubits < 3) {
       throw ArgumentError("CCNOT gate requires at least 3 qubits.");
+    }
+    int relPosition = highestQubit - nQubits + 1;
+    if (relPosition > 0) {
+      control1 -= relPosition;
+      control2 -= relPosition;
+      target -= relPosition;
     }
 
     // 2. Define 1-qubit gate matrices and projectors (re-using from CNOT logic)

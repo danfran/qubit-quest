@@ -812,7 +812,7 @@ void main() {
       expect(circuit.placedGates[1].length, 3);
     });
 
-    group('QuantumCircuit calculate state vector', () {
+    group('QuantumCircuit calculates state vector', () {
       test('should calculate the state for a three qubits and 2 depth circuit', () {
         final circuit = createEmptyCircuit(3);
         // CNOT (Q0 ctrl, Q1 target) at pos 0
@@ -890,6 +890,31 @@ void main() {
 
         debugPrint(circuit.currentState.state.toString());
         expect(circuit.currentState.state.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'H|0> operation incorrect');
+      });
+    });
+
+    group('QuantumCircuit creates circuit matrix', () {
+      test('should create GHZ for a 3 qubits', () {
+        final circuit = createEmptyCircuit(3);
+        // CNOT (Q0 ctrl, Q1 target) at pos 0
+        circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
+        circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 1, 1, 0);
+        circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 2, 2, 1);
+        debugPrint('Initial:\n$circuit');
+
+        final expectedState = QuantumMatrix([
+          [Complex(sqrt1_2, 0), Complex(sqrt1_2, 0), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+          [Complex.zero(), Complex.zero(), Complex(sqrt1_2, 0), Complex(-sqrt1_2, 0), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+          [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(sqrt1_2, 0), Complex(sqrt1_2, 0)],
+          [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(sqrt1_2, 0), Complex(-sqrt1_2, 0), Complex.zero(), Complex.zero()],
+          [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(sqrt1_2, 0), Complex(sqrt1_2, 0), Complex.zero(), Complex.zero()],
+          [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(sqrt1_2, 0), Complex(-sqrt1_2, 0)],
+          [Complex.zero(), Complex.zero(), Complex(sqrt1_2, 0), Complex(sqrt1_2, 0), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+          [Complex(sqrt1_2, 0), Complex(-sqrt1_2, 0), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        ]);
+
+        debugPrint(circuit.getOverallCircuitMatrix().toString());
+        expect(circuit.getOverallCircuitMatrix().almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Wrong circuit matrix for GHZ state');
       });
     });
   });

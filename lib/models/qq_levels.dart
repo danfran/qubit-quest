@@ -398,60 +398,50 @@ final List<QQLevel> allQQLevels = [
       [Complex.zero()],
     ], // Target: |101>
   ),
+  // X(0) + CX(0,2)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"Transform \( |010\rangle \) to \( |111\rangle \). This requires a careful sequence of gates.",
+    numQubits: 3,
+    initialQubitsStateString: "010",
+    availableGates: [SelectedGateType.x, SelectedGateType.cnot, SelectedGateType.ccnot, SelectedGateType.hadamard],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ], // Target: |111>
+  ),
 
-  // // Level 34: 3-qubit state transformation (complex)
-  // QQLevel.fromBinaryString(
-  //   type: "composer",
-  //   taskDescription: r"Transform \( |010\rangle \) to \( |111\rangle \). This requires a careful sequence of gates.",
-  //   numQubits: 3,
-  //   initialQubitsStateString: "010",
-  //   availableGates: [SelectedGateType.x, SelectedGateType.cnot, SelectedGateType.ccnot, SelectedGateType.hadamard],
-  //   solutionFinalVector: [
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.one()],
-  //   ], // Target: |111>
-  //   // Solution: X on Q0, CNOT(0,1), CNOT(1,2)
-  // ),
-  //
-  // // Level 35: GHZ state manipulation (applying X)
-  // QQLevel.fromBinaryString(
-  //   type: "composer",
-  //   taskDescription: r"This circuit is pre-configured to the GHZ state \( \frac{1}{\sqrt{2}}(|000\rangle + |111\rangle) \). Apply a single X gate to Qubit 0. What is the final state?",
-  //   numQubits: 3,
-  //   initialQubitsStateString: "000", // Base for pre-inserted gates
-  //   preInsertedGates: [
-  //     [ // Qubit 0 line
-  //       PlacedQuantumGate(type: SelectedGateType.hadamard, qubitIndex: 0, column: 0),
-  //       PlacedQuantumGate(type: SelectedGateType.cnot, qubitIndex: 0, column: 1, controlQubitIndex: 0, targetQubitIndex: 1),
-  //     ],
-  //     [ // Qubit 1 line
-  //       PlacedQuantumGate(type: SelectedGateType.cnot, qubitIndex: 1, column: 1, controlQubitIndex: 0, targetQubitIndex: 1),
-  //       PlacedQuantumGate(type: SelectedGateType.cnot, qubitIndex: 1, column: 2, controlQubitIndex: 1, targetQubitIndex: 2),
-  //     ],
-  //     [ // Qubit 2 line
-  //       PlacedQuantumGate(type: SelectedGateType.cnot, qubitIndex: 2, column: 2, controlQubitIndex: 1, targetQubitIndex: 2),
-  //     ]
-  //   ],
-  //   availableGates: [SelectedGateType.x],
-  //   solutionFinalVector: [
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex(sqrt1_2, 0)],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex(sqrt1_2, 0)],
-  //   ], // Target: (1/sqrt(2))(|100> + |011>)
-  //   // Solution: X on Q0
-  // ),
-  //
+  // Level 35: GHZ state manipulation (applying X)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"This circuit is pre-configured to the GHZ state \( (|000\rangle + |111\rangle)/\sqrt{2} \). Apply a single X gate to Qubit 0. What is the final state?",
+    numQubits: 3,
+    initialQubitsStateString: "000", // Base for pre-inserted gates
+    preInsertedGates: (QuantumCircuit circuit) {
+      circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0, isDeletable: false);
+      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 1, 1, 0, isDeletable: false);
+      circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 2, 2, 1, isDeletable: false);
+    },
+    availableGates: [SelectedGateType.x, SelectedGateType.y, SelectedGateType.z],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex(sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(sqrt1_2, 0)],
+      [Complex.zero()],
+    ], // Target: (1/sqrt(2))(|100> + |011>)
+    // Solution: X on Q0
+  ),
+
   // // Level 36: Reversing CCNOT operation
   // QQLevel.fromBinaryString(
   //   type: "composer",

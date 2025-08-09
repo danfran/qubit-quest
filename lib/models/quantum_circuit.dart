@@ -438,14 +438,12 @@ class QuantumCircuit extends ChangeNotifier {
         return QuantumMatrix.pauliZ();
       case SelectedGateType.cnot: // at this point we consider only CNOT gates control
         return QuantumMatrix.cnot(
-            nQubits: abs(gate.controlQubitIndex! - gate.targetQubitIndex!) + 1,
             control: gate.controlQubitIndex!,
             target: gate.targetQubitIndex!
         );
       case SelectedGateType.ccnot:
         List<int> controls = [gate.controlQubitIndex!, gate.control2QubitIndex!, gate.targetQubitIndex!];
         return QuantumMatrix.ccnot(
-            nQubits: controls.reduce(max) - controls.reduce(min) + 1,
             control1: gate.controlQubitIndex!,
             control2: gate.control2QubitIndex!,
             target: gate.targetQubitIndex!

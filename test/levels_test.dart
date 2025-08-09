@@ -1,12 +1,9 @@
-import 'package:advance_math/advance_math.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
-import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
-import 'package:quantumquiz/models/qubit_state.dart'; // Assuming this is minimal for test setup
 
 
 void main() {
@@ -154,6 +151,13 @@ void main() {
       (QuantumCircuit circuit) {
         circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 2, 0);
         circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 1, 2, 1);
+      },
+      (QuantumCircuit circuit) {
+        circuit.insertSinglePlacedGateAt(SelectedGateType.x, 0, 0);
+        circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 1, 2, 0);
+      },
+      (QuantumCircuit circuit) {
+        circuit.insertSinglePlacedGateAt(SelectedGateType.x, 3, 0);
       },
     ];
 
