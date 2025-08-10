@@ -209,6 +209,27 @@ final List<QQLevel> allQQLevels = [
     // Apply CCNOT with Qubit 1 as Control 1, Qubit 2 as Control 2, and Qubit 0 as Target.
     // |011> --(CCNOT_{1,2;0})--> |111>
   ),
+  // (CCNOT(0,1,2)) + CCNOT(0,1,2)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"You are given a 3-qubit circuit already in the state \( |111\rangle \). Transform this state back to \( |110\rangle \).",
+    numQubits: 3,
+    initialQubitsStateString: "110", // Base for pre-inserted gates
+    preInsertedGates: (QuantumCircuit circuit) {
+      circuit.insertTriplePlacedGateAt(SelectedGateType.ccnot, 0, 2, 0, 1, isDeletable: false);
+    },
+    availableGates: [SelectedGateType.ccnot, SelectedGateType.z],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+      [Complex.zero()],
+    ], // Target: |110> (Solution: Apply CCNOT again)
+  ),
   // X(2) + CCNOT(0,1,2)
   QQLevel.fromBinaryString(
     type: "composer",
@@ -416,8 +437,7 @@ final List<QQLevel> allQQLevels = [
       [Complex.one()],
     ], // Target: |111>
   ),
-
-  // Level 35: GHZ state manipulation (applying X)
+  // X(0)
   QQLevel.fromBinaryString(
     type: "composer",
     taskDescription: r"This circuit is pre-configured to the GHZ state \( (|000\rangle + |111\rangle)/\sqrt{2} \). Transform this state to \( (|001\rangle + |110\rangle)/\sqrt{2} \).",
@@ -441,36 +461,6 @@ final List<QQLevel> allQQLevels = [
     ], // Target: (1/sqrt(2))(|100> + |011>)
     // Solution: X on Q0
   ),
-
-  // // Level 36: Reversing CCNOT operation
-  // QQLevel.fromBinaryString(
-  //   type: "composer",
-  //   taskDescription: r"This circuit is pre-configured with a state that resulted from applying a Toffoli gate to \( |110\rangle \). Transform this state back to \( |110\rangle \).",
-  //   numQubits: 3,
-  //   initialQubitsStateString: "110", // Base for pre-inserted gates
-  //   preInsertedGates: [
-  //     [ // Qubit 0 line
-  //       PlacedQuantumGate(type: SelectedGateType.ccnot, qubitIndex: 0, column: 0, controlQubitIndex: 0, control2QubitIndex: 1, targetQubitIndex: 2),
-  //     ],
-  //     [ // Qubit 1 line
-  //       PlacedQuantumGate(type: SelectedGateType.ccnot, qubitIndex: 1, column: 0, controlQubitIndex: 0, control2QubitIndex: 1, targetQubitIndex: 2),
-  //     ],
-  //     [ // Qubit 2 line
-  //       PlacedQuantumGate(type: SelectedGateType.ccnot, qubitIndex: 2, column: 0, controlQubitIndex: 0, control2QubitIndex: 1, targetQubitIndex: 2),
-  //     ]
-  //   ],
-  //   availableGates: [SelectedGateType.ccnot],
-  //   solutionFinalVector: [
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.one()],
-  //     [Complex.zero()],
-  //   ], // Target: |110> (Solution: Apply CCNOT again)
-  // ),
 ];
 
 int numberOfLevels = allQQLevels.length;
