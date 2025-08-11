@@ -122,6 +122,11 @@ void main() {
         circuit.insertSinglePlacedGateAt(SelectedGateType.z, 2, 1);
       },
       (QuantumCircuit circuit) {
+        circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
+        circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 1, 1, 0);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.z, 2, 0);
+      },
+      (QuantumCircuit circuit) {
         circuit.insertSinglePlacedGateAt(SelectedGateType.z, 3, 0);
         circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 4, 1, 0);
         circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 5, 0);

@@ -308,6 +308,20 @@ final List<QQLevel> allQQLevels = [
       [Complex.zero()],
     ], // Target: (1/sqrt(2))|01> - (1/sqrt(2))|10> (Solution: H on Q0, CNOT(0,1), Z on Q0)
   ),
+  // H + CX + Z(0) (or Z(1)). It can have 2 solution potentially, with Z(0) + Z(1)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |00\rangle \), prepare the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle)/\sqrt{2} \). You need only one solution although it can have 2 solutions potenially, due to entanglement.",
+    numQubits: 2,
+    initialQubitsStateString: "00",
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.x, SelectedGateType.y, SelectedGateType.z, SelectedGateType.s, SelectedGateType.t], // Wide range of gates
+    solutionFinalVector: [
+      [Complex(sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(-sqrt1_2, 0)],
+    ], // Target: (1/sqrt(2))|00> - (1/sqrt(2))|11>
+  ),
   // (H + CX + Z) + Z + CX + H
   QQLevel.fromBinaryString(
     type: "composer",
@@ -461,6 +475,86 @@ final List<QQLevel> allQQLevels = [
     ], // Target: (1/sqrt(2))(|100> + |011>)
     // Solution: X on Q0
   ),
+
+  // // Level 38: Simple QFT Component (Uniform Superposition)
+  // QQLevel.fromBinaryString(
+  //   type: "composer",
+  //   taskDescription: r"From \( |00\rangle \), create a uniform superposition of all possible 2-qubit states: \( \frac{1}{2}(|00\rangle + |01\rangle + |10\rangle + |11\rangle) \).",
+  //   numQubits: 2,
+  //   initialQubitsStateString: "00",
+  //   availableGates: [SelectedGateType.hadamard], // Only Hadamard needed
+  //   solutionFinalVector: [
+  //     [Complex(0.5, 0)],
+  //     [Complex(0.5, 0)],
+  //     [Complex(0.5, 0)],
+  //     [Complex(0.5, 0)],
+  //   ], // Target: (1/2)(|00>+|01>+|10>+|11>)
+  //   // Solution (for your internal reference): H on Q0, H on Q1
+  // ),
+  //
+  // // Level 39: Error Detection (Conceptual - Parity Bit)
+  // QQLevel.fromBinaryString(
+  //   type: "composer",
+  //   taskDescription: r"From \( |00\rangle \), create a circuit where Qubit 1 will 'mirror' the state of Qubit 0. The final state should be \( |00\rangle \).",
+  //   numQubits: 2,
+  //   initialQubitsStateString: "00",
+  //   availableGates: [SelectedGateType.cnot],
+  //   solutionFinalVector: [
+  //     [Complex.one()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //   ], // Target: |00>
+  //   // Solution (for your internal reference): CNOT (Qubit 0 control, Qubit 1 target)
+  // ),
+  //
+  // // Level 40: Review/Complex Challenge (GHZ with phase)
+  // QQLevel.fromBinaryString(
+  //   type: "composer",
+  //   taskDescription: r"From \( |001\rangle \), transform the state to \( \frac{1}{\sqrt{2}}(|000\rangle - |111\rangle) \).",
+  //   numQubits: 3,
+  //   initialQubitsStateString: "001",
+  //   availableGates: [SelectedGateType.x, SelectedGateType.y, SelectedGateType.z, SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.ccnot, SelectedGateType.s, SelectedGateType.t],
+  //   solutionFinalVector: [
+  //     [Complex(sqrt1_2, 0)],      // Index 0: |000>
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex(-sqrt1_2, 0)],     // Index 7: |111>
+  //   ], // Target: (1/sqrt(2))(|000> - |111>)
+  //   // Solution (for your internal reference):
+  //   // 1. X on Q0 (to get |000>)
+  //   // 2. H on Q0
+  //   // 3. CNOT (Q0 control, Q1 target)
+  //   // 4. CNOT (Q1 control, Q2 target) - This sequence creates GHZ from |000>
+  //   // 5. Z on Q2 (to apply the minus phase to |111> component)
+  // ),
+  // // Level 41: Conditional Phase Shift (Shor's Principle Hint)
+  // // This level introduces the concept of a Controlled-Z gate's effect,
+  // // which is key to Quantum Phase Estimation and Shor's algorithm.
+  // QQLevel.fromBinaryString(
+  //   type: "composer",
+  //   taskDescription: r"From \( |00\rangle \), create a uniform superposition where the \( |11\rangle \) component has its phase flipped to \(-1\). The target state is \( \frac{1}{2}(|00\rangle + |01\rangle + |10\rangle - |11\rangle) \).",
+  //   numQubits: 2,
+  //   initialQubitsStateString: "00",
+  //   availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.z],
+  //   solutionFinalVector: [
+  //     [Complex(0.5, 0)],           // Amplitude for |00>
+  //     [Complex(0.5, 0)],           // Amplitude for |01>
+  //     [Complex(0.5, 0)],           // Amplitude for |10>
+  //     [Complex(-0.5, 0)],          // Amplitude for |11> (phase flipped)
+  //   ], // Target: (1/2)(|00> + |01> + |10> - |11>)
+  //   // Solution (for your internal reference - player must discover):
+  //   // 1. Hadamard (H) on Qubit 0
+  //   // 2. Hadamard (H) on Qubit 1
+  //   //    (At this point, state is 1/2(|00> + |01> + |10> + |11>))
+  //   // 3. Apply the Controlled-Z (CZ) gate.
+  //   //    CZ can be decomposed into: H on Qubit 1, CNOT (Qubit 0 control, Qubit 1 target), H on Qubit 1.
+  //   //    So, the sequence would be: H_0, H_1, H_1, CNOT_{01}, H_1.
+  // ),
 ];
 
 int numberOfLevels = allQQLevels.length;
