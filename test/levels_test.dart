@@ -167,6 +167,10 @@ void main() {
       (QuantumCircuit circuit) {
         circuit.insertSinglePlacedGateAt(SelectedGateType.x, 3, 0);
       },
+      (QuantumCircuit circuit) {
+        circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 1);
+      },
     ];
 
     for (int i = 1; i <= tests.length; i++) {

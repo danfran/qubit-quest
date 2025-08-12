@@ -475,23 +475,22 @@ final List<QQLevel> allQQLevels = [
     ], // Target: (1/sqrt(2))(|100> + |011>)
     // Solution: X on Q0
   ),
+  // H(0) + H(1)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |00\rangle \), create a uniform superposition of all possible 2-qubit states: \( (|00\rangle + |01\rangle + |10\rangle + |11\rangle)/2 \).",
+    numQubits: 2,
+    initialQubitsStateString: "00",
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.t, SelectedGateType.s], // Only Hadamard needed
+    solutionFinalVector: [
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+    ], // Target: (1/2)(|00>+|01>+|10>+|11>)
+    // Solution (for your internal reference): H on Q0, H on Q1
+  ),
 
-  // // Level 38: Simple QFT Component (Uniform Superposition)
-  // QQLevel.fromBinaryString(
-  //   type: "composer",
-  //   taskDescription: r"From \( |00\rangle \), create a uniform superposition of all possible 2-qubit states: \( \frac{1}{2}(|00\rangle + |01\rangle + |10\rangle + |11\rangle) \).",
-  //   numQubits: 2,
-  //   initialQubitsStateString: "00",
-  //   availableGates: [SelectedGateType.hadamard], // Only Hadamard needed
-  //   solutionFinalVector: [
-  //     [Complex(0.5, 0)],
-  //     [Complex(0.5, 0)],
-  //     [Complex(0.5, 0)],
-  //     [Complex(0.5, 0)],
-  //   ], // Target: (1/2)(|00>+|01>+|10>+|11>)
-  //   // Solution (for your internal reference): H on Q0, H on Q1
-  // ),
-  //
   // // Level 39: Error Detection (Conceptual - Parity Bit)
   // QQLevel.fromBinaryString(
   //   type: "composer",
