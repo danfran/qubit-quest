@@ -136,6 +136,20 @@ final List<QQLevel> allQQLevels = [
     availableGates: [SelectedGateType.hadamard, SelectedGateType.t, SelectedGateType.s, SelectedGateType.z, SelectedGateType.y],
     solutionFinalVector: [[Complex(sqrt1_2, 0)], [Complex(0.5, -0.5)]], // Target: HZ T |0> (HT then Z) or (H then T.conjugate())
   ),
+  // CX(0,1)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |00\rangle \), create a circuit where Qubit 1 will 'mirror' the state of Qubit 0. The final state should be \( |00\rangle \).",
+    numQubits: 2,
+    initialQubitsStateString: "10",
+    availableGates: [SelectedGateType.cnot, SelectedGateType.y, SelectedGateType.z],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ], // Target: |00>
+  ),
   // CX(1,0)
   QQLevel.fromBinaryString(
     type: "composer",
@@ -491,22 +505,6 @@ final List<QQLevel> allQQLevels = [
     // Solution (for your internal reference): H on Q0, H on Q1
   ),
 
-  // // Level 39: Error Detection (Conceptual - Parity Bit)
-  // QQLevel.fromBinaryString(
-  //   type: "composer",
-  //   taskDescription: r"From \( |00\rangle \), create a circuit where Qubit 1 will 'mirror' the state of Qubit 0. The final state should be \( |00\rangle \).",
-  //   numQubits: 2,
-  //   initialQubitsStateString: "00",
-  //   availableGates: [SelectedGateType.cnot],
-  //   solutionFinalVector: [
-  //     [Complex.one()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //   ], // Target: |00>
-  //   // Solution (for your internal reference): CNOT (Qubit 0 control, Qubit 1 target)
-  // ),
-  //
   // // Level 40: Review/Complex Challenge (GHZ with phase)
   // QQLevel.fromBinaryString(
   //   type: "composer",
