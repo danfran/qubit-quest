@@ -504,31 +504,30 @@ final List<QQLevel> allQQLevels = [
     ], // Target: (1/2)(|00>+|01>+|10>+|11>)
     // Solution (for your internal reference): H on Q0, H on Q1
   ),
-
-  // // Level 40: Review/Complex Challenge (GHZ with phase)
-  // QQLevel.fromBinaryString(
-  //   type: "composer",
-  //   taskDescription: r"From \( |001\rangle \), transform the state to \( \frac{1}{\sqrt{2}}(|000\rangle - |111\rangle) \).",
-  //   numQubits: 3,
-  //   initialQubitsStateString: "001",
-  //   availableGates: [SelectedGateType.x, SelectedGateType.y, SelectedGateType.z, SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.ccnot, SelectedGateType.s, SelectedGateType.t],
-  //   solutionFinalVector: [
-  //     [Complex(sqrt1_2, 0)],      // Index 0: |000>
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex.zero()],
-  //     [Complex(-sqrt1_2, 0)],     // Index 7: |111>
-  //   ], // Target: (1/sqrt(2))(|000> - |111>)
-  //   // Solution (for your internal reference):
-  //   // 1. X on Q0 (to get |000>)
-  //   // 2. H on Q0
-  //   // 3. CNOT (Q0 control, Q1 target)
-  //   // 4. CNOT (Q1 control, Q2 target) - This sequence creates GHZ from |000>
-  //   // 5. Z on Q2 (to apply the minus phase to |111> component)
-  // ),
+  // X(0) + H(0) + CX(0,1) + CX(1,2) + Z(2)
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"From \( |001\rangle \), transform the state to \( (|000\rangle - |111\rangle)/\sqrt{2} \).",
+    numQubits: 3,
+    initialQubitsStateString: "001",
+    availableGates: [SelectedGateType.x, SelectedGateType.y, SelectedGateType.z, SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.ccnot, SelectedGateType.s, SelectedGateType.t],
+    solutionFinalVector: [
+      [Complex(sqrt1_2, 0)],      // Index 0: |000>
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(-sqrt1_2, 0)],     // Index 7: |111>
+    ], // Target: (1/sqrt(2))(|000> - |111>)
+    // Solution (for your internal reference):
+    // 1. X on Q0 (to get |000>)
+    // 2. H on Q0
+    // 3. CNOT (Q0 control, Q1 target)
+    // 4. CNOT (Q1 control, Q2 target) - This sequence creates GHZ from |000>
+    // 5. Z on Q2 (to apply the minus phase to |111> component)
+  ),
   // // Level 41: Conditional Phase Shift (Shor's Principle Hint)
   // // This level introduces the concept of a Controlled-Z gate's effect,
   // // which is key to Quantum Phase Estimation and Shor's algorithm.
