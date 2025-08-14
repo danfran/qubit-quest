@@ -1,4 +1,4 @@
-# quantumquiz
+# Qubit Quest
 
 A new Flutter project.
 
@@ -16,11 +16,13 @@ For help getting started with Flutter development, view the
 samples, guidance on mobile development, and a full API reference.
 
 
-## create AAB
+## Create Release (AAB)
 
+```bash
+flutter build appbundle --release
+```
 
-
-### tasks
+### TODO Tasks
 
 * ~~fix start/continue~~
 * ~~add button "rate us"~~
