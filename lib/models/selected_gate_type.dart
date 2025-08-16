@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 enum SelectedGateType {
   none,
   hadamard,
+  cz,
   cnot,
   ccnot,
   s,
@@ -18,6 +19,8 @@ enum SelectedGateType {
 extension GateVisualProperties on SelectedGateType {
   String get label {
     switch (this) {
+      case SelectedGateType.cz:
+        return 'CZ';
       case SelectedGateType.cnot:
         return 'CX';
       case SelectedGateType.ccnot:
@@ -43,6 +46,8 @@ extension GateVisualProperties on SelectedGateType {
 
   Color get color {
     switch (this) {
+      case SelectedGateType.cz:
+        return Colors.blue;
       case SelectedGateType.cnot:
         return Colors.blue;
       case SelectedGateType.ccnot:

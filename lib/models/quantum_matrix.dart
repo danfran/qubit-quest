@@ -70,9 +70,24 @@ class QuantumMatrix {
     ]);
   }
 
+  factory QuantumMatrix.cz({
+    required int control,
+    required int target,
+  }) {
+    return QuantumMatrix.buildTwoQubitsGateOperator(control: control, target: target, targetOperator: QuantumMatrix.pauliZ());
+  }
+
   factory QuantumMatrix.cnot({
     required int control,
     required int target,
+  }) {
+    return QuantumMatrix.buildTwoQubitsGateOperator(control: control, target: target, targetOperator: QuantumMatrix.pauliX());
+  }
+
+  factory QuantumMatrix.buildTwoQubitsGateOperator({
+    required int control,
+    required int target,
+    required QuantumMatrix targetOperator
   }) {
     // if (control < 0 || control >= nQubits || target < 0 || target >= nQubits) {
     //   throw ArgumentError("Control or target qubit index out of range (0 to ${nQubits - 1}).");
@@ -91,7 +106,7 @@ class QuantumMatrix {
 
     // Define 1-qubit gate matrices and projectors
     final QuantumMatrix I_1q = QuantumMatrix.identity(2);
-    final QuantumMatrix X_1q = QuantumMatrix.pauliX();
+    final QuantumMatrix X_1q = targetOperator;
     final QuantumMatrix P0_1q = QuantumMatrix([
       [Complex.one(), Complex.zero()],
       [Complex.zero(), Complex.zero()],

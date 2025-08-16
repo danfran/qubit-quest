@@ -1,16 +1,16 @@
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter_tex/flutter_tex.dart';
+import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
+import 'package:quantumquiz/screens/three_qubits_gate_target_qubits_selection_dialog.dart';
+import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/screens/quantum_doc_dialog.dart';
-import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 
-import 'ccnot_target_qubits_selection_dialog.dart';
-import 'cnot_target_qubit_selection_dialog.dart';
 import '../models/qq_level.dart';
 
 class QuantumComposer extends StatefulWidget {
@@ -158,25 +158,26 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
     debugPrint('Dropped on Qubit line: $tappedQubitLine at insertion position: $insertionPosition');
 
-    if (droppedGateType == SelectedGateType.cnot) {
-      // For CNOT drag and drop, we need to select control/target after dropping.
+    if (droppedGateType == SelectedGateType.cnot || droppedGateType == SelectedGateType.cz) {
+      // For CNOT/CZ drag and drop, we need to select control/target after dropping.
       // This is a more complex interaction. For simplicity in this initial drag/drop,
-      // let's assume CNOT drag requires dropping the control part, and then
+      // let's assume CNOT/CZ drag requires dropping the control part, and then
       // a subsequent tap selects the target. Or, the drop position implies control,
       // and the nearest other qubit line is the target? This needs careful UI design.
 
-      // A simpler approach for initial drag/drop: CNOT drag places a CNOT
+      // A simpler approach for initial drag/drop: CNOT/CZ drag places a CNOT/CZ
       // with control on the dropped line and target on the next line (if available).
       // This might not be ideal but simplifies the initial implementation.
-      // A better approach might involve a special CNOT drag feedback that shows
+      // A better approach might involve a special CNOT/CZ drag feedback that shows
       // both control and target and lets the user position both before dropping.
 
       // Let's go with the simpler approach for now: Drop implies control qubit.
       // Target is the next available qubit line, if different from control.
       int? controlQubitLine;
+      String gateLabel = droppedGateType.label;
 
       if (_numQubits == 1) {
-        debugPrint('Cannot place CNOT on single qubit or invalid target.');
+        debugPrint('Cannot place $gateLabel on single qubit or invalid target.');
           // Optionally provide feedback
         return;
       } else if (_numQubits == 2) {
@@ -193,12 +194,12 @@ class _QuantumComposerState extends State<QuantumComposer> {
       }
 
       if (controlQubitLine != null && tappedQubitLine != controlQubitLine) {
-        debugPrint('CNOT placement (control line = $_cnotControlQubit and target line = $tappedQubitLine).');
+        debugPrint('$gateLabel placement (control line = $_cnotControlQubit and target line = $tappedQubitLine).');
         _circuit.insertDoublePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine, controlQubitLine);
-        debugPrint("Gate CNOT inserted at position $insertionPosition on qubits $tappedQubitLine and $controlQubitLine.");
+        debugPrint("Gate $gateLabel inserted at position $insertionPosition on qubits $tappedQubitLine and $controlQubitLine.");
         debugPrint(_circuit.toString());
       } else {
-        debugPrint('Invalid CNOT placement (control == target or not enough qubits).');
+        debugPrint('Invalid $gateLabel placement (control == target or not enough qubits).');
         // Optionally provide feedback
         return;
       }
@@ -242,7 +243,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     final Map<String, dynamic>? selectedQubit = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (BuildContext dialogContext) {
-        return CNOTTargetQubitSelectionDialog(
+        return TwoQubitsGateTargetQubitSelectionDialog(
           targetQubitIndex: targetQubit,
           numQubits: numQubits,
         );
@@ -263,7 +264,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     final Map<String, dynamic>? selectedQubits = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (BuildContext dialogContext) {
-        return CCNOTTargetQubitsSelectionDialog(
+        return ThreeQubitsGateTargetQubitsSelectionDialog(
           targetQubitIndex: targetQubit,
           numQubits: numQubits,
         );
@@ -281,8 +282,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
       _ccnotControl1Qubit = null;
       _ccnotControl2Qubit = null;
       _currentInstructionMessage = "Drag to place a gate.";
-      if (gateType == SelectedGateType.cnot) {
-        _currentInstructionMessage = "Drag to the target qubit for CNOT.";
+      if (gateType == SelectedGateType.cnot || gateType == SelectedGateType.cz) {
+        _currentInstructionMessage = "Drag to the target qubit for ${gateType.label}.";
       } else if (gateType == SelectedGateType.ccnot) {
         _currentInstructionMessage = "Drag to the target qubit for CCNOT.";
       } else if (gateType == SelectedGateType.delete) {

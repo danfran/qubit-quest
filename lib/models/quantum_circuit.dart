@@ -292,7 +292,7 @@ class QuantumCircuit extends ChangeNotifier {
     if (gateToRemove.type == SelectedGateType.none) {
       return false;
     }
-    else if (gateToRemove.type == SelectedGateType.cnot && gateToRemove.isDeletable) {
+    else if ((gateToRemove.type == SelectedGateType.cnot || gateToRemove.type == SelectedGateType.cz) && gateToRemove.isDeletable) {
       List<int> controls = [gateToRemove.controlQubitIndex!, gateToRemove.targetQubitIndex!];
       for (int i = controls.reduce(min); i <= controls.reduce(max); i++) {
         placedGates[i][gatePosition] = PlacedQuantumGate.emptyGate();
@@ -334,7 +334,7 @@ class QuantumCircuit extends ChangeNotifier {
         for (int i = 0; i < currentLevel.numQubits; i++) {
           if (rightPosition < placedGates[i].length && placedGates[i][rightPosition].type != SelectedGateType.none) {
             var rightGate = placedGates[i][rightPosition];
-            if (rightGate.type == SelectedGateType.cnot) {
+            if (rightGate.type == SelectedGateType.cnot || rightGate.type == SelectedGateType.cz) {
               int endLine = rightGate.isTarget ? rightGate.controlQubitIndex! : rightGate.targetQubitIndex!;
               bool canBeMoved = true;
               for (int j = i; j <= endLine; j++) {
@@ -436,6 +436,11 @@ class QuantumCircuit extends ChangeNotifier {
         return QuantumMatrix.pauliY();
       case SelectedGateType.z:
         return QuantumMatrix.pauliZ();
+      case SelectedGateType.cz: // at this point we consider only CZ gates control
+        return QuantumMatrix.cz(
+            control: gate.controlQubitIndex!,
+            target: gate.targetQubitIndex!
+        );
       case SelectedGateType.cnot: // at this point we consider only CNOT gates control
         return QuantumMatrix.cnot(
             control: gate.controlQubitIndex!,
@@ -481,8 +486,8 @@ class QuantumCircuit extends ChangeNotifier {
 
       debugPrint(gateSystemMatrix.toString());
 
-      if (gate.type == SelectedGateType.cnot) {
-        // skip to the next qubit after the CNOT
+      if (gate.type == SelectedGateType.cnot || gate.type == SelectedGateType.cz) {
+        // skip to the next qubit after the CNOT/CZ
         q = max(gate.controlQubitIndex!, gate.targetQubitIndex!);
         continue;
       } else if (gate.type == SelectedGateType.ccnot) {
@@ -548,9 +553,15 @@ class QuantumCircuit extends ChangeNotifier {
           PlacedQuantumGate gate = placedGates[q][pos];
           // Use a concise representation for each gate type
           String gateChar = "";
+          if (gate.type == SelectedGateType.cz) {
+            if (gate.isControl) gateChar = "C";
+            else if (gate.isTarget) gateChar = "Z";
+            else if (gate.isLink) gateChar = "|";
+            else gateChar = "?"; // Should not happen for CZ
+          }
           if (gate.type == SelectedGateType.cnot) {
             if (gate.isControl) gateChar = "C";
-            else if (gate.isTarget) gateChar = "T";
+            else if (gate.isTarget) gateChar = "X";
             else if (gate.isLink) gateChar = "|";
             else gateChar = "?"; // Should not happen for CNOT
           }
@@ -559,7 +570,7 @@ class QuantumCircuit extends ChangeNotifier {
             if (gate.isControl2) gateChar = "C";
             else if (gate.isTarget) gateChar = "T";
             else if (gate.isLink) gateChar = "|";
-            else gateChar = "?"; // Should not happen for CNOT
+            else gateChar = "?"; // Should not happen for CCNOT
           }
           else if (gate.type == SelectedGateType.none) {
             gateChar = "-";

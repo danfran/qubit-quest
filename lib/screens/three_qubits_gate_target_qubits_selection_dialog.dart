@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
-class CNOTTargetQubitSelectionDialog extends StatefulWidget {
+class ThreeQubitsGateTargetQubitsSelectionDialog extends StatefulWidget {
   final int targetQubitIndex;
   final int numQubits;
 
-  const CNOTTargetQubitSelectionDialog({
+  const ThreeQubitsGateTargetQubitsSelectionDialog({
     super.key,
     required this.targetQubitIndex,
     required this.numQubits,
   });
 
   @override
-  State<CNOTTargetQubitSelectionDialog> createState() => _CNOTTargetQubitSelectionDialogState();
+  State<ThreeQubitsGateTargetQubitsSelectionDialog> createState() => _ThreeQubitsGateTargetQubitsSelectionDialogState();
 }
 
-class _CNOTTargetQubitSelectionDialogState extends State<CNOTTargetQubitSelectionDialog> {
+class _ThreeQubitsGateTargetQubitsSelectionDialogState extends State<ThreeQubitsGateTargetQubitsSelectionDialog> {
   int? _control1Index;
+  int? _control2Index;
   String? _errorMessage; // To display validation errors
 
   // List of all available qubit indices (e.g., [0, 1, 2, 3])
@@ -27,13 +29,20 @@ class _CNOTTargetQubitSelectionDialogState extends State<CNOTTargetQubitSelectio
     _allQubitIndices = List.generate(widget.numQubits, (i) => i);
 
     if (widget.numQubits < 3) {
-      _errorMessage = "Not enough qubits for a CNOT gate (requires 3 distinct qubits).";
+      _errorMessage = "Not enough qubits for a three-qubits gate.";
     }
   }
 
+  // --- Validation Logic ---
   bool _isSelectionValid() {
-    if (_control1Index == null) {
+    if (_control1Index == null || _control2Index == null) {
       return false; // Not all selected
+    }
+    if (_control1Index == _control2Index) {
+      return false; // Controls are the same
+    }
+    if (_control1Index == widget.targetQubitIndex || _control2Index == widget.targetQubitIndex) {
+      return false; // Controls are the target
     }
     return true; // All good
   }
@@ -41,11 +50,13 @@ class _CNOTTargetQubitSelectionDialogState extends State<CNOTTargetQubitSelectio
   void _validateAndSubmit() {
     setState(() {
       if (!_isSelectionValid()) {
-        if (widget.numQubits < 2) {
-          _errorMessage = "Not enough qubits for a CNOT gate (requires 2 distinct qubits).";
-        } else if (_control1Index == null) {
-          _errorMessage = "Please select control qubit.";
-        } else if (_control1Index == widget.targetQubitIndex) {
+        if (widget.numQubits < 3) {
+          _errorMessage = "Not enough qubits for a three-qubits gate.";
+        } else if (_control1Index == null || _control2Index == null) {
+          _errorMessage = "Please select both control qubits.";
+        } else if (_control1Index == _control2Index) {
+          _errorMessage = "Control qubits must be distinct.";
+        } else if (_control1Index == widget.targetQubitIndex || _control2Index == widget.targetQubitIndex) {
           _errorMessage = "Control qubits cannot be the target qubit.";
         }
         return; // Stop here if invalid
@@ -54,6 +65,7 @@ class _CNOTTargetQubitSelectionDialogState extends State<CNOTTargetQubitSelectio
 
       Navigator.of(context).pop({
         'control1': _control1Index!,
+        'control2': _control2Index!,
       });
     });
   }
@@ -63,6 +75,7 @@ class _CNOTTargetQubitSelectionDialogState extends State<CNOTTargetQubitSelectio
     required String title,
     required int? selectedQubit, // The qubit selected for *this* control slot
     required Function(int?) onSelect, // Function to update the selected qubit, now can pass null
+    required int? otherSelectedQubit, // The qubit selected for the *other* control slot
     required int targetQubitIndex,    // The target qubit index
   }) {
     return Column(
@@ -78,7 +91,9 @@ class _CNOTTargetQubitSelectionDialogState extends State<CNOTTargetQubitSelectio
             bool isSelected = qubitIndex == selectedQubit; // Is this button currently selected for *this* control?
 
             // A button is "disabled" if it's the target qubit OR
-            bool isDisabled = (qubitIndex == targetQubitIndex);
+            // if it's the *other* control qubit (unless it's the one we're currently trying to deselect).
+            bool isDisabled = (qubitIndex == targetQubitIndex) ||
+                (qubitIndex == otherSelectedQubit && !isSelected);
 
             return ElevatedButton(
               // If the button is disabled, onPressed is null.
@@ -111,7 +126,7 @@ class _CNOTTargetQubitSelectionDialogState extends State<CNOTTargetQubitSelectio
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Select Control Qubit (Target Qubit: ${widget.targetQubitIndex})', style: TextStyle(color: Colors.white)),
+      title: Text('Select Control Qubits (Target Qubit: ${widget.targetQubitIndex})', style: TextStyle(color: Colors.white)),
       backgroundColor: Colors.grey[850], // Dark background for the dialog
       content: SingleChildScrollView( // <--- REINTRODUCE SingleChildScrollView here
         child: Column(
@@ -120,7 +135,7 @@ class _CNOTTargetQubitSelectionDialogState extends State<CNOTTargetQubitSelectio
           children: [
             // Control Qubit 1 selection
             _buildQubitGrid(
-              title: 'Select Control Qubit:',
+              title: 'Select Control Qubit 1:',
               selectedQubit: _control1Index,
               onSelect: (q) {
                 setState(() {
@@ -128,9 +143,24 @@ class _CNOTTargetQubitSelectionDialogState extends State<CNOTTargetQubitSelectio
                   _errorMessage = null;
                 });
               },
+              otherSelectedQubit: _control2Index,
               targetQubitIndex: widget.targetQubitIndex,
             ),
             const SizedBox(height: 20),
+
+            // Control Qubit 2 selection
+            _buildQubitGrid(
+              title: 'Select Control Qubit 2:',
+              selectedQubit: _control2Index,
+              onSelect: (q) {
+                setState(() {
+                  _control2Index = q;
+                  _errorMessage = null;
+                });
+              },
+              otherSelectedQubit: _control1Index,
+              targetQubitIndex: widget.targetQubitIndex,
+            ),
 
             if (_errorMessage != null)
               Padding(

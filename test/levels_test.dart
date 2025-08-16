@@ -174,12 +174,17 @@ void main() {
         circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
         circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 1);
       },
-      (QuantumCircuit circuit) { // to check if double solution present
+      (QuantumCircuit circuit) {
         circuit.insertSinglePlacedGateAt(SelectedGateType.x, 0, 0);
         circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 1, 0);
         circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 2, 1, 0);
         circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 3, 2, 1);
         circuit.insertSinglePlacedGateAt(SelectedGateType.z, 4, 2);
+      },
+      (QuantumCircuit circuit) { // double solution
+        circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 0, 0);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 1, 1);
+        circuit.insertDoublePlacedGateAt(SelectedGateType.cz, 2, 1, 0);
       },
     ];
 

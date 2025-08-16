@@ -131,11 +131,13 @@ class QuantumCircuitPainter extends CustomPainter {
       debugPrint('Drawing qubit line $primaryDrawingQubit with ${row.length} gates');
       for (final (currentX, placedGate) in row.indexed) {
         // Calculate the top-left corner of the gate icon square
-        if (placedGate.type == SelectedGateType.cnot) {
+        if (placedGate.type == SelectedGateType.cnot || placedGate.type == SelectedGateType.cz) {
+          final SelectedGateType gateType = placedGate.type;
+          final String gateLabel = gateType.label;
           // Drawing logic for CNOT not target
           // int currentX = gateXPosititionPerQubit.reduce(max);
           final double gateColumnCenterX = padding + currentX * gateSpacing + gateSize / 2;
-          debugPrint('  Drawing CNOT at $gateColumnCenterX');
+          debugPrint('  Drawing $gateLabel at $gateColumnCenterX');
 
           gateXPosititionPerQubit[primaryDrawingQubit] += 1; // Increment for next gate
 
@@ -146,27 +148,33 @@ class QuantumCircuitPainter extends CustomPainter {
 
             // Draw control circle/dot
             final controlPaint = Paint()
-              ..color = SelectedGateType.cnot.color;
+              ..color = gateType.color;
             canvas.drawCircle(Offset(gateColumnCenterX, controlY), controlDotRadius, controlPaint);
 
             // Draw connection line between control and target
             final linePaint = Paint()
-              ..color = SelectedGateType.cnot.color
+              ..color = gateType.color
               ..strokeWidth = 2.0;
             canvas.drawLine(Offset(gateColumnCenterX, controlY), Offset(gateColumnCenterX, targetY), linePaint);
 
-            // Draw target circle
-            final targetPaint = Paint()
-              ..color = SelectedGateType.cnot.color;
-            canvas.drawCircle(Offset(gateColumnCenterX, targetY), targetRadius, targetPaint);
+            if (placedGate.type == SelectedGateType.cnot) {
+              // Draw target circle
+              final targetPaint = Paint()
+                ..color = gateType.color;
+              canvas.drawCircle(Offset(gateColumnCenterX, targetY), targetRadius, targetPaint);
 
-            // Draw '+' inside target circle
-            final plusPainter = TextPainter(
-              text: TextSpan(text: '+', style: TextStyle(color: Colors.white, fontSize: 24)),
-              textDirection: TextDirection.ltr,
-            );
-            plusPainter.layout();
-            plusPainter.paint(canvas, Offset(gateColumnCenterX - plusPainter.width / 2, targetY - plusPainter.height / 2));
+              // Draw '+' inside target circle
+              final plusPainter = TextPainter(
+                text: TextSpan(text: '+', style: TextStyle(color: Colors.white, fontSize: 24)),
+                textDirection: TextDirection.ltr,
+              );
+              plusPainter.layout();
+              plusPainter.paint(canvas, Offset(gateColumnCenterX - plusPainter.width / 2, targetY - plusPainter.height / 2));
+            } else if (placedGate.type == SelectedGateType.cz) {
+              final targetPaint = Paint()
+                ..color = gateType.color;
+              canvas.drawCircle(Offset(gateColumnCenterX, targetY), controlDotRadius, targetPaint);
+            }
           }
 
           widthNotifier.value = max(widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
@@ -272,7 +280,7 @@ class QuantumCircuitPainter extends CustomPainter {
         type: SelectedGateType.draggedGate,
       );
 
-      if (draggingGateType == SelectedGateType.cnot || draggingGateType == SelectedGateType.ccnot) {
+      if (draggingGateType == SelectedGateType.cnot || draggingGateType == SelectedGateType.cz || draggingGateType == SelectedGateType.ccnot) {
         // this needs to be the minimum across the whole
         debugPrint('Place ${draggingGateType!.label} box at Highlighting qubit line: $qubitLine and gate position: $gatePosition');
         // verify length of the vertical filler always '1'

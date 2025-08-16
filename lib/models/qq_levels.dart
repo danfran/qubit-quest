@@ -521,16 +521,39 @@ final List<QQLevel> allQQLevels = [
       [Complex.zero()],
       [Complex(-sqrt1_2, 0)],     // Index 7: |111>
     ], // Target: (1/sqrt(2))(|000> - |111>)
-    // Solution (for your internal reference):
+    // Solution:
     // 1. X on Q0 (to get |000>)
     // 2. H on Q0
     // 3. CNOT (Q0 control, Q1 target)
     // 4. CNOT (Q1 control, Q2 target) - This sequence creates GHZ from |000>
     // 5. Z on Q2 (to apply the minus phase to |111> component)
   ),
-  // // Level 41: Conditional Phase Shift (Shor's Principle Hint)
-  // // This level introduces the concept of a Controlled-Z gate's effect,
-  // // which is key to Quantum Phase Estimation and Shor's algorithm.
+
+  // H(0) + H(1) + CZ(0,1) (or CZ(1,0)) - double solution
+  // This level introduces the concept of a Controlled-Z gate's effect,
+  // which is key to Quantum Phase Estimation and Shor's algorithm.
+  QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"This is about Conditional Phase Shift (Shor's Principle Hint). From \( |00\rangle \), create a uniform superposition where the \( |11\rangle \) component has its phase flipped to \(-1\). The target state is \( (|00\rangle + |01\rangle + |10\rangle - |11\rangle)/2 \).",
+    numQubits: 2,
+    initialQubitsStateString: "00",
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.cz, SelectedGateType.z, SelectedGateType.t, SelectedGateType.y],
+    solutionFinalVector: [
+      [Complex(0.5, 0)],           // Amplitude for |00>
+      [Complex(0.5, 0)],           // Amplitude for |01>
+      [Complex(0.5, 0)],           // Amplitude for |10>
+      [Complex(-0.5, 0)],          // Amplitude for |11> (phase flipped)
+    ], // Target: (1/2)(|00> + |01> + |10> - |11>)
+    // Solution:
+    // 1. Hadamard (H) on Qubit 0
+    // 2. Hadamard (H) on Qubit 1
+    //    (At this point, state is 1/2(|00> + |01> + |10> + |11>))
+    // 3. Apply the Controlled-Z (CZ) gate.
+    //    CZ can be decomposed into: H on Qubit 1, CNOT (Qubit 0 control, Qubit 1 target), H on Qubit 1.
+    //    So, the sequence would be: H_0, H_1, H_1, CNOT_{01}, H_1.
+  ),
+
+  // Level 42: Controlled Phase Introduction
   // QQLevel.fromBinaryString(
   //   type: "composer",
   //   taskDescription: r"From \( |00\rangle \), create a uniform superposition where the \( |11\rangle \) component has its phase flipped to \(-1\). The target state is \( \frac{1}{2}(|00\rangle + |01\rangle + |10\rangle - |11\rangle) \).",
@@ -544,12 +567,46 @@ final List<QQLevel> allQQLevels = [
   //     [Complex(-0.5, 0)],          // Amplitude for |11> (phase flipped)
   //   ], // Target: (1/2)(|00> + |01> + |10> - |11>)
   //   // Solution (for your internal reference - player must discover):
-  //   // 1. Hadamard (H) on Qubit 0
-  //   // 2. Hadamard (H) on Qubit 1
-  //   //    (At this point, state is 1/2(|00> + |01> + |10> + |11>))
-  //   // 3. Apply the Controlled-Z (CZ) gate.
-  //   //    CZ can be decomposed into: H on Qubit 1, CNOT (Qubit 0 control, Qubit 1 target), H on Qubit 1.
-  //   //    So, the sequence would be: H_0, H_1, H_1, CNOT_{01}, H_1.
+  //   // 1. Hadamard (H) on Qubit 0 (col 0)
+  //   // 2. Hadamard (H) on Qubit 1 (col 1)
+  //   //    (State is now 1/2(|00> + |01> + |10> + |11>))
+  //   // 3. Apply the Controlled-Z (CZ) decomposition:
+  //   //    Hadamard (H) on Qubit 1 (target) (col 2)
+  //   //    CNOT (Qubit 0 control, Qubit 1 target) (col 3)
+  //   //    Hadamard (H) on Qubit 1 (target) (col 4)
+  //   // Total: H_0, H_1, H_1, CNOT_01, H_1
+  // ),
+
+  // Level 43: Disentangling with Controlled Phase
+  // QQLevel.fromBinaryString(
+  //   type: "composer",
+  //   taskDescription: r"This circuit is pre-configured to an entangled state where the \( |11\rangle \) component has a negative phase. Your task is to transform this state back to \( |00\rangle \).",
+  //   numQubits: 2,
+  //   initialQubitsStateString: "00", // Base for pre-inserted gates
+  //   preInsertedGates: [
+  //     // Gates to create the pre-configured state: H_0, H_1, H_1, CNOT_01, H_1
+  //     [ // Qubit 0 line
+  //       PlacedQuantumGate(type: SelectedGateType.hadamard, qubitIndex: 0, column: 0),
+  //       PlacedQuantumGate(type: SelectedGateType.cnot, qubitIndex: 0, column: 3, controlQubitIndex: 0, targetQubitIndex: 1), // Control for CNOT
+  //     ],
+  //     [ // Qubit 1 line
+  //       PlacedQuantumGate(type: SelectedGateType.hadamard, qubitIndex: 1, column: 1),
+  //       PlacedQuantumGate(type: SelectedGateType.hadamard, qubitIndex: 1, column: 2), // Target for first H
+  //       PlacedQuantumGate(type: SelectedGateType.cnot, qubitIndex: 1, column: 3, controlQubitIndex: 0, targetQubitIndex: 1), // Target for CNOT
+  //       PlacedQuantumGate(type: SelectedGateType.hadamard, qubitIndex: 1, column: 4), // Target for second H
+  //     ]
+  //   ],
+  //   availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.z], // Provide gates for reversal
+  //   solutionFinalVector: [
+  //     [Complex.one()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //     [Complex.zero()],
+  //   ], // Target: |00>
+  //   // Solution (for your internal reference):
+  //   // Apply the same CZ decomposition sequence again (H_1, CNOT_01, H_1)
+  //   // Then apply H_0, H_1 to return to |00>
+  //   // Total solution: H_1, CNOT_01, H_1, H_0, H_1 (5 gates)
   // ),
 ];
 
