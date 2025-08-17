@@ -215,6 +215,148 @@ void main() {
     });
   });
 
+  group('CZ Gate', () {
+    test('Create CZ matrix for control 0, target 1', () {
+      // Apply to initial state
+
+      int c = 0;
+      int t = 1;
+      final finalState = QuantumMatrix.cz(control: c, target: t);
+
+      final expectedState = QuantumMatrix([
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex(-1, 0)],
+      ]);
+
+      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CZ Matrix c=$c, t=$t');
+    });
+
+
+    test('Create CZ matrix for control 1, target 0', () {
+      // Apply to initial state
+
+      int c = 1;
+      int t = 0;
+      final finalState = QuantumMatrix.cz(control: c, target: t);
+
+      final expectedState = QuantumMatrix([
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex(-1, 0)],
+      ]);
+
+      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CZ Matrix c=$c, t=$t');
+    });
+
+    test('Create CZ matrix for control 0, target 2', () {
+      // Apply to initial state
+
+      int c = 0;
+      int t = 2;
+      final finalState = QuantumMatrix.cz(control: c, target: t);
+
+      final expectedState = QuantumMatrix([
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(-1, 0), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(-1, 0)],
+      ]);
+
+      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CZ Matrix c=$c, t=$t');
+    });
+
+    test('Create CZ matrix for out of boundaries control 1, target 2 should adapt', () {
+      // Apply to initial state
+
+      int c = 1;
+      int t = 2;
+      final finalState = QuantumMatrix.cz(control: c, target: t);
+
+      final expectedState = QuantumMatrix([
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex(-1, 0)],
+      ]);
+
+      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CZ Matrix c=$c, t=$t');
+    });
+
+    test('Create CZ matrix for control 2, target 0', () {
+      // Apply to initial state
+
+      int c = 2;
+      int t = 0;
+      final finalState = QuantumMatrix.cz(control: c, target: t);
+
+      final expectedState = QuantumMatrix([
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(-1, 0), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(-1, 0)],
+      ]);
+
+      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CZ Matrix c=$c, t=$t');
+    });
+
+    test('Create CZ matrix for control 2, target 1', () {
+      // Apply to initial state
+
+      int c = 2;
+      int t = 1;
+      final finalState = QuantumMatrix.cz(control: c, target: t);
+
+      final expectedState = QuantumMatrix([
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex(-1, 0)],
+      ]);
+
+      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CZ Matrix c=$c, t=$t');
+    });
+
+    test('Create CZ matrix for control 4, target 1', () {
+      // Apply to initial state
+
+      int c = 4;
+      int t = 1;
+      final finalState = QuantumMatrix.cz(control: c, target: t);
+
+      final expectedState = QuantumMatrix([
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(-1, 0), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(-1, 0), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(-1, 0), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(-1, 0)],
+      ]);
+
+      expect(finalState.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Should create a CZ Matrix c=$c, t=$t');
+    });
+  });
+
   group('CNOT Gate', () {
     test('Create CNOT matrix for control 0, target 1', () {
       // Apply to initial state
