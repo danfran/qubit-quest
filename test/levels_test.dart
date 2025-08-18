@@ -186,6 +186,11 @@ void main() {
         circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 1, 1);
         circuit.insertDoublePlacedGateAt(SelectedGateType.cz, 2, 1, 0);
       },
+      (QuantumCircuit circuit) { // double solution
+        circuit.insertDoublePlacedGateAt(SelectedGateType.cz, 3, 1, 0);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 4, 0);
+        circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 5, 1);
+      },
     ];
 
     for (int i = 1; i <= tests.length; i++) {
