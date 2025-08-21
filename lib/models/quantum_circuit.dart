@@ -19,17 +19,15 @@ class QuantumCircuit extends ChangeNotifier {
   QubitState currentState;
 
   // Constructor
-  QuantumCircuit._internal({required this.currentLevel}):
+  QuantumCircuit({required this.currentLevel}):
   // Initialize the currentState to the ground state |00...0>
   // Assuming QubitState has a constructor or static method to create the initial state
         initialState = QubitState.fromList(currentLevel.initialQubitsState),
         currentState = QubitState.fromList(currentLevel.initialQubitsState),
-        placedGates = List.generate(currentLevel.numQubits, (index) => []);
-
-  factory QuantumCircuit({required QQLevel currentLevel}) {
-    var quantumCircuit = QuantumCircuit._internal(currentLevel: currentLevel);
-    currentLevel.preInsertGates(quantumCircuit);
-    return quantumCircuit;
+        placedGates = List.generate(currentLevel.numQubits, (index) => []) {
+    currentLevel.preInsertGates(this);
+    runSimulation();    // Automatically calls the simulation method
+    print('QuantumCircuit initialized and simulation started automatically!');
   }
 
   int maxCircuitDepth() => placedGates.map((e) => e.length).reduce(max);

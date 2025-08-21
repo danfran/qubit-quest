@@ -113,6 +113,11 @@ class QuantumDocDialog extends StatelessWidget {
                         r"<p>A Z-axis rotation by \( \pi / 4 \) radians. Maps \( |0\rangle \) to \( |0\rangle \) and \( |1\rangle \) to \( e^{i\pi/4}|1\rangle \). The H and T gates are a universal set.</p>",
                         r"<p>$$T = \begin{pmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{pmatrix} \Rightarrow \begin{cases} T|0\rangle = |0\rangle \\ T|1\rangle = e^{i\pi/4}|1\rangle \end{cases}$$</p>"
                     ),
+                    // _buildGateDescription(
+                    //     r"<h3>Controlled-Z (\( CZ \))</h3>",
+                    //     r"<p>A two-qubit gate. Flips the phase of the target qubit if the control qubit is in the \( |1\rangle \) state. If control is \( |0\rangle \), the target is unchanged. It is symmetric so swapping control and target does not change the result.</p>",
+                    //     r"<p>$$CZ = \begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & -1 \end{pmatrix}\Rightarrow \begin{cases} CZ|00\rangle = |00\rangle \\ CZ|01\rangle = |01\rangle \\ CZ|10\rangle = |10\rangle \\ CZ|11\rangle = -|11\rangle \end{cases}$$</p>"
+                    // ),
                     _buildGateDescription(
                         r"<h3>Controlled-NOT (\( CNOT \) or \( CX \))</h3>",
                         r"<p>A two-qubit gate. Flips the target qubit if the control qubit is in the \( |1\rangle \) state. If control is \( |0\rangle \), the target is unchanged. Creates entanglement between the control and target qubits.</p>",

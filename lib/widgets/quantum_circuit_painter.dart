@@ -72,7 +72,7 @@ class QuantumCircuitPainter extends CustomPainter {
     for (int i = 0; i < circuit.currentLevel.numQubits; i++) {
       // Calculate the vertical center Y for this qubit line
       final double lineY = getQubitCenterY(i);
-      final qubitState = circuit.currentLevel.initialQubitsStateStr[i];
+      final qubitState = circuit.currentLevel.initialQubitsStateStr[circuit.currentLevel.numQubits - i - 1];
       debugPrint("  Painter: Drawing Qubit $i line and hit area at Y: $lineY. Hit range: ${lineY - hitTolerance} to ${lineY + hitTolerance}"); // Debug calculated drawing Y
 
       // Draw the qubit line

@@ -46,7 +46,7 @@ final List<QQLevel> allQQLevels = [
     solutionFinalVector: [[Complex.zero()], [Complex.i()]], // Target: |i> state (Y|0> = i|1>)
   ),
   // X + Z + X
-  QQLevel.fromBinaryString(
+  QQLevel.fromBinaryString( // 5
     type: "composer",
     taskDescription: r"Starting from \( |0\rangle \), achieve \( -|0\rangle \).",
     numQubits: 1,
@@ -91,7 +91,7 @@ final List<QQLevel> allQQLevels = [
     solutionFinalVector: [[Complex(sqrt1_2, 0)], [Complex(-sqrt1_2, 0)]], // Target: |-> state (H then Z)
   ),
   // H(1) + X(0)
-  QQLevel.fromBinaryString(
+  QQLevel.fromBinaryString( // 10
     type: "composer",
     taskDescription: r"From \( |00\rangle \), create the product state \( |+\rangle \otimes |1\rangle = (|01\rangle + |11\rangle)/\sqrt{2} \).",
     numQubits: 2,
@@ -139,7 +139,7 @@ final List<QQLevel> allQQLevels = [
   // CX(0,1)
   QQLevel.fromBinaryString(
     type: "composer",
-    taskDescription: r"From \( |00\rangle \), create a circuit where Qubit 1 will 'mirror' the state of Qubit 0. The final state should be \( |00\rangle \).",
+    taskDescription: r"From \( |10\rangle \), create a circuit where Qubit 1 will 'mirror' the state of Qubit 0. The final state should be \( |11\rangle \).",
     numQubits: 2,
     initialQubitsStateString: "10",
     availableGates: [SelectedGateType.cnot, SelectedGateType.y, SelectedGateType.z],
@@ -151,7 +151,7 @@ final List<QQLevel> allQQLevels = [
     ], // Target: |00>
   ),
   // CX(1,0)
-  QQLevel.fromBinaryString(
+  QQLevel.fromBinaryString( // 15
     type: "composer",
     taskDescription: r"Transform \( |01\rangle \) to \( |11\rangle \).",
     numQubits: 2,
@@ -172,8 +172,8 @@ final List<QQLevel> allQQLevels = [
     initialQubitsStateString: "101", // |000> state
     availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.z, SelectedGateType.y],
     solutionFinalVector: [ // CNOT(Q0, Q2) applied to |000> results in |000>
-      [Complex.zero()], [Complex.one()], [Complex.zero()], [Complex.zero()],
       [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
+      [Complex.one()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
     ],
   ),
   // CX(0,1) + X(0)
@@ -182,12 +182,12 @@ final List<QQLevel> allQQLevels = [
     taskDescription: r"From \( |11\rangle \), transform the state to \( |00\rangle \).",
     numQubits: 2,
     initialQubitsStateString: "11",
-    availableGates: [SelectedGateType.cnot, SelectedGateType.x],
+    availableGates: [SelectedGateType.cnot, SelectedGateType.x,  SelectedGateType.z,  SelectedGateType.y],
     solutionFinalVector: [
-      [Complex.zero()],
-      [Complex.zero()],
-      [Complex.zero()],
       [Complex.one()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
     ], // Target: |01>
   ),
   // CCX (1,0,2)
@@ -207,7 +207,7 @@ final List<QQLevel> allQQLevels = [
     type: "composer",
     taskDescription: r"From \( |011\rangle \), transform the state to \( |111\rangle \).",
     numQubits: 3,
-    initialQubitsStateString: "110",
+    initialQubitsStateString: "011",
     availableGates: [SelectedGateType.ccnot, SelectedGateType.y, SelectedGateType.z],
     solutionFinalVector: [
       [Complex.zero()],
@@ -230,7 +230,7 @@ final List<QQLevel> allQQLevels = [
     numQubits: 3,
     initialQubitsStateString: "110", // Base for pre-inserted gates
     preInsertedGates: (QuantumCircuit circuit) {
-      circuit.insertTriplePlacedGateAt(SelectedGateType.ccnot, 0, 2, 0, 1, isDeletable: false);
+      circuit.insertTriplePlacedGateAt(SelectedGateType.ccnot, 0, 0, 1, 2, isDeletable: false);
     },
     availableGates: [SelectedGateType.ccnot, SelectedGateType.z],
     solutionFinalVector: [
@@ -309,9 +309,9 @@ final List<QQLevel> allQQLevels = [
     ], // Target: |00>
   ),
   // H + CX + Z(1)
-  QQLevel.fromBinaryString(
+  QQLevel.fromBinaryString( // 25
     type: "composer",
-    taskDescription: r"From \( |00\rangle \), create the Bell state \( |\Psi^-\rangle = (|01\rangle - |10\rangle)/\sqrt{2} \).",
+    taskDescription: r"From \( |10\rangle \), create the Bell state \( |\Psi^-\rangle = (|01\rangle - |10\rangle)/\sqrt{2} \).",
     numQubits: 2,
     initialQubitsStateString: "10",
     availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.z, SelectedGateType.y],
@@ -339,7 +339,7 @@ final List<QQLevel> allQQLevels = [
   // (H + CX + Z) + Z + CX + H
   QQLevel.fromBinaryString(
     type: "composer",
-    taskDescription: r"This circuit is pre-configured to \( |\Psi^-\rangle \). Your task is to transform this state back to \( |00\rangle \).",
+    taskDescription: r"This circuit is pre-configured. Your task is to transform this state back to \( |00\rangle \).",
     numQubits: 2,
     initialQubitsStateString: "00", // The simulation starts from |00>
     preInsertedGates: (QuantumCircuit circuit) {
@@ -355,7 +355,7 @@ final List<QQLevel> allQQLevels = [
       [Complex.zero()],
     ], // Target: |00> (Solution: Z on Q0, CNOT(0,1), H on Q0 to reverse)
   ),
-  // CX(0,1) +  CX(1,0) + CX(0,1)
+  // CX(0,1) +  CX(1,0)
   QQLevel.fromBinaryString(
     type: "composer",
     taskDescription: r"From \( |10\rangle \), swap the states of the two qubits to achieve \( |01\rangle \). This can be done using only CX gates.",
@@ -377,11 +377,11 @@ final List<QQLevel> allQQLevels = [
     initialQubitsStateString: "00",
     availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.y],
     solutionFinalVector: [
-      [Complex.one()],
-      [Complex.zero()],
-      [Complex.zero()],
-      [Complex.zero()],
-    ], // Target: |00> (CZ|00> = |00>) (Solution: H on Q1, CNOT(0,1), H on Q1)
+      [Complex(0.5, 0)],           // Amplitude for |00>
+      [Complex(0.5, 0)],           // Amplitude for |01>
+      [Complex(0.5, 0)],           // Amplitude for |10>
+      [Complex(-0.5, 0)],          // Amplitude for |11> (phase flipped)
+    ], // Target: (1/2)(|00> + |01> + |10> - |11>)
   ),
   // H(0) + X(1) + CX(0,1)
   QQLevel.fromBinaryString(
