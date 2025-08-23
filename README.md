@@ -46,6 +46,6 @@ flutter build appbundle --release
 * fix privacy policy web page
 * fix other documentation web pages
 * Level 5, the Tex formula for the target state is too small as font size - maybe should be used a dialog too?
-* WHEN A LEVEL IS COMPLETED, PRESSING QUICKLY THE "NEXT LEVEL" BUTTON, UNLOCK MANY LEVEL - SHOULD BE ONLY THE NEXT ONE
-* ADD IN THE DOCUMENTATION 4 BELL'S STATES
+* ~~WHEN A LEVEL IS COMPLETED, PRESSING QUICKLY THE "NEXT LEVEL" BUTTON, UNLOCK MANY LEVEL - SHOULD BE ONLY THE NEXT ONE~~
+* ~~ADD IN THE DOCUMENTATION 4 BELL'S STATES~~
 * ~~FIX THE ISSUE THAT PRE-INSERTED GATES DO NOT GET APPLIED TO THE INITIAL STATE-VECTOR~~

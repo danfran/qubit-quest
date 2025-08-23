@@ -68,7 +68,7 @@ class _HomePageState extends State<HomePage> {
   // Update and save the max unlocked level
   Future<void> _updateMaxUnlockedLevel(int completedLevelNumber) async {
     if (completedLevelNumber >= _maxUnlockedLevel) {
-      final newMaxLevel = completedLevelNumber + 1;
+      final newMaxLevel = completedLevelNumber;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('maxUnlockedLevel', newMaxLevel);
       setState(() {

@@ -398,9 +398,9 @@ final List<QQLevel> allQQLevels = [
     ], // Target: (1/sqrt(2))|01> + (1/sqrt(2))|10> (Psi+ Bell state)
   ),
   // X(1) + H(0) + CX(0,1) + Z(0)
-  QQLevel.fromBinaryString(
+  QQLevel.fromBinaryString( // multiple solutions, for example H(0) + CX(0,1) + H(0) + H(1)
     type: "composer",
-    taskDescription: r"From \( |10\rangle \), create the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle) \)/\sqrt{2}.",
+    taskDescription: r"From \( |10\rangle \), create the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle)/\sqrt{2} \).",
     numQubits: 2,
     initialQubitsStateString: "10",
     availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.x, SelectedGateType.z],
@@ -421,7 +421,7 @@ final List<QQLevel> allQQLevels = [
     preInsertedGates: (QuantumCircuit circuit) {
       circuit.insertDoublePlacedGateAt(SelectedGateType.cnot, 0, 1, 0, isDeletable: false);
     },
-    availableGates: [SelectedGateType.cnot,SelectedGateType.y, SelectedGateType.z],
+    availableGates: [SelectedGateType.cnot, SelectedGateType.y, SelectedGateType.z],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.zero()],
@@ -432,7 +432,7 @@ final List<QQLevel> allQQLevels = [
   // CNOT(2,0) + CNOT(2,1)
   QQLevel.fromBinaryString(
     type: "composer",
-    taskDescription: r"From \( |100\rangle \), transform the state to \( |101\rangle \).",
+    taskDescription: r"From \( |001\rangle \), transform the state to \( |101\rangle \).",
     numQubits: 3,
     initialQubitsStateString: "001",
     availableGates: [SelectedGateType.cnot],
@@ -564,7 +564,7 @@ final List<QQLevel> allQQLevels = [
       circuit.insertSinglePlacedGateAt(SelectedGateType.hadamard, 1, 1, isDeletable: false);
       circuit.insertDoublePlacedGateAt(SelectedGateType.cz, 2, 1, 0, isDeletable: false);
     },
-    availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.z], // Provide gates for reversal
+    availableGates: [SelectedGateType.hadamard, SelectedGateType.cnot, SelectedGateType.cz], // Provide gates for reversal
     solutionFinalVector: [
       [Complex.one()],
       [Complex.zero()],

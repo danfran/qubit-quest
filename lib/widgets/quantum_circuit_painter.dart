@@ -136,7 +136,7 @@ class QuantumCircuitPainter extends CustomPainter {
           final String gateLabel = gateType.label;
           // Drawing logic for CNOT not target
           // int currentX = gateXPosititionPerQubit.reduce(max);
-          final double gateColumnCenterX = padding + currentX * gateSpacing + gateSize / 2;
+          final double gateColumnCenterX = padding + currentX * gateSpacing + gateSpacing / 2;
           debugPrint('  Drawing $gateLabel at $gateColumnCenterX');
 
           gateXPosititionPerQubit[primaryDrawingQubit] += 1; // Increment for next gate
@@ -181,7 +181,7 @@ class QuantumCircuitPainter extends CustomPainter {
         } else if (placedGate.type == SelectedGateType.ccnot) {
           // Drawing logic for CCNOT not target
           // int currentX = gateXPosititionPerQubit.reduce(max);
-          final double gateColumnCenterX = padding + currentX * gateSpacing + gateSize / 2;
+          final double gateColumnCenterX = padding + currentX * gateSpacing + gateSpacing / 2;
           debugPrint('  Drawing CCNOT at $gateColumnCenterX');
 
           gateXPosititionPerQubit[primaryDrawingQubit] += 1; // Increment for next gate
