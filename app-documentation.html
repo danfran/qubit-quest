@@ -111,8 +111,8 @@
                     <li><strong>Multi-Level Select:</strong> Choose from a series of curated levels designed to teach quantum concepts step-by-step.</li>
                     <li><strong>Documentation:</strong> (You are here!) Access this comprehensive guide.</li>
                     <li><strong>Rate Us:</strong> Share your feedback and support the app.</li>
-                    <li><strong>Privacy Policy:</strong> Understand how your data is handled.</li>
-                    <li><strong>About:</strong> Learn more about the app and its creators.</li>
+                    <li><strong>Privacy Policy:</b> Understand how your data is handled.</li>
+                    <li><strong>About:</b> Learn more about the app and its creators.</li>
                 </ul>
                 <p class="text-base leading-relaxed text-[#8b949e] mt-4">
                     To begin composing circuits, select "Start/Continue" or choose a level from "Multi-Level Select."
@@ -146,6 +146,41 @@
                             When two or more qubits become entangled, their fates are linked, regardless of the distance between them. Measuring one entangled qubit instantly influences the state of the others. The CNOT gate is key to creating entanglement.
                         </p>
                     </div>
+                    <!-- New Section: Bell States -->
+                    <div>
+                        <h3 class="text-xl font-medium text-[#58a6ff] mb-2">Bell States</h3>
+                        <p>
+                            Bell states are a set of four specific maximally entangled two-qubit states. They are fundamental in quantum information science and demonstrate the unique properties of entanglement. Each Bell state is a superposition of two computational basis states, and measuring one qubit instantly determines the state of the other.
+                        </p>
+                        <p class="text-base text-[#8b949e] mt-4">The four Bell states are:</p>
+                        <ul class="list-disc list-inside text-base text-[#8b949e] space-y-2 pl-4">
+                            <li>
+                                <strong>\( |\Phi^+\rangle \) (Phi-plus):</strong>
+                                <div class="text-center my-2">
+                                    \[ |\Phi^+\rangle = \frac{1}{\sqrt{2}}(|00\rangle + |11\rangle) \]
+                                </div>
+                            </li>
+                            <li>
+                                <strong>\( |\Phi^-\rangle \) (Phi-minus):</strong>
+                                <div class="text-center my-2">
+                                    \[ |\Phi^-\rangle = \frac{1}{\sqrt{2}}(|00\rangle - |11\rangle) \]
+                                </div>
+                            </li>
+                            <li>
+                                <strong>\( |\Psi^+\rangle \) (Psi-plus):</strong>
+                                <div class="text-center my-2">
+                                    \[ |\Psi^+\rangle = \frac{1}{\sqrt{2}}(|01\rangle + |10\rangle) \]
+                                </div>
+                            </li>
+                            <li>
+                                <strong>\( |\Psi^-\rangle \) (Psi-minus):</strong>
+                                <div class="text-center my-2">
+                                    \[ |\Psi^-\rangle = \frac{1}{\sqrt{2}}(|01\rangle - |10\rangle) \]
+                                </div>
+                            </li>
+                        </ul>
+                        <p class="text-base text-[#8b949e] mt-4">These states are often generated from the \( |00\rangle \) state using a combination of Hadamard and CNOT gates, sometimes with additional Pauli-Z gates to achieve the negative phases.</p>
+                    </div>
                 </div>
             </section>
 
@@ -165,7 +200,7 @@
                         <div class="text-center my-4">
                             \[ X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} \]
                         </div>
-                        <p class="text-sm text-[#8b949e]">Effect: \(X|0\rangle = |1\rangle\), \(X|1\rangle = |0\rangle\)</p>
+                        <p class="text-base text-[#8b949e] text-center"><strong class="text-base">Effect:</strong> \(X|0\rangle = |1\rangle\), \(X|1\rangle = |0\rangle\)</p>
                     </div>
 
                     <!-- Y Gate -->
@@ -177,7 +212,7 @@
                         <div class="text-center my-4">
                             \[ Y = \begin{pmatrix} 0 & -i \\ i & 0 \end{pmatrix} \]
                         </div>
-                        <p class="text-sm text-[#8b949e]">Effect: \(Y|0\rangle = i|1\rangle\), \(Y|1\rangle = -i|0\rangle\)</p>
+                        <p class="text-base text-[#8b949e] text-center"><strong class="text-base">Effect:</strong> \(Y|0\rangle = i|1\rangle\), \(Y|1\rangle = -i|0\rangle\)</p>
                     </div>
 
                     <!-- Z Gate -->
@@ -189,7 +224,7 @@
                         <div class="text-center my-4">
                             \[ Z = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix} \]
                         </div>
-                        <p class="text-sm text-[#8b949e]">Effect: \(Z|0\rangle = |0\rangle\), \(Z|1\rangle = -|1\rangle\)</p>
+                        <p class="text-base text-[#8b949e] text-center"><strong class="text-base">Effect:</strong> \(Z|0\rangle = |0\rangle\), \(Z|1\rangle = -|1\rangle\)</p>
                     </div>
 
                     <!-- Hadamard Gate -->
@@ -201,7 +236,7 @@
                         <div class="text-center my-4">
                             \[ H = \frac{1}{\sqrt{2}}\begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix} \]
                         </div>
-                        <p class="text-sm text-[#8b949e]">Effect: \(H|0\rangle = |+\rangle\), \(H|1\rangle = |-\rangle\)</p>
+                        <p class="text-base text-[#8b949e] text-center"><strong class="text-base">Effect:</strong> \(H|0\rangle = |+\rangle\), \(H|1\rangle = |-\rangle\)</p>
                     </div>
 
                     <!-- S Gate (Phase Gate) -->
@@ -213,7 +248,7 @@
                         <div class="text-center my-4">
                             \[ S = \begin{pmatrix} 1 & 0 \\ 0 & i \end{pmatrix} \]
                         </div>
-                        <p class="text-sm text-[#8b949e]">Effect: \(S|0\rangle = |0\rangle\), \(S|1\rangle = i|1\rangle\)</p>
+                        <p class="text-base text-[#8b949e] text-center"><strong class="text-base">Effect:</strong> \(S|0\rangle = |0\rangle\), \(S|1\rangle = i|1\rangle\)</p>
                     </div>
 
                     <!-- T Gate (Pi/8 Gate) -->
@@ -225,7 +260,7 @@
                         <div class="text-center my-4">
                             \[ T = \begin{pmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{pmatrix} \]
                         </div>
-                        <p class="text-sm text-[#8b949e]">Effect: \(T|0\rangle = |0\rangle\), \(T|1\rangle = e^{i\pi/4}|1\rangle\)</p>
+                        <p class="text-base text-[#8b949e] text-center"><strong class="text-base">Effect:</strong> \(T|0\rangle = |0\rangle\), \(T|1\rangle = e^{i\pi/4}|1\rangle\)</p>
                     </div>
 
                     <!-- CNOT Gate (Controlled-NOT) -->
@@ -237,7 +272,13 @@
                         <div class="text-center my-4">
                             \[ CNOT = \begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{pmatrix} \]
                         </div>
-                        <p class="text-sm text-[#8b949e]">Effect: \(CNOT|00\rangle = |00\rangle\), \(CNOT|01\rangle = |01\rangle\), \(CNOT|10\rangle = |11\rangle\), \(CNOT|11\rangle = |10\rangle\)</p>
+                        <p class="text-base text-[#8b949e] text-center">
+                            <strong class="text-base">Effect:</strong>
+                            <br>\(CNOT|00\rangle = |00\rangle\)
+                            <br>\(CNOT|01\rangle = |01\rangle\)
+                            <br>\(CNOT|10\rangle = |11\rangle\)
+                            <br>\(CNOT|11\rangle = |10\rangle\)
+                        </p>
                     </div>
 
                     <!-- CZ Gate (Controlled-Z) -->
@@ -249,7 +290,13 @@
                         <div class="text-center my-4">
                             \[ CZ = \begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & -1 \end{pmatrix} \]
                         </div>
-                        <p class="text-sm text-[#8b949e]">Effect: \(CZ|00\rangle = |00\rangle\), \(CZ|01\rangle = |01\rangle\), \(CZ|10\rangle = |10\rangle\), \(CZ|11\rangle = -|11\rangle\)</p>
+                        <p class="text-base text-[#8b949e] text-center">
+                            <strong class="text-base">Effect:</strong>
+                            <br>\(CZ|00\rangle = |00\rangle\)
+                            <br>\(CZ|01\rangle = |01\rangle\)
+                            <br>\(CZ|10\rangle = |10\rangle\)
+                            <br>\(CZ|11\rangle = -|11\rangle\)
+                        </p>
                     </div>
 
                     <!-- CCNOT Gate (Toffoli Gate) -->
@@ -261,7 +308,17 @@
                         <div class="text-center my-4">
                             \[ CCNOT = \begin{pmatrix} 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\ 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \end{pmatrix} \]
                         </div>
-                        <p class="text-sm text-[#8b949e]">Effect: \(CCNOT|000\rangle = |000\rangle\), \(CCNOT|001\rangle = |001\rangle\), \(CCNOT|010\rangle = |010\rangle\), \(CCNOT|011\rangle = |011\rangle\), \(CCNOT|100\rangle = |100\rangle\), \(CCNOT|101\rangle = |101\rangle\), \(CCNOT|110\rangle = |111\rangle\), \(CCNOT|111\rangle = |110\rangle\)</p>
+                        <p class="text-base text-[#8b949e] text-center">
+                            <strong class="text-base">Effect:</strong>
+                            <br>\(CCNOT|000\rangle = |000\rangle\)
+                            <br>\(CCNOT|001\rangle = |001\rangle\)
+                            <br>\(CCNOT|010\rangle = |010\rangle\)
+                            <br>\(CCNOT|011\rangle = |011\rangle\)
+                            <br>\(CCNOT|100\rangle = |100\rangle\)
+                            <br>\(CCNOT|101\rangle = |101\rangle\)
+                            <br>\(CCNOT|110\rangle = |111\rangle\)
+                            <br>\(CCNOT|111\rangle = |110\rangle\)
+                        </p>
                     </div>
                 </div>
             </section>
@@ -275,7 +332,7 @@
                     <li><strong>Drag & Drop:</strong> Select a gate from the "Add/Remove Gates" panel and drag it onto the desired qubit line at any available column.</li>
                     <li><strong>Multi-Qubit Gates:</strong> For gates like CNOT and CCNOT, a dialog will appear prompting you to select control and target qubits after dropping the gate.</li>
                     <li><strong>Remove Gates:</strong> Drag the "Delete" icon onto an existing gate to remove it from the circuit.</li>
-                    <li><strong>Visualize State:</strong> As you add gates, the quantum state vector and Bloch sphere visualization will update in real-time, showing the effect of your circuit.</li>
+                    <li><strong>Visualize State:</b> As you add gates, the quantum state vector and Bloch sphere visualization will update in real-time, showing the effect of your circuit.</li>
                     <li><strong>Reset:</strong> Use the reset option to clear your circuit and start over.</li>
                 </ul>
             </section>
@@ -288,7 +345,7 @@
                 <ul class="list-disc list-inside text-base text-[#8b949e] space-y-2">
                     <li><strong>Task Description:</strong> Clearly states the goal for the level, often including the initial and target states.</li>
                     <li><strong>Available Gates:</strong> Only a subset of gates will be available for each level, encouraging you to think strategically.</li>
-                    <li><strong>Solution Validation:</strong> Your circuit will be automatically checked against the target state.</li>
+                    <li><strong>Solution Validation:</b> Your circuit will be automatically checked against the target state.</li>
                     <li><strong>Pre-inserted Gates:</strong> Some advanced levels might start with pre-configured gates to set up a specific initial scenario.</li>
                 </ul>
             </section>
