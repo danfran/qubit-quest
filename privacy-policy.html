@@ -1,153 +1,291 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset='utf-8'>
-    <meta name='viewport' content='width=device-width'>
-    <link rel="stylesheet" href="css/default.css">
-    <title>Privacy Policy</title>
+    <meta charset="UTF-8">
+    <title>Privacy Policy - Qubit Quest</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Dark background similar to GitHub Dark */
+            color: #c9d1d9; /* Light grey text */
+            overflow: hidden; /* Hide scrollbar initially to prevent flicker */
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #161b22;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 10px;
+            border: 2px solid #161b22;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444c56;
+        }
+
+        /* Spinner Styles (copied from documentation) */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0d1117; /* Match body background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999; /* Ensure it's on top */
+            transition: opacity 0.5s ease-out; /* Smooth fade out */
+            opacity: 1;
+        }
+
+        #loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3); /* Light grey border */
+            border-top: 4px solid #58a6ff; /* Blue top border */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite; /* Spin animation */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden-content {
+            opacity: 0;
+            visibility: hidden;
+        }
+        .visible-content {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.5s ease-in;
+        }
+    </style>
 </head>
 <body>
-<h1>Privacy Policy</h1>
-<p>
-    Aion built the Qubit-Quest app. This SERVICE is provided by
-    Aion at no cost and is intended for use as is.
-</p>
-<p>
-    This page is used to inform visitors regarding my
-    policies with the collection, use, and disclosure of Personal
-    Information if anyone decided to use my Service.
-</p>
-<p>
-    If you choose to use my Service, then you agree to
-    the collection and use of information in relation to this
-    policy. The Personal Information that I collect is
-    used for providing and improving the Service. I will not use or share your information with
-    anyone except as described in this Privacy Policy.
-</p>
-<p>
-    The terms used in this Privacy Policy have the same meanings
-    as in our Terms and Conditions, which are accessible at
-    Qubit-Quest unless otherwise defined in this Privacy Policy.
-</p>
-<p><strong>Information Collection and Use</strong></p>
-<p>
-    For a better experience, while using our Service, I
-    may require you to provide us with certain personally
-    identifiable information. The information that
-    I request will be retained on your device and is not collected by me in any way.
-</p>
-<div><p>
-    The app does use third-party services that may collect
-    information used to identify you.
-</p>
-    <p>
-        Link to the privacy policy of third-party service providers used
-        by the app
-    </p>
-    <ul>
-        <li><a href="https://www.google.com/policies/privacy/" target="_blank"
-               rel="noopener noreferrer">Google Play Services</a></li>
-        <li><a href="https://support.google.com/admob/answer/6128543?hl=en" target="_blank"
-               rel="noopener noreferrer">AdMob</a></li><!----><!----><!----><!----><!----><!---->
-        <!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!---->
-        <!----><!----><!----><!----><!----><!----><!----><!----></ul>
-</div>
-<p><strong>Log Data</strong></p>
-<p>
-    I want to inform you that whenever you
-    use my Service, in a case of an error in the app
-    I collect data and information (through third-party
-    products) on your phone called Log Data. This Log Data may
-    include information such as your device Internet Protocol
-    (“IP”) address, device name, operating system version, the
-    configuration of the app when utilizing my Service,
-    the time and date of your use of the Service, and other
-    statistics.
-</p>
-<p><strong>Cookies</strong></p>
-<p>
-    Cookies are files with a small amount of data that are
-    commonly used as anonymous unique identifiers. These are sent
-    to your browser from the websites that you visit and are
-    stored on your device's internal memory.
-</p>
-<p>
-    This Service does not use these “cookies” explicitly. However,
-    the app may use third-party code and libraries that use
-    “cookies” to collect information and improve their services.
-    You have the option to either accept or refuse these cookies
-    and know when a cookie is being sent to your device. If you
-    choose to refuse our cookies, you may not be able to use some
-    portions of this Service.
-</p>
-<p><strong>Service Providers</strong></p>
-<p>
-    I may employ third-party companies and
-    individuals due to the following reasons:
-</p>
-<ul>
-    <li>To facilitate our Service;</li>
-    <li>To provide the Service on our behalf;</li>
-    <li>To perform Service-related services; or</li>
-    <li>To assist us in analyzing how our Service is used.</li>
-</ul>
-<p>
-    I want to inform users of this Service
-    that these third parties have access to their Personal
-    Information. The reason is to perform the tasks assigned to
-    them on our behalf. However, they are obligated not to
-    disclose or use the information for any other purpose.
-</p>
-<p><strong>Security</strong></p>
-<p>
-    I value your trust in providing us your
-    Personal Information, thus we are striving to use commercially
-    acceptable means of protecting it. But remember that no method
-    of transmission over the internet, or method of electronic
-    storage is 100% secure and reliable, and I cannot
-    guarantee its absolute security.
-</p>
-<p><strong>Links to Other Sites</strong></p>
-<p>
-    This Service may contain links to other sites. If you click on
-    a third-party link, you will be directed to that site. Note
-    that these external sites are not operated by me.
-    Therefore, I strongly advise you to review the
-    Privacy Policy of these websites. I have
-    no control over and assume no responsibility for the content,
-    privacy policies, or practices of any third-party sites or
-    services.
-</p>
-<p><strong>Children’s Privacy</strong></p>
-<div><p>
-    These Services do not address anyone under the age of 13.
-    I do not knowingly collect personally
-    identifiable information from children under 13 years of age. In the case
-    I discover that a child under 13 has provided
-    me with personal information, I immediately
-    delete this from our servers. If you are a parent or guardian
-    and you are aware that your child has provided us with
-    personal information, please contact me so that
-    I will be able to do the necessary actions.
-</p></div> <!----> <p><strong>Changes to This Privacy Policy</strong></p>
-<p>
-    I may update our Privacy Policy from
-    time to time. Thus, you are advised to review this page
-    periodically for any changes. I will
-    notify you of any changes by posting the new Privacy Policy on
-    this page.
-</p>
-<p>This policy is effective as of 2023-08-25</p>
-<p><strong>Contact Us</strong></p>
-<p>
-    If you have any questions or suggestions about my
-    Privacy Policy, do not hesitate to contact me at dfrancesconi12@gmail.com.
-</p>
-<p>This privacy policy page was created at <a href="https://privacypolicytemplate.net"
-                                              target="_blank" rel="noopener noreferrer">privacypolicytemplate.net </a>and
-    modified/generated by <a href="https://app-privacy-policy-generator.nisrulz.com/"
-                             target="_blank" rel="noopener noreferrer">App Privacy Policy
-        Generator</a></p>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div id="loading-spinner"></div>
+    </div>
+
+    <!-- Main Content (initially hidden) -->
+    <div id="main-content" class="hidden-content p-4 sm:p-6 md:p-8 lg:p-10">
+        <div class="max-w-4xl mx-auto bg-[#161b22] p-6 sm:p-8 md:p-10 rounded-lg shadow-xl border border-[#30363d]">
+            <header class="mb-8 text-center">
+                <h1 class="text-3xl sm:text-4xl font-bold text-[#58a6ff] mb-2">Privacy Policy</h1>
+                <p class="text-md sm:text-lg text-[#8b949e]">For Qubit Quest by Aion</p>
+            </header>
+
+            <section class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#8b949e] space-y-4">
+                <p>
+                    Aion built the Qubit Quest app. This SERVICE is provided by
+                    Aion at no cost and is intended for use as is.
+                </p>
+                <p>
+                    This page is used to inform visitors regarding my
+                    policies with the collection, use, and disclosure of Personal
+                    Information if anyone decided to use my Service.
+                </p>
+                <p>
+                    If you choose to use my Service, then you agree to
+                    the collection and use of information in relation to this
+                    policy. The Personal Information that I collect is
+                    used for providing and improving the Service. I will not use or share your information with
+                    anyone except as described in this Privacy Policy.
+                </p>
+                <p>
+                    The terms used in this Privacy Policy have the same meanings
+                    as in our Terms and Conditions, which are accessible at
+                    Qubit Quest unless otherwise defined in this Privacy Policy.
+                </p>
+            </section>
+
+            <section class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#8b949e] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Information Collection and Use</h2>
+                <p>
+                    For a better experience, while using our Service, I
+                    may require you to provide us with certain personally
+                    identifiable information. The information that
+                    I request will be retained on your device and is not collected by me in any way.
+                </p>
+                <p>
+                    The app does use third-party services that may collect
+                    information used to identify you.
+                </p>
+                <p class="mt-4">
+                    Link to the privacy policy of third-party service providers used
+                    by the app:
+                </p>
+                <ul class="list-disc list-inside ml-4 space-y-2">
+                    <li><a href="https://www.google.com/policies/privacy/" target="_blank"
+                            rel="noopener noreferrer" class="text-[#58a6ff] hover:underline">Google Play Services</a></li>
+                    <li><a href="https://support.google.com/admob/answer/6128543?hl=en" target="_blank"
+                            rel="noopener noreferrer" class="text-[#58a6ff] hover:underline">AdMob</a></li>
+                </ul>
+            </section>
+
+            <section class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#8b949e] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Log Data</h2>
+                <p>
+                    I want to inform you that whenever you
+                    use my Service, in a case of an error in the app
+                    I collect data and information (through third-party
+                    products) on your phone called Log Data. This Log Data may
+                    include information such as your device Internet Protocol
+                    (“IP”) address, device name, operating system version, the
+                    configuration of the app when utilizing my Service,
+                    the time and date of your use of the Service, and other
+                    statistics.
+                </p>
+            </section>
+
+            <section class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#8b949e] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Cookies</h2>
+                <p>
+                    Cookies are files with a small amount of data that are
+                    commonly used as anonymous unique identifiers. These are sent
+                    to your browser from the websites that you visit and are
+                    stored on your device's internal memory.
+                </p>
+                <p>
+                    This Service does not use these “cookies” explicitly. However,
+                    the app may use third-party code and libraries that use
+                    “cookies” to collect information and improve their services.
+                    You have the option to either accept or refuse these cookies
+                    and know when a cookie is being sent to your device. If you
+                    choose to refuse our cookies, you may not be able to use some
+                    portions of this Service.
+                </p>
+            </section>
+
+            <section class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#8b949e] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Service Providers</h2>
+                <p>
+                    I may employ third-party companies and
+                    individuals due to the following reasons:
+                </p>
+                <ul class="list-disc list-inside ml-4 space-y-2">
+                    <li>To facilitate our Service;</li>
+                    <li>To provide the Service on our behalf;</li>
+                    <li>To perform Service-related services; or</li>
+                    <li>To assist us in analyzing how our Service is used.</li>
+                </ul>
+                <p>
+                    I want to inform users of this Service
+                    that these third parties have access to their Personal
+                    Information. The reason is to perform the tasks assigned to
+                    them on our behalf. However, they are obligated not to
+                    disclose or use the information for any other purpose.
+                </p>
+            </section>
+
+            <section class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#8b949e] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Security</h2>
+                <p>
+                    I value your trust in providing us your
+                    Personal Information, thus we are striving to use commercially
+                    acceptable means of protecting it. But remember that no method
+                    of transmission over the internet, or method of electronic
+                    storage is 100% secure and reliable, and I cannot
+                    guarantee its absolute security.
+                </p>
+            </section>
+
+            <section class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#8b949e] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Links to Other Sites</h2>
+                <p>
+                    This Service may contain links to other sites. If you click on
+                    a third-party link, you will be directed to that site. Note
+                    that these external sites are not operated by me.
+                    Therefore, I strongly advise you to review the
+                    Privacy Policy of these websites. I have
+                    no control over and assume no responsibility for the content,
+                    privacy policies, or practices of any third-party sites or
+                    services.
+                </p>
+            </section>
+
+            <section class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#8b949e] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Children’s Privacy</h2>
+                <p>
+                    These Services do not address anyone under the age of 13.
+                    I do not knowingly collect personally
+                    identifiable information from children under 13 years of age. In the case
+                    I discover that a child under 13 has provided
+                    me with personal information, I immediately
+                    delete this from our servers. If you are a parent or guardian
+                    and you are aware that your child has provided us with
+                    personal information, please contact me so that
+                    I will be able to do the necessary actions.
+                </p>
+            </section>
+
+            <section class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#8b949e] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Changes to This Privacy Policy</h2>
+                <p>
+                    I may update our Privacy Policy from
+                    time to time. Thus, you are advised to review this page
+                    periodically for any changes. I will
+                    notify you of any changes by posting the new Privacy Policy on
+                    this page.
+                </p>
+                <p>This policy is effective as of 2023-08-25</p>
+            </section>
+
+            <section class="mb-10 p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#8b949e] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Contact Us</h2>
+                <p>
+                    If you have any questions or suggestions about my
+                    Privacy Policy, do not hesitate to contact me at <a href="mailto:dfrancesconi12@gmail.com" class="text-[#58a6ff] hover:underline">dfrancesconi12@gmail.com</a>.
+                </p>
+            </section>
+
+            <footer class="mt-8 text-sm text-[#8b949e] pt-4 border-t border-[#30363d] text-center">
+                <p>This privacy policy page was created at <a href="https://privacypolicytemplate.net"
+                                                              target="_blank" rel="noopener noreferrer" class="text-[#58a6ff] hover:underline">privacypolicytemplate.net</a> and
+                    modified/generated by <a href="https://app-privacy-policy-generator.nisrulz.com/"
+                                            target="_blank" rel="noopener noreferrer" class="text-[#58a6ff] hover:underline">App Privacy Policy
+                    Generator</a></p>
+                <p class="mt-2">&copy; 2025 Qubit Quest App. All rights reserved.</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // Function to hide the loading overlay and show content
+        function hideLoadingOverlay() {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const mainContent = document.getElementById('main-content');
+
+            if (loadingOverlay && mainContent) {
+                loadingOverlay.style.opacity = '0'; // Start fade out
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none'; // Hide after fade
+                    mainContent.classList.remove('hidden-content');
+                    mainContent.classList.add('visible-content');
+                    document.body.style.overflow = 'auto'; // Re-enable scrolling
+                }, 500); // Match CSS transition duration
+            }
+        }
+
+        // Since this page doesn't have MathJax, we can hide the overlay on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', () => {
+            hideLoadingOverlay();
+        });
+    </script>
+
 </body>
 </html>
-
