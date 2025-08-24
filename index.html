@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- MathJax CDN for LaTeX rendering -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -90,7 +92,10 @@
     <div id="main-content" class="hidden-content p-4 sm:p-6 md:p-8 lg:p-10 flex flex-col justify-center items-center w-full min-h-screen">
         <div class="max-w-md mx-auto bg-[#161b22] p-6 sm:p-8 md:p-10 rounded-lg shadow-xl border border-[#30363d] text-center">
             <header class="mb-8">
-                <h1 class="text-3xl sm:text-4xl font-bold text-[#58a6ff] mb-4">Qubit Quest</h1>
+                <h1 class="text-3xl sm:text-4xl font-bold text-[#58a6ff] mb-4">
+                    <!-- LaTeX title for Qubit Quest -->
+                    $\langle\phi\text{ubit}|\phi\text{uest}\rangle$
+                </h1>
             </header>
 
             <nav class="mb-8">
@@ -125,7 +130,7 @@
     </div>
 
     <script>
-        // Function to hide the loading overlay and show content (copied from documentation)
+        // Function to hide the loading overlay and show content
         function hideLoadingOverlay() {
             const loadingOverlay = document.getElementById('loading-overlay');
             const mainContent = document.getElementById('main-content');
@@ -136,15 +141,36 @@
                     loadingOverlay.style.display = 'none'; // Hide after fade
                     mainContent.classList.remove('hidden-content');
                     mainContent.classList.add('visible-content');
-                    // No need to re-enable overflow if body height is managed by flex.
+                    // We don't need to re-enable overflow if body height is managed by flex.
                     // document.body.style.overflow = 'auto'; 
                 }, 500); // Match CSS transition duration
             }
         }
 
-        // Since this page doesn't have MathJax, we can hide the overlay on DOMContentLoaded
+        // Listen for MathJax to be ready and finished typesetting
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            startup: {
+                ready: function() {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(function () {
+                        // MathJax has finished initial typesetting
+                        hideLoadingOverlay();
+                    });
+                }
+            }
+        };
+
+        // Fallback: If MathJax fails or is very fast, ensure content is shown
         document.addEventListener('DOMContentLoaded', () => {
-            hideLoadingOverlay();
+            setTimeout(() => {
+                if (document.getElementById('loading-overlay').style.opacity === '1') {
+                    hideLoadingOverlay();
+                }
+            }, 2000); // Adjust this fallback delay if needed
         });
     </script>
 
