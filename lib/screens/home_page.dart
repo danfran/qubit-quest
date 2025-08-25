@@ -1,6 +1,7 @@
 // home_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
@@ -222,13 +223,15 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: Color(0xFF1E1E2C), // Consistent dark background
       appBar: AppBar(
-        title: Text(
-          "⟨𝜑ubit|𝜑uest⟩", // App name
-          style: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+        scrolledUnderElevation: 0.0, // Prevent elevation change on scroll
+        surfaceTintColor: Colors.transparent, // Prevent color tinting on scroll
+        title: SvgPicture.asset(
+          'assets/images/logo.svg', // Path to your white SVG
+          height: 36, // Adjust height as needed
+          colorFilter: ColorFilter.mode(
+            Colors.white,
+            BlendMode.srcIn,
+          ), // Ensure it's white if not already in SVG, or to override
         ),
         backgroundColor: Color(0xFF1E1E2C), // Dark app bar
         centerTitle: true,

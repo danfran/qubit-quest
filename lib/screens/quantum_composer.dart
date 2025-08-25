@@ -617,12 +617,31 @@ class _QuantumComposerState extends State<QuantumComposer> {
         backgroundColor: Color(0xFF1E1E2C),
       // Modify the AppBar
       appBar: AppBar(
-        title: Text("⟨𝜑|𝜑⟩ Level ${widget.levelId}",
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),),
+        backgroundColor: Color(0xFF1E1E2C), // Dark app bar
+        scrolledUnderElevation: 0.0, // Prevent elevation change on scroll
+        surfaceTintColor: Colors.transparent, // Prevent color tinting on scroll
+        title: Row( // Use a Row to hold multiple widgets
+          mainAxisSize: MainAxisSize.min, // Make the row take minimal horizontal space
+          children: [
+            SvgPicture.asset(
+              'assets/images/logo_mini.svg', // Path to your white SVG logo
+              height: 32, // Adjust the height to fit nicely in the AppBar
+              colorFilter: ColorFilter.mode(
+                Colors.white,
+                BlendMode.srcIn,
+              ), // Ensure the SVG is white
+            ),
+            SizedBox(width: 8), // Add some spacing between the logo and the text
+            Text(
+              "Level ${widget.levelId}", // Keep your dynamic level text
+              style: TextStyle(
+                fontSize: 28, // Adjust font size as needed
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
         // ** Add the actions list here **
         actions: [
           // Run Simulation Button (as TextButton)
