@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>App Documentation - Qubit Quest</title>
+    <title>Qubit Quest</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -27,7 +27,10 @@
             color: #c9d1d9; /* Light grey text */
             margin: 0;
             padding: 20px; /* Add some padding for better aesthetics in browser */
-            overflow-x: hidden; /* Prevent horizontal scroll */
+            min-height: 100vh; /* Ensure full height on load */
+            display: flex; /* Re-added flex for centering the main container */
+            justify-content: center;
+            align-items: center;
         }
         /* Custom scrollbar for better aesthetics */
         ::-webkit-scrollbar {
@@ -51,55 +54,47 @@
 <body>
 
     <!-- Main Content -->
-    <div id="main-content" class="p-4 sm:p-6 md:p-8 lg:p-10">
-        <div class="max-w-4xl mx-auto bg-[#161b22] p-6 sm:p-8 md:p-10 rounded-lg shadow-xl border border-[#30363d] space-y-8">
-            <header class="mb-8 text-center">
-                <h1 class="text-4xl sm:text-5xl font-extrabold text-[#58a6ff] mb-4">App Documentation</h1>
-                <p class="text-lg sm:text-xl text-[#8b949e]">Your guide to Qubit Quest</p>
-            </header>
+    <div id="main-content" class="max-w-md mx-auto bg-[#161b22] p-6 sm:p-8 md:p-10 rounded-lg shadow-xl border border-[#30363d] text-center">
+        <header class="mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-[#58a6ff] mb-4">
+                <!-- LaTeX title for Qubit Quest -->
+                $\langle\phi\text{ubit}|\phi\text{uest}\rangle$
+            </h1>
+        </header>
 
-            <section class="p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#c9d1d9] space-y-4">
-                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Welcome to Qubit Quest!</h2>
-                <p>
-                    Qubit Quest is an interactive mobile application designed to introduce you to the exciting world of quantum computing.
-                    Whether you're a curious beginner or a student looking to solidify your understanding,
-                    Qubit Quest provides a hands-on platform to build and simulate quantum circuits.
-                </p>
-                <p>
-                    Our goal is to make learning quantum mechanics accessible and engaging,
-                    allowing you to experiment with quantum gates and observe the unique behaviors of qubits.
-                </p>
-            </section>
+        <nav class="mb-8">
+            <ul class="space-y-4">
+                <li>
+                    <a href="./app-documentation.html" class="block w-full py-3 px-6 bg-[#0d1117] hover:bg-[#1f262c] text-[#c9d1d9] text-lg font-medium rounded-md transition-colors duration-200 ease-in-out border border-[#30363d] shadow-md">
+                        App Documentation
+                    </a>
+                </li>
+                <li>
+                    <a href="./quantum-fundamentals.html" class="block w-full py-3 px-6 bg-[#0d1117] hover:bg-[#1f262c] text-[#c9d1d9] text-lg font-medium rounded-md transition-colors duration-200 ease-in-out border border-[#30363d] shadow-md">
+                        Quantum Fundamentals
+                    </a>
+                </li>
+                <li>
+                    <a href="./privacy-policy.html" class="block w-full py-3 px-6 bg-[#0d1117] hover:bg-[#1f262c] text-[#c9d1d9] text-lg font-medium rounded-md transition-colors duration-200 ease-in-out border border-[#30363d] shadow-md">
+                        Privacy Policy
+                    </a>
+                </li>
+            </ul>
+        </nav>
 
-            <section class="p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#c9d1d9] space-y-4">
-                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Key Features</h2>
-                <ul class="list-disc list-inside ml-4 space-y-2">
-                    <li><strong>Interactive Circuit Builder:</strong> Drag and drop quantum gates to construct your own circuits.</li>
-                    <li><strong>Real-time Simulation:</strong> See how your qubits evolve and measure their states instantly.</li>
-                    <li><strong>Gate Library:</strong> Access a comprehensive library of quantum gates with detailed explanations (see Gate Documentation).</li>
-                    <li><strong>Visual Feedback:</strong> Understand complex quantum phenomena like superposition and entanglement through clear visualizations.</li>
-                    <li><strong>Guided Quests:</strong> Follow structured lessons to build foundational knowledge in quantum computing.</li>
-                </ul>
-            </section>
-
-            <section class="p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#c9d1d9] space-y-4">
-                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">How to Use the App</h2>
-                <p>
-                    Navigating Qubit Quest is intuitive. Here's a quick overview:
-                </p>
-                <ul class="list-disc list-inside ml-4 space-y-2">
-                    <li><strong>Main Screen:</strong> Start new circuits or load previous projects.</li>
-                    <li><strong>Circuit Editor:</strong> Drag gates from the palette onto your qubit lines.</li>
-                    <li><strong>Gate Information:</strong> Tap on any gate in the palette for a quick overview, or visit the dedicated Gate Documentation page for in-depth details.</li>
-                    <li><strong>Run Simulation:</strong> Execute your circuit and view the measurement probabilities or state vector.</li>
-                    <li><strong>Reset:</strong> Clear your circuit to start fresh.</li>
-                </ul>
-            </section>
-
-            <footer class="mt-10 text-sm text-[#8b949e] pt-6 border-t border-[#30363d] text-center">
-                <p>&copy; 2025 Qubit Quest App. All rights reserved.</p>
-            </footer>
+        <div class="mb-8">
+            <a href='https://play.google.com/store/apps/details?id=com.qubitquest&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1' 
+                target="_blank" rel="noopener noreferrer"
+                class="inline-block transition-transform duration-200 ease-in-out hover:scale-105">
+                <img alt='Get it on Google Play'
+                         src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png'
+                         height='80'/>
+            </a>
         </div>
+
+        <footer class="mt-8 text-sm text-[#8b949e] pt-4 border-t border-[#30363d]">
+            <p>&copy; 2025 Qubit Quest App. All rights reserved.</p>
+        </footer>
     </div>
 
 </body>
