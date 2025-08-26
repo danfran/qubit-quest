@@ -165,29 +165,12 @@
             }
         }
 
-        // Wait for MathJax to be fully ready and finished typesetting
-        // This is a more robust way to hook into MathJax 3's loading process.
-        if (window.MathJax) { // Check if MathJax object exists
-            MathJax.startup.promise.then(() => {
-                // MathJax has finished initial typesetting of all elements
-                hideLoadingOverlay();
-            }).catch((err) => {
-                console.error("MathJax typesetting error:", err);
-                hideLoadingOverlay(); // Hide even on error to prevent eternal spinner
-            });
-        }
-
-        // Fallback: If MathJax fails or is very fast, ensure content is shown
-        // This ensures the page doesn't hang even if MathJax doesn't fire its promise,
-        // or if it's not present/needed for some content.
+        // For this page, we rely on DOMContentLoaded with a short delay
+        // This gives MathJax a moment to process without directly waiting for its promise
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
-                // If the overlay is still visible after a short delay (e.g., MathJax failed or was too fast)
-                const loadingOverlay = document.getElementById('loading-overlay');
-                if (loadingOverlay && loadingOverlay.style.opacity === '1') {
-                    hideLoadingOverlay();
-                }
-            }, 2000); // Adjust this fallback delay if needed
+                hideLoadingOverlay();
+            }, 200); // A shorter delay for general page readiness and MathJax to start
         });
     </script>
 
