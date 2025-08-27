@@ -1,5 +1,6 @@
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/foundation.dart';
+import 'package:quantumquiz/models/qq_levels_category.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/models/qq_level.dart';
@@ -589,3 +590,10 @@ QQLevel? getQQLevelById(int id) {
     return null;
   }
 }
+
+final List<QQLevelsCategory> groupedLevels = [
+  QQLevelsCategory(groupName: 'Quantum Fundamentals', from: 0, to: 9),
+  QQLevelsCategory(groupName: 'Superposition & Entanglement', from: 10, to: 19),
+  QQLevelsCategory(groupName: 'Phase & Rotation', from: 20, to: 29),
+  QQLevelsCategory(groupName: 'Multi-Qubit Control', from: 30, to: 38),
+];

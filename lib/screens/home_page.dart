@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:in_app_review/in_app_review.dart';
+import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/screens/webview_page.dart';
@@ -300,72 +301,119 @@ class _HomePageState extends State<HomePage> {
 
               // Right side: Levels grid (70% width)
               Expanded(
-                flex: 7, // 70% of the available width
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20.0),
-                      child: Text(
-                        "Select a Level",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GridView.builder(
-                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 70.0, // Adjusted max width for 10 items in 70% width
-                          crossAxisSpacing: 10.0,   // Horizontal space between items
-                          mainAxisSpacing: 10.0,    // Vertical space between items
-                          childAspectRatio: 1.5,    // Make items square
-                        ),
-                        itemCount: numberOfLevels,
-                        itemBuilder: (context, index) {
-                          final int levelNumber = index + 1;
-                          final bool isUnlocked = levelNumber <= _maxUnlockedLevel;
-
-                          return ElevatedButton(
-                            onPressed: isUnlocked
-                                ? () async {
-                              await _playLevelSequence(levelNumber, context);
-                              // If result is LevelCompletionAction.reviewSolution or null,
-                              // the ComposerScreen was simply popped, and we are back on HomePage.
-                              // No special action needed here.
-                            }
-                                : null, // Disable button if level is locked
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isUnlocked ? Colors.blueAccent : Colors.grey[800],
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8.0), // Rounded corners for buttons
-                              ),
-                              elevation: 5,
-                              padding: EdgeInsets.zero, // Remove default padding for better text centering
+                flex: 7,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(left:20.0, right:20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20.0),
+                        child: ShaderMask(
+                          shaderCallback: (Rect bounds) {
+                            // This creates a multi-color gradient for a vibrant fire effect.
+                            return const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFF8A2BE2), // Blue Violet
+                                Color(0xFFBA55D3), // Medium Orchid
+                                Color(0xFF00BFFF), // Deep Sky Blue
+                              ],
+                              stops: [0.0, 0.5, 1.0], // Controls the spread of the colors
+                              tileMode: TileMode.clamp,
+                            ).createShader(bounds);
+                          },
+                          child: Text(
+                            "Select a Level",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white, // The color is now a fallback for the gradient
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withValues(alpha: 0.5 * 255), // A semi-transparent black shadow
+                                  offset: const Offset(3, 3), // Moves the shadow 3 pixels right and down
+                                  blurRadius: 5, // Blurs the shadow for a softer effect
+                                ),
+                              ],
                             ),
-                            child: Text(
-                              '$levelNumber',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: isUnlocked ? Colors.white : Colors.grey[600],
-                              ),
-                            ),
-                          );
-                        },
+                          ),
+                        )
                       ),
-                    ),
-                  ],
+                      for (var topic in groupedLevels)
+                        _buildTopicSection(topic.groupName, topic.from, topic.to),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  // Helper method to build a topic section with a header and a grid of levels
+  Widget _buildTopicSection(String topic, int indexStart, int indexStop) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          child: Text(
+            topic,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        GridView.builder(
+          shrinkWrap: true, // Important to allow the grid to be in a scrollable view
+          physics: const NeverScrollableScrollPhysics(), // Prevents nested scrolling
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 70.0,
+            crossAxisSpacing: 10.0,
+            mainAxisSpacing: 10.0,
+            childAspectRatio: 1.5,
+          ),
+          itemCount: indexStop - indexStart + 1,
+          itemBuilder: (context, index) {
+            int currentIndex = indexStart + index;
+            int levelNumber = currentIndex + 1;
+            final bool isUnlocked = levelNumber <= _maxUnlockedLevel;
+
+            return ElevatedButton(
+              onPressed: isUnlocked
+                  ? () async {
+                await _playLevelSequence(levelNumber, context);
+              }
+                  : null, // Disable button if level is locked
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isUnlocked ? Colors.blueAccent : Colors.grey[800],
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                elevation: 5,
+                padding: EdgeInsets.zero,
+              ),
+              child: Text(
+                '$levelNumber',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: isUnlocked ? Colors.white : Colors.grey[600],
+                ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 20), // Spacing between topics
+      ],
     );
   }
 
