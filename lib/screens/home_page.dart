@@ -1,9 +1,9 @@
 // home_page.dart
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:in_app_review/in_app_review.dart';
-import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/screens/webview_page.dart';
@@ -87,6 +87,7 @@ class _HomePageState extends State<HomePage> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: Colors.grey[800], // Dark background for the dialog
           title: const Text('All Levels Completed!'),
           content: const Text('Congratulations! You\'ve mastered all the quantum puzzles.'),
           actions: <Widget>[
@@ -115,6 +116,7 @@ class _HomePageState extends State<HomePage> {
       barrierDismissible: false, // user must tap button!
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: Colors.grey[800], // Dark background for the dialog
           title: const Text('About'),
           content: SizedBox(
             width: double.maxFinite, // Allows dialog to expand horizontally
@@ -213,6 +215,77 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _showQubitSelectionDialog() {
+    showDialog<int>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[800], // Dark background for the dialog
+          title: const Text(
+            'Choose Number of Qubits',
+            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox( // Use SizedBox to give GridView a bounded size
+            width: 390.0, // Calculated width: (5 buttons * 70 width/button) + (4 spaces * 10 spacing/space)
+            height: 60.0, // Height for one row of buttons (buttons are 46.67px tall, so 60px provides comfortable padding)
+            child: GridView.builder( // Changed to GridView.builder for horizontal layout
+              scrollDirection: Axis.horizontal, // Scroll horizontally
+              shrinkWrap: true, // Make GridView take only as much space as its children
+              physics: const NeverScrollableScrollPhysics(), // No scrolling needed if all fit
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 1, // One row
+                mainAxisSpacing: 10.0, // Horizontal spacing between buttons
+                // crossAxisSpacing is vertical spacing in a horizontal grid, less relevant for 1 row
+                // crossAxisSpacing: 10.0,
+                mainAxisExtent: 70.0, // Explicitly set the width of each item to match level buttons
+                childAspectRatio: 1.5, // Matches the level buttons' width/height ratio (70/46.67)
+              ),
+              itemCount: 5,
+              itemBuilder: (context, index) {
+                final numQubits = index + 1;
+                return ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(numQubits); // Pop dialog with selected number
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    elevation: 5, // Add elevation for a lifted effect
+                    padding: EdgeInsets.zero, // Remove default padding for better text centering
+                    // minimumSize is not needed here as mainAxisExtent and childAspectRatio define size
+                  ),
+                  child: Text(
+                    '$numQubits',
+                    style: const TextStyle(
+                      fontSize: 24, // Consistent font size with levels
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    ).then((selectedNumQubits) {
+      if (selectedNumQubits != null) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => QuantumComposer(
+              levelId: -1,
+              level: getComposerAsLevel(selectedNumQubits), // No specific level provided
+              onLevelUnlocked: null,
+            ),
+          ),
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoadingLevels) {
@@ -309,24 +382,7 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 20.0),
-                        child: ShaderMask(
-                          shaderCallback: (Rect bounds) {
-                            // This creates a multi-color gradient for a vibrant fire effect.
-                            return const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Color(0xFF8A2BE2), // Blue Violet
-                                Color(0xFFBA55D3), // Medium Orchid
-                                Color(0xFF00BFFF), // Deep Sky Blue
-                              ],
-                              stops: [0.0, 0.5, 1.0], // Controls the spread of the colors
-                              tileMode: TileMode.clamp,
-                            ).createShader(bounds);
-                          },
-                          child: Text(
-                            "Select a Level",
-                            textAlign: TextAlign.center,
+                        child: RichText(text: TextSpan(
                             style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
@@ -339,6 +395,16 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ],
                             ),
+                            children: <TextSpan>[
+                              TextSpan(text: 'Select a Level or use the '),
+                              TextSpan(
+                                  text: 'Composer',
+                                  style: TextStyle(color: Colors.blueAccent),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      _showQubitSelectionDialog();
+                                    }),
+                            ],
                           ),
                         )
                       ),

@@ -360,12 +360,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
     // debugPrint("Calculated probabilities: $measurementProbabilities");
 
     // ** Update the UI state variables to trigger a rebuild **
-    setState(() {
-      // Format the final state vector for display
-      // Access the state data via the finalState object obtained from circuit.currentState
-      // simulationResult = "Final State Vector:\n${_circuit.initialState}"; // Assuming formatStateVector helper
-      _checkLevelCompletion();
-    });
+    if (!runningAsQuantumComposer()) {
+      setState(() {
+        // Format the final state vector for display
+        // Access the state data via the finalState object obtained from circuit.currentState
+        // simulationResult = "Final State Vector:\n${_circuit.initialState}"; // Assuming formatStateVector helper
+        _checkLevelCompletion();
+      });
+    }
     debugPrint("Simulation finished.");
   }
 
@@ -417,6 +419,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
       barrierDismissible: false, // User must choose an option
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: Colors.grey[800], // Dark background for the dialog
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Column(
             children: [
@@ -509,34 +512,96 @@ class _QuantumComposerState extends State<QuantumComposer> {
     );
   }
 
-  // Helper to format the overall matrix for display
-  String formatMatrix(List<List<Complex>> matrix) {
-    String formatted = "";
-    for (int i = 0; i < 4; i++) {
-      formatted += "[";
-      for (int j = 0; j < 4; j++) {
-        // Format complex number (e.g., "1.00+0.00i" or "0.71-0.71i")
-        String real = matrix[i][j].real.toStringAsFixed(2);
-        String imag = matrix[i][j].imaginary.toStringAsFixed(2);
+  // Helper to format a matrix for LaTeX display
+  String _formatMatrixForTeX(QuantumMatrix matrix) {
+    // if (matrix.matrixData.isEmpty) {
+    //   return r'\begin{pmatrix} \end{pmatrix}'; // Empty matrix
+    // }
+
+    String teX = r'\begin{pmatrix}';
+    for (int i = 0; i < matrix.rows.length; i++) {
+      for (int j = 0; j < matrix.cols.length; j++) {
+        Complex val = matrix.rows.elementAt(i).elementAt(j); // row(i)get(i, j);
+        String real = val.real.toStringAsFixed(2);
+        String imag = val.imaginary.toStringAsFixed(2);
         String complexStr;
-        if (matrix[i][j].imaginary == 0) {
+
+        if (val.imaginary == 0) {
           complexStr = real;
-        } else if (matrix[i][j].real == 0) {
+        } else if (val.real == 0) {
           complexStr = "${imag}i";
-        } else if (matrix[i][j].imaginary > 0) {
+        } else if (val.imaginary > 0) {
           complexStr = "$real+$imag" + "i";
         } else {
-          complexStr = "$real$imag" + "i"; // Imaginary part already has '-'
+          complexStr = "$real$imag" + "i";
         }
-
-        formatted += complexStr;
-        if (j < 3) {
-          formatted += ", ";
+        teX += complexStr;
+        if (j < matrix.cols.length - 1) {
+          teX += " & ";
         }
       }
-      formatted += "]\n"; // New line for each row
+      teX += r' \\ '; // New row
     }
-    return formatted;
+    teX += r'\end{pmatrix}';
+    return teX;
+  }
+
+  void _showOperatorMatrixDialog() {
+    final String teXMatrix = _formatMatrixForTeX(_circuit.getOverallCircuitMatrix());
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[800],
+          title: const Text(
+            'Overall Operator Matrix',
+            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          // Make content fill available space and be scrollable
+          contentPadding: EdgeInsets.zero, // Remove default padding
+          content: Container(
+            // Use MediaQuery to take up a large percentage of screen size
+            width: MediaQuery.of(context).size.width * 0.9, // 90% of screen width
+            height: MediaQuery.of(context).size.height * 0.8, // 80% of screen height
+            padding: const EdgeInsets.all(16.0), // Add internal padding for the content
+            child: SingleChildScrollView( // Vertical scroll for the TeXView content
+              scrollDirection: Axis.vertical,
+              child: LayoutBuilder( // Use LayoutBuilder to get the available width
+                builder: (context, constraints) {
+                  return SingleChildScrollView( // Horizontal scroll for the TeXView content
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox( // Explicitly provide a fixed width to TeXView
+                      width: constraints.maxWidth, // Match the available horizontal space
+                      child: TeXView(
+                        child: TeXViewDocument(
+                          '\\(\n$teXMatrix\n\\)',
+                        ),
+                        style: TeXViewStyle( // Styling for the TeXView content
+                          backgroundColor: Colors.grey[800], // Explicitly set background to match dialog content
+                          contentColor: Colors.white, // Text color white
+                          fontStyle: TeXViewFontStyle(fontSize: 12), // Slightly larger font for visibility
+                          textAlign: TeXViewTextAlign.center, // <<< ADDED THIS LINE TO CENTER THE MATRIX
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Close', style: TextStyle(color: Colors.blueAccent)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _onDragEnter(Offset offset, SelectedGateType gateType) {
@@ -633,7 +698,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
             ),
             SizedBox(width: 8), // Add some spacing between the logo and the text
             Text(
-              "Level ${widget.levelId}", // Keep your dynamic level text
+              runningAsQuantumComposer() ? "Quantum Composer" : "Level ${widget.levelId}", // Keep your dynamic level text
               style: TextStyle(
                 fontSize: 28, // Adjust font size as needed
                 fontWeight: FontWeight.bold,
@@ -645,6 +710,16 @@ class _QuantumComposerState extends State<QuantumComposer> {
         // ** Add the actions list here **
         actions: [
           // Run Simulation Button (as TextButton)
+          TextButton.icon(
+            onPressed: _showOperatorMatrixDialog,
+            icon: Icon(Icons.grid_on),
+            label: Text('Operator Matrix'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white, // White icon/text color for contrast on AppBar
+              // You might adjust padding if needed to fit
+              // padding: EdgeInsets.symmetric(horizontal: 8.0),
+            ),
+          ),
           TextButton.icon(
             onPressed: _showGateListDialog,
             icon: Icon(Icons.book),
@@ -861,8 +936,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
-                                const Text( // <--- "Task:" label
-                                  "Task:",
+                                Text( // <--- "Task:" label
+                                  runningAsQuantumComposer() ? "Welcome to the Composer!" : "Task:",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
@@ -938,6 +1013,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
       ),
     ));
   }
+
+  bool runningAsQuantumComposer() => widget.levelId == -1;
 
   Widget _buildDraggableGateButton(SelectedGateType type) {
     double fontSizeW = type == SelectedGateType.ccnot ? 14 : 18;

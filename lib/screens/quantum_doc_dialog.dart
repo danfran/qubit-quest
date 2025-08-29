@@ -64,6 +64,7 @@ class QuantumDocDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     // This build method returns the AlertDialog widget
     return AlertDialog(
+      backgroundColor: Colors.grey[800], // Dark background for the dialog
       contentPadding: EdgeInsets.zero,
       // title: Text("Quantum Gates List"),
       content: Container( // Wrap content in Container for size constraints if needed

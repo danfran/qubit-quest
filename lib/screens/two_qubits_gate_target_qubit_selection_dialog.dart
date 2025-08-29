@@ -112,7 +112,7 @@ class _TwoQubitsGateTargetQubitSelectionDialogState extends State<TwoQubitsGateT
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text('Select Control Qubit (Target Qubit: ${widget.targetQubitIndex})', style: TextStyle(color: Colors.white)),
-      backgroundColor: Colors.grey[850], // Dark background for the dialog
+      backgroundColor: Colors.grey[800], // Dark background for the dialog
       content: SingleChildScrollView( // <--- REINTRODUCE SingleChildScrollView here
         child: Column(
           mainAxisSize: MainAxisSize.min, // Keep this, it's still good practice for Columns in dialogs

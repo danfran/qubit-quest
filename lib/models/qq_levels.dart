@@ -591,6 +591,21 @@ QQLevel? getQQLevelById(int id) {
   }
 }
 
+QQLevel getComposerAsLevel(numQubits) {
+  return QQLevel.fromBinaryString(
+    type: "composer",
+    taskDescription: r"Experiment with any combination of gates on your chosen number of qubits. Build circuits, visualize the resulting quantum state, and generate the overall unitary operator matrix for your circuit.",
+    numQubits: numQubits,
+    initialQubitsStateString: "0" * numQubits,
+    availableGates: [ // should include full list of gates
+      SelectedGateType.x, SelectedGateType.y, SelectedGateType.z,
+      SelectedGateType.hadamard, SelectedGateType.s, SelectedGateType.t,
+      SelectedGateType.cz, SelectedGateType.cnot, SelectedGateType.ccnot,
+    ],
+    solutionFinalVector: List.empty(),
+  );
+}
+
 final List<QQLevelsCategory> groupedLevels = [
   QQLevelsCategory(groupName: 'Quantum Fundamentals', from: 0, to: 9),
   QQLevelsCategory(groupName: 'Superposition & Entanglement', from: 10, to: 19),
