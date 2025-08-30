@@ -552,6 +552,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final double adaptiveFontSize = MediaQuery.of(context).size.width * 0.013;
+
         return AlertDialog(
           backgroundColor: Colors.grey[800],
           title: const Text(
@@ -564,7 +566,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
           content: Container(
             // Use MediaQuery to take up a large percentage of screen size
             width: MediaQuery.of(context).size.width * 0.9, // 90% of screen width
-            height: MediaQuery.of(context).size.height * 0.8, // 80% of screen height
+            height: MediaQuery.of(context).size.height * 0.9, // 80% of screen height
             padding: const EdgeInsets.all(16.0), // Add internal padding for the content
             child: SingleChildScrollView( // Vertical scroll for the TeXView content
               scrollDirection: Axis.vertical,
@@ -573,7 +575,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                   return SingleChildScrollView( // Horizontal scroll for the TeXView content
                     scrollDirection: Axis.horizontal,
                     child: SizedBox( // Explicitly provide a fixed width to TeXView
-                      width: constraints.maxWidth, // Match the available horizontal space
+                      width: _numQubits == 5 ? MediaQuery.of(context).size.width * 1.4 : constraints.maxWidth,
                       child: TeXView(
                         child: TeXViewDocument(
                           '\\(\n$teXMatrix\n\\)',
@@ -581,7 +583,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                         style: TeXViewStyle( // Styling for the TeXView content
                           backgroundColor: Colors.grey[800], // Explicitly set background to match dialog content
                           contentColor: Colors.white, // Text color white
-                          fontStyle: TeXViewFontStyle(fontSize: 12), // Slightly larger font for visibility
+                          fontStyle: TeXViewFontStyle(fontSize: adaptiveFontSize.round()), // Slightly larger font for visibility
                           textAlign: TeXViewTextAlign.center, // <<< ADDED THIS LINE TO CENTER THE MATRIX
                         ),
                       ),
@@ -591,6 +593,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
               ),
             ),
           ),
+          // actionsPadding: EdgeInsets.only(left:16.0, right: 16.0, bottom: 4.0, top: 0),
+          buttonPadding: EdgeInsets.zero, // <<< NEW: This helps reduce space between buttons
           actions: [
             TextButton(
               onPressed: () {
