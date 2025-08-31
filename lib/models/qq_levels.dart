@@ -607,8 +607,11 @@ QQLevel getComposerAsLevel(numQubits) {
 }
 
 final List<QQLevelsCategory> groupedLevels = [
-  QQLevelsCategory(groupName: 'Quantum Fundamentals', from: 0, to: 9),
-  QQLevelsCategory(groupName: 'Superposition & Entanglement', from: 10, to: 19),
-  QQLevelsCategory(groupName: 'Phase & Rotation', from: 20, to: 29),
-  QQLevelsCategory(groupName: 'Multi-Qubit Control', from: 30, to: 38),
+  QQLevelsCategory(groupName: 'Basic Gate Operations', from: 0, to: 4),
+  QQLevelsCategory(groupName: 'Superposition and Phase Gates', from: 5, to: 12),
+  QQLevelsCategory(groupName: 'Controlled Gates', from: 13, to: 20),
+  QQLevelsCategory(groupName: 'Entanglement & Disentanglement', from: 21, to: 26),
+  QQLevelsCategory(groupName: 'Advanced 2-Qubit Puzzles', from: 27, to: 31),
+  QQLevelsCategory(groupName: 'Toffoli Gate Logic', from: 32, to: 34),
+  QQLevelsCategory(groupName: 'Advanced Entanglement and Algorithms', from: 35, to: 38),
 ];
