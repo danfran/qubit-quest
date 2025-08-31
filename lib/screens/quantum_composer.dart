@@ -7,7 +7,6 @@ import 'package:quantumquiz/screens/three_qubits_gate_target_qubits_selection_di
 import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
 import 'package:quantumquiz/screens/webview_page.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
-import 'package:quantumquiz/screens/quantum_doc_dialog.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
@@ -502,15 +501,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
     _ccnotControl2Qubit = null;
     _runSimulation(); // Run simulation - empty circuit
     _circuitWidthNotifier.value = 0; // Reset width notifier
-  }
-
-  void _showGateLisstDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return const QuantumDocDialog();
-      },
-    );
   }
 
   // Helper to format a matrix for LaTeX display
