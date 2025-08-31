@@ -5,6 +5,7 @@ import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/screens/three_qubits_gate_target_qubits_selection_dialog.dart';
 import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
+import 'package:quantumquiz/screens/webview_page.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/screens/quantum_doc_dialog.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
@@ -503,7 +504,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     _circuitWidthNotifier.value = 0; // Reset width notifier
   }
 
-  void _showGateListDialog() {
+  void _showGateLisstDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -725,9 +726,19 @@ class _QuantumComposerState extends State<QuantumComposer> {
             ),
           ),
           TextButton.icon(
-            onPressed: _showGateListDialog,
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) =>
+                  const WebViewPage(
+                    title: 'Quantum Fundamentals',
+                    url: 'https://danfran.github.io/qubit-quest/quantum-fundamentals.html',
+                  ),
+                ),
+              );
+            },
             icon: Icon(Icons.book),
-            label: Text('Gates Doc'),
+            label: Text('Quantum Fundamentals'),
             style: TextButton.styleFrom(
               foregroundColor: Colors.white, // White icon/text color for contrast on AppBar
               // You might adjust padding if needed to fit
