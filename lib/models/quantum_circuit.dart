@@ -154,12 +154,12 @@ class QuantumCircuit extends ChangeNotifier {
           insertGateAt(emptyGate, insertionPosition, i);
         }
       }
-
-      // Second phase, we need to scroll left what is scrollable.
-      shiftLeft();
-
-      trimCircuit();
     }
+
+    // Second phase, we need to scroll left what is scrollable.
+    shiftLeft();
+
+    trimCircuit();
 
     // Notify listeners that the state has changed
     notifyListeners();
@@ -273,12 +273,12 @@ class QuantumCircuit extends ChangeNotifier {
           insertGateAt(emptyGate, insertionPosition, i);
         }
       }
-
-      // Second phase, we need to scroll left what is scrollable.
-      shiftLeft();
-
-      trimCircuit();
     }
+
+    // Second phase, we need to scroll left what is scrollable.
+    shiftLeft();
+
+    trimCircuit();
 
     // Notify listeners that the state has changed
     notifyListeners();

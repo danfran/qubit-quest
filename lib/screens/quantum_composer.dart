@@ -223,7 +223,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
         // Optionally provide feedback
         return;
       }
-    } else {
+    } else if (droppedGateType != SelectedGateType.draggedGate) {
       _circuit.insertSinglePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine);
       debugPrint("Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
       debugPrint(_circuit.toString());
@@ -693,7 +693,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
             ),
             SizedBox(width: 8), // Add some spacing between the logo and the text
             Text(
-              runningAsQuantumComposer() ? "Quantum Composer" : "Level ${widget.levelId}", // Keep your dynamic level text
+              runningAsQuantumComposer() ? "Composer" : "Level ${widget.levelId}", // Keep your dynamic level text
               style: TextStyle(
                 fontSize: 28, // Adjust font size as needed
                 fontWeight: FontWeight.bold,
