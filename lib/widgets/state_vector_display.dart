@@ -1,5 +1,6 @@
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/utils/qq_fraction.dart';
 
 
 class StateVectorDisplay extends StatefulWidget {
@@ -47,18 +48,19 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
 
   // Helper to format a complex number for display
   String _formatComplex(Complex c) {
-    // If real part is effectively zero, just show imaginary
-    if (c.real.abs() < _emptyThreshold) {
-      if (c.imaginary.abs() < _emptyThreshold) return '0.000'; // Both zero
-      return '${c.imaginary.toStringAsFixed(3)}i';
+    String realF = QQFraction.doubleToFractionString(c.real.toDouble()).toString();
+    String imgF = QQFraction.doubleToFractionString(c.imaginary.toDouble()).toString();
+
+    debugPrint('Real: ${c.real.toDouble()}, Img: ${c.imaginary.toDouble()}');
+
+    if (realF == '0' && imgF == '0') {
+      return '0';
+    } else if (realF != '0' && imgF == '0') {
+      return realF;
+    } else if (realF == '0' && imgF != '0') {
+      return imgF == '1' ? 'i' : '${imgF}i';
     }
-    // If imaginary part is effectively zero, just show real
-    if (c.imaginary.abs() < _emptyThreshold) {
-      return c.real.toStringAsFixed(3);
-    }
-    // Both non-zero
-    String sign = c.imaginary >= 0 ? '+' : '';
-    return '${c.real.toStringAsFixed(3)} ${sign} ${c.imaginary.toStringAsFixed(3)}i';
+    return '$realF${imgF}i';
   }
 
   @override

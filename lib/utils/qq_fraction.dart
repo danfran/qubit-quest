@@ -15,14 +15,14 @@ class QQFraction {
       : sign = null, numerator = null, denominator = null, radicalTeX = null;
 
   // Constructor for a radical number.
-  const QQFraction.asRadical({required this.radicalTeX})
-      : sign = null, numerator = null, denominator = null, decimalValue = null;
+  const QQFraction.asRadical({this.sign = '', required this.radicalTeX})
+      : numerator = null, denominator = null, decimalValue = null;
 
   bool get isDecimal => numerator == null && radicalTeX == null;
   bool get isRadical => radicalTeX != null;
 
   // Map of common irrational values for direct lookup
-  static final Map<double, String> _radicalLookups = {
+  static final Map<double, String> _radicalLookupsTeX = {
     sqrt(2): '\\sqrt{2}',
     1 / sqrt(2): '\\frac{1}{\\sqrt{2}}',
     sqrt(3): '\\sqrt{3}',
@@ -30,6 +30,16 @@ class QQFraction {
     sqrt(5): '\\sqrt{5}',
     1 / sqrt(5): '\\frac{1}{\\sqrt{5}}',
     pi: '\\pi',
+  };
+
+  static final Map<double, String> _radicalLookupsString = {
+    sqrt(2): '√2',
+    1 / sqrt(2): '1/√2',
+    sqrt(3): '√3',
+    1 / sqrt(3): '1/√3',
+    sqrt(5): '√5',
+    1 / sqrt(5): '1/√5',
+    pi: 'π',
   };
 
   static int gcd(int a, int b) {
@@ -41,8 +51,16 @@ class QQFraction {
     return a.abs();
   }
 
+  factory QQFraction.doubleToFractionTeX(double value) {
+    return QQFraction.doubleToFraction(value, _radicalLookupsTeX);
+  }
+
+  factory QQFraction.doubleToFractionString(double value) {
+    return QQFraction.doubleToFraction(value, _radicalLookupsString);
+  }
+
   // This function now returns a Fraction object with its components.
-  factory QQFraction.doubleToFraction(double value) {
+  factory QQFraction.doubleToFraction(double value, radicalLookups) {
     if (value == 0.0) {
       return const QQFraction.asFraction(numerator: 0, denominator: 1);
     }
@@ -59,9 +77,9 @@ class QQFraction {
     const double epsilon = 1.0e-11;
 
     // Handle common radical numbers via direct lookup
-    for (final entry in _radicalLookups.entries) {
+    for (final entry in radicalLookups.entries) {
       if ((valAbs - entry.key).abs() < epsilon) {
-        return QQFraction.asRadical(radicalTeX: entry.value);
+        return QQFraction.asRadical(sign: sign, radicalTeX: entry.value);
       }
     }
 
@@ -97,12 +115,13 @@ class QQFraction {
 
   @override
   String toString() {
-    if (isDecimal) {
+    if (isRadical) {
+      return '$sign$radicalTeX';
+    } else if (isDecimal) {
       return decimalValue!.toStringAsFixed(4);
     } else if (numerator == 0) {
       return '0';
     } else if (denominator == 1) {
-      // Handle whole numbers without a fraction line.
       return '$sign$numerator';
     }
     return '$sign$numerator/$denominator';
@@ -111,20 +130,14 @@ class QQFraction {
   // A new method to return the LaTeX string representation.
   String toTeXString() {
     if (isRadical) {
-      return radicalTeX!;
-    }
-
-    if (isDecimal) {
-      // Return the decimal value as a string for the fallback.
+      return '$sign$radicalTeX';
+    } else if (isDecimal) {
       return decimalValue!.toStringAsFixed(4);
     } else if (numerator == 0) {
-      // Handle zero case explicitly.
       return '0';
     } else if (denominator == 1) {
-      // Handle whole numbers without a fraction line.
       return '$sign$numerator';
     }
-    // Return the LaTeX formatted fraction using the \frac command.
     return '$sign\\frac{$numerator}{$denominator}';
   }
 }

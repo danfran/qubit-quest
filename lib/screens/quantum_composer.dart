@@ -514,8 +514,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
     for (int i = 0; i < matrix.rows.length; i++) {
       for (int j = 0; j < matrix.cols.length; j++) {
         Complex val = matrix.rows.elementAt(i).elementAt(j); // row(i)get(i, j);
-        QQFraction real = QQFraction.doubleToFraction(val.real.toDouble());
-        QQFraction imag = QQFraction.doubleToFraction(val.imaginary.toDouble());
+        QQFraction real = QQFraction.doubleToFractionTeX(val.real.toDouble());
+        QQFraction imag = QQFraction.doubleToFractionTeX(val.imaginary.toDouble());
         String complexStr;
 
         if (val.imaginary == 0) {
