@@ -51,8 +51,6 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
     String realF = QQFraction.doubleToFractionString(c.real.toDouble()).toString();
     String imgF = QQFraction.doubleToFractionString(c.imaginary.toDouble()).toString();
 
-    debugPrint('Real: ${c.real.toDouble()}, Img: ${c.imaginary.toDouble()}');
-
     if (realF == '0' && imgF == '0') {
       return '0';
     } else if (realF != '0' && imgF == '0') {
@@ -60,7 +58,7 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
     } else if (realF == '0' && imgF != '0') {
       return imgF == '1' ? 'i' : '${imgF}i';
     }
-    return '$realF${imgF}i';
+    return '$realF${c.imaginary > 0 ? '+' : ''}${imgF}i';
   }
 
   @override
