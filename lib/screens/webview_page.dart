@@ -33,7 +33,7 @@ class _WebViewPageState extends State<WebViewPage> {
             setState(() {
               _progress = progress / 100.0;
             });
-            print('WebView is loading (progress: $progress%)');
+            debugPrint('WebView is loading (progress: $progress%)');
           },
           onPageStarted: (String url) {
             // Page started loading, show spinner
@@ -41,21 +41,21 @@ class _WebViewPageState extends State<WebViewPage> {
               _isLoading = true;
               _progress = 0.0; // Reset progress
             });
-            print('Page started loading: $url');
+            debugPrint('Page started loading: $url');
           },
           onPageFinished: (String url) {
             // Page finished loading, hide spinner
             setState(() {
               _isLoading = false;
             });
-            print('Page finished loading: $url');
+            debugPrint('Page finished loading: $url');
           },
           onWebResourceError: (WebResourceError error) {
             // An error occurred, hide spinner
             setState(() {
               _isLoading = false;
             });
-            print('''
+            debugPrint('''
               Page resource error:
                 code: ${error.errorCode}
                 description: ${error.description}
@@ -66,7 +66,7 @@ class _WebViewPageState extends State<WebViewPage> {
           },
           onNavigationRequest: (NavigationRequest request) {
             // You can control navigation here, e.g., block certain URLs
-            print('allowing navigation to ${request.url}');
+            debugPrint('allowing navigation to ${request.url}');
             return NavigationDecision.navigate;
           },
         ),

@@ -6,6 +6,7 @@ import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/screens/three_qubits_gate_target_qubits_selection_dialog.dart';
 import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
 import 'package:quantumquiz/screens/webview_page.dart';
+import 'package:quantumquiz/utils/qq_fraction.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
@@ -513,18 +514,18 @@ class _QuantumComposerState extends State<QuantumComposer> {
     for (int i = 0; i < matrix.rows.length; i++) {
       for (int j = 0; j < matrix.cols.length; j++) {
         Complex val = matrix.rows.elementAt(i).elementAt(j); // row(i)get(i, j);
-        String real = val.real.toStringAsFixed(2);
-        String imag = val.imaginary.toStringAsFixed(2);
+        QQFraction real = QQFraction.doubleToFraction(val.real.toDouble());
+        QQFraction imag = QQFraction.doubleToFraction(val.imaginary.toDouble());
         String complexStr;
 
         if (val.imaginary == 0) {
-          complexStr = real;
+          complexStr = real.toTeXString();
         } else if (val.real == 0) {
-          complexStr = "${imag}i";
+          complexStr = "${imag.toTeXString()}i";
         } else if (val.imaginary > 0) {
-          complexStr = "$real+$imag" + "i";
+          complexStr = "${real.toTeXString()}+${imag.toTeXString()}i";
         } else {
-          complexStr = "$real$imag" + "i";
+          complexStr = "${real.toTeXString()}${imag.toTeXString()}i";
         }
         teX += complexStr;
         if (j < matrix.cols.length - 1) {
@@ -625,13 +626,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
     final position = _gatesScrollController.position;
 
     // Debug prints (helpful to see the values if issues persist)
-    print('Current Pixels: ${position.pixels}');
-    print('Min Scroll Extent: ${position.minScrollExtent}');
-    print('Max Scroll Extent: ${position.maxScrollExtent}');
-    print('Viewport Dimension: ${position.viewportDimension}');
-    print('Extent Before: ${position.extentBefore}');
-    print('Extent After: ${position.extentAfter}');
-    print('---');
+    debugPrint('Current Pixels: ${position.pixels}');
+    debugPrint('Min Scroll Extent: ${position.minScrollExtent}');
+    debugPrint('Max Scroll Extent: ${position.maxScrollExtent}');
+    debugPrint('Viewport Dimension: ${position.viewportDimension}');
+    debugPrint('Extent Before: ${position.extentBefore}');
+    debugPrint('Extent After: ${position.extentAfter}');
+    debugPrint('---');
 
     // Determine if there's content to scroll before the current view
     bool newCanScrollLeft = position.extentBefore > 0.1; // If > 0.1, there's content to the left

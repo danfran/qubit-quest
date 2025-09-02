@@ -27,7 +27,7 @@ class QuantumCircuit extends ChangeNotifier {
         placedGates = List.generate(currentLevel.numQubits, (index) => []) {
     currentLevel.preInsertGates(this);
     runSimulation();    // Automatically calls the simulation method
-    print('QuantumCircuit initialized and simulation started automatically!');
+    debugPrint('QuantumCircuit initialized and simulation started automatically!');
   }
 
   int maxCircuitDepth() => placedGates.map((e) => e.length).reduce(max);
