@@ -43,7 +43,7 @@ class MyApp extends StatelessWidget {
           labelMedium: TextStyle(color: Colors.white),
           labelSmall: TextStyle(color: Colors.white),
         ),
-        dialogTheme: DialogTheme(
+        dialogTheme: DialogThemeData(
           backgroundColor: Color(0xFF1E1E2C), // Dark background for the dialog
           titleTextStyle: const TextStyle(
             color: Colors.white, // Explicitly set title color
@@ -68,7 +68,7 @@ class MyApp extends StatelessWidget {
           foregroundColor: Colors.white, // Default icon/text color in app bar
         ),
       ),
-      home: HomePage(),
+      home: SafeArea(child: HomePage()),
       debugShowCheckedModeBanner: false,
     );
   }
