@@ -319,7 +319,9 @@ class _HomePageState extends State<HomePage> {
                 // Left side: Options list (30% width)
                 Expanded(
                   flex: 3, // 30% of the available width
-                  child: Container(
+                  child: Align(
+                    alignment: Alignment.topCenter, // This aligns the content to the top
+                    child: Container(
                     decoration: BoxDecoration(
                       color: const Color(0xFF2D2E40),
                       borderRadius: BorderRadius.circular(16.0),
@@ -336,7 +338,8 @@ class _HomePageState extends State<HomePage> {
                       // Removed SingleChildScrollView to prevent scrolling
                       child: Column(
                         // Center main content vertically
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           _buildOptionButton(context, "Start/Continue", Icons.play_arrow, () {
                             if (_maxUnlockedLevel > numberOfLevels) {
@@ -378,6 +381,7 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                     ),
+                  ),
                   ),
                 ),
                 const SizedBox(width: 24.0), // Increased space between the two columns
