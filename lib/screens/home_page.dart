@@ -201,7 +201,7 @@ class _HomePageState extends State<HomePage> {
     } else {
       try {
         await _inAppReview.openStoreListing(
-          appStoreId: '1234567890',
+          appStoreId: 'com.qubitquest',
           microsoftStoreId: null,
         );
       } catch (e) {
