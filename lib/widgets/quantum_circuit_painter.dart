@@ -257,7 +257,10 @@ class QuantumCircuitPainter extends CustomPainter {
 
             // Draw 'H' or 'S' or 'X', etc text centered in the square
             String gateText = placedGate.gate.label; // Set the text
-            gateTextPainter(gateText, canvas, gateColumnCenterX, gateIconTop);
+            double gateTextSize = (placedGate.gate.type == SelectedGateType.rx ||
+                placedGate.gate.type == SelectedGateType.ry ||
+                placedGate.gate.type == SelectedGateType.rz) ? 10.0 : 16.0; // Set the text size
+            gateTextPainter(gateText, gateTextSize, canvas, gateColumnCenterX, gateIconTop);
           }
 
           widthNotifier.value = max(widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
@@ -300,12 +303,13 @@ class QuantumCircuitPainter extends CustomPainter {
     return localPlacedGates;
   }
 
-  void gateTextPainter(String gateText, Canvas canvas, double gateColumnCenterX, double gateIconTop) {
+  void gateTextPainter(String gateText, double gateTextSize, Canvas canvas, double gateColumnCenterX, double gateIconTop) {
     final textPainter = TextPainter(
       text: TextSpan(
         text: gateText,
-        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+        style: TextStyle(color: Colors.white, fontSize: gateTextSize, fontWeight: FontWeight.bold),
       ),
+      textAlign: TextAlign.center,
       textDirection: TextDirection.ltr, // Required for TextPainter
     );
     textPainter.layout(); // Perform layout before painting

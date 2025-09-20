@@ -969,14 +969,23 @@ class _QuantumComposerState extends State<QuantumComposer> {
   bool runningAsQuantumComposer() => widget.levelId == -1;
 
   Widget _buildDraggableGateButton(Gate gate) {
-    double fontSizeW = gate.type == SelectedGateType.ccnot ? 14 : 18;
+    double fontSizeW = 18;
+    if (gate.type == SelectedGateType.ccnot) {
+      fontSizeW = 14;
+    } else if (gate.type == SelectedGateType.rx || gate.type == SelectedGateType.ry || gate.type == SelectedGateType.rz) {
+      fontSizeW = 10;
+    }
     return Draggable<Gate>( // Draggable for Hadamard
       data: gate, // Data carried by the drag
       feedback: Container( // Visual feedback while dragging
         width: QuantumCircuitPainter.gateSize,
         height: QuantumCircuitPainter.gateSize,
         color: gate.color.withOpacity(0.7), // Semi-transparent feedback
-        child: Center(child: Text(gate.label, style: TextStyle(color: Colors.white, fontSize: fontSizeW, fontWeight: FontWeight.bold))),
+        child: Center(
+            child: Text(
+                gate.label,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: fontSizeW, fontWeight: FontWeight.bold))),
       ),
       child: ElevatedButton( // The original button appearance
         onPressed: () => _setInteractionMode(SelectedGateType.none), // Tapping button resets mode
@@ -987,7 +996,11 @@ class _QuantumComposerState extends State<QuantumComposer> {
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),),
         ),
-        child: Text(gate.label, style: TextStyle(fontSize: fontSizeW, fontWeight: FontWeight.bold),),
+        child: Text(
+          gate.label,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: fontSizeW, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
