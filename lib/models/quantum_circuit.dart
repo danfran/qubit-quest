@@ -35,9 +35,9 @@ class QuantumCircuit extends ChangeNotifier {
   bool isCircuitEmpty() => maxCircuitDepth() == 0;
 
   // New method to insert a placed gate at a specific position
-  void insertSinglePlacedGateAt(SelectedGateType gateType, int insertionPosition, int tappedQubitIndex, {bool isDeletable = true}) {
+  void insertSinglePlacedGateAt(Gate gate, int insertionPosition, int tappedQubitIndex, {bool isDeletable = true}) {
     PlacedQuantumGate gateToInsert = PlacedQuantumGate(
-      type: gateType,
+      gate: gate,
       isDeletable: isDeletable,
     );
 
@@ -45,7 +45,7 @@ class QuantumCircuit extends ChangeNotifier {
       insertionPosition = min(insertionPosition, placedGates[tappedQubitIndex].length);
       placedGates[tappedQubitIndex].insert(insertionPosition, gateToInsert);
       return;
-    } else if (placedGates[tappedQubitIndex][insertionPosition].type == SelectedGateType.none) {
+    } else if (placedGates[tappedQubitIndex][insertionPosition].gate.type == SelectedGateType.none) {
       placedGates[tappedQubitIndex][insertionPosition] = gateToInsert;
       return;
     }
@@ -70,7 +70,7 @@ class QuantumCircuit extends ChangeNotifier {
   }
 
   // currently specific to CNOT only
-  void insertDoublePlacedGateAt(SelectedGateType gateType, int insertionPosition, int targetQubitIndex, int controlQubitIndex, {bool isDeletable = true}) {
+  void insertDoublePlacedGateAt(Gate gate, int insertionPosition, int targetQubitIndex, int controlQubitIndex, {bool isDeletable = true}) {
     // need to check if the area to place the gate is fully empty then,
     int from = min(controlQubitIndex, targetQubitIndex);
     int to = max(controlQubitIndex, targetQubitIndex);
@@ -81,7 +81,7 @@ class QuantumCircuit extends ChangeNotifier {
 
     bool allEmpty = true;
     for (int i = from; i <= to; i++) {
-      if(insertionPosition < placedGates[i].length && placedGates[i][insertionPosition].type != SelectedGateType.none) {
+      if(insertionPosition < placedGates[i].length && placedGates[i][insertionPosition].gate.type != SelectedGateType.none) {
         allEmpty = false;
         break;
       }
@@ -92,7 +92,7 @@ class QuantumCircuit extends ChangeNotifier {
       for (int i = from; i <= to; i++) {
         if (i == controlQubitIndex) {
           PlacedQuantumGate controlGate = PlacedQuantumGate(
-            type: gateType,
+            gate: gate,
             isControl: true,
             controlQubitIndex: controlQubitIndex,
             targetQubitIndex: targetQubitIndex,
@@ -101,7 +101,7 @@ class QuantumCircuit extends ChangeNotifier {
           insertGateAt(controlGate, insertionPosition, i);
         } else if (i == targetQubitIndex) {
           PlacedQuantumGate targetGate = PlacedQuantumGate(
-            type: gateType,
+            gate: gate,
             isTarget: true,
             controlQubitIndex: controlQubitIndex,
             targetQubitIndex: targetQubitIndex,
@@ -110,7 +110,7 @@ class QuantumCircuit extends ChangeNotifier {
           insertGateAt(targetGate, insertionPosition, i);
         } else {
           PlacedQuantumGate linkGate = PlacedQuantumGate(
-            type: gateType,
+            gate: gate,
             isLink: true,
             controlQubitIndex: controlQubitIndex,
             targetQubitIndex: targetQubitIndex,
@@ -124,7 +124,7 @@ class QuantumCircuit extends ChangeNotifier {
       for (int i = 0; i < currentLevel.numQubits; i++) {
         if (i == controlQubitIndex) {
           PlacedQuantumGate controlGate = PlacedQuantumGate(
-            type: gateType,
+            gate: gate,
             isControl: true,
             controlQubitIndex: controlQubitIndex,
             targetQubitIndex: targetQubitIndex,
@@ -133,7 +133,7 @@ class QuantumCircuit extends ChangeNotifier {
           insertGateAt(controlGate, insertionPosition, i);
         } else if (i == targetQubitIndex) {
           PlacedQuantumGate targetGate = PlacedQuantumGate(
-            type: gateType,
+            gate: gate,
             isTarget: true,
             controlQubitIndex: controlQubitIndex,
             targetQubitIndex: targetQubitIndex,
@@ -142,7 +142,7 @@ class QuantumCircuit extends ChangeNotifier {
           insertGateAt(targetGate, insertionPosition, i);
         } else if (i > controlQubitIndex && i < targetQubitIndex || i < controlQubitIndex && i > targetQubitIndex) {
           PlacedQuantumGate linkGate = PlacedQuantumGate(
-            type: gateType,
+            gate: gate,
             isLink: true,
             controlQubitIndex: controlQubitIndex,
             targetQubitIndex: targetQubitIndex,
@@ -166,7 +166,7 @@ class QuantumCircuit extends ChangeNotifier {
   }
 
   // currently specific to CCNOT only
-  void insertTriplePlacedGateAt(SelectedGateType gateType, int insertionPosition, int targetQubitIndex, int control1QubitIndex, int control2QubitIndex, {bool isDeletable = true}) {
+  void insertTriplePlacedGateAt(Gate gate, int insertionPosition, int targetQubitIndex, int control1QubitIndex, int control2QubitIndex, {bool isDeletable = true}) {
     // need to check if the area to place the gate is fully empty then,
     List<int> controls = [control1QubitIndex, control2QubitIndex, targetQubitIndex];
     int from = controls.reduce(min);
@@ -174,7 +174,7 @@ class QuantumCircuit extends ChangeNotifier {
 
     bool allEmpty = true;
     for (int i = from; i <= to; i++) {
-      if(insertionPosition < placedGates[i].length && placedGates[i][insertionPosition].type != SelectedGateType.none) {
+      if(insertionPosition < placedGates[i].length && placedGates[i][insertionPosition].gate.type != SelectedGateType.none) {
         allEmpty = false;
         break;
       }
@@ -185,7 +185,7 @@ class QuantumCircuit extends ChangeNotifier {
       for (int i = from; i <= to; i++) {
         if (i == control1QubitIndex) {
           PlacedQuantumGate controlGate = PlacedQuantumGate(
-            type: gateType,
+            gate: gate,
             isControl: true,
             controlQubitIndex: control1QubitIndex,
             control2QubitIndex: control2QubitIndex,
@@ -195,7 +195,7 @@ class QuantumCircuit extends ChangeNotifier {
           insertGateAt(controlGate, insertionPosition, i);
         } else if (i == targetQubitIndex) {
           PlacedQuantumGate targetGate = PlacedQuantumGate(
-            type: gateType,
+            gate: gate,
             isTarget: true,
             controlQubitIndex: control1QubitIndex,
             control2QubitIndex: control2QubitIndex,
@@ -205,7 +205,7 @@ class QuantumCircuit extends ChangeNotifier {
           insertGateAt(targetGate, insertionPosition, i);
         } else if (i == control2QubitIndex) {
           PlacedQuantumGate control2Gate = PlacedQuantumGate(
-            type: gateType,
+            gate: gate,
             isControl2: true,
             controlQubitIndex: control1QubitIndex,
             control2QubitIndex: control2QubitIndex,
@@ -215,7 +215,7 @@ class QuantumCircuit extends ChangeNotifier {
           insertGateAt(control2Gate, insertionPosition, i);
         } else {
           PlacedQuantumGate linkGate = PlacedQuantumGate(
-            type: gateType,
+            gate: gate,
             isLink: true,
             controlQubitIndex: control1QubitIndex,
             control2QubitIndex: control2QubitIndex,
@@ -230,7 +230,7 @@ class QuantumCircuit extends ChangeNotifier {
       for (int i = 0; i < currentLevel.numQubits; i++) {
         if (i == control1QubitIndex) {
           PlacedQuantumGate controlGate = PlacedQuantumGate(
-            type: gateType,
+            gate: gate,
             isControl: true,
             controlQubitIndex: control1QubitIndex,
             control2QubitIndex: control2QubitIndex,
@@ -240,7 +240,7 @@ class QuantumCircuit extends ChangeNotifier {
           insertGateAt(controlGate, insertionPosition, i);
         } else if (i == targetQubitIndex) {
           PlacedQuantumGate targetGate = PlacedQuantumGate(
-            type: gateType,
+            gate: gate,
             isTarget: true,
             controlQubitIndex: control1QubitIndex,
             control2QubitIndex: control2QubitIndex,
@@ -250,7 +250,7 @@ class QuantumCircuit extends ChangeNotifier {
           insertGateAt(targetGate, insertionPosition, i);
         } else if (i == control2QubitIndex) {
           PlacedQuantumGate control2Gate = PlacedQuantumGate(
-            type: gateType,
+            gate: gate,
             isControl2: true,
             controlQubitIndex: control1QubitIndex,
             control2QubitIndex: control2QubitIndex,
@@ -260,7 +260,7 @@ class QuantumCircuit extends ChangeNotifier {
           insertGateAt(control2Gate, insertionPosition, i);
         } else if (i > control1QubitIndex && i < targetQubitIndex || i < control1QubitIndex && i > targetQubitIndex) {
           PlacedQuantumGate linkGate = PlacedQuantumGate(
-            type: gateType,
+            gate: gate,
             isLink: true,
             controlQubitIndex: control1QubitIndex,
             control2QubitIndex: control2QubitIndex,
@@ -287,16 +287,16 @@ class QuantumCircuit extends ChangeNotifier {
   // Method to remove a specific placed gate instance from the circuit
   bool removePlacedGate(int gatePosition, int qubitLine) {
     PlacedQuantumGate gateToRemove = placedGates[qubitLine][gatePosition];
-    if (gateToRemove.type == SelectedGateType.none) {
+    if (gateToRemove.gate.type == SelectedGateType.none) {
       return false;
     }
-    else if ((gateToRemove.type == SelectedGateType.cnot || gateToRemove.type == SelectedGateType.cz) && gateToRemove.isDeletable) {
+    else if ((gateToRemove.gate.type == SelectedGateType.cnot || gateToRemove.gate.type == SelectedGateType.cz) && gateToRemove.isDeletable) {
       List<int> controls = [gateToRemove.controlQubitIndex!, gateToRemove.targetQubitIndex!];
       for (int i = controls.reduce(min); i <= controls.reduce(max); i++) {
         placedGates[i][gatePosition] = PlacedQuantumGate.emptyGate();
       }
     }
-    else if (gateToRemove.type == SelectedGateType.ccnot && gateToRemove.isDeletable) {
+    else if (gateToRemove.gate.type == SelectedGateType.ccnot && gateToRemove.isDeletable) {
       List<int> controls = [gateToRemove.controlQubitIndex!, gateToRemove.control2QubitIndex!, gateToRemove.targetQubitIndex!];
       for (int i = controls.reduce(min); i <= controls.reduce(max); i++) {
         placedGates[i][gatePosition] = PlacedQuantumGate.emptyGate();
@@ -304,11 +304,11 @@ class QuantumCircuit extends ChangeNotifier {
     } else if (gateToRemove.isDeletable) {
       placedGates[qubitLine][gatePosition] = PlacedQuantumGate.emptyGate();
     } else {
-      debugPrint('Gate type [${gateToRemove.type}] not deletable at qubit line: $qubitLine and gate position: $gatePosition');
+      debugPrint('Gate type [${gateToRemove.gate.type}] not deletable at qubit line: $qubitLine and gate position: $gatePosition');
       return false;
     }
 
-    debugPrint('Gate type [${gateToRemove.type}] removed at qubit line: $qubitLine and gate position: $gatePosition');
+    debugPrint('Gate type [${gateToRemove.gate.type}] removed at qubit line: $qubitLine and gate position: $gatePosition');
 
     // Second phase, we need to scroll left what is scrollable.
     shiftLeft();
@@ -330,13 +330,13 @@ class QuantumCircuit extends ChangeNotifier {
       int leftPosition = rightPosition - 1;
       while(rightPosition >= 1) {
         for (int i = 0; i < currentLevel.numQubits; i++) {
-          if (rightPosition < placedGates[i].length && placedGates[i][rightPosition].type != SelectedGateType.none) {
+          if (rightPosition < placedGates[i].length && placedGates[i][rightPosition].gate.type != SelectedGateType.none) {
             var rightGate = placedGates[i][rightPosition];
-            if (rightGate.type == SelectedGateType.cnot || rightGate.type == SelectedGateType.cz) {
+            if (rightGate.gate.type == SelectedGateType.cnot || rightGate.gate.type == SelectedGateType.cz) {
               int endLine = rightGate.isTarget ? rightGate.controlQubitIndex! : rightGate.targetQubitIndex!;
               bool canBeMoved = true;
               for (int j = i; j <= endLine; j++) {
-                if (placedGates[j][rightPosition - 1].type != SelectedGateType.none) {
+                if (placedGates[j][rightPosition - 1].gate.type != SelectedGateType.none) {
                   canBeMoved = false;
                   break;
                 }
@@ -349,11 +349,11 @@ class QuantumCircuit extends ChangeNotifier {
                 }
               }
               i = max(i, endLine);
-            } else if (rightGate.type == SelectedGateType.ccnot) {
+            } else if (rightGate.gate.type == SelectedGateType.ccnot) {
               int endLine = [rightGate.controlQubitIndex!, rightGate.control2QubitIndex!, rightGate.targetQubitIndex!].reduce(max);
               bool canBeMoved = true;
               for (int j = i; j <= endLine; j++) {
-                if (placedGates[j][rightPosition - 1].type != SelectedGateType.none) {
+                if (placedGates[j][rightPosition - 1].gate.type != SelectedGateType.none) {
                   canBeMoved = false;
                   break;
                 }
@@ -367,7 +367,7 @@ class QuantumCircuit extends ChangeNotifier {
               }
               i = max(i, endLine);
             } else {
-              if (placedGates[i][rightPosition - 1].type == SelectedGateType.none) {
+              if (placedGates[i][rightPosition - 1].gate.type == SelectedGateType.none) {
                 placedGates[i][rightPosition - 1] = rightGate;
                 placedGates[i][rightPosition] = PlacedQuantumGate.emptyGate();
                 repeat = true;
@@ -396,7 +396,7 @@ class QuantumCircuit extends ChangeNotifier {
 
   void trimCircuit() {
     for (int i = 0; i < currentLevel.numQubits; i++) {
-      while (placedGates[i].isNotEmpty && placedGates[i].last.type == SelectedGateType.none) {
+      while (placedGates[i].isNotEmpty && placedGates[i].last.gate.type == SelectedGateType.none) {
         placedGates[i].removeLast();
       }
     }
@@ -421,7 +421,7 @@ class QuantumCircuit extends ChangeNotifier {
 
   /// Builds the system matrix for a single placed quantum gate.
   QuantumMatrix _buildSystemMatrixForPlacedGate(PlacedQuantumGate gate) {
-    switch (gate.type) {
+    switch (gate.gate.type) {
       case SelectedGateType.hadamard:
         return QuantumMatrix.hadamard();
       case SelectedGateType.s:
@@ -434,6 +434,12 @@ class QuantumCircuit extends ChangeNotifier {
         return QuantumMatrix.pauliY();
       case SelectedGateType.z:
         return QuantumMatrix.pauliZ();
+      case SelectedGateType.rx:
+        return QuantumMatrix.rx(gate.gate.angle);
+      case SelectedGateType.ry:
+        return QuantumMatrix.ry(gate.gate.angle);
+      case SelectedGateType.rz:
+        return QuantumMatrix.rz(gate.gate.angle);
       case SelectedGateType.cz: // at this point we consider only CZ gates control
         return QuantumMatrix.cz(
             control: gate.controlQubitIndex!,
@@ -445,7 +451,6 @@ class QuantumCircuit extends ChangeNotifier {
             target: gate.targetQubitIndex!
         );
       case SelectedGateType.ccnot:
-        List<int> controls = [gate.controlQubitIndex!, gate.control2QubitIndex!, gate.targetQubitIndex!];
         return QuantumMatrix.ccnot(
             control1: gate.controlQubitIndex!,
             control2: gate.control2QubitIndex!,
@@ -484,11 +489,11 @@ class QuantumCircuit extends ChangeNotifier {
 
       debugPrint(gateSystemMatrix.toString());
 
-      if (gate.type == SelectedGateType.cnot || gate.type == SelectedGateType.cz) {
+      if (gate.gate.type == SelectedGateType.cnot || gate.gate.type == SelectedGateType.cz) {
         // skip to the next qubit after the CNOT/CZ
         q = max(gate.controlQubitIndex!, gate.targetQubitIndex!);
         continue;
-      } else if (gate.type == SelectedGateType.ccnot) {
+      } else if (gate.gate.type == SelectedGateType.ccnot) {
         // skip to the next qubit after the CCNOT
         q = [gate.controlQubitIndex!, gate.targetQubitIndex!, gate.control2QubitIndex!].reduce(max);
         continue;
@@ -551,30 +556,30 @@ class QuantumCircuit extends ChangeNotifier {
           PlacedQuantumGate gate = placedGates[q][pos];
           // Use a concise representation for each gate type
           String gateChar = "";
-          if (gate.type == SelectedGateType.cz) {
+          if (gate.gate.type == SelectedGateType.cz) {
             if (gate.isControl) gateChar = "C";
             else if (gate.isTarget) gateChar = "Z";
             else if (gate.isLink) gateChar = "|";
             else gateChar = "?"; // Should not happen for CZ
           }
-          if (gate.type == SelectedGateType.cnot) {
+          if (gate.gate.type == SelectedGateType.cnot) {
             if (gate.isControl) gateChar = "C";
             else if (gate.isTarget) gateChar = "X";
             else if (gate.isLink) gateChar = "|";
             else gateChar = "?"; // Should not happen for CNOT
           }
-          else if (gate.type == SelectedGateType.ccnot) {
+          else if (gate.gate.type == SelectedGateType.ccnot) {
             if (gate.isControl) gateChar = "C";
             if (gate.isControl2) gateChar = "C";
             else if (gate.isTarget) gateChar = "T";
             else if (gate.isLink) gateChar = "|";
             else gateChar = "?"; // Should not happen for CCNOT
           }
-          else if (gate.type == SelectedGateType.none) {
+          else if (gate.gate.type == SelectedGateType.none) {
             gateChar = "-";
           }
           else {
-            gateChar = gate.type.label;
+            gateChar = gate.gate.label;
           }
           result += "$gateChar ";
         } else {

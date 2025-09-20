@@ -2,7 +2,7 @@ import 'package:quantumquiz/models/selected_gate_type.dart';
 
 
 class PlacedQuantumGate {
-  final SelectedGateType type;
+  final Gate gate;
   final int? controlQubitIndex;
   final int? control2QubitIndex;
   final int? targetQubitIndex;
@@ -12,14 +12,14 @@ class PlacedQuantumGate {
   final bool isControl2;
   final bool isDeletable;
 
-  static PlacedQuantumGate emptyGate() => PlacedQuantumGate(type: SelectedGateType.none);
+  static PlacedQuantumGate emptyGate() => PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.none));
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
           other is PlacedQuantumGate &&
               runtimeType == other.runtimeType &&
-              type == other.type &&
+              gate == other.gate &&
               isControl == other.isControl &&
               isControl2 == other.isControl2 &&
               isTarget == other.isTarget &&
@@ -30,7 +30,7 @@ class PlacedQuantumGate {
               isDeletable == other.isDeletable;
 
   PlacedQuantumGate({
-    required this.type,
+    required this.gate,
     this.controlQubitIndex,
     this.control2QubitIndex,
     this.targetQubitIndex,
@@ -43,7 +43,7 @@ class PlacedQuantumGate {
 
   @override
   int get hashCode =>
-      type.hashCode ^
+      gate.hashCode ^
       isControl.hashCode ^
       isControl2.hashCode ^
       isTarget.hashCode ^

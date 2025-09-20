@@ -35,7 +35,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
   late int _numQubits;
   late String _taskDescription;
   late List<Complex> _initialState;
-  late List<SelectedGateType> _availableGates;
+  late List<Gate> _availableGates;
   late List<List<Complex>> _solutionVector;
   late QuantumCircuit _circuit;
 
@@ -48,7 +48,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   // State to manage the highlight box for drag-and-drop
   Offset? _draggingOffset;
-  SelectedGateType _draggingGateType = SelectedGateType.none;
+  Gate _draggingGate = Gate.fromIdentifier(SelectedGateType.none);
 
   String _currentInstructionMessage = "Drag a gate onto the circuit.";
 
@@ -122,7 +122,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }
 
   // Method to handle a gate being dropped onto the circuit area
-  Future<void> _handleGateDrop(DragTargetDetails<SelectedGateType> details) async {
+  Future<void> _handleGateDrop(DragTargetDetails<Gate> details) async {
     // Corrected: Use details.offset for the local drop position
     debugPrint('Gate dropped at local position: ${details.offset}'); // localPosition relative to the DragTarget
     debugPrint('Dropped gate type: ${details.data}'); // The data from the Draggable
@@ -134,12 +134,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
       return;
     }
 
-    final droppedGateType = details.data;
+    final droppedGate = details.data;
+    final droppedGateType = details.data.type;
     // final dropPosition = details.offset; // Use details.offset
     final dropPosition = localPosition; // Use details.offset
 
     // Use the painter's logic to determine the qubit line and insertion position
-    final painter = QuantumCircuitPainter(_circuit, _circuitWidthNotifier, _draggingOffset, _draggingGateType); // Painter knows layout constants
+    final painter = QuantumCircuitPainter(_circuit, _circuitWidthNotifier, _draggingOffset, _draggingGate); // Painter knows layout constants
 
     // Determine the tapped qubit line based on the vertical drop position
     final tappedQubitLine = painter.getTappedQubitLine(dropPosition);
@@ -177,7 +178,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
       // Let's go with the simpler approach for now: Drop implies control qubit.
       // Target is the next available qubit line, if different from control.
       int? controlQubitLine;
-      String gateLabel = droppedGateType.label;
+      Gate droppedGate = Gate.fromIdentifier(droppedGateType);
+      String gateLabel = droppedGate.label;
 
       if (_numQubits == 1) {
         debugPrint('Cannot place $gateLabel on single qubit or invalid target.');
@@ -198,7 +200,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
       if (controlQubitLine != null && tappedQubitLine != controlQubitLine) {
         debugPrint('$gateLabel placement (control line = $_cnotControlQubit and target line = $tappedQubitLine).');
-        _circuit.insertDoublePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine, controlQubitLine);
+        _circuit.insertDoublePlacedGateAt(droppedGate, insertionPosition, tappedQubitLine, controlQubitLine);
         debugPrint("Gate $gateLabel inserted at position $insertionPosition on qubits $tappedQubitLine and $controlQubitLine.");
         debugPrint(_circuit.toString());
       } else {
@@ -218,7 +220,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
       if (_ccnotControl1Qubit != null && _ccnotControl2Qubit != null && tappedQubitLine != _ccnotControl1Qubit && tappedQubitLine != _ccnotControl2Qubit) {
         debugPrint('CCNOT placement (control line 1 = $_ccnotControl1Qubit, control line 2 = $_ccnotControl2Qubit and target line = $tappedQubitLine).');
-        _circuit.insertTriplePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine, _ccnotControl1Qubit!, _ccnotControl2Qubit!);
+        _circuit.insertTriplePlacedGateAt(droppedGate, insertionPosition, tappedQubitLine, _ccnotControl1Qubit!, _ccnotControl2Qubit!);
         debugPrint("Gate CCNOT inserted at position $insertionPosition on qubits $tappedQubitLine, $_ccnotControl1Qubit and $_ccnotControl2Qubit.");
         debugPrint(_circuit.toString());
       } else {
@@ -227,7 +229,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
         return;
       }
     } else if (droppedGateType != SelectedGateType.draggedGate) {
-      _circuit.insertSinglePlacedGateAt(droppedGateType, insertionPosition, tappedQubitLine);
+      _circuit.insertSinglePlacedGateAt(droppedGate, insertionPosition, tappedQubitLine);
       debugPrint("Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
       debugPrint(_circuit.toString());
     }
@@ -278,20 +280,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
     _ccnotControl2Qubit = selectedQubits?['control2'];
   }
 
-  void _selectGateForPlacement(SelectedGateType gateType) {
+  void _initDeletion() {
     setState(() {
-      _currentMode = gateType;
+      _currentMode = SelectedGateType.delete;
       _cnotControlQubit = null; // Reset CNOT control on new gate selection
       _ccnotControl1Qubit = null;
       _ccnotControl2Qubit = null;
-      _currentInstructionMessage = "Drag to place a gate.";
-      if (gateType == SelectedGateType.cnot || gateType == SelectedGateType.cz) {
-        _currentInstructionMessage = "Drag to the target qubit for ${gateType.label}.";
-      } else if (gateType == SelectedGateType.ccnot) {
-        _currentInstructionMessage = "Drag to the target qubit for CCNOT.";
-      } else if (gateType == SelectedGateType.delete) {
-        _currentInstructionMessage = "Tap on a gate to delete it."; // Updated message
-      }
+      _currentInstructionMessage = "Tap on a gate to delete it.";
     });
     debugPrint('Selected gate type for placement: $_currentMode');
   }
@@ -313,7 +308,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     debugPrint('Local tap position: $localPosition');
 
     // Create a temporary painter instance for hit testing
-    final painter = QuantumCircuitPainter(_circuit, _circuitWidthNotifier, _draggingOffset, _draggingGateType);
+    final painter = QuantumCircuitPainter(_circuit, _circuitWidthNotifier, _draggingOffset, _draggingGate);
 
 
     if (_currentMode == SelectedGateType.delete) {
@@ -551,7 +546,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     );
   }
 
-  void _onDragEnter(Offset offset, SelectedGateType gateType) {
+  void _onDragEnter(Offset offset, Gate gate) {
     setState(() {
       final localPosition = _gatePositionToLocal(offset);
 
@@ -561,14 +556,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
       }
 
       _draggingOffset = localPosition;
-      _draggingGateType = gateType;
+      _draggingGate = gate;
     });
   }
 
   void _onDragLeave() {
     setState(() {
       _draggingOffset = null;
-      _draggingGateType = SelectedGateType.none;
+      _draggingGate = Gate.fromIdentifier(SelectedGateType.none);
     });
   }
 
@@ -737,7 +732,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                           final double sizedBoxHeight = _numQubits * QuantumCircuitPainter.qubitSpacing + QuantumCircuitPainter.padding * 2;
                           debugPrint("  Calculated SizedBox size: Size($sizedBoxWidth, $sizedBoxHeight)"); // Debug SizedBox size
 
-                          return DragTarget<SelectedGateType>( // DragTarget wraps the scrollable area
+                          return DragTarget<Gate>( // DragTarget wraps the scrollable area
                             // onWillAccept: (data) => data != null && data != SelectedGateType.delete, // Accept any gate type except delete
                             onAcceptWithDetails: (details) {
                               _handleGateDrop(details);
@@ -750,7 +745,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                               _onDragEnter(data.offset, data.data);
                             },
                             onWillAcceptWithDetails: (details) {
-                              SelectedGateType data = details.data;
+                              Gate data = details.data;
                               _onDragEnter(details.offset, details.data);
                               bool isNotDelete = data != null && data != SelectedGateType.delete;
                               return isNotDelete;
@@ -766,7 +761,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                                   scrollDirection: Axis.horizontal,
                                   // ** Wrap CustomPaint in ConstrainedBox to force size **
                                   child: CustomPaint(
-                                    painter: QuantumCircuitPainter(_circuit, _circuitWidthNotifier, _draggingOffset, _draggingGateType), // Pass the circuit
+                                    painter: QuantumCircuitPainter(_circuit, _circuitWidthNotifier, _draggingOffset, _draggingGate), // Pass the circuit
                                     child: ListenableBuilder(
                                       listenable: _circuit, // Listen to the circuit object
                                       builder: (context, child) {
@@ -817,7 +812,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             ElevatedButton(
-                              onPressed: () => _selectGateForPlacement(SelectedGateType.delete),
+                              onPressed: () => _initDeletion(),
                               style: ElevatedButton.styleFrom(
                                 minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize), // Use gate size for button size
                                 padding: EdgeInsets.zero, // Remove internal padding
@@ -973,26 +968,26 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   bool runningAsQuantumComposer() => widget.levelId == -1;
 
-  Widget _buildDraggableGateButton(SelectedGateType type) {
-    double fontSizeW = type == SelectedGateType.ccnot ? 14 : 18;
-    return Draggable<SelectedGateType>( // Draggable for Hadamard
-      data: type, // Data carried by the drag
+  Widget _buildDraggableGateButton(Gate gate) {
+    double fontSizeW = gate.type == SelectedGateType.ccnot ? 14 : 18;
+    return Draggable<Gate>( // Draggable for Hadamard
+      data: gate, // Data carried by the drag
       feedback: Container( // Visual feedback while dragging
         width: QuantumCircuitPainter.gateSize,
         height: QuantumCircuitPainter.gateSize,
-        color: type.color.withOpacity(0.7), // Semi-transparent feedback
-        child: Center(child: Text(type.label, style: TextStyle(color: Colors.white, fontSize: fontSizeW, fontWeight: FontWeight.bold))),
+        color: gate.color.withOpacity(0.7), // Semi-transparent feedback
+        child: Center(child: Text(gate.label, style: TextStyle(color: Colors.white, fontSize: fontSizeW, fontWeight: FontWeight.bold))),
       ),
       child: ElevatedButton( // The original button appearance
         onPressed: () => _setInteractionMode(SelectedGateType.none), // Tapping button resets mode
         style: ElevatedButton.styleFrom(
           minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
           padding: EdgeInsets.zero,
-          backgroundColor: type.color,
+          backgroundColor: gate.color,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),),
         ),
-        child: Text(type.label, style: TextStyle(fontSize: fontSizeW, fontWeight: FontWeight.bold),),
+        child: Text(gate.label, style: TextStyle(fontSize: fontSizeW, fontWeight: FontWeight.bold),),
       ),
     );
   }

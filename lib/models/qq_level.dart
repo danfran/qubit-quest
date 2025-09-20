@@ -12,7 +12,7 @@ class QQLevel {
   final String initialQubitsStateStr; // Assuming this is a state vector (e.g., |00..0>)
   final List<Complex> initialQubitsState; // Assuming this is a state vector (e.g., |00..0>)
   final Function(QuantumCircuit)? preInsertedGates; // The target state vector
-  final List<SelectedGateType> availableGates; // List of gates the user can use
+  final List<Gate> availableGates; // List of gates the user can use
   final List<List<Complex>> solutionFinalVector;
 
   const QQLevel({
@@ -32,7 +32,7 @@ class QQLevel {
     required String taskDescription,
     required int numQubits,
     required String initialQubitsStateString, // Accepts the binary string here
-    required List<SelectedGateType> availableGates,
+    required List<Gate> availableGates,
     required List<List<Complex>> solutionFinalVector,
     Function(QuantumCircuit)? preInsertedGates,
   }) {

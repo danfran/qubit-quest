@@ -1,4 +1,5 @@
 import 'package:advance_math/advance_math.dart';
+import 'package:flutter/cupertino.dart';
 
 import 'package:quantumquiz/utils/math_utils.dart'; // Import math for sqrt
 
@@ -67,6 +68,51 @@ class QuantumMatrix {
     return QuantumMatrix([
       [Complex.one(), Complex.zero()],
       [Complex.zero(), Complex(-Complex.one().real, -Complex.one().imaginary)],
+    ]);
+  }
+
+  /// Creates a rotation matrix for the X-axis.
+  /// The matrix is defined as:
+  /// [[cos(theta/2), -i * sin(theta/2)],
+  /// [-i * sin(theta/2), cos(theta/2)]]
+  factory QuantumMatrix.rx(double theta) {
+    final cosTheta = cos(theta / 2.0);
+    final sinTheta = sin(theta / 2.0);
+    return QuantumMatrix([
+      [Complex(cosTheta), Complex(0, -sinTheta)],
+      [Complex(0, -sinTheta), Complex(cosTheta)],
+    ]);
+  }
+
+  /// Creates a rotation matrix for the Y-axis.
+  /// The matrix is defined as:
+  /// [[cos(theta/2), -sin(theta/2)],
+  /// [sin(theta/2), cos(theta/2)]]
+  factory QuantumMatrix.ry(double theta) {
+    final cosTheta = cos(theta / 2.0);
+    final sinTheta = sin(theta / 2.0);
+    return QuantumMatrix([
+      [Complex(cosTheta), Complex(-sinTheta)],
+      [Complex(sinTheta), Complex(cosTheta)],
+    ]);
+  }
+
+  /// Creates a rotation matrix for the Z-axis.
+  /// The matrix is defined as:
+  /// [[e^(-i*theta/2), 0],
+  /// [0, e^(i*theta/2)]]
+  ///
+  /// This implementation uses Euler's formula to represent the complex exponential:
+  /// e^(ix) = cos(x) + i*sin(x)
+  factory QuantumMatrix.rz(double theta) {
+    final halfTheta = theta / 2.0;
+    // e^(-i*theta/2) = cos(-theta/2) + i*sin(-theta/2)
+    final complexTopLeft = Complex(cos(-halfTheta), sin(-halfTheta));
+    // e^(i*theta/2) = cos(theta/2) + i*sin(theta/2)
+    final complexBottomRight = Complex(cos(halfTheta), sin(halfTheta));
+    return QuantumMatrix([
+      [complexTopLeft, Complex.zero()],
+      [Complex.zero(), complexBottomRight],
     ]);
   }
 
