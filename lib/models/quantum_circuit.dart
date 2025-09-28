@@ -435,11 +435,11 @@ class QuantumCircuit extends ChangeNotifier {
       case SelectedGateType.z:
         return QuantumMatrix.pauliZ();
       case SelectedGateType.rx:
-        return QuantumMatrix.rx(gate.gate.angle);
+        return QuantumMatrix.rx(gate.gate.angle!);
       case SelectedGateType.ry:
-        return QuantumMatrix.ry(gate.gate.angle);
+        return QuantumMatrix.ry(gate.gate.angle!);
       case SelectedGateType.rz:
-        return QuantumMatrix.rz(gate.gate.angle);
+        return QuantumMatrix.rz(gate.gate.angle!);
       case SelectedGateType.cz: // at this point we consider only CZ gates control
         return QuantumMatrix.cz(
             control: gate.controlQubitIndex!,

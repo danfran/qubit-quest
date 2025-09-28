@@ -693,6 +693,7 @@ QQLevel getComposerAsLevel(numQubits) {
       Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z),
       Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.t),
       Gate.fromIdentifier(SelectedGateType.cz), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.ccnot),
+      Gate.fromIdentifier(SelectedGateType.rx), Gate.fromIdentifier(SelectedGateType.ry), Gate.fromIdentifier(SelectedGateType.rz),
     ],
     solutionFinalVector: List.empty(),
   );

@@ -31,25 +31,21 @@ class _TwoQubitsGateTargetQubitSelectionDialogState extends State<TwoQubitsGateT
     }
   }
 
-  bool _isSelectionValid() {
-    if (_control1Index == null) {
-      return false; // Not all selected
-    }
-    return true; // All good
-  }
-
   void _validateAndSubmit() {
     setState(() {
-      if (!_isSelectionValid()) {
-        if (widget.numQubits < 2) {
-          _errorMessage = "Not enough qubits for a two-qubits gate.";
-        } else if (_control1Index == null) {
-          _errorMessage = "Please select control qubit.";
-        } else if (_control1Index == widget.targetQubitIndex) {
-          _errorMessage = "Control qubits cannot be the target qubit.";
-        }
-        return; // Stop here if invalid
+      if (widget.numQubits < 2) {
+        _errorMessage = "Not enough qubits for a two-qubits gate.";
+        return;
       }
+      if (_control1Index == null) {
+        _errorMessage = "Please select control qubit.";
+        return;
+      }
+      if (_control1Index == widget.targetQubitIndex) {
+        _errorMessage = "Control qubits cannot be the target qubit.";
+        return;
+      }
+
       _errorMessage = null; // Clear previous errors if valid
 
       Navigator.of(context).pop({
@@ -151,12 +147,12 @@ class _TwoQubitsGateTargetQubitSelectionDialogState extends State<TwoQubitsGateT
           child: const Text('Cancel', style: TextStyle(color: Colors.white)),
         ),
         ElevatedButton(
-          onPressed: _isSelectionValid() ? _validateAndSubmit : null,
-          child: const Text('Apply'),
+          onPressed: _validateAndSubmit,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blueAccent[700],
             foregroundColor: Colors.white,
           ),
+          child: const Text('Apply'),
         ),
       ],
     );

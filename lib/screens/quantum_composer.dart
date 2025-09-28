@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/screens/operator_matrix_dialog.dart';
+import 'package:quantumquiz/screens/rotation_gate_dialog.dart';
 import 'package:quantumquiz/screens/three_qubits_gate_target_qubits_selection_dialog.dart';
 import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
 import 'package:quantumquiz/screens/webview_page.dart';
@@ -21,11 +22,11 @@ class QuantumComposer extends StatefulWidget {
   final Function(int unlockedLevel)? onLevelUnlocked;
 
   const QuantumComposer({
-    Key? key,
+    super.key,
     required this.levelId,
     required this.level,
     required this.onLevelUnlocked,
-  }) : super(key: key);
+  });
 
   @override
   _QuantumComposerState createState() => _QuantumComposerState();
@@ -45,6 +46,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   int? _ccnotControl1Qubit; // To track the control 1 for CCNOT
   int? _ccnotControl2Qubit; // To track the control 2 for CCNOT
+
+  double? _rotationAngle; // To track the Rx,y,z angle rotation
 
   // State to manage the highlight box for drag-and-drop
   Offset? _draggingOffset;
@@ -202,7 +205,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
         debugPrint('$gateLabel placement (control line = $_cnotControlQubit and target line = $tappedQubitLine).');
         _circuit.insertDoublePlacedGateAt(droppedGate, insertionPosition, tappedQubitLine, controlQubitLine);
         debugPrint("Gate $gateLabel inserted at position $insertionPosition on qubits $tappedQubitLine and $controlQubitLine.");
-        debugPrint(_circuit.toString());
       } else {
         debugPrint('Invalid $gateLabel placement (control == target or not enough qubits).');
         // Optionally provide feedback
@@ -222,16 +224,22 @@ class _QuantumComposerState extends State<QuantumComposer> {
         debugPrint('CCNOT placement (control line 1 = $_ccnotControl1Qubit, control line 2 = $_ccnotControl2Qubit and target line = $tappedQubitLine).');
         _circuit.insertTriplePlacedGateAt(droppedGate, insertionPosition, tappedQubitLine, _ccnotControl1Qubit!, _ccnotControl2Qubit!);
         debugPrint("Gate CCNOT inserted at position $insertionPosition on qubits $tappedQubitLine, $_ccnotControl1Qubit and $_ccnotControl2Qubit.");
-        debugPrint(_circuit.toString());
       } else {
         debugPrint('Invalid CCNOT placement (control == target or not enough qubits).');
         // Optionally provide feedback
         return;
       }
+    } else if ((droppedGateType == SelectedGateType.rx || droppedGateType == SelectedGateType.ry || droppedGateType == SelectedGateType.rz) && widget.levelId == -1) {
+      // if in the composer screen >> widget.levelId == -1
+      await _showRotationAngleSetDialog(context);
+      if (_rotationAngle != null) {
+        Gate updatedRotationGate = Gate.fromIdentifier(droppedGateType, angle: _rotationAngle!);
+        _circuit.insertSinglePlacedGateAt(updatedRotationGate, insertionPosition, tappedQubitLine);
+      }
+      debugPrint("Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
     } else if (droppedGateType != SelectedGateType.draggedGate) {
       _circuit.insertSinglePlacedGateAt(droppedGate, insertionPosition, tappedQubitLine);
       debugPrint("Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
-      debugPrint(_circuit.toString());
     }
 
     _runSimulation(); // Optionally run simulation after placing
@@ -256,6 +264,24 @@ class _QuantumComposerState extends State<QuantumComposer> {
     );
 
     _cnotControlQubit = selectedQubit?['control1'];
+  }
+
+  Future<void> _showRotationAngleSetDialog(BuildContext context) async {
+    // Ensure dialog is not already shown
+    if (ModalRoute.of(context)?.isCurrent != true || Navigator.of(context).canPop() == false) {
+      // This is a crude check to avoid showing multiple dialogs.
+      // A more robust solution might involve a global boolean or state for dialog visibility.
+      return;
+    }
+
+    final Map<String, dynamic>? selectedAngle = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return RotationGateDialog();
+      },
+    );
+
+    _rotationAngle = selectedAngle?['angle1'];
   }
 
   Future<void> _showCCNOTTargetSelectionDialog(BuildContext context, int targetQubit, int numQubits) async {
@@ -969,12 +995,15 @@ class _QuantumComposerState extends State<QuantumComposer> {
   bool runningAsQuantumComposer() => widget.levelId == -1;
 
   Widget _buildDraggableGateButton(Gate gate) {
-    double fontSizeW = 18;
+    double fontSizeW;
     if (gate.type == SelectedGateType.ccnot) {
       fontSizeW = 14;
-    } else if (gate.type == SelectedGateType.rx || gate.type == SelectedGateType.ry || gate.type == SelectedGateType.rz) {
+    } else if ((gate.type == SelectedGateType.rx || gate.type == SelectedGateType.ry || gate.type == SelectedGateType.rz) && gate.angle != null) {
       fontSizeW = 10;
+    } else {
+      fontSizeW = 18;
     }
+
     return Draggable<Gate>( // Draggable for Hadamard
       data: gate, // Data carried by the drag
       feedback: Container( // Visual feedback while dragging

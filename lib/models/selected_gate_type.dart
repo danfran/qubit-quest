@@ -29,37 +29,69 @@ typedef GateLabelFunction = String Function();
 /// It holds the static type from the enum and any dynamic properties.
 class Gate {
   final SelectedGateType type;
-  final double angle;
   final Color color;
   final String label;
+  final double? angle;
 
-  Gate({required this.type, required this.color, required this.label, this.angle = 0.0});
+  Gate({required this.type, required this.color, required this.label, this.angle});
 
   /// Factory constructor to create a gate instance from a SelectedGateType.
   /// This ensures that only valid gate types can be created via this factory.
-  factory Gate.fromIdentifier(SelectedGateType type, {double angle = 0.0}) {
+  factory Gate.fromIdentifier(SelectedGateType type, {double? angle}) {
     Color gateColor;
     GateLabelFunction gateLabel;
 
-    String _formatAngle(double angle) {
-      const double pi = math.pi;
-      const double tolerance = 1e-6;
-      final double piMultiplied = angle / pi;
+    int _gcd(int a, int b) {
+      a = a.abs();
+      b = b.abs();
+      while (b != 0) {
+        final int t = b;
+        b = a % b;
+        a = t;
+      }
+      return a;
+    }
 
-      if ((piMultiplied - piMultiplied.round()).abs() < tolerance) {
-        final int n = piMultiplied.round();
-        if (n == 0) return '0';
-        if (n == 1) return '\u03c0';
-        if (n == -1) return '-\u03c0';
-        return '${n}\u03c0';
+    String _formatAngle(double angle) {
+      if (angle == 0.0) {
+        return '0';
       }
 
-      final double halfPiMultiplied = angle / (pi / 2);
-      if ((halfPiMultiplied - halfPiMultiplied.round()).abs() < tolerance) {
-        final int n = halfPiMultiplied.round();
-        if (n == 1) return '\u03c0/2';
-        if (n == -1) return '-\u03c0/2';
-        return '${n}\u03c0/2';
+      // Use a small tolerance for floating point comparisons
+      const double tolerance = 1e-5;
+
+      // The sign is handled separately for cleaner fraction formatting
+      final String sign = angle.isNegative ? '-' : '';
+      final double absAngle = angle.abs();
+
+      // Common denominators to check: 1, 2, 4, 8, 16
+      const List<int> denominators = [1, 2, 3, 4, 5, 6, 7, 8, 9, 16];
+
+      for (int d in denominators) {
+        // Check if the angle is close to n * pi / d
+        final double fractionUnit = math.pi / d;
+        final double multiplier = absAngle / fractionUnit;
+
+        // Check if the multiplier is very close to an integer (n)
+        if ((multiplier - multiplier.round()).abs() < tolerance) {
+          final int n = multiplier.round();
+
+          if (n == 0) continue; // Skip zero angle, handled at the start
+
+          // Simplify the fraction n/d
+          final int gcd = _gcd(n, d);
+          final int numerator = n ~/ gcd;
+          final int denominator = d ~/ gcd;
+
+          if (denominator == 1) {
+            // e.g., 2*pi/2 -> 1*pi. 4*pi/2 -> 2*pi
+            if (numerator == 1) return '${sign}\u03c0';
+            return '$sign$numerator\u03c0';
+          } else {
+            // e.g., pi/2, 3*pi/4, 5*pi/8
+            return '$sign$numerator/$denominator\u03c0';
+          }
+        }
       }
 
       return angle.toStringAsFixed(3);
@@ -104,15 +136,15 @@ class Gate {
         break;
       case SelectedGateType.rx:
         gateColor = Colors.blue.shade600;
-        gateLabel = () => 'Rx\n${_formatAngle(angle)}';
+        gateLabel = () => angle == null ? 'Rx' : 'Rx\n${_formatAngle(angle)}';
         break;
       case SelectedGateType.ry:
         gateColor = Colors.green.shade600;
-        gateLabel = () => 'Ry\n${_formatAngle(angle)}';
+        gateLabel = () => angle == null ? 'Ry' : 'Ry\n${_formatAngle(angle)}';
         break;
       case SelectedGateType.rz:
         gateColor = Colors.purple.shade600;
-        gateLabel = () => 'Rz\n${_formatAngle(angle)}';
+        gateLabel = () => angle == null ? 'Rz' : 'Rz\n${_formatAngle(angle)}';
         break;
       default:
         gateColor = Colors.transparent;
