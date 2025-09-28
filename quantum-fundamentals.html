@@ -260,6 +260,47 @@
             </section>
 
             <section class="p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#c9d1d9] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Parametric Rotation Gates</h2>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">X-Rotation Gate (Rx)</h3>
+                <p>
+                    Rotates the state vector about the <strong>X-axis</strong> by an angle $\theta$. It introduces phase and amplitude changes through the complex number $i$.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation:</p>
+                    <p class="text-xl font-mono">$$R_x(\theta) = \begin{pmatrix} \cos(\theta/2) & -i\sin(\theta/2) \\ -i\sin(\theta/2) & \cos(\theta/2) \end{pmatrix}$$</p>
+                    <p class="text-lg mt-4">Action on basis states:</p>
+                    <p class="text-xl font-mono">$$\begin{aligned} R_x(\theta)|0\rangle &= \cos(\theta/2)|0\rangle - i\sin(\theta/2)|1\rangle \\ R_x(\theta)|1\rangle &= -i\sin(\theta/2)|0\rangle + \cos(\theta/2)|1\rangle \end{aligned}$$</p>
+                    <p class="text-xl mt-4">This gate creates a <strong>superposition</strong> of $|0\rangle$ and $|1\rangle$ and introduces an imaginary phase into the amplitudes.</p>
+                </div>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">Y-Rotation Gate (Ry)</h3>
+                <p>
+                    Rotates the state vector about the <strong>Y-axis</strong> by an angle $\theta$. This is a real-valued matrix, purely affecting the probability amplitudes.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation:</p>
+                    <p class="text-xl font-mono">$$R_y(\theta) = \begin{pmatrix} \cos(\theta/2) & -\sin(\theta/2) \\ \sin(\theta/2) & \cos(\theta/2) \end{pmatrix}$$</p>
+                    <p class="text-lg mt-4">Action on basis states:</p>
+                    <p class="text-xl font-mono">$$\begin{aligned} R_y(\theta)|0\rangle &= \cos(\theta/2)|0\rangle + \sin(\theta/2)|1\rangle \\ R_y(\theta)|1\rangle &= -\sin(\theta/2)|0\rangle + \cos(\theta/2)|1\rangle \end{aligned}$$</p>
+                    <p class="text-xl mt-4">This gate also creates a <strong>superposition</strong>, but the amplitudes are purely real, making it easy to visualize rotation into the X-Z plane.</p>
+                </div>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">Z-Rotation Gate (Rz)</h3>
+                <p>
+                    Rotates the state vector about the <strong>Z-axis</strong> by an angle $\theta$. This gate only modifies the relative phase of the state vector.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation:</p>
+                    <p class="text-xl font-mono">$$R_z(\theta) = \begin{pmatrix} e^{-i\theta/2} & 0 \\ 0 & e^{i\theta/2} \end{pmatrix}$$</p>
+                    <p class="text-lg mt-4">Action on basis states:</p>
+                    <p class="text-xl font-mono">$$\begin{aligned} R_z(\theta)|0\rangle &= e^{-i\theta/2}|0\rangle \\ R_z(\theta)|1\rangle &= e^{i\theta/2}|1\rangle \end{aligned}$$</p>
+                    <p class="text-xl mt-4">This gate only modifies the <strong>phase</strong> of the components. Crucially, the <em>relative phase</em> difference is $\phi = (i\theta/2) - (-i\theta/2) = i\theta$, which is what affects interference.</p>
+                </div>
+
+            </section>
+
+            <section class="p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#c9d1d9] space-y-4">
                 <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Bell States (Maximally Entangled States)</h2>
                 <p>
                     Bell states are a set of four specific maximally entangled two-qubit states. They form a basis for two-qubit systems and are fundamental in quantum information science, appearing in phenomena like quantum teleportation and superdense coding.
