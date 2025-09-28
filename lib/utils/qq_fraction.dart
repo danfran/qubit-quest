@@ -11,8 +11,8 @@ class QQFraction {
   const QQFraction.asFraction({this.sign = '', required this.numerator, required this.denominator, this.decimalValue, this.radicalTeX});
 
   // Constructor for a decimal fallback.
-  const QQFraction.asDecimal({required this.decimalValue})
-      : sign = null, numerator = null, denominator = null, radicalTeX = null;
+  const QQFraction.asDecimal({this.sign = '', required this.decimalValue})
+      : numerator = null, denominator = null, radicalTeX = null;
 
   // Constructor for a radical number.
   const QQFraction.asRadical({this.sign = '', required this.radicalTeX})
@@ -62,7 +62,10 @@ class QQFraction {
   // This function now returns a Fraction object with its components.
   factory QQFraction.doubleToFraction(double value, radicalLookups) {
     if (value == 0.0) {
-      return const QQFraction.asFraction(numerator: 0, denominator: 1);
+      return const QQFraction.asFraction(
+          numerator: 0,
+          denominator: 1
+      );
     }
 
     String sign = '';
@@ -79,7 +82,10 @@ class QQFraction {
     // Handle common radical numbers via direct lookup
     for (final entry in radicalLookups.entries) {
       if ((valAbs - entry.key).abs() < epsilon) {
-        return QQFraction.asRadical(sign: sign, radicalTeX: entry.value);
+        return QQFraction.asRadical(
+            sign: sign,
+            radicalTeX: entry.value
+        );
       }
     }
 
@@ -103,7 +109,9 @@ class QQFraction {
 
     // Fallback to decimal if the approximation is not good enough
     if ((numerator / denominator - valAbs).abs() > epsilon) {
-      return QQFraction.asDecimal(decimalValue: value);
+      return QQFraction.asDecimal(
+          sign: sign,
+          decimalValue: valAbs);
     }
 
     return QQFraction.asFraction(
@@ -116,28 +124,42 @@ class QQFraction {
   @override
   String toString() {
     if (isRadical) {
-      return '$sign$radicalTeX';
-    } else if (isDecimal) {
-      return decimalValue!.toStringAsFixed(4);
-    } else if (numerator == 0) {
-      return '0';
-    } else if (denominator == 1) {
-      return '$sign$numerator';
+      return '$radicalTeX';
     }
-    return '$sign$numerator/$denominator';
+
+    if (isDecimal) {
+      return decimalValue!.toStringAsFixed(4);
+    }
+
+    if (numerator == 0) {
+      return '0';
+    }
+
+    if (denominator == 1) {
+      return '$numerator';
+    }
+
+    return '$numerator/$denominator';
   }
 
   // A new method to return the LaTeX string representation.
   String toTeXString() {
     if (isRadical) {
-      return '$sign$radicalTeX';
-    } else if (isDecimal) {
-      return decimalValue!.toStringAsFixed(4);
-    } else if (numerator == 0) {
-      return '0';
-    } else if (denominator == 1) {
-      return '$sign$numerator';
+      return '$radicalTeX';
     }
-    return '$sign\\frac{$numerator}{$denominator}';
+
+    if (isDecimal) {
+      return decimalValue!.toStringAsFixed(4);
+    }
+
+    if (numerator == 0) {
+      return '0';
+    }
+
+    if (denominator == 1) {
+      return '$numerator';
+    }
+
+    return '\\frac{$numerator}{$denominator}';
   }
 }

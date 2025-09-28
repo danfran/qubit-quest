@@ -42,7 +42,7 @@ void main() {
 
     test('correctly identifies -0.707 as -1/sqrt(2)', () {
       final fraction = QQFraction.doubleToFractionTeX(-0.7071067811865476).toTeXString();
-      expect(fraction, '-\\frac{1}{\\sqrt{2}}');
+      expect(fraction, '\\frac{1}{\\sqrt{2}}');
     });
 
     test('correctly identifies 1.414 as sqrt(2)', () {
@@ -138,7 +138,7 @@ void main() {
 
     test('formats a negative fraction correctly', () {
       const fraction = QQFraction.asFraction(sign: '-', numerator: 3, denominator: 4);
-      expect(fraction.toTeXString(), '-\\frac{3}{4}');
+      expect(fraction.toTeXString(), '\\frac{3}{4}');
     });
 
     test('formats a radical fraction correctly', () {

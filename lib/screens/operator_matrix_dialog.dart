@@ -67,12 +67,17 @@ class _OperatorMatrixDialogState extends State<OperatorMatrixDialog> {
           scrollDirection: Axis.vertical,
           child: LayoutBuilder( // Use LayoutBuilder to get the available width
             builder: (context, constraints) {
-              final double adaptiveFontSize = MediaQuery.of(context).size.width * 0.013;
+              double adaptiveFontSize = MediaQuery.of(context).size.width * 0.013;
               double adaptiveWidth = constraints.maxWidth;
               if (widget._numQubits == 5) {
                 adaptiveWidth = MediaQuery.of(context).size.width * 3;
+                adaptiveFontSize = MediaQuery.of(context).size.width * 0.009;
               } else if (widget._numQubits == 4) {
                 adaptiveWidth = MediaQuery.of(context).size.width * 2;
+                adaptiveFontSize = MediaQuery.of(context).size.width * 0.01;
+              } else if (widget._numQubits == 3) {
+                adaptiveWidth = MediaQuery.of(context).size.width * 1.7;
+                adaptiveFontSize = MediaQuery.of(context).size.width * 0.011;
               }
 
               return Scrollbar(

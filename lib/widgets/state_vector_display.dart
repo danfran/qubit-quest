@@ -1,5 +1,6 @@
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/utils/complex_formatter.dart';
 import 'package:quantumquiz/utils/qq_fraction.dart';
 
 
@@ -44,21 +45,6 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
   String _toBinaryKet(int index, int numQubits) {
     String binary = index.toRadixString(2);
     return '|${binary.padLeft(numQubits, '0')}>';
-  }
-
-  // Helper to format a complex number for display
-  String _formatComplex(Complex c) {
-    String realF = QQFraction.doubleToFractionString(c.real.toDouble()).toString();
-    String imgF = QQFraction.doubleToFractionString(c.imaginary.toDouble()).toString();
-
-    if (realF == '0' && imgF == '0') {
-      return '0';
-    } else if (realF != '0' && imgF == '0') {
-      return realF;
-    } else if (realF == '0' && imgF != '0') {
-      return imgF == '1' ? 'i' : '${imgF}i';
-    }
-    return '$realF${c.imaginary > 0 ? '+' : ''}${imgF}i';
   }
 
   @override
@@ -129,7 +115,7 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
                           padding: const EdgeInsets.symmetric(vertical: 1.0),
                           // Smaller vertical padding
                           child: Text(
-                            '$ket: ${_formatComplex(value)}',
+                            '$ket: ${formatComplex(value)}',
                             style: TextStyle(
                               color: value.magnitude > _emptyThreshold ? Colors
                                   .white : Colors.grey[600],

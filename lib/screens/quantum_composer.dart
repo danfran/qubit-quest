@@ -8,6 +8,7 @@ import 'package:quantumquiz/screens/rotation_gate_dialog.dart';
 import 'package:quantumquiz/screens/three_qubits_gate_target_qubits_selection_dialog.dart';
 import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
 import 'package:quantumquiz/screens/webview_page.dart';
+import 'package:quantumquiz/utils/complex_formatter.dart';
 import 'package:quantumquiz/utils/qq_fraction.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
@@ -537,19 +538,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
     for (int i = 0; i < matrix.rows.length; i++) {
       for (int j = 0; j < matrix.cols.length; j++) {
         Complex val = matrix.rows.elementAt(i).elementAt(j); // row(i)get(i, j);
-        QQFraction real = QQFraction.doubleToFractionTeX(val.real.toDouble());
-        QQFraction imag = QQFraction.doubleToFractionTeX(val.imaginary.toDouble());
-        String complexStr;
+        String complexStr = formatComplex(val);
 
-        if (val.imaginary == 0) {
-          complexStr = real.toTeXString();
-        } else if (val.real == 0) {
-          complexStr = "${imag.toTeXString()}i";
-        } else if (val.imaginary > 0) {
-          complexStr = "${real.toTeXString()}+${imag.toTeXString()}i";
-        } else {
-          complexStr = "${real.toTeXString()}${imag.toTeXString()}i";
-        }
         teX += complexStr;
         if (j < matrix.cols.length - 1) {
           teX += " & ";
