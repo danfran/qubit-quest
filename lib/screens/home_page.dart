@@ -336,7 +336,7 @@ class _HomePageState extends State<HomePage> {
                     child: Padding(
                       padding: const EdgeInsets.all(12.0),
                       // Removed SingleChildScrollView to prevent scrolling
-                      child: Column(
+                      child: SingleChildScrollView(child: Column(
                         // Center main content vertically
                         mainAxisAlignment: MainAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
@@ -380,7 +380,7 @@ class _HomePageState extends State<HomePage> {
                           }),
                         ],
                       ),
-                    ),
+                    ),),
                   ),
                   ),
                 ),
