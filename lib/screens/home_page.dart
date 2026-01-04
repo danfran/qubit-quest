@@ -9,6 +9,7 @@ import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/screens/webview_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/qq_levels.dart';
 
@@ -282,6 +283,16 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _openYoutubePlaylist(String playlistTextLink) async {
+    final uri = Uri.parse(
+      playlistTextLink,
+    );
+
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw 'Could not launch YouTube';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoadingLevels) {
@@ -358,6 +369,10 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ),
                             );
+                          }),
+                          const SizedBox(height: 2), // Adjusted spacing
+                          _buildOptionButton(context, "Solution Videos", Icons.video_library_rounded, () {
+                            _openYoutubePlaylist('https://www.youtube.com/playlist?list=PL1UkEjMAb8Lq1Nivn894qBWTU938HKPM7');
                           }),
                           const SizedBox(height: 2), // Adjusted spacing
                           _buildOptionButton(context, "Rate Us", Icons.star, () {

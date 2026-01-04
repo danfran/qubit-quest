@@ -119,7 +119,7 @@ final List<QQLevel> allQQLevels = [
   // (H + S + Z) + S + H + X
   QQLevel.fromBinaryString(
     type: "composer",
-    taskDescription: r"You're at \( (|0\rangle - i|1\rangle) \)/\sqrt{2}. Transform this state back to \( |1\rangle \).",
+    taskDescription: r"You're at \( (|0\rangle - i|1\rangle)/\sqrt{2} \). Transform this state back to \( |1\rangle \).",
     numQubits: 1,
     initialQubitsStateString: "0", // User must reach the initial state first, then transform.
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y)],
