@@ -857,7 +857,26 @@ final List<QQLevel> allQQLevels = [
   ),
   // X(1) + H(0) + CX(0,1) + Z(0)
   ComposerLevel.fromBinaryString( // multiple solutions, for example H(0) + CX(0,1) + H(0) + H(1)
+    title: 'Bell Φ⁻ from |10⟩',
     taskDescription: r"From \( |10\rangle \), create the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle)/\sqrt{2} \).",
+    conceptIntro:
+        'H|1⟩ = (|0⟩−|1⟩)/√2 = |−⟩ — a superposition with a minus sign. '
+        'When the starting qubit is |1⟩, H produces this negative superposition directly. '
+        'This minus propagates through CNOT, creating Φ⁻ without any extra Z gate. '
+        'Compare level 22: H on Q0=|0⟩ gave Φ⁺. Here Q0=|1⟩ gives Φ⁻ with the same circuit.',
+    hints: [
+      'From |10⟩, Q0=1. H on Q0 maps |1⟩ → (|0⟩−|1⟩)/√2 — '
+          'note the minus sign! The state is now (|00⟩−|10⟩)/√2.',
+      'CNOT(Q0→Q1) on (|00⟩−|10⟩)/√2: |10⟩→|11⟩. '
+          'Result: (|00⟩−|11⟩)/√2 = Φ⁻. '
+          'Only two gates needed — the minus sign from H|1⟩ does the job.',
+    ],
+    solutionExplanation:
+        'H on Q0 (which is |1⟩) gives (|0⟩−|1⟩)/√2. '
+        'State: (|00⟩−|10⟩)/√2. '
+        'CNOT(Q0→Q1): |10⟩→|11⟩. Result: (|00⟩−|11⟩)/√2 = Φ⁻. '
+        'Two solutions exist: H+CNOT (2 gates), or X+H+CNOT+Z (4 gates). '
+        'The initial qubit state — |0⟩ or |1⟩ — controls the sign of the Bell state produced.',
     numQubits: 2,
     initialQubitsStateString: "10",
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.z)],
@@ -871,7 +890,27 @@ final List<QQLevel> allQQLevels = [
   ),
   // (CNOT(0,1)) + CNOT(1,0) + CNOT(0,1)
   ComposerLevel.fromBinaryString(
+    title: 'Complete the SWAP',
     taskDescription: r"This circuit is pre-configured with the first CNOT of a qubit swap. Complete the swap of qubits 0 and 1, so \( |01\rangle \) becomes \( |10\rangle \).",
+    conceptIntro:
+        'A full SWAP requires three CNOTs: CNOT(A→B), CNOT(B→A), CNOT(A→B). '
+        'The first step is already pre-inserted. '
+        'Your task is to add the remaining two to complete the swap. '
+        'This decomposition is how SWAP is implemented on real quantum hardware '
+        'that lacks a native SWAP gate.',
+    hints: [
+      'The pre-inserted CNOT(Q0→Q1) leaves |01⟩ unchanged (Q0=0, no flip). '
+          'You still need to move the |1⟩ from Q1 into Q0.',
+      'CNOT(Q1→Q0): Q1=1 → flip Q0: 0→1 → |11⟩. '
+          'Then CNOT(Q0→Q1): Q0=1 → flip Q1: 1→0 → |10⟩. '
+          'Two more CNOTs complete the SWAP.',
+    ],
+    solutionExplanation:
+        'Pre-inserted CNOT(Q0→Q1)|01⟩ = |01⟩ (no change, Q0=0). '
+        'CNOT(Q1→Q0)|01⟩ = |11⟩. '
+        'CNOT(Q0→Q1)|11⟩ = |10⟩. '
+        'The three-CNOT SWAP identity works for any input state, including superpositions — '
+        'this is the universal SWAP decomposition used across all quantum hardware.',
     numQubits: 2,
     initialQubitsStateString: "01",
     preInsertedGates: (QuantumCircuit circuit) {
@@ -887,7 +926,27 @@ final List<QQLevel> allQQLevels = [
   ),
   // CNOT(2,0) + CNOT(2,1)
   ComposerLevel.fromBinaryString(
+    title: 'Long-Range CNOT',
     taskDescription: r"From \( |001\rangle \), transform the state to \( |101\rangle \).",
+    conceptIntro:
+        'In a 3-qubit register CNOT can connect any two qubits — '
+        'they do not need to be adjacent. '
+        'Here Q2=1 is the only available control. '
+        'Using it to flip Q0 (skipping Q1 entirely) is called a "long-range" CNOT. '
+        'On real hardware non-adjacent CNOTs are compiled into a sequence of '
+        'adjacent gates, but logically they work the same way.',
+    hints: [
+      'In |001⟩: Q0=0, Q1=0, Q2=1. Only Q2 is |1⟩ and can serve as a control. '
+          'Which qubit needs to flip to reach |101⟩?',
+      'Q0 must flip from 0→1. Use CNOT with Q2 as control and Q0 as target. '
+          'Q2=1 → flip Q0: 0→1 → |101⟩. One gate is enough.',
+    ],
+    solutionExplanation:
+        'CNOT(Q2→Q0)|001⟩ = |101⟩. '
+        'Q2=1 is the control; Q0 flips: 0→1. Q1 is untouched. '
+        'In the 8-entry state vector, |101⟩ is index 5. '
+        'This long-range CNOT is the basic building block for '
+        'multi-qubit fan-out and quantum error-correction circuits.',
     numQubits: 3,
     initialQubitsStateString: "001",
     availableGates: [Gate.fromIdentifier(SelectedGateType.cnot)],
@@ -904,7 +963,29 @@ final List<QQLevel> allQQLevels = [
   ),
   // X(0) + CX(0,2)
   ComposerLevel.fromBinaryString(
+    title: 'CNOT Fan-Out',
     taskDescription: r"Transform \( |010\rangle \) to \( |111\rangle \). This requires a careful sequence of gates.",
+    conceptIntro:
+        'CNOT "copies" (fans out) a |1⟩ control into a |0⟩ target: '
+        'CNOT|10⟩ = |11⟩. '
+        'Note: this only works for classical basis states — '
+        'for superpositions it creates entanglement instead of copying. '
+        'Here you must first set up the right control qubit with X, '
+        'then use CNOT to propagate its value to the remaining qubit.',
+    hints: [
+      'In |010⟩: Q0=0, Q1=1, Q2=0. Q1 is already |1⟩. '
+          'You need Q0 and Q2 to also become |1⟩. '
+          'Start by flipping Q0 with X.',
+      'X on Q0: |010⟩ → |110⟩. '
+          'Now Q0=1 can act as control: CNOT(Q0→Q2) flips Q2: 0→1 → |111⟩. '
+          'Two gates, no Toffoli needed.',
+    ],
+    solutionExplanation:
+        'X flips Q0: |010⟩ → |110⟩. '
+        'CNOT(Q0→Q2): Q0=1 → Q2 flips: 0→1 → |111⟩. '
+        'Q1 was already |1⟩ and is left untouched. '
+        'This fan-out pattern — X to set a control, then CNOT to copy its value — '
+        'appears in quantum adder circuits and quantum error correction encoders.',
     numQubits: 3,
     initialQubitsStateString: "010",
     availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.ccnot), Gate.fromIdentifier(SelectedGateType.hadamard)],
@@ -921,7 +1002,28 @@ final List<QQLevel> allQQLevels = [
   ),
   // X(0)
   ComposerLevel.fromBinaryString(
+    title: 'GHZ State Manipulation',
     taskDescription: r"This circuit is pre-configured to the GHZ state \( (|000\rangle + |111\rangle)/\sqrt{2} \). Transform this state to \( (|001\rangle + |110\rangle)/\sqrt{2} \).",
+    conceptIntro:
+        'The GHZ (Greenberger–Horne–Zeilinger) state (|000⟩+|111⟩)/√2 is '
+        'maximally entangled across all three qubits. '
+        'A striking property: applying X to any single qubit flips that bit in '
+        'EVERY term simultaneously — the qubits are perfectly correlated. '
+        'This lets a single local operation transform both terms of the superposition at once.',
+    hints: [
+      'The GHZ state has exactly two terms: |000⟩ and |111⟩. '
+          'The target (|001⟩+|110⟩)/√2 also has two terms, '
+          'differing from the original in exactly one bit position per term.',
+      'X on any single qubit flips that bit in both |000⟩ and |111⟩. '
+          'Find the qubit position where "000"→"001" and "111"→"110" — '
+          'that is the last (rightmost) qubit.',
+    ],
+    solutionExplanation:
+        'X on the last qubit: |000⟩→|001⟩ and |111⟩→|110⟩. '
+        'Result: (|001⟩+|110⟩)/√2. '
+        'This demonstrates the all-or-nothing nature of GHZ entanglement: '
+        'a single local X operation correlates changes across all three qubits globally. '
+        'GHZ states are used in quantum secret sharing and quantum communication protocols.',
     numQubits: 3,
     initialQubitsStateString: "000", // Base for pre-inserted gates
     preInsertedGates: (QuantumCircuit circuit) {
@@ -944,7 +1046,28 @@ final List<QQLevel> allQQLevels = [
   ),
   // H(0) + H(1)
   ComposerLevel.fromBinaryString(
+    title: 'Uniform 2-Qubit Superposition',
     taskDescription: r"From \( |00\rangle \), create a uniform superposition of all possible 2-qubit states: \( (|00\rangle + |01\rangle + |10\rangle + |11\rangle)/2 \).",
+    conceptIntro:
+        'Applying H independently to every qubit in a register creates '
+        'a uniform superposition over all 2ⁿ basis states. '
+        'For n=2: H⊗H|00⟩ = (|00⟩+|01⟩+|10⟩+|11⟩)/2. '
+        'Each state has equal amplitude 1/2 and probability 1/4. '
+        'This "quantum parallelism" initialization is the first step '
+        'in Grover\'s search and the quantum Fourier transform.',
+    hints: [
+      'H on one qubit creates superposition over 2 states. '
+          'What happens when you apply H to both qubits independently?',
+      'H on Q0 gives (|00⟩+|10⟩)/√2 (Q1 stays |0⟩). '
+          'Then H on Q1 spreads each term: |x0⟩ → (|x0⟩+|x1⟩)/√2. '
+          'All four basis states get amplitude 1/2. The order doesn\'t matter.',
+    ],
+    solutionExplanation:
+        'H on Q0 then H on Q1 (or vice versa — they commute on different qubits). '
+        'H⊗H|00⟩ = (|0⟩+|1⟩)/√2 ⊗ (|0⟩+|1⟩)/√2 = (|00⟩+|01⟩+|10⟩+|11⟩)/2. '
+        'Each state has probability |1/2|² = 1/4. '
+        'In general, n Hadamards on |0…0⟩ create a uniform superposition '
+        'over all 2ⁿ bit strings — the starting state for most quantum search algorithms.',
     numQubits: 2,
     initialQubitsStateString: "00",
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.t), Gate.fromIdentifier(SelectedGateType.s)], // Only Hadamard needed
@@ -958,7 +1081,29 @@ final List<QQLevel> allQQLevels = [
   ),
   // X(0) + H(0) + CX(0,1) + CX(1,2) + Z(2)
   ComposerLevel.fromBinaryString(
+    title: 'GHZ State with Phase',
     taskDescription: r"From \( |001\rangle \), transform the state to \( (|000\rangle - |111\rangle)/\sqrt{2} \).",
+    conceptIntro:
+        'The GHZ state (|000⟩+|111⟩)/√2 is created by H on one qubit followed by '
+        'a CNOT cascade: CNOT(Q0→Q1) then CNOT(Q1→Q2). '
+        'Appending Z to any qubit flips the sign of the |111⟩ term '
+        '(all qubits are |1⟩ there), giving the "anti-GHZ" state (|000⟩−|111⟩)/√2. '
+        'This state is orthogonal to GHZ and plays a role in quantum error correction.',
+    hints: [
+      'First undo the |1⟩ in the initial state with X. '
+          'Then build GHZ: H on one qubit to create superposition, '
+          'followed by two CNOTs in a chain to spread entanglement to all three qubits.',
+      'X→H(one qubit)→CNOT(Q0→Q1)→CNOT(Q1→Q2) gives (|000⟩+|111⟩)/√2. '
+          'Now add Z on any qubit to flip the |111⟩ sign — '
+          'all three qubits are |1⟩ in that term, so Z on any of them works.',
+    ],
+    solutionExplanation:
+        'X clears the initial |1⟩. '
+        'H creates superposition on one qubit. '
+        'CNOT(Q0→Q1) then CNOT(Q1→Q2) cascade the entanglement: (|000⟩+|111⟩)/√2. '
+        'Z on any qubit flips the sign of |111⟩ → (|000⟩−|111⟩)/√2. '
+        'This "GHZ with a phase" state is one of the 8 maximally-entangled 3-qubit states '
+        'used as logical qubits in the [[3,1,1]] quantum error-correcting code.',
     numQubits: 3,
     initialQubitsStateString: "001",
     availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.ccnot), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.t)],
@@ -984,7 +1129,32 @@ final List<QQLevel> allQQLevels = [
   // This level introduces the concept of a Controlled-Z gate's effect,
   // which is key to Quantum Phase Estimation and Shor's algorithm.
   ComposerLevel.fromBinaryString(
+    title: 'CZ Gate — Controlled Phase',
     taskDescription: r"This is about Conditional Phase Shift (Shor's Principle Hint). From \( |00\rangle \), create a uniform superposition where the \( |11\rangle \) component has its phase flipped to \(-1\). The target state is \( (|00\rangle + |01\rangle + |10\rangle - |11\rangle)/2 \).",
+    conceptIntro:
+        'The Controlled-Z (CZ) gate applies a phase of −1 to |11⟩ and '
+        'leaves all other basis states unchanged. '
+        'Unlike CNOT which changes bit values, CZ only changes phases — '
+        'it is a "phase oracle". '
+        'CZ is symmetric: CZ(Q0,Q1) = CZ(Q1,Q0). '
+        'Conditional phase shifts like CZ are central to '
+        'Shor\'s algorithm and quantum phase estimation.',
+    hints: [
+      'First create the uniform superposition (|00⟩+|01⟩+|10⟩+|11⟩)/2 '
+          'by applying H to both qubits.',
+      'Then apply CZ directly — it flips only the |11⟩ phase. '
+          'CZ is symmetric, so either qubit can be listed as control. '
+          'Compare with level 29: the same target state was reached via H·CNOT·H '
+          'because CZ = H(tgt)·CNOT·H(tgt).',
+    ],
+    solutionExplanation:
+        'H⊗H gives (|00⟩+|01⟩+|10⟩+|11⟩)/2. '
+        'CZ flips the phase of |11⟩: (|00⟩+|01⟩+|10⟩−|11⟩)/2. '
+        'CZ is self-inverse (CZ²=I) and symmetric. '
+        'This is the same target state as level 29, reached in fewer gates '
+        'because CZ is available here directly. '
+        'In Shor\'s algorithm, repeated controlled phase shifts accumulate phase '
+        'information that the QFT then converts into a period.',
     numQubits: 2,
     initialQubitsStateString: "00",
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cz), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.t), Gate.fromIdentifier(SelectedGateType.y)],
@@ -1005,7 +1175,28 @@ final List<QQLevel> allQQLevels = [
 
   // (H(0) + H(1) + CZ(0,1)) + CZ(0,1) + H(0) + H(1)
   ComposerLevel.fromBinaryString(
+    title: 'Uncomputing CZ Entanglement',
     taskDescription: r"This circuit is pre-configured to an entangled state where the \( |11\rangle \) component has a negative phase. Your task is to transform this state back to \( |00\rangle \).",
+    conceptIntro:
+        'The pre-inserted H→H→CZ sequence has created (|00⟩+|01⟩+|10⟩−|11⟩)/2. '
+        'To reverse this, apply the gates in reverse order: '
+        'CZ (self-inverse, removes the phase flip), '
+        'then H on each qubit (self-inverse, collapses the superposition). '
+        'Uncomputation of a phase-entangled state is a key subroutine in '
+        'Grover\'s oracle circuits.',
+    hints: [
+      'The pre-inserted H→H→CZ created the state with negative |11⟩ phase. '
+          'To undo it, apply CZ first (it is self-inverse), then H on both qubits.',
+      'CZ on (|00⟩+|01⟩+|10⟩−|11⟩)/2 restores the uniform superposition '
+          '(|00⟩+|01⟩+|10⟩+|11⟩)/2. '
+          'Then H on Q0 and H on Q1 collapse it back to |00⟩.',
+    ],
+    solutionExplanation:
+        'CZ removes the −1 phase on |11⟩: → (|00⟩+|01⟩+|10⟩+|11⟩)/2. '
+        'H on Q0: collapses the Q0 superposition. '
+        'H on Q1: collapses the Q1 superposition. Final: |00⟩. '
+        'Alternatively, use H·CNOT·H as the CZ decomposition, giving the same result. '
+        'Total circuit: pre-inserted (H,H,CZ) + added (CZ,H,H) = identity.',
     numQubits: 2,
     initialQubitsStateString: "00", // Base for pre-inserted gates
     preInsertedGates: (QuantumCircuit circuit) {
@@ -1027,7 +1218,28 @@ final List<QQLevel> allQQLevels = [
   ),
 
   ComposerLevel.fromBinaryString(
+    title: 'Rx Rotation Gate',
     taskDescription: r"Transform the initial state \( |0\rangle \) to the 'plus' state \( |+\rangle \). This can be achieved with a single rotation gate.",
+    conceptIntro:
+        'Rotation gates rotate a qubit around the Bloch sphere axes by a specific angle. '
+        'Rx(θ) rotates around the X-axis: Rx(θ)|0⟩ = cos(θ/2)|0⟩ − i·sin(θ/2)|1⟩. '
+        'For θ=π/2: Rx(π/2)|0⟩ = (|0⟩−i|1⟩)/√2 — an equatorial state with equal '
+        'measurement probabilities to |+⟩, but a phase of −i on |1⟩. '
+        'Ry(θ) rotates around the Y-axis: Ry(θ)|0⟩ = cos(θ/2)|0⟩ + sin(θ/2)|1⟩ '
+        '— giving real amplitudes with no phase.',
+    hints: [
+      'Both Rx(π/2) and Ry(π/2) produce equatorial states. '
+          'Look at the target amplitudes: the |1⟩ component has a specific sign and phase.',
+      'The target has amplitude 1/√2 on |0⟩ and −i/√2 on |1⟩. '
+          'Rx(π/2)|0⟩ = cos(π/4)|0⟩ − i·sin(π/4)|1⟩ = (|0⟩−i|1⟩)/√2. '
+          'That matches — use Rx(π/2).',
+    ],
+    solutionExplanation:
+        'Rx(π/2)|0⟩ = (|0⟩−i|1⟩)/√2. '
+        'The amplitude on |1⟩ is −i/√2, giving probability |−i/√2|²=1/2 — '
+        'equal to |+⟩, but the phase of |1⟩ differs. '
+        'Rx, Ry, Rz together can represent any single-qubit unitary. '
+        'This is the Euler angle decomposition, fundamental to variational quantum circuits.',
     numQubits: 1,
     initialQubitsStateString: "0",
     availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2), Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 2)],
@@ -1037,7 +1249,26 @@ final List<QQLevel> allQQLevels = [
     ], // Target: |+>
   ),
   ComposerLevel.fromBinaryString(
+    title: 'Ry Rotation Gate',
     taskDescription: r"Rotate the initial state \( |0\rangle \) to a new state on the equatorial plane of the Bloch sphere. Try to find the correct rotation.",
+    conceptIntro:
+        'Ry(θ) rotates around the Y-axis of the Bloch sphere: '
+        'Ry(θ)|0⟩ = cos(θ/2)|0⟩ + sin(θ/2)|1⟩. '
+        'Unlike Rx, the Y-axis rotation keeps all amplitudes real — no imaginary phase on |1⟩. '
+        'Ry(π/2)|0⟩ = (|0⟩+|1⟩)/√2, which has the same measurement statistics as H|0⟩ '
+        'but lies on a different meridian of the Bloch sphere.',
+    hints: [
+      'Compare the two available gates: Rx(π/4) and Ry(π/2). '
+          'The target has both amplitudes real and equal — no imaginary part.',
+      'Ry(θ)|0⟩ = cos(θ/2)|0⟩ + sin(θ/2)|1⟩. '
+          'For equal real amplitudes, cos(θ/2) = sin(θ/2), so θ/2 = π/4, θ = π/2. '
+          'Use Ry(π/2).',
+    ],
+    solutionExplanation:
+        'Ry(π/2)|0⟩ = cos(π/4)|0⟩ + sin(π/4)|1⟩ = (|0⟩+|1⟩)/√2. '
+        'Both amplitudes are real 1/√2 — no phase on |1⟩. '
+        'Compare with level 40: Rx(π/2)|0⟩ = (|0⟩−i|1⟩)/√2 has a phase. '
+        'Ry and Rx reach different equatorial points despite equal measurement probabilities.',
     numQubits: 1,
     initialQubitsStateString: "0",
     availableGates: [Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 4), Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 2)],
@@ -1047,7 +1278,27 @@ final List<QQLevel> allQQLevels = [
     ], // Target: (1/sqrt(2))(|0> + i|1>)
   ),
   ComposerLevel.fromBinaryString(
+    title: 'Rz — Phase Rotation',
     taskDescription: r"Apply a phase shift to the state \( |1\rangle \) to transform it to \( |i\rangle \). This requires an Rz gate.",
+    conceptIntro:
+        'Rz(θ) rotates around the Z-axis: Rz(θ)|0⟩ = e^(−iθ/2)|0⟩ and Rz(θ)|1⟩ = e^(iθ/2)|1⟩. '
+        'Since |0⟩ and |1⟩ get opposite phases, Rz only creates a relative phase — '
+        'it does not mix them. '
+        'Z, S, and T are all special cases of Rz: '
+        'Z = Rz(π), S = Rz(π/2), T = Rz(π/4) (up to global phase). '
+        'Here you start in |1⟩ and need to rotate its phase by π/4.',
+    hints: [
+      'You only need to add a phase to |1⟩. Rz(θ)|1⟩ = e^(iθ/2)|1⟩. '
+          'Look at the target amplitude on |1⟩ and work out what θ gives that phase.',
+      'Target |1⟩ amplitude: (1+i)/√2 = e^(iπ/4). '
+          'So e^(iθ/2) = e^(iπ/4) → θ/2 = π/4 → θ = π/2. '
+          'Use Rz(π/2). This is equivalent to the S gate.',
+    ],
+    solutionExplanation:
+        'Rz(π/2)|1⟩ = e^(iπ/4)|1⟩ = (cos(π/4)+i·sin(π/4))|1⟩ = (1+i)/√2·|1⟩. '
+        'Rz(π/2) is the continuous-angle equivalent of the S gate (S = Rz(π/2) up to global phase). '
+        'The Z-rotation family: T = Rz(π/4), S = Rz(π/2), Z = Rz(π). '
+        'All add phase exclusively to the |1⟩ component without touching |0⟩.',
     numQubits: 1,
     initialQubitsStateString: "1",
     availableGates: [Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2), Gate.fromIdentifier(SelectedGateType.ry)],
@@ -1057,7 +1308,28 @@ final List<QQLevel> allQQLevels = [
     ], // Target: |i>
   ),
   ComposerLevel.fromBinaryString(
+    title: 'Inverse Rotation',
     taskDescription: r"You start with a pre-configured superposition. Use a rotation gate to return to the \( |0\rangle \) state.",
+    conceptIntro:
+        'Every rotation gate has an inverse: Rx(−θ) = Rx(θ)†, Ry(−θ) = Ry(θ)†, Rz(−θ) = Rz(θ)†. '
+        'Applying a rotation followed by its inverse cancels to the identity: R(θ)·R(−θ) = I. '
+        'The pre-inserted Ry(π/2) has rotated the state away from |0⟩. '
+        'Uncomputing rotations this way is central to quantum circuit optimization '
+        'and ancilla qubit reset.',
+    hints: [
+      'The pre-inserted Ry(π/2) produced (|0⟩+|1⟩)/√2. '
+          'You need to undo this rotation to return to |0⟩.',
+      'The inverse of Ry(θ) is Ry(−θ). '
+          'Apply Ry(−π/2): Ry(−π/2)·Ry(π/2)|0⟩ = Ry(0)|0⟩ = |0⟩. '
+          'The negative-angle gate is in your toolbar.',
+    ],
+    solutionExplanation:
+        'Ry(π/2)|0⟩ = (|0⟩+|1⟩)/√2 (pre-inserted). '
+        'Ry(−π/2) reverses the rotation: '
+        'Ry(−π/2)·(|0⟩+|1⟩)/√2 = |0⟩. '
+        'Net rotation angle: π/2 + (−π/2) = 0. '
+        'This cancellation principle generalises: for any rotation angle θ, '
+        'applying Ry(θ) then Ry(−θ) is a no-op.',
     numQubits: 1,
     initialQubitsStateString: "0",
     preInsertedGates: (QuantumCircuit circuit) {
@@ -1070,7 +1342,30 @@ final List<QQLevel> allQQLevels = [
     ], // Target: |0>
   ),
   ComposerLevel.fromBinaryString(
+    title: 'Composing Rx and Ry',
     taskDescription: r"Combine two different rotation gates to get a specific final state. The first rotation is given.",
+    conceptIntro:
+        'Combining rotations around different axes creates states unreachable by either axis alone. '
+        'The Bloch sphere shows why: a single axis can only reach a circle of states, '
+        'but two axes together can reach any point. '
+        'This is the basis of the Euler angle decomposition: '
+        'any single-qubit gate U = Rz(α)·Ry(β)·Rz(γ) — '
+        'a universal building block for variational quantum circuits.',
+    hints: [
+      'The pre-inserted Rx(π/2) has produced (|0⟩−i|1⟩)/√2. '
+          'The target [0.5+0.5i, 0.5−0.5i] has equal-magnitude amplitudes '
+          'with a specific mix of real and imaginary parts.',
+      'Apply Ry(π/2) after the pre-inserted Rx(π/2). '
+          'The Y-rotation mixes the real and imaginary parts from the Rx result, '
+          'yielding exactly [0.5+0.5i, 0.5−0.5i].',
+    ],
+    solutionExplanation:
+        'Rx(π/2)|0⟩ = (|0⟩−i|1⟩)/√2. '
+        'Ry(π/2) on (|0⟩−i|1⟩)/√2: the Y-rotation mixes components, '
+        'giving [0.5+0.5i, 0.5−0.5i]. '
+        'Each amplitude has magnitude 1/√2 (50/50 measurement probability), '
+        'but the Bloch sphere point and relative phase differ from any single-axis result. '
+        'This is the power of multi-axis composition.',
     numQubits: 1,
     initialQubitsStateString: "0",
     preInsertedGates: (QuantumCircuit circuit) {
@@ -1083,7 +1378,29 @@ final List<QQLevel> allQQLevels = [
     ], // Target: a state on the Bloch sphere
   ),
   ComposerLevel.fromBinaryString(
+    title: 'Rz on an Entangled State',
     taskDescription: r"Use a rotation gate to apply a very specific phase shift on a multi-qubit state. The initial state is a superposition.",
+    conceptIntro:
+        'Rotation gates can be applied to individual qubits of an entangled state. '
+        'Rz(θ) on Q0 of Φ⁺=(|00⟩+|11⟩)/√2 adds e^(−iθ/2) when Q0=0 '
+        'and e^(iθ/2) when Q0=1 — introducing a relative phase between the two entangled terms. '
+        'This "phase kickback" is the core mechanism of quantum phase estimation '
+        'and the quantum Fourier transform.',
+    hints: [
+      'The pre-inserted H+CNOT created Φ⁺=(|00⟩+|11⟩)/√2. '
+          'Rz(θ) on Q0 adds phase e^(−iθ/2) to the |00⟩ component '
+          'and e^(iθ/2) to the |11⟩ component.',
+      'Target: |00⟩ gets phase e^(−iπ/8) and |11⟩ gets e^(iπ/8). '
+          'So e^(iθ/2) = e^(iπ/8) → θ/2 = π/8 → θ = π/4. '
+          'Apply Rz(π/4) on Q0.',
+    ],
+    solutionExplanation:
+        'Rz(π/4) on Q0 applied to Φ⁺=(|00⟩+|11⟩)/√2: '
+        '|00⟩ → e^(−iπ/8)|00⟩, |11⟩ → e^(iπ/8)|11⟩. '
+        'Result: (e^(−iπ/8)|00⟩ + e^(iπ/8)|11⟩)/√2 — a "phased Bell state". '
+        'The entanglement is preserved but a relative phase π/4 has been introduced. '
+        'In quantum phase estimation, repeated Rz rotations accumulate phase '
+        'that encodes eigenvalue information.',
     numQubits: 2,
     initialQubitsStateString: "00",
     preInsertedGates: (QuantumCircuit circuit) {
@@ -1099,7 +1416,32 @@ final List<QQLevel> allQQLevels = [
     ], // Target: (1/sqrt(2))|00> + (e^(i*pi/4)/sqrt(2))|11>
   ),
   ComposerLevel.fromBinaryString(
+    title: 'Precise Bloch Sphere Navigation',
     taskDescription: r"Transform the initial state to a specific point on the Bloch sphere. This requires precise rotations.",
+    conceptIntro:
+        'Any point on the Bloch sphere requires at most two rotations around different axes '
+        '(Euler angle decomposition). '
+        'The target state has equal-magnitude amplitudes with a specific complex phase — '
+        'it lives on the equatorial plane but offset from the X and Y axes. '
+        'Reaching it from |0⟩ requires a Y-axis rotation to create the superposition '
+        'followed by an X-axis rotation to introduce the correct phase mix.',
+    hints: [
+      'The target has both amplitudes equal in magnitude (1/√2) with a specific phase. '
+          'Start with Ry(π/4) to create an unequal superposition, '
+          'then use Rx(π/2) to rotate toward equal magnitudes with the right phase.',
+      'Ry(π/4)|0⟩ = (cos(π/8)|0⟩ + sin(π/8)|1⟩). '
+          'Then Rx(π/2) mixes in the imaginary part: '
+          'the result is (cos(π/8)−i·sin(π/8))/√2 on both components. '
+          'Two gates: Ry(π/4) → Rx(π/2).',
+    ],
+    solutionExplanation:
+        'Ry(π/4)|0⟩ = [cos(π/8), sin(π/8)]. '
+        'Rx(π/2) then mixes real and imaginary parts: '
+        'first component becomes (cos(π/8)−i·sin(π/8))/√2 = e^(−iπ/8)/√2. '
+        'Both amplitudes end up equal (e^(−iπ/8)/√2). '
+        'This two-gate decomposition Ry·Rx is the final form of the '
+        'Euler rotation U = Rz·Ry·Rz — here Rz(0) is trivial. '
+        'VQE and QAOA circuits use exactly this parameterised gate structure.',
     numQubits: 1,
     initialQubitsStateString: "0",
     availableGates: [Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2), Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 8), Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 4), Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2)],
@@ -1114,7 +1456,12 @@ final List<QQLevel> allQQLevels = [
   McqLevel(
     title: 'What is Superposition?',
     taskDescription: 'A qubit in superposition is...',
-    conceptIntro: 'You have applied the Hadamard gate many times. Let\'s check the concept behind it.',
+    conceptIntro:
+        'You have applied the Hadamard gate many times. '
+        'Let\'s check the concept behind it.\n\n'
+        'Classical bits are always exactly 0 or 1. '
+        'Qubits can exist in a combination of both states at once — '
+        'described by complex probability amplitudes — until they are measured.',
     options: [
       'Always |0⟩ when measured',
       'In both |0⟩ and |1⟩ simultaneously — collapsing to one upon measurement with some probability',
@@ -1122,17 +1469,30 @@ final List<QQLevel> allQQLevels = [
       'The same as a classical bit that is randomly 0 or 1',
     ],
     correctOptionIndex: 1,
+    hints: [
+      'Think about what makes quantum computing fundamentally different from classical computing.',
+      'A qubit carries a complex amplitude for |0⟩ and a separate amplitude for |1⟩ — '
+          'both are "real" until measurement forces a definite outcome.',
+      'A random classical bit is determined before you look at it; '
+          'a superposed qubit is genuinely in both states until you measure — '
+          'that is why option 4 is wrong.',
+    ],
     solutionExplanation:
         'Superposition means the qubit has a probability amplitude for each basis state. '
-        'The Born rule says the probability of each outcome equals the squared magnitude of its amplitude. '
-        'Only measurement collapses the superposition.',
+        'The Born rule says the probability of each outcome equals the squared magnitude '
+        'of its amplitude. Only measurement collapses the superposition — '
+        'before that, the qubit is truly in both states at once.',
   ),
 
   // Index 47 — Level 48
   McqLevel(
     title: 'What is Entanglement?',
     taskDescription: 'Two qubits are entangled when...',
-    conceptIntro: 'You have created and disentangled Bell states. What makes entanglement special?',
+    conceptIntro:
+        'You have created and disentangled Bell states. What makes entanglement special?\n\n'
+        'A "product state" is one where each qubit can be described independently. '
+        'For example |0⟩⊗|1⟩ = |01⟩ is a product state — qubit A is |0⟩ and qubit B is |1⟩. '
+        'An entangled state is one where no such separation is possible.',
     options: [
       'Both qubits are in state |0⟩',
       'They are physically close to each other',
@@ -1140,10 +1500,19 @@ final List<QQLevel> allQQLevels = [
       'One qubit controls the other via a wire',
     ],
     correctOptionIndex: 2,
+    hints: [
+      'Try to write the Bell state (|00⟩+|11⟩)/√2 as (a|0⟩+b|1⟩)⊗(c|0⟩+d|1⟩) and see what goes wrong.',
+      'Expanding the product gives ac|00⟩ + ad|01⟩ + bc|10⟩ + bd|11⟩. '
+          'To match the Bell state we need ad = 0 and bc = 0, '
+          'but then ac and bd can\'t both be non-zero at the same time.',
+      'Physical proximity has nothing to do with entanglement — '
+          'entangled particles can be light-years apart and still share quantum correlations.',
+    ],
     solutionExplanation:
         'Entanglement is a purely quantum correlation. For the Bell state (|00⟩+|11⟩)/√2, '
         'there is no way to write it as (a|0⟩+b|1⟩)⊗(c|0⟩+d|1⟩). '
-        'Measuring one qubit instantly tells you the state of the other.',
+        'Measuring one qubit instantly tells you the state of the other — '
+        'this is the defining feature that Einstein called "spooky action at a distance".',
   ),
 
   // ── Measurement Lab ───────────────────────────────────────────────────────
@@ -1164,9 +1533,18 @@ final List<QQLevel> allQQLevels = [
           isDeletable: false);
     },
     requiredMeasurements: 20,
+    hints: [
+      'There is nothing to solve here — just observe. '
+          'Press Measure and watch the bar chart update with each outcome.',
+      'The H gate gives both |0⟩ and |1⟩ the same amplitude 1/√2. '
+          'What does the Born rule say about the probability of each outcome?',
+      '|1/√2|² = 0.5, so you expect roughly 50 % |0⟩ and 50 % |1⟩. '
+          'With 20 measurements you won\'t get exactly 10 each — randomness is real!',
+    ],
     solutionExplanation:
         'You should see roughly 50 % |0⟩ and 50 % |1⟩. '
-        'The H gate gives both amplitudes equal magnitude 1/√2, so |amplitude|² = 0.5 for each.',
+        'The H gate gives both amplitudes equal magnitude 1/√2, so |amplitude|² = 0.5 for each. '
+        'The more measurements you take, the closer the histogram gets to the true 50/50 split.',
   ),
 
   // Index 49 — Level 50
@@ -1189,9 +1567,18 @@ final List<QQLevel> allQQLevels = [
           isDeletable: false);
     },
     requiredMeasurements: 20,
+    hints: [
+      'Press Measure several times and note which two-qubit outcomes appear in the histogram.',
+      'The Bell state has zero amplitude for |01⟩ and |10⟩. '
+          'The Born rule says zero amplitude means zero probability — '
+          'those outcomes can never occur.',
+      'Compare with two independent 50/50 coins: you\'d sometimes get "heads-tails" or "tails-heads". '
+          'Entanglement forbids those mixed outcomes — both qubits are always perfectly correlated.',
+    ],
     solutionExplanation:
         'The Bell state has zero amplitude for |01⟩ and |10⟩, so you can never measure those. '
-        'The two qubits are entangled — their outcomes are always correlated.',
+        'The two qubits are entangled — their outcomes are always correlated. '
+        'Each outcome |00⟩ and |11⟩ has probability |1/√2|² = 0.5.',
   ),
 
   // ── Fill the Gate ─────────────────────────────────────────────────────────
@@ -1276,9 +1663,17 @@ final List<QQLevel> allQQLevels = [
       r'\( |-\rangle = (|0\rangle - |1\rangle)/\sqrt{2} \)',
     ],
     correctOptionIndex: 2,
+    hints: [
+      'Start with |0⟩ and apply H. The H gate maps each basis state to an equal superposition.',
+      'H|0⟩ creates equal amplitudes for |0⟩ and |1⟩, both with a positive sign.',
+      'The "plus" state |+⟩ = (|0⟩+|1⟩)/√2 has equal positive amplitudes. '
+          'The "minus" state |−⟩ = (|0⟩−|1⟩)/√2 has one negative amplitude — '
+          'that only appears when H acts on |1⟩.',
+    ],
     solutionExplanation:
         'H|0⟩ = (|0⟩+|1⟩)/√2 = |+⟩. The Hadamard maps |0⟩ to the "plus" state '
-        'and |1⟩ to the "minus" state.',
+        'and |1⟩ to the "minus" state. '
+        'The key difference is the sign of the |1⟩ amplitude: + for H|0⟩, − for H|1⟩.',
   ),
 
   // Index 53 — Level 54
@@ -1286,6 +1681,12 @@ final List<QQLevel> allQQLevels = [
     title: 'Read: Bell State',
     taskDescription:
         r'The circuit applies H to qubit 0, then CNOT(0→1), starting from \( |00\rangle \). What is the output?',
+    conceptIntro:
+        'You have built this exact circuit before in the Entanglement category. '
+        'Now read it analytically — trace the state through each gate step by step '
+        'without touching any controls.\n\n'
+        'This skill is essential for understanding larger quantum algorithms: '
+        'you need to be able to read a circuit diagram and predict its output at a glance.',
     numQubits: 2,
     initialQubitsStateString: '00',
     circuit: (circuit) {
