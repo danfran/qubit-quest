@@ -6,26 +6,21 @@ import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
-import 'package:quantumquiz/models/qubit_state.dart'; // Assuming this is minimal for test setup
+import 'package:quantumquiz/models/qubit_state.dart';
 
 
 void main() {
   // Helper to create an initial empty circuit for testing
   QuantumCircuit createEmptyCircuit(int numQubits) {
-    final level = QQLevel(
-        type: "composer",
+    final level = ComposerLevel(
         taskDescription: "test",
         numQubits: numQubits,
-        initialQubitsStateStr: "",
-        initialQubitsState: QQLevel.getZeroStateVector(numQubits),
+        initialQubitsStateStr: "0" * numQubits,
+        initialQubitsState: ComposerLevel.getZeroStateVector(numQubits),
         availableGates: [],
         solutionFinalVector: []
     );
     final circuit = QuantumCircuit(currentLevel: level);
-    // Ensure all qubit lines are initialized as empty lists, matching your constructor's behavior
-    // Your constructor: placedGates = List.generate(numQubits, (index) => []);
-    // So, placedGates[qubitIndex] is a list of gates on that qubit.
-    // For tests, we might want to manually set initial states if not empty.
     return circuit;
   }
 

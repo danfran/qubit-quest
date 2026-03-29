@@ -3,21 +3,40 @@
 import 'package:advance_math/advance_math.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
-import 'package:quantumquiz/utils/math_utils.dart'; // Your enum for gate types
+import 'package:quantumquiz/utils/math_utils.dart';
 
-class QQLevel {
-  final String type;
+// ── Base sealed class ──────────────────────────────────────────────────────────
+sealed class QQLevel {
+  final String? title;               // shown in level grid; shows number if null
   final String taskDescription;
-  final int numQubits;
-  final String initialQubitsStateStr; // Assuming this is a state vector (e.g., |00..0>)
-  final List<Complex> initialQubitsState; // Assuming this is a state vector (e.g., |00..0>)
-  final Function(QuantumCircuit)? preInsertedGates; // The target state vector
-  final List<Gate> availableGates; // List of gates the user can use
-  final List<List<Complex>> solutionFinalVector;
+  final String? conceptIntro;        // shown BEFORE the puzzle
+  final String? solutionExplanation; // shown AFTER success
+  final List<String>? hints;         // progressive hints revealed one at a time
 
   const QQLevel({
-    required this.type,
+    this.title,
     required this.taskDescription,
+    this.conceptIntro,
+    this.solutionExplanation,
+    this.hints,
+  });
+}
+
+// ── Circuit Composer (all existing levels) ────────────────────────────────────
+class ComposerLevel extends QQLevel {
+  final int numQubits;
+  final String initialQubitsStateStr;
+  final List<Complex> initialQubitsState;
+  final Function(QuantumCircuit)? preInsertedGates;
+  final List<Gate> availableGates;
+  final List<List<Complex>> solutionFinalVector;
+
+  const ComposerLevel({
+    super.title,
+    required super.taskDescription,
+    super.conceptIntro,
+    super.solutionExplanation,
+    super.hints,
     required this.numQubits,
     required this.initialQubitsStateStr,
     required this.initialQubitsState,
@@ -26,28 +45,28 @@ class QQLevel {
     this.preInsertedGates,
   });
 
-  // Factory constructor to create a QQLevel from a binary string initial state
-  factory QQLevel.fromBinaryString({
-    required String type,
+  factory ComposerLevel.fromBinaryString({
+    String? title,
     required String taskDescription,
-    required int numQubits,
-    required String initialQubitsStateString, // Accepts the binary string here
+    String? conceptIntro,
+    String? solutionExplanation,
+    List<String>? hints,
+    int? numQubits, // kept for backward compat with existing levels; derived from string if null
+    required String initialQubitsStateString,
     required List<Gate> availableGates,
     required List<List<Complex>> solutionFinalVector,
     Function(QuantumCircuit)? preInsertedGates,
   }) {
-    // Determine numQubits from the string length
-    final int numQubits = initialQubitsStateString.length;
-
-    // Use your existing binaryStringToInitialStateVector logic
+    final int resolvedNumQubits = initialQubitsStateString.length;
     final List<Complex> convertedInitialState =
-    binaryStringToInitialStateVector(initialQubitsStateString, numQubits);
-
-    // Now, call the primary constructor with the converted state and numQubits
-    return QQLevel(
-      type: type,
+        binaryStringToInitialStateVector(initialQubitsStateString, resolvedNumQubits);
+    return ComposerLevel(
+      title: title,
       taskDescription: taskDescription,
-      numQubits: numQubits,
+      conceptIntro: conceptIntro,
+      solutionExplanation: solutionExplanation,
+      hints: hints,
+      numQubits: resolvedNumQubits,
       initialQubitsStateStr: initialQubitsStateString,
       initialQubitsState: convertedInitialState,
       availableGates: availableGates,
@@ -57,34 +76,140 @@ class QQLevel {
   }
 
   void preInsertGates(QuantumCircuit quantumCircuit) {
-    if (preInsertedGates != null) {
-      Function(QuantumCircuit) body = preInsertedGates!;
-      body(quantumCircuit);
-    }
+    preInsertedGates?.call(quantumCircuit);
   }
 
-  // Optional: A helper to get the initial state for N qubits initialized to |0...0>
-  // You might want to move this into a utility class if it's used broadly.
   static List<Complex> getZeroStateVector(int numQubits) {
-    if (numQubits <= 0) {
-      throw ArgumentError('Number of qubits must be positive.');
-    }
-    final int dim = 1 << numQubits; // 2^numQubits
-    final List<Complex> zeroState = List.filled(dim, Complex.zero());
-    zeroState[0] = Complex.one(); // |00...0> state
-    return zeroState;
+    final int dim = 1 << numQubits;
+    final List<Complex> state = List.filled(dim, Complex.zero());
+    state[0] = Complex.one();
+    return state;
   }
 
-  // Static helper to get the state vector for N qubits initialized to |1...1>
   static List<Complex> getOneStateVector(int numQubits) {
-    if (numQubits <= 0) {
-      throw ArgumentError('Number of qubits must be positive.');
-    }
-    final int dim = 1 << numQubits; // 2^numQubits
-    final List<Complex> oneState = List.filled(dim, Complex.zero());
-    oneState[dim - 1] = Complex.one(); // |11...1> state is at the last index (dim - 1)
-    return oneState;
+    final int dim = 1 << numQubits;
+    final List<Complex> state = List.filled(dim, Complex.zero());
+    state[dim - 1] = Complex.one();
+    return state;
   }
+}
 
-// You might also add a method to load solution from JSON/file if needed
+// ── Fill the Gate ─────────────────────────────────────────────────────────────
+// Shows a circuit with one gate replaced by "?". User picks the correct gate.
+class FillTheGateLevel extends QQLevel {
+  final int numQubits;
+  final String initialQubitsStateString;
+  final Function(QuantumCircuit) preBuiltGates; // all gates EXCEPT the blank
+  final Gate correctGate;
+  final List<Gate> options; // 4 choices including correctGate
+  final List<List<Complex>> solutionFinalVector;
+
+  const FillTheGateLevel({
+    super.title,
+    required super.taskDescription,
+    super.conceptIntro,
+    super.solutionExplanation,
+    super.hints,
+    required this.numQubits,
+    required this.initialQubitsStateString,
+    required this.preBuiltGates,
+    required this.correctGate,
+    required this.options,
+    required this.solutionFinalVector,
+  });
+
+  /// Builds a ComposerLevel for simulation with the given gate filling the blank.
+  ComposerLevel toComposerLevelWith(Gate filledGate) {
+    return ComposerLevel.fromBinaryString(
+      taskDescription: taskDescription,
+      initialQubitsStateString: initialQubitsStateString,
+      availableGates: const [],
+      solutionFinalVector: solutionFinalVector,
+      preInsertedGates: (circuit) {
+        preBuiltGates(circuit);
+        circuit.insertSinglePlacedGateAt(filledGate, circuit.maxCircuitDepth(), 0,
+            isDeletable: false);
+      },
+    );
+  }
+}
+
+// ── Circuit Reading ───────────────────────────────────────────────────────────
+// Shows a complete pre-built circuit. User identifies the output state.
+class CircuitReadingLevel extends QQLevel {
+  final int numQubits;
+  final String initialQubitsStateString;
+  final Function(QuantumCircuit) circuit; // pre-built read-only circuit
+  final List<String> options;             // LaTeX state descriptions
+  final int correctOptionIndex;
+
+  const CircuitReadingLevel({
+    super.title,
+    required super.taskDescription,
+    super.conceptIntro,
+    super.solutionExplanation,
+    super.hints,
+    required this.numQubits,
+    required this.initialQubitsStateString,
+    required this.circuit,
+    required this.options,
+    required this.correctOptionIndex,
+  });
+
+  ComposerLevel toComposerLevel() {
+    return ComposerLevel.fromBinaryString(
+      taskDescription: taskDescription,
+      initialQubitsStateString: initialQubitsStateString,
+      availableGates: const [],
+      solutionFinalVector: const [],
+      preInsertedGates: circuit,
+    );
+  }
+}
+
+// ── Multiple Choice Question ──────────────────────────────────────────────────
+class McqLevel extends QQLevel {
+  final List<String> options;
+  final int correctOptionIndex;
+
+  const McqLevel({
+    super.title,
+    required super.taskDescription,
+    super.conceptIntro,
+    super.solutionExplanation,
+    super.hints,
+    required this.options,
+    required this.correctOptionIndex,
+  });
+}
+
+// ── Measurement Lab ───────────────────────────────────────────────────────────
+// User presses "Measure" repeatedly to observe probability convergence.
+class MeasurementLabLevel extends QQLevel {
+  final int numQubits;
+  final String initialQubitsStateString;
+  final Function(QuantumCircuit)? preBuiltCircuit;
+  final int requiredMeasurements;
+
+  const MeasurementLabLevel({
+    super.title,
+    required super.taskDescription,
+    super.conceptIntro,
+    super.solutionExplanation,
+    super.hints,
+    required this.numQubits,
+    required this.initialQubitsStateString,
+    this.preBuiltCircuit,
+    this.requiredMeasurements = 20,
+  });
+
+  ComposerLevel toComposerLevel() {
+    return ComposerLevel.fromBinaryString(
+      taskDescription: taskDescription,
+      initialQubitsStateString: initialQubitsStateString,
+      availableGates: const [],
+      solutionFinalVector: const [],
+      preInsertedGates: preBuiltCircuit,
+    );
+  }
 }

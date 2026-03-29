@@ -19,7 +19,7 @@ import '../models/qq_level.dart';
 
 class QuantumComposer extends StatefulWidget {
   final int levelId;
-  final QQLevel level; // Now, QuantumComposer accepts a Level object
+  final ComposerLevel level;
   final Function(int unlockedLevel)? onLevelUnlocked;
 
   const QuantumComposer({
@@ -41,14 +41,17 @@ class _QuantumComposerState extends State<QuantumComposer> {
   late List<List<Complex>> _solutionVector;
   late QuantumCircuit _circuit;
 
-  // List<double> measurementProbabilities = [0.0, 0.0, 0.0, 0.0];
   SelectedGateType _currentMode = SelectedGateType.none;
-  int? _cnotControlQubit; // To track the target for CNOT
+  int? _cnotControlQubit;
 
-  int? _ccnotControl1Qubit; // To track the control 1 for CCNOT
-  int? _ccnotControl2Qubit; // To track the control 2 for CCNOT
+  int? _ccnotControl1Qubit;
+  int? _ccnotControl2Qubit;
 
-  double? _rotationAngle; // To track the Rx,y,z angle rotation
+  double? _rotationAngle;
+
+  // Hints state
+  List<String> _hints = [];
+  int _currentHintIndex = -1;
 
   // State to manage the highlight box for drag-and-drop
   Offset? _draggingOffset;
@@ -73,7 +76,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateScrollButtonStates();
+      if (widget.level.conceptIntro != null && !runningAsQuantumComposer()) {
+        _showConceptIntro(widget.level.conceptIntro!);
+      }
     });
+
+    _hints = widget.level.hints ?? [];
+    _currentHintIndex = -1;
 
     _numQubits = widget.level.numQubits;
     _taskDescription = widget.level.taskDescription;
@@ -453,10 +462,30 @@ class _QuantumComposerState extends State<QuantumComposer> {
               Text('Level Complete!', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
-          content: Text(
-            'Congratulations! You\'ve successfully solved the puzzle.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Congratulations! You\'ve successfully solved the puzzle.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16),
+              ),
+              if (widget.level.solutionExplanation != null) ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    widget.level.solutionExplanation!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 14, color: Colors.white70, height: 1.5),
+                  ),
+                ),
+              ],
+            ],
           ),
           actionsAlignment: MainAxisAlignment.center,
           actions: <Widget>[
@@ -514,6 +543,48 @@ class _QuantumComposerState extends State<QuantumComposer> {
           ],
         );
       },
+    );
+  }
+
+  void _showConceptIntro(String intro) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF2D2E40),
+        title: const Text('Before you start',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Text(intro,
+            style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.5)),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5D5FE6)),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Got it →', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNextHint() {
+    final nextIndex = _currentHintIndex + 1;
+    if (nextIndex >= _hints.length) return;
+    setState(() => _currentHintIndex = nextIndex);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF2D2E40),
+        title: Text('Hint ${nextIndex + 1} / ${_hints.length}',
+            style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+        content: Text(_hints[nextIndex],
+            style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.5)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK', style: TextStyle(color: Colors.blueAccent)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -701,11 +772,22 @@ class _QuantumComposerState extends State<QuantumComposer> {
           TextButton.icon(
             onPressed: _clearCircuit,
             icon: Icon(Icons.cleaning_services),
-            label: Text('Clear'), // Shorten text for AppBar
+            label: Text('Clear'),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.white, // White text color
+              foregroundColor: Colors.white,
             ),
           ),
+          if (_hints.isNotEmpty && !runningAsQuantumComposer())
+            TextButton.icon(
+              onPressed: _currentHintIndex < _hints.length - 1 ? _showNextHint : null,
+              icon: const Icon(Icons.lightbulb_outline),
+              label: Text(_currentHintIndex < 0
+                  ? 'Hint'
+                  : 'Hint ${_currentHintIndex + 1}/${_hints.length}'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.amber,
+              ),
+            ),
         ],
         // ****************************
       ),

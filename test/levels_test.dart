@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
@@ -11,6 +12,12 @@ import 'package:quantumquiz/models/selected_gate_type.dart';
 void main() {
   _testBody(int levelNumber, Function(QuantumCircuit) body) {
     final level = getQQLevelById(levelNumber)!;
+
+    // Only ComposerLevels can be tested via circuit simulation
+    if (level is! ComposerLevel) {
+      debugPrint('Level $levelNumber is ${level.runtimeType}, skipping circuit test.\n\n');
+      return;
+    }
 
     debugPrint('Level $levelNumber: ${level.taskDescription}\n\n');
 
