@@ -235,7 +235,23 @@ final List<QQLevel> allQQLevels = [
   ),
   // H + S + Z
   ComposerLevel.fromBinaryString(
+    title: 'The −i State',
     taskDescription: r"From \( |+\rangle \), achieve \( |-i\rangle = (|0\rangle - i|1\rangle)/\sqrt{2} \).",
+    conceptIntro:
+        'You have seen |+i⟩ = (|0⟩+i|1⟩)/√2 — now aim for its mirror: |-i⟩ = (|0⟩−i|1⟩)/√2. '
+        'The four cardinal equatorial states |+⟩, |−⟩, |+i⟩, |-i⟩ are the six faces of the Bloch sphere. '
+        'Combining Z and S gives a net phase of −i on |1⟩: Z adds π (i.e. ×−1), S adds π/2 (i.e. ×i), '
+        'so Z·S gives ×(−1·i) = ×(−i).',
+    hints: [
+      'Start with H to create superposition |+⟩. Then you need to rotate |1⟩\'s phase to −i.',
+      'Apply Z first (flips |1⟩ sign), then S (multiplies by i): together they give −i on |1⟩. '
+          'Sequence: H → Z → S.',
+    ],
+    solutionExplanation:
+        'H|0⟩ = (|0⟩+|1⟩)/√2. '
+        'Z flips |1⟩: (|0⟩−|1⟩)/√2. '
+        'S multiplies |1⟩ by i: (|0⟩ − i|1⟩)/√2 = |-i⟩. '
+        '|-i⟩ is also called the |L⟩ (left circular) state on the Bloch sphere.',
     numQubits: 1,
     initialQubitsStateString: "0", // Requires H and ZS or YS or something
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y)],
@@ -243,7 +259,24 @@ final List<QQLevel> allQQLevels = [
   ),
   // (H + S + Z) + S + H + X
   ComposerLevel.fromBinaryString(
+    title: 'Uncomputing a Phase State',
     taskDescription: r"You're at \( (|0\rangle - i|1\rangle)/\sqrt{2} \). Transform this state back to \( |1\rangle \).",
+    conceptIntro:
+        'Quantum circuits are reversible — every operation can be undone. '
+        'The pre-inserted gates H→S→Z have already transformed |0⟩ into |-i⟩ = (|0⟩−i|1⟩)/√2. '
+        'Your task is to find the continuation that drives this state all the way to |1⟩. '
+        'This "uncomputation" pattern is essential in quantum algorithms to clean up ancilla qubits.',
+    hints: [
+      'You start from |-i⟩ = (|0⟩−i|1⟩)/√2 (the output of the pre-inserted H, S, Z). '
+          'Think about what gate maps −i|1⟩ → +|1⟩.',
+      'S·(−i|1⟩) = i·(−i)|1⟩ = |1⟩ — so S collapses the |1⟩ phase. '
+          'After S you have |+⟩. H then maps |+⟩→|0⟩, and X flips to |1⟩.',
+    ],
+    solutionExplanation:
+        'Starting from |-i⟩: S converts −i phase to 1 (S·(−i)=−i·i=1), giving |+⟩. '
+        'H|+⟩ = |0⟩. X|0⟩ = |1⟩. '
+        'Sequence to add: S → H → X. '
+        'Together with the pre-inserted H→S→Z, the full 6-gate circuit maps |0⟩ → |1⟩.',
     numQubits: 1,
     initialQubitsStateString: "0", // User must reach the initial state first, then transform.
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y)],
@@ -256,7 +289,25 @@ final List<QQLevel> allQQLevels = [
   ),
   // H + S + T + Z
   ComposerLevel.fromBinaryString(
+    title: 'T† — Inverse Phase Gate',
     taskDescription: r"From \( |0\rangle \), reach \( (|0\rangle + e^{-i\pi/4}|1\rangle)/\sqrt{2} \).",
+    conceptIntro:
+        'T† (T-dagger, also written T⁻¹) is the inverse of T. '
+        'Where T rotates |1⟩\'s phase by +π/4, T† rotates by −π/4. '
+        'T† is not directly in your toolbar, but it can be constructed by composing T, S, and Z. '
+        'Finding gate decompositions is a core quantum computing skill.',
+    hints: [
+      'Start with H to create |+⟩. Then you need a net phase of −π/4 on |1⟩.',
+      'T adds +π/4, S adds +π/2, Z adds +π. Total T+S+Z = π/4+π/2+π = 7π/4 ≡ −π/4 (mod 2π). '
+          'Sequence: H → T → S → Z.',
+    ],
+    solutionExplanation:
+        'H gives (|0⟩+|1⟩)/√2. '
+        'T adds phase +π/4 → e^(iπ/4). '
+        'S adds +π/2 → e^(i3π/4). '
+        'Z adds +π → e^(i7π/4) = e^(−iπ/4). '
+        'Final state: (|0⟩ + e^(−iπ/4)|1⟩)/√2. '
+        'This is exactly what T†|+⟩ produces — constructed from T, S, Z.',
     numQubits: 1,
     initialQubitsStateString: "0",
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.t), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y)],
@@ -264,7 +315,22 @@ final List<QQLevel> allQQLevels = [
   ),
   // CX(0,1)
   ComposerLevel.fromBinaryString(
+    title: 'CNOT Gate',
     taskDescription: r"From \( |10\rangle \), create a circuit where Qubit 1 will 'mirror' the state of Qubit 0. The final state should be \( |11\rangle \).",
+    conceptIntro:
+        'The CNOT (Controlled-NOT, CX) gate is the fundamental two-qubit gate. '
+        'It flips the target qubit if and only if the control qubit is |1⟩. '
+        'Truth table: |00⟩→|00⟩, |01⟩→|01⟩, |10⟩→|11⟩, |11⟩→|10⟩. '
+        'CNOT is the quantum equivalent of classical XOR: target_out = target ⊕ control.',
+    hints: [
+      'In |10⟩, Q0=1 and Q1=0. You want Q1 to flip to 1. Which qubit should be the control?',
+      'Use CNOT with Q0 as control and Q1 as target. Q0=1 satisfies the condition, so Q1 flips: 0→1, giving |11⟩.',
+    ],
+    solutionExplanation:
+        'CNOT(Q0→Q1)|10⟩ = |11⟩. '
+        'Q0=1 triggers the flip: Q1 goes from 0 to 1. '
+        'Equivalently: Q1_new = Q1 ⊕ Q0 = 0 ⊕ 1 = 1. '
+        'CNOT combined with single-qubit gates forms a universal gate set for quantum computing.',
     numQubits: 2,
     initialQubitsStateString: "10",
     availableGates: [Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z)],
@@ -277,7 +343,23 @@ final List<QQLevel> allQQLevels = [
   ),
   // CX(1,0)
   ComposerLevel.fromBinaryString( // 15
+    title: 'CNOT: Swapping Control & Target',
     taskDescription: r"Transform \( |01\rangle \) to \( |11\rangle \).",
+    conceptIntro:
+        'CNOT is asymmetric — the choice of control and target matters. '
+        'In level 14, Q0 was the control. Here Q0=0 and Q1=1, so Q1 is the "active" qubit. '
+        'To flip Q0 you need Q1 as the control and Q0 as the target. '
+        'Swapping control and target gives a completely different gate!',
+    hints: [
+      'In |01⟩, Q0=0 and Q1=1. You need Q0 to flip to 1.',
+      'Use CNOT with Q1 as control (Q1=1 triggers the condition) and Q0 as target. '
+          'CNOT(Q1→Q0)|01⟩ = |11⟩.',
+    ],
+    solutionExplanation:
+        'CNOT(Q1→Q0)|01⟩ = |11⟩. '
+        'Q1=1 is the control, so Q0 flips: 0→1. '
+        'Compare with level 14 where the roles were reversed. '
+        'Note: CNOT(Q0→Q1) on |01⟩ would give |01⟩ unchanged (Q0=0 does not trigger).',
     numQubits: 2,
     initialQubitsStateString: "01",
     availableGates: [Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.y)],
@@ -290,7 +372,22 @@ final List<QQLevel> allQQLevels = [
   ),
   // CX (0,2)
   ComposerLevel.fromBinaryString(
-    taskDescription: r"Explore 3 qubits! Transform \( |101\rangle \) to \( |100\rangle \).", // Based on your previous 8x8 matrix
+    title: '3-Qubit CNOT',
+    taskDescription: r"Explore 3 qubits! Transform \( |101\rangle \) to \( |100\rangle \).",
+    conceptIntro:
+        'CNOT can connect any two qubits in a multi-qubit register — they do not need to be adjacent. '
+        'A 3-qubit system has a state vector with 2³=8 entries. '
+        'Here |101⟩ means Q0=1, Q1=0, Q2=1. '
+        'Applying CNOT to non-adjacent qubits is a key building block for multi-qubit algorithms.',
+    hints: [
+      'Q0=1 and Q2=1 in |101⟩. You want to flip Q2 from 1 to 0. Which qubit is active enough to be the control?',
+      'Use CNOT with Q0 as control and Q2 as target. Q0=1 triggers the flip: Q2 goes 1→0, giving |100⟩.',
+    ],
+    solutionExplanation:
+        'CNOT(Q0→Q2)|101⟩ = |100⟩. '
+        'Q0=1 is the control, so Q2 flips: 1→0. Q1 is untouched. '
+        'In the 8-entry state vector (|000⟩…|111⟩), |100⟩ is index 4 (big-endian). '
+        'This level shows that CNOT works over any qubit distance.',
     numQubits: 3,
     initialQubitsStateString: "101", // |000> state
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y)],
@@ -301,7 +398,22 @@ final List<QQLevel> allQQLevels = [
   ),
   // CX(0,1) + X(0)
   ComposerLevel.fromBinaryString(
+    title: 'Uncomputing with CNOT',
     taskDescription: r"From \( |11\rangle \), transform the state to \( |00\rangle \).",
+    conceptIntro:
+        'CNOT followed by X (or vice versa) lets you reach any two-qubit basis state from any other. '
+        'The order of gates matters: unlike single-qubit gates, applying two gates in different orders '
+        'generally gives different results. Think carefully about which gate to apply first.',
+    hints: [
+      'Try CNOT(Q0→Q1) on |11⟩ first: Q0=1 flips Q1: 1→0, giving |10⟩. Now you only need to fix Q0.',
+      'After CNOT gives |10⟩, apply X on Q0: 1→0. Final state: |00⟩. Total: CNOT(Q0→Q1) then X on Q0.',
+    ],
+    solutionExplanation:
+        'CNOT(Q0→Q1)|11⟩ = |10⟩ (Q0=1 flips Q1: 1→0). '
+        'X on Q0: |10⟩ → |00⟩. '
+        'Two gates are sufficient. Note the alternative order also works: '
+        'X on Q0 first gives |01⟩, then CNOT(Q0→Q1) leaves it as |01⟩ (Q0=0 now — wrong!). '
+        'So CNOT first is the correct order here.',
     numQubits: 2,
     initialQubitsStateString: "11",
     availableGates: [Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.x),  Gate.fromIdentifier(SelectedGateType.z),  Gate.fromIdentifier(SelectedGateType.y)],
@@ -314,7 +426,24 @@ final List<QQLevel> allQQLevels = [
   ),
   // CCX (1,0,2)
   ComposerLevel.fromBinaryString(
-    taskDescription: r"Turn \( |101\rangle \) into \( |111\rangle \).", // Based on your previous 8x8 matrix
+    title: 'Toffoli Gate (CCX)',
+    taskDescription: r"Turn \( |101\rangle \) into \( |111\rangle \).",
+    conceptIntro:
+        'The Toffoli gate (CCX, CCNOT) has two control qubits and one target. '
+        'It flips the target only when BOTH controls are |1⟩ — making it a quantum AND gate. '
+        'Truth table for the target bit: target_out = target ⊕ (ctrl1 AND ctrl2). '
+        'Toffoli is universal for classical reversible computation.',
+    hints: [
+      'In |101⟩: Q0=1, Q1=0, Q2=1. You want Q1 to flip to 1. '
+          'Which two qubits are both |1⟩ and can serve as the AND condition?',
+      'Q0=1 AND Q2=1 satisfies the Toffoli condition. Set Q0 and Q2 as controls, Q1 as target. '
+          'CCX(ctrl:Q0,Q2; target:Q1)|101⟩ = |111⟩.',
+    ],
+    solutionExplanation:
+        'CCX with controls Q0,Q2 and target Q1: Q0=1 AND Q2=1 → Q1 flips: 0→1. '
+        'Result: |111⟩. '
+        'This is equivalent to Q1_new = Q1 ⊕ (Q0 AND Q2) = 0 ⊕ (1 AND 1) = 1. '
+        'The Toffoli gate is the simplest gate that cannot be simulated efficiently classically.',
     numQubits: 3,
     initialQubitsStateString: "101", // |000> state
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.ccnot), Gate.fromIdentifier(SelectedGateType.z),],
@@ -325,7 +454,22 @@ final List<QQLevel> allQQLevels = [
   ),
   // CCX(0,1,2)
   ComposerLevel.fromBinaryString(
+    title: 'Toffoli: Choose Your Controls',
     taskDescription: r"From \( |011\rangle \), transform the state to \( |111\rangle \).",
+    conceptIntro:
+        'Any two qubits can be the controls and any distinct qubit can be the target in a Toffoli gate. '
+        'In level 18 Q0 and Q2 were controls. Here you need to identify the two qubits that are already |1⟩ '
+        'and use them as controls to flip the remaining qubit.',
+    hints: [
+      'In |011⟩: Q0=0, Q1=1, Q2=1. The two |1⟩ qubits are Q1 and Q2. Q0 needs to flip to 1.',
+      'Set Q1 and Q2 as controls, Q0 as target. Both controls are 1, so Q0 flips: 0→1. '
+          'CCX(ctrl:Q1,Q2; target:Q0)|011⟩ = |111⟩.',
+    ],
+    solutionExplanation:
+        'CCX(ctrl:Q1,Q2; target:Q0)|011⟩ = |111⟩. '
+        'Q1=1 AND Q2=1 → Q0 flips: 0→1. '
+        'Compare with level 18 (controls Q0,Q2; target Q1) — same gate type, different qubit assignment. '
+        'Choosing controls flexibly is essential for implementing quantum arithmetic circuits.',
     numQubits: 3,
     initialQubitsStateString: "011",
     availableGates: [Gate.fromIdentifier(SelectedGateType.ccnot), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z)],
@@ -345,7 +489,22 @@ final List<QQLevel> allQQLevels = [
   ),
   // (CCNOT(0,1,2)) + CCNOT(0,1,2)
   ComposerLevel.fromBinaryString( // LEVEL 20
+    title: 'Toffoli Self-Inverse',
     taskDescription: r"You are given a 3-qubit circuit already in the state \( |111\rangle \). Transform this state back to \( |110\rangle \).",
+    conceptIntro:
+        'Like X and CNOT, the Toffoli gate is its own inverse: CCX·CCX = I. '
+        'Applying CCX twice in a row restores the original state, because flipping a bit twice returns it to its start. '
+        'The pre-inserted CCX has already taken |110⟩ → |111⟩. '
+        'Your task demonstrates a fundamental property: every quantum gate is unitary and reversible.',
+    hints: [
+      'The pre-inserted CCX(Q0,Q1→Q2) flipped Q2: 0→1, giving |111⟩. You start from |111⟩.',
+      'Since CCX is self-inverse, applying the same CCX once more will flip Q2 back: 1→0. Result: |110⟩.',
+    ],
+    solutionExplanation:
+        'CCX is self-inverse: applying it again with the same qubit assignment undoes the previous flip. '
+        'CCX(ctrl:Q0,Q1; target:Q2)|111⟩ = |110⟩ (Q0=1 AND Q1=1 → Q2 flips: 1→0). '
+        'This reversibility is not optional in quantum computing — all gates must be unitary (reversible). '
+        'It distinguishes quantum from classical computation, where AND and OR are irreversible.',
     numQubits: 3,
     initialQubitsStateString: "110", // Base for pre-inserted gates
     preInsertedGates: (QuantumCircuit circuit) {
@@ -365,7 +524,26 @@ final List<QQLevel> allQQLevels = [
   ),
   // X(2) + CCNOT(0,1,2)
   ComposerLevel.fromBinaryString(
+    title: 'Toffoli as AND Gate',
     taskDescription: r"From \( |010\rangle \), transform the state to \( |111\rangle \).",
+    conceptIntro:
+        'The Toffoli gate computes a quantum AND: CCX(ctrl₁,ctrl₂→tgt) sets '
+        'tgt ← tgt ⊕ (ctrl₁ AND ctrl₂). '
+        'In |010⟩, Q1=1 is ready as one control, but Q0=0 and Q2=0. '
+        'For the AND to fire and write a 1 into Q2, both controls must be |1⟩. '
+        'A single X gate can prepare the missing control.',
+    hints: [
+      'CCX flips the target only when BOTH controls are |1⟩. '
+          'In |010⟩ only Q1=1 — you need a second qubit to also be |1⟩ first.',
+      'Apply X on Q0: |010⟩ → |110⟩. Now CCX with Q0 and Q1 as controls, Q2 as target: '
+          'both controls are 1, so Q2 flips: 0→1, giving |111⟩.',
+    ],
+    solutionExplanation:
+        'X flips Q0: |010⟩ → |110⟩. '
+        'CCX(ctrl:Q0,Q1; target:Q2): Q0∧Q1 = 1∧1 = 1, so Q2 flips: 0→1. '
+        'Result: |111⟩. '
+        'This is the quantum AND circuit: Q2 stores Q0 AND Q1, '
+        'while Q0 and Q1 are left unchanged (reversibility).',
     numQubits: 3,
     initialQubitsStateString: "010",
     availableGates: [Gate.fromIdentifier(SelectedGateType.ccnot), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y)],
@@ -382,7 +560,25 @@ final List<QQLevel> allQQLevels = [
   ),
   // H + CX
   ComposerLevel.fromBinaryString(
+    title: 'First Bell State Φ⁺',
     taskDescription: r"Entangle two qubits! Create the Bell state \( |00\rangle + |11\rangle\).",
+    conceptIntro:
+        'Entanglement is the defining feature of quantum mechanics. '
+        'The Bell state Φ⁺ = (|00⟩+|11⟩)/√2 cannot be written as (state of Q0)⊗(state of Q1). '
+        'After creating it, measuring either qubit instantly determines the other — '
+        'both are always 0 or always 1, with 50% probability each. '
+        'This perfect correlation persists regardless of the distance between the qubits.',
+    hints: [
+      'H on Q0 creates (|0⟩+|1⟩)/√2 ⊗ |0⟩ = (|00⟩+|10⟩)/√2. '
+          'This is still a product state — the qubits are not yet entangled.',
+      'Apply CNOT(Q0→Q1) next: |00⟩→|00⟩ (Q0=0, no flip), |10⟩→|11⟩ (Q0=1, flip Q1). '
+          'Result: (|00⟩+|11⟩)/√2 = Φ⁺. The two qubits are now entangled.',
+    ],
+    solutionExplanation:
+        'H on Q0 followed by CNOT(Q0→Q1) creates Φ⁺ = (|00⟩+|11⟩)/√2. '
+        'The CNOT correlates Q1 with Q0: when Q0 is |1⟩, Q1 flips too. '
+        'The result is inseparable — this is the canonical Bell state creation circuit, '
+        'used as the first step in quantum teleportation and superdense coding.',
     numQubits: 2,
     initialQubitsStateString: "00", // |00> state
     availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.z)],
@@ -395,7 +591,26 @@ final List<QQLevel> allQQLevels = [
   ),
   // H + CX
   ComposerLevel.fromBinaryString(
+    title: 'Bell State Ψ⁺',
     taskDescription: r"From \( |01\rangle \), create the Bell state \( |\Psi^+\rangle = (|01\rangle + |10\rangle)/\sqrt{2} \).",
+    conceptIntro:
+        'There are four Bell states, each a maximally-entangled two-qubit state. '
+        'Ψ⁺ = (|01⟩+|10⟩)/√2 is anti-correlated: measuring one qubit always gives the '
+        'opposite result on the other. '
+        'Compared to level 22 (Φ⁺), the initial state has one qubit already in |1⟩ — '
+        'this determines which Bell state the H+CNOT circuit produces.',
+    hints: [
+      'The initial state has one qubit as |1⟩ and one as |0⟩. '
+          'Apply H to the qubit that is in |0⟩ to create a superposition without a minus sign.',
+      'H on the |0⟩ qubit gives (|0⟩+|1⟩)/√2. '
+          'Then apply CNOT with the superposed qubit as control — it will flip the |1⟩ qubit '
+          'only for the |1⟩ component of the superposition. Result: (|01⟩+|10⟩)/√2 = Ψ⁺.',
+    ],
+    solutionExplanation:
+        'H on the |0⟩ qubit creates superposition: |1⟩⊗(|0⟩+|1⟩)/√2 = (|10⟩+|11⟩)/√2. '
+        'CNOT with that qubit as control: |11⟩ → |01⟩ (control=1, flip the other qubit). '
+        'Result: (|10⟩+|01⟩)/√2 = Ψ⁺. '
+        'Every Bell state differs from the others by a local X or Z applied to one qubit.',
     numQubits: 2,
     initialQubitsStateString: "10",
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.x)],
@@ -408,7 +623,26 @@ final List<QQLevel> allQQLevels = [
   ),
   // (H + CX) + H + CX
   ComposerLevel.fromBinaryString(
+    title: 'Disentangling a Bell State',
     taskDescription: r"Time for disentangling Bell State. Can you reverse the process to get back to \( |00\rangle \)?",
+    conceptIntro:
+        'Quantum circuits are reversible — every entangling operation can be undone. '
+        'The pre-inserted H→CNOT created Φ⁺. '
+        'Since H and CNOT are both self-inverse (H²=I, CNOT²=I), '
+        'the Bell circuit is reversed by applying the same gates in reverse order: '
+        'CNOT first, then H. '
+        'This "Bell measurement" circuit is the decoder in quantum teleportation.',
+    hints: [
+      'To reverse a sequence of self-inverse gates, apply them in reverse order. '
+          'The pre-inserted circuit was H→CNOT, so the reversal is CNOT→H.',
+      'Apply CNOT(Q0→Q1) to Φ⁺: it un-entangles the state back to (|00⟩+|10⟩)/√2. '
+          'Then H on Q0 maps |+⟩=|0⟩+|1⟩/√2 → |0⟩. Final state: |00⟩.',
+    ],
+    solutionExplanation:
+        'CNOT(Q0→Q1) on Φ⁺=(|00⟩+|11⟩)/√2: |11⟩→|10⟩, giving (|00⟩+|10⟩)/√2. '
+        'H on Q0: (|0⟩+|1⟩)/√2 → |0⟩. Final: |00⟩. '
+        'The reverse circuit (CNOT→H) is the Bell-basis measurement used in '
+        'quantum teleportation to decode the transmitted qubit.',
     numQubits: 2,
     initialQubitsStateString: "00",
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.cnot)],
@@ -425,7 +659,25 @@ final List<QQLevel> allQQLevels = [
   ),
   // H + CX + Z(1)
   ComposerLevel.fromBinaryString( // 25
+    title: 'Bell State Ψ⁻',
     taskDescription: r"From \( |10\rangle \), create the Bell state \( |\Psi^-\rangle = (|01\rangle - |10\rangle)/\sqrt{2} \).",
+    conceptIntro:
+        'Ψ⁻ = (|01⟩−|10⟩)/√2 is the only Bell state antisymmetric under qubit swap '
+        '(swapping the two qubits gives −Ψ⁻). It is known as the "singlet" state in physics. '
+        'Ψ⁻ differs from Ψ⁺ only by a relative minus sign between the two terms — '
+        'a phase flip applied to one qubit after entangling converts Ψ⁺ into Ψ⁻.',
+    hints: [
+      'First create Ψ⁺: apply H to the |0⟩ qubit, then CNOT with that qubit as control '
+          '(same approach as level 23). You will have (|01⟩+|10⟩)/√2.',
+      'Now apply Z to one of the qubits. Z flips the sign of the |1⟩ component only. '
+          'On the qubit that is |1⟩ in the |10⟩ term, Z gives −|10⟩. '
+          'Result: (|01⟩−|10⟩)/√2 = Ψ⁻.',
+    ],
+    solutionExplanation:
+        'H on the |0⟩ qubit + CNOT (with that qubit as control) gives Ψ⁺=(|01⟩+|10⟩)/√2. '
+        'Z on one qubit then flips the relative phase: Ψ⁺ → Ψ⁻. '
+        'All four Bell states are reachable from any of the others by a local single-qubit operation — '
+        'X or Z on one qubit is enough to navigate between them.',
     numQubits: 2,
     initialQubitsStateString: "10",
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y)],
@@ -438,7 +690,24 @@ final List<QQLevel> allQQLevels = [
   ),
   // H + CX + Z(0) (or Z(1)). It can have 2 solution potentially, with Z(0) + Z(1)
   ComposerLevel.fromBinaryString(
+    title: 'Bell State Φ⁻',
     taskDescription: r"From \( |00\rangle \), prepare the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle)/\sqrt{2} \). You need only one solution although it can have 2 solutions potenially, due to entanglement.",
+    conceptIntro:
+        'The four Bell states — Φ⁺, Φ⁻, Ψ⁺, Ψ⁻ — form a complete orthonormal basis for '
+        'two-qubit space. Any two-qubit state can be expanded in the Bell basis. '
+        'Φ⁻ = (|00⟩−|11⟩)/√2 differs from Φ⁺ only by the sign of the |11⟩ term. '
+        'A single Z gate on either qubit converts Φ⁺ into Φ⁻ — '
+        'two valid solutions exist here due to the entanglement symmetry.',
+    hints: [
+      'Start as in level 22: H on Q0, then CNOT(Q0→Q1). This gives Φ⁺=(|00⟩+|11⟩)/√2.',
+      'Now flip the sign of |11⟩. Z on any qubit flips the sign when that qubit is |1⟩ — '
+          'since both qubits are |1⟩ in the |11⟩ term, Z on either one converts Φ⁺ to Φ⁻.',
+    ],
+    solutionExplanation:
+        'H+CNOT from |00⟩ gives Φ⁺=(|00⟩+|11⟩)/√2. '
+        'Z on Q0 flips the |11⟩ sign (Q0=1): (|00⟩−|11⟩)/√2 = Φ⁻. '
+        'Alternatively Z on Q1 achieves the same result — '
+        'both are valid because in an entangled state local operations can have global effects.',
     numQubits: 2,
     initialQubitsStateString: "00",
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.t)], // Wide range of gates
@@ -451,7 +720,27 @@ final List<QQLevel> allQQLevels = [
   ),
   // (H + CX + Z) + Z + CX + H
   ComposerLevel.fromBinaryString(
+    title: 'Uncomputing Φ⁻',
     taskDescription: r"This circuit is pre-configured. Your task is to transform this state back to \( |00\rangle \).",
+    conceptIntro:
+        'The pre-inserted H→CNOT→Z sequence has created Φ⁻=(|00⟩−|11⟩)/√2. '
+        'To reverse it, apply the gates in reverse order: '
+        'Z† → CNOT† → H†. Since all three are self-inverse (Z²=CNOT²=H²=I), '
+        'the reversal is simply Z → CNOT → H. '
+        'This pattern — undo a circuit by reversing its gates — is called "uncomputation".',
+    hints: [
+      'The pre-inserted circuit is H→CNOT→Z. '
+          'To undo it, apply the inverse in reverse order: Z, then CNOT, then H.',
+      'Z on Q0 undoes the pre-inserted Z: Φ⁻→Φ⁺=(|00⟩+|11⟩)/√2. '
+          'CNOT(Q0→Q1) disentangles: (|00⟩+|10⟩)/√2. '
+          'H on Q0 maps |+⟩→|0⟩. Final: |00⟩.',
+    ],
+    solutionExplanation:
+        'Z on Q0: Φ⁻ → Φ⁺. '
+        'CNOT(Q0→Q1): Φ⁺ → (|00⟩+|10⟩)/√2. '
+        'H on Q0: |+⟩ → |0⟩. Final: |00⟩. '
+        'Total: Z→CNOT→H — the exact reverse of the pre-inserted H→CNOT→Z. '
+        'Uncomputation is essential in quantum algorithms to reset ancilla qubits without measurement.',
     numQubits: 2,
     initialQubitsStateString: "00", // The simulation starts from |00>
     preInsertedGates: (QuantumCircuit circuit) {
@@ -469,7 +758,26 @@ final List<QQLevel> allQQLevels = [
   ),
   // CX(0,1) +  CX(1,0)
   ComposerLevel.fromBinaryString(
+    title: 'SWAP via Three CNOTs',
     taskDescription: r"From \( |10\rangle \), swap the states of the two qubits to achieve \( |01\rangle \). This can be done using only CX gates.",
+    conceptIntro:
+        'A SWAP gate exchanges two qubits: SWAP|ab⟩=|ba⟩. '
+        'There is no SWAP in your toolbar, but it can be decomposed into exactly three CNOTs: '
+        'CNOT(Q0→Q1), CNOT(Q1→Q0), CNOT(Q0→Q1). '
+        'This identity holds for any input state, including superpositions and entangled states.',
+    hints: [
+      'Three CNOTs are needed for a general SWAP. '
+          'Step 1: CNOT(Q0→Q1) on |10⟩: Q0=1, flip Q1: 0→1 → |11⟩.',
+      'Step 2: CNOT(Q1→Q0) on |11⟩: Q1=1, flip Q0: 1→0 → |01⟩. '
+          'At this point |01⟩ is already the target — one more CNOT(Q0→Q1) completes '
+          'the full SWAP decomposition (Q0=0, no flip, stays |01⟩).',
+    ],
+    solutionExplanation:
+        'CNOT(Q0→Q1)|10⟩=|11⟩. CNOT(Q1→Q0)|11⟩=|01⟩. '
+        'The third CNOT(Q0→Q1) leaves |01⟩ unchanged (Q0=0). '
+        'The general SWAP identity SWAP = CNOT(0→1)·CNOT(1→0)·CNOT(0→1) '
+        'works for any input, including superpositions — '
+        'this is how SWAP is implemented in real quantum hardware.',
     numQubits: 2,
     initialQubitsStateString: "10",
     availableGates: [Gate.fromIdentifier(SelectedGateType.cnot)], // Only CNOTs
@@ -482,7 +790,29 @@ final List<QQLevel> allQQLevels = [
   ),
   // H(1) + CX(0,1) + H(1)
   ComposerLevel.fromBinaryString(
+    title: 'Conditional Phase Flip',
     taskDescription: r"From \( |00\rangle \), flip the phase of \( |11\rangle \).",
+    conceptIntro:
+        'Flipping only the phase of |11⟩ while leaving all other basis states unchanged '
+        'is called a Controlled-Z (CZ) operation. '
+        'CZ can be decomposed as H→CNOT→H on one of the qubits: '
+        'the Hadamards change the "basis" in which the CNOT acts, '
+        'converting a bit flip into a phase flip. '
+        'This basis-conjugation technique appears in Grover\'s algorithm and quantum error correction.',
+    hints: [
+      'First create the uniform superposition (|00⟩+|01⟩+|10⟩+|11⟩)/2 '
+          'by applying H to both qubits. Now all four states have equal amplitude.',
+      'To flip only |11⟩, sandwich a CNOT between H gates on one qubit: '
+          'H(one qubit) → CNOT → H(same qubit). '
+          'This implements CZ, which maps (|00⟩+|01⟩+|10⟩+|11⟩)/2 '
+          'to (|00⟩+|01⟩+|10⟩−|11⟩)/2.',
+    ],
+    solutionExplanation:
+        'H on both qubits gives (|00⟩+|01⟩+|10⟩+|11⟩)/2. '
+        'The decomposition CZ = H(tgt)·CNOT·H(tgt) then flips only |11⟩. '
+        'Full circuit: H(Q0), H(Q1), CNOT, H(Q1) — or equivalently H(Q0), CNOT, H(Q1) from |00⟩. '
+        'Result: (|00⟩+|01⟩+|10⟩−|11⟩)/2. '
+        'The CZ decomposition via H·CNOT·H is fundamental in quantum computing.',
     numQubits: 2,
     initialQubitsStateString: "00",
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.y)],
@@ -495,7 +825,26 @@ final List<QQLevel> allQQLevels = [
   ),
   // H(0) + X(1) + CX(0,1)
   ComposerLevel.fromBinaryString(
+    title: 'Bell Ψ⁺ from |00⟩',
     taskDescription: r"From \( |00\rangle \), create the Bell state \( |\Psi^+\rangle = (|01\rangle + |10\rangle)/\sqrt{2} \).",
+    conceptIntro:
+        'All four Bell states can be prepared from |00⟩ by inserting X or Z gates '
+        'before or after the standard H+CNOT entangling circuit. '
+        'Ψ⁺ requires anti-correlated qubits (one always 0, the other always 1). '
+        'To achieve this from |00⟩, flip one qubit to |1⟩ before creating the entanglement.',
+    hints: [
+      'To reach Ψ⁺=(|01⟩+|10⟩)/√2 from |00⟩, you need one qubit to be |1⟩ before the '
+          'H+CNOT circuit. Apply X to one qubit first.',
+      'X on Q1: |00⟩→|01⟩. H on Q0: (|0⟩+|1⟩)/√2 ⊗ |1⟩ = (|01⟩+|11⟩)/√2. '
+          'CNOT(Q0→Q1): |01⟩→|01⟩ (Q0=0), |11⟩→|10⟩ (Q0=1, flip Q1). '
+          'Result: (|01⟩+|10⟩)/√2 = Ψ⁺.',
+    ],
+    solutionExplanation:
+        'X on Q1 flips it to |1⟩. H on Q0 creates superposition. '
+        'CNOT(Q0→Q1) entangles: (|01⟩+|10⟩)/√2 = Ψ⁺. '
+        'The four Bell states and their preparation circuits are: '
+        'Φ⁺: H+CNOT from |00⟩; Φ⁻: H+CNOT+Z from |00⟩; '
+        'Ψ⁺: X+H+CNOT from |00⟩; Ψ⁻: X+H+CNOT+Z from |00⟩.',
     numQubits: 2,
     initialQubitsStateString: "00",
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.cnot)],
