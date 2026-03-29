@@ -4,7 +4,7 @@
   "version": "1.1.2+19",
   "flutter_branch": "new_improvements",
   "description": "Educational quantum computing app with 5 learning modes: circuit composer puzzles, MCQ concept checks, fill-the-gate challenges, circuit reading analysis, and measurement probability labs.",
-  "notes": "Update completed_levels and pending_goals after each session. All level IDs are 1-based (level 1 = allQQLevels[0]). Videos released for composer levels 1–23: DO NOT renumber or change those levels. New level types are appended after index 45 (level 46). All 95 tests pass. Zero analyzer errors.",
+  "notes": "Update completed_levels and pending_goals after each session. All level IDs are 1-based (level 1 = allQQLevels[0]). Videos released for composer levels 1–23: DO NOT renumber or change those levels. New level types are appended after index 45 (level 46). All 116 tests pass. Zero analyzer errors.",
 
   "architecture": {
     "level_model": "lib/models/qq_level.dart — sealed class QQLevel with 5 subclasses: ComposerLevel, McqLevel, FillTheGateLevel, CircuitReadingLevel, MeasurementLabLevel. All have optional fields: title, conceptIntro, solutionExplanation, hints[].",
@@ -45,14 +45,13 @@
         "level title shown as subtitle in home-screen grid button"
       ],
       "pending_goals": [
-        "CONTENT: Add title field to all the levels (currently null — grid shows number only)",
         "FEATURE: Bloch sphere widget for single-qubit state visualisation (levels 1–13, 40–46)",
         "FEATURE: Show target state vector alongside current state in StateVectorDisplay for direct comparison",
         "FEATURE: Long-press gate button to show its matrix and description (quantum_doc_dialog_TBR.dart has the skeleton — integrate it per-gate)",
         "FEATURE: Add a way to re-read the category intro after it has been dismissed (e.g. info icon in AppBar)"
       ],
-      "version": "2.4",
-      "last_session": "2026-03-29_session5"
+      "version": "2.5",
+      "last_session": "2026-03-29_session6"
     },
 
     "mcq": {
@@ -159,7 +158,7 @@
     "lib/screens/measurement_lab_screen.dart": "Measurement lab. Probabilistic collapse engine + live histogram.",
     "lib/widgets/quantum_circuit_painter.dart": "CustomPainter for circuit diagram. Used in composer and circuit_reading_screen.",
     "lib/widgets/state_vector_display.dart": "Scrollable list of |ket>: amplitude pairs with show-all toggle.",
-    "test/levels_test.dart": "Tests all 46 ComposerLevels against expected solution vectors, plus 18 tests for non-composer levels 47–54 (MCQ structure, MeasurementLab simulation, FillTheGate correct/wrong-gate checks, CircuitReading structure and simulation). 95 tests total.",
+    "test/levels_test.dart": "Tests all 46 ComposerLevels against expected solution vectors, plus 18 tests for non-composer levels 47–54 (MCQ structure, MeasurementLab simulation, FillTheGate correct/wrong-gate checks, CircuitReading structure and simulation), plus 21 title tests (1 exhaustive all-54 parametric + 20 exact-string spot-checks one per category group). 85 tests total.",
     "test/quantum_circuit_test.dart": "77 unit tests for QuantumCircuit internals (gate insertion, simulation, matrix math)."
   },
 
@@ -175,13 +174,13 @@
   },
 
   "test_status": {
-    "total_tests": 95,
-    "passing": 95,
+    "total_tests": 116,
+    "passing": 116,
     "command": "flutter test test/quantum_circuit_test.dart test/levels_test.dart",
     "analyzer_errors": 0,
     "analyzer_command": "flutter analyze --no-pub"
   },
 
-  "last_session": "2026-03-29_session5"
+  "last_session": "2026-03-29_session6"
 }
 

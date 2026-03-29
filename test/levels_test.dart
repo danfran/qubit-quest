@@ -470,8 +470,114 @@ void main() {
           [Complex(s)],     // |11⟩
         ]);
         expect(circuit.currentState.state.almostEqualTo(expected), isTrue,
-            reason: 'H⊗I then CNOT on |00⟩ must produce Bell state Φ+');
+            reason: 'H⊗I then CNOT on 00⟩ must produce Bell state Φ+');
       });
     });
   });
+
+  // ── Titles ─────────────────────────────────────────────────────────────────
+  // All 54 levels must have a non-null, non-empty title so the grid can
+  // display it. Tests here cover: (1) exhaustive null/empty check, and
+  // (2) one exact-string spot-check per category group to guard against
+  // accidental renames or copy-paste errors.
+  group('Titles', () {
+
+    // ── Exhaustive: every level must have a title ──────────────────────────
+    test('all 54 levels have a non-null, non-empty title', () {
+      for (int id = 1; id <= numberOfLevels; id++) {
+        final level = getQQLevelById(id)!;
+        expect(level.title, isNotNull,
+            reason: 'Level $id is missing a title (null)');
+        expect(level.title!, isNotEmpty,
+            reason: 'Level $id has an empty title string');
+      }
+    });
+
+    // ── Category spot-checks (one representative per group) ────────────────
+
+    // Basic Gate Operations (levels 1–5)
+    test('level 1  — "Bit Flip"', () {
+      expect(getQQLevelById(1)!.title, equals('Bit Flip'));
+    });
+
+    // Superposition and Phase Gates (levels 6–13)
+    test('level 6  — "Superposition"', () {
+      expect(getQQLevelById(6)!.title, equals('Superposition'));
+    });
+    test('level 13 — "T† — Inverse Phase Gate"', () {
+      expect(getQQLevelById(13)!.title, equals('T† — Inverse Phase Gate'));
+    });
+
+    // Controlled Gates (levels 14–21)
+    test('level 14 — "CNOT Gate"', () {
+      expect(getQQLevelById(14)!.title, equals('CNOT Gate'));
+    });
+    test('level 20 — "Toffoli Self-Inverse"', () {
+      expect(getQQLevelById(20)!.title, equals('Toffoli Self-Inverse'));
+    });
+
+    // Entanglement & Disentanglement (levels 22–27)
+    test('level 22 — "First Bell State Φ⁺"', () {
+      expect(getQQLevelById(22)!.title, equals('First Bell State Φ⁺'));
+    });
+    test('level 25 — "Bell State Ψ⁻"', () {
+      expect(getQQLevelById(25)!.title, equals('Bell State Ψ⁻'));
+    });
+
+    // Advanced 2-Qubit Puzzles (levels 28–32)
+    test('level 28 — "SWAP via Three CNOTs"', () {
+      expect(getQQLevelById(28)!.title, equals('SWAP via Three CNOTs'));
+    });
+
+    // Toffoli Gate Logic (levels 33–35)
+    test('level 33 — "Long-Range CNOT"', () {
+      expect(getQQLevelById(33)!.title, equals('Long-Range CNOT'));
+    });
+
+    // Advanced Entanglement and Algorithms (levels 36–39)
+    test('level 36 — "Uniform 2-Qubit Superposition"', () {
+      expect(getQQLevelById(36)!.title, equals('Uniform 2-Qubit Superposition'));
+    });
+
+    // Rotation Gates (levels 40–46) — first and last
+    test('level 40 — "Rx Rotation Gate"', () {
+      expect(getQQLevelById(40)!.title, equals('Rx Rotation Gate'));
+    });
+    test('level 46 — "Precise Bloch Sphere Navigation"', () {
+      expect(getQQLevelById(46)!.title, equals('Precise Bloch Sphere Navigation'));
+    });
+
+    // Concept Checks — MCQ (levels 47–48)
+    test('level 47 — "What is Superposition?"', () {
+      expect(getQQLevelById(47)!.title, equals('What is Superposition?'));
+    });
+    test('level 48 — "What is Entanglement?"', () {
+      expect(getQQLevelById(48)!.title, equals('What is Entanglement?'));
+    });
+
+    // Measurement Labs (levels 49–50)
+    test('level 49 — "Measure |+⟩"', () {
+      expect(getQQLevelById(49)!.title, equals('Measure |+⟩'));
+    });
+    test('level 50 — "Measure Bell State"', () {
+      expect(getQQLevelById(50)!.title, equals('Measure Bell State'));
+    });
+
+    // Fill the Gate (levels 51–52)
+    test('level 51 — "Fill: Create |+⟩"', () {
+      expect(getQQLevelById(51)!.title, equals('Fill: Create |+⟩'));
+    });
+    test('level 52 — "Fill: Flip the Bit"', () {
+      expect(getQQLevelById(52)!.title, equals('Fill: Flip the Bit'));
+    });
+
+    // Circuit Reading (levels 53–54)
+    test('level 53 — "Read: H Gate"', () {
+      expect(getQQLevelById(53)!.title, equals('Read: H Gate'));
+    });
+    test('level 54 — "Read: Bell State"', () {
+      expect(getQQLevelById(54)!.title, equals('Read: Bell State'));
+    });
+  });
 }
+

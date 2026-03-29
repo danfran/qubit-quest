@@ -557,32 +557,43 @@ class _HomePageState extends State<HomePage> {
                   padding: EdgeInsets.zero,
                 ),
                 child: isUnlocked
-                    ? Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '$levelNumber',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    if (allQQLevels[currentIndex].title != null)
-                      Text(
-                        allQQLevels[currentIndex].title!,
-                        style: const TextStyle(fontSize: 8, color: Colors.white70),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                  ],
-                )
+                    ? FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: SizedBox(
+                          width: 62,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '$levelNumber',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              if (allQQLevels[currentIndex].title != null)
+                                Text(
+                                  allQQLevels[currentIndex].title!,
+                                  style: const TextStyle(
+                                    fontSize: 8,
+                                    color: Colors.white70,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
+                        ),
+                      )
                     : Icon(
-                  Icons.lock,
-                  color: Colors.grey[600],
-                  size: 28,
-                ),
+                        Icons.lock,
+                        color: Colors.grey[600],
+                        size: 28,
+                      ),
               ),
             );
           },
