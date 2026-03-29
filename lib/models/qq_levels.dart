@@ -14,7 +14,20 @@ Complex get negI => Complex(0.0, -1.0); // -i
 final List<QQLevel> allQQLevels = [
   // X
   ComposerLevel.fromBinaryString(
+    title: 'Bit Flip',
     taskDescription: r"Your first quantum challenge! Apply a gate to transform \( |0\rangle \) to \( |1\rangle \).",
+    conceptIntro:
+        'The Pauli-X gate is the quantum NOT gate. '
+        'Just like a classical NOT flips 0→1, X swaps |0⟩ and |1⟩. '
+        'It is the simplest single-qubit gate and the building block for more complex operations.',
+    hints: [
+      'Think of a classical NOT gate — what does it do to a 0 bit?',
+      'The X gate swaps the two basis states: X|0⟩ = |1⟩ and X|1⟩ = |0⟩.',
+    ],
+    solutionExplanation:
+        'Applying the X (Pauli-X) gate flips the qubit: X|0⟩ = |1⟩. '
+        'This is the quantum equivalent of a classical NOT. '
+        'Notice that applying X twice returns to the original state — every quantum gate is its own inverse (or has one).',
     numQubits: 1,
     initialQubitsStateString: "0",
     availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.y)],
@@ -22,31 +35,85 @@ final List<QQLevel> allQQLevels = [
   ),
   // Z
   ComposerLevel.fromBinaryString(
+    title: 'Phase Flip',
     taskDescription: r"Let's change now only the phase of \( |1\rangle \) without flipping the bit. Transform \( |1\rangle \) to \( -|1\rangle \).",
+    conceptIntro:
+        'The Pauli-Z gate is a phase-flip gate. '
+        'It leaves |0⟩ unchanged but multiplies the amplitude of |1⟩ by -1. '
+        'A global phase like −1 is invisible in a single measurement (|−1|² = 1), '
+        'but it has real physical consequences when qubits interfere with each other.',
+    hints: [
+      'Z does not change which state you are in — it only changes the sign of |1⟩.',
+      'Z|0⟩ = |0⟩ and Z|1⟩ = −|1⟩. You are already in |1⟩, so apply Z directly.',
+    ],
+    solutionExplanation:
+        'Z|1⟩ = −|1⟩. The Z gate flips the phase of the |1⟩ component without touching |0⟩. '
+        'This is called a phase flip — it changes the sign (phase) of the amplitude but not the measurement probability.',
     numQubits: 1,
-    initialQubitsStateString: "1", // |0> state: [Complex.one(), Complex.zero()]
+    initialQubitsStateString: "1",
     availableGates: [Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y)],
     solutionFinalVector: [[Complex.zero()], [negOne]], // Target: |1> state
   ),
   // Y
   ComposerLevel.fromBinaryString(
+    title: 'Bit & Phase Flip',
     taskDescription: r"Let's change now the phase and flipping the bit from \( |1\rangle \) to \( |0\rangle \).",
+    conceptIntro:
+        'The Pauli-Y gate combines a bit flip and a phase change in one step. '
+        'Its matrix is [[0, -i], [i, 0]], so it maps |0⟩→i|1⟩ and |1⟩→-i|0⟩. '
+        'You can think of Y as X followed by a 90° phase rotation (Y = iXZ).',
+    hints: [
+      'Y both flips the qubit AND adds a complex phase of ±i.',
+      'Y|1⟩ = −i|0⟩. The result is |0⟩ with a phase of −i.',
+    ],
+    solutionExplanation:
+        'Y|1⟩ = −i|0⟩. The Y gate flips the qubit from |1⟩ to |0⟩ and simultaneously '
+        'attaches a phase of −i to the amplitude. '
+        'Pauli matrices X, Y, Z all satisfy Y = iXZ.',
     numQubits: 1,
-    initialQubitsStateString: "1", // |0> state: [Complex.one(), Complex.zero()]
+    initialQubitsStateString: "1",
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y)],
     solutionFinalVector: [[negI], [Complex.zero()]], // Target: |1> state
   ),
   // Y
   ComposerLevel.fromBinaryString(
+    title: 'The i-State',
     taskDescription: r"From \( |0\rangle \), reach \( |1\rangle \) with a phase of \( i \). This state is \( |i\rangle \).",
+    conceptIntro:
+        'A quantum state can have any complex amplitude. '
+        'The state i|1⟩ is physically distinct from |1⟩ because the phase i matters '
+        'when the state is later combined with other amplitudes (interference). '
+        'You need a gate that maps |0⟩ to i|1⟩ in a single step.',
+    hints: [
+      'The X gate gives |1⟩ but without the phase i. You need a gate that also adds the imaginary phase.',
+      'Y|0⟩ = i|1⟩. The Y gate is the only single gate here that produces the required phase.',
+    ],
+    solutionExplanation:
+        'Y|0⟩ = i|1⟩. The Y gate maps |0⟩ to i|1⟩, producing the so-called |i⟩ state (also written |R⟩). '
+        'This is a 90° rotation around the Y-axis of the Bloch sphere.',
     numQubits: 1,
     initialQubitsStateString: "0",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z)], // Provide a few to make them think
+    availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z)],
     solutionFinalVector: [[Complex.zero()], [Complex.i()]], // Target: |i> state (Y|0> = i|1>)
   ),
   // X + Z + X
   ComposerLevel.fromBinaryString( // 5
+    title: 'Phase Sandwich',
     taskDescription: r"Starting from \( |0\rangle \), achieve \( -|0\rangle \).",
+    conceptIntro:
+        'Gates compose: applying multiple gates in sequence multiplies their matrices. '
+        'The Z gate only flips the phase of |1⟩ — it does nothing to |0⟩. '
+        'To apply a phase to |0⟩ you need to temporarily convert it to |1⟩, apply Z, '
+        'then convert back. This "sandwich" trick is a recurring pattern in quantum circuits.',
+    hints: [
+      'Z|0⟩ = |0⟩ — Z alone cannot phase-flip |0⟩. You need to flip the qubit to |1⟩ first.',
+      'Sequence: X turns |0⟩→|1⟩, Z turns |1⟩→−|1⟩, X turns −|1⟩→−|0⟩.',
+    ],
+    solutionExplanation:
+        'XZX|0⟩ = −|0⟩. '
+        'Step by step: X|0⟩ = |1⟩, then Z|1⟩ = −|1⟩, then X(−|1⟩) = −|0⟩. '
+        'This is the canonical example of gate composition and the "conjugation" pattern: '
+        'UGU† applies gate G in the basis defined by U.',
     numQubits: 1,
     initialQubitsStateString: "0",
     availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y)],
@@ -54,39 +121,108 @@ final List<QQLevel> allQQLevels = [
   ),
   // H
   ComposerLevel.fromBinaryString(
+    title: 'Superposition',
     taskDescription: r"Create a superposition! Turn \( |0\rangle \) into \( |+\rangle \).",
+    conceptIntro:
+        'Superposition is the defining feature of quantum computing. '
+        'The Hadamard gate H maps |0⟩ to (|0⟩+|1⟩)/√2, called |+⟩. '
+        'In this state the qubit is genuinely in both |0⟩ and |1⟩ at once — '
+        'measuring it collapses it to each outcome with exactly 50% probability (Born rule: P = |amplitude|²).',
+    hints: [
+      'There is exactly one gate in your toolbar that creates an equal superposition from a basis state.',
+      'It is the H (Hadamard) gate. H|0⟩ = (|0⟩+|1⟩)/√2 = |+⟩.',
+    ],
+    solutionExplanation:
+        'H|0⟩ = (|0⟩+|1⟩)/√2 = |+⟩. '
+        'Both amplitudes are 1/√2, so |1/√2|² = 0.5 — a 50% chance of measuring either outcome. '
+        'H is its own inverse: H² = I, so applying H twice returns to |0⟩.',
     numQubits: 1,
-    initialQubitsStateString: "0", // |0> state
+    initialQubitsStateString: "0",
     availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.z)],
     solutionFinalVector: [[Complex(sqrt1_2)], [Complex(sqrt1_2)]], // Target: |+> state
   ),
   // H + T
   ComposerLevel.fromBinaryString(
+    title: 'T Gate Phase',
     taskDescription: r"You're at \( |0\rangle \). Apply gates to reach a state where the \( |1\rangle \) amplitude has a phase of \( e^{i\pi/4} \). This is \( (|0\rangle + e^{i\pi/4}|1\rangle)/\sqrt{2} \).",
+    conceptIntro:
+        'The T gate (π/8 gate) rotates the phase of |1⟩ by π/4 (45°), multiplying its amplitude by e^(iπ/4) = (1+i)/√2. '
+        'Phase gates like T and S do not change measurement probabilities on their own — '
+        'their power emerges when a qubit is in superposition and the phase affects interference.',
+    hints: [
+      'First use H to put the qubit in superposition (|0⟩+|1⟩)/√2 — this gives both amplitudes.',
+      'Then apply T: it leaves |0⟩ alone and multiplies |1⟩ by e^(iπ/4), rotating its phase by 45°.',
+    ],
+    solutionExplanation:
+        'H creates (|0⟩+|1⟩)/√2. T then multiplies the |1⟩ amplitude by e^(iπ/4), '
+        'giving (|0⟩ + e^(iπ/4)|1⟩)/√2. '
+        'T is fundamental to quantum computing — it is one of the gates needed for universal quantum computation.',
     numQubits: 1,
-    initialQubitsStateString: "0", // |0> state
+    initialQubitsStateString: "0",
     availableGates: [Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.t), Gate.fromIdentifier(SelectedGateType.z)],
     solutionFinalVector: [[Complex(sqrt1_2)], [Complex(0.5, 0.5)]], // Target: |+> state
   ),
   // H + S
   ComposerLevel.fromBinaryString(
+    title: 'S Gate — 90° Phase',
     taskDescription: r"Transform the initial state of the qubit from \( |0\rangle \) to the target state \( |+i\rangle = (|0\rangle + |i\rangle)/\sqrt{2} \).",
+    conceptIntro:
+        'The S gate (phase gate) applies a 90° rotation to |1⟩: S|1⟩ = i|1⟩. '
+        'S = T², so two T gates equal one S gate. '
+        'Combined with Hadamard, S rotates the equatorial circle of the Bloch sphere, '
+        'moving |+⟩ to |+i⟩ = (|0⟩+i|1⟩)/√2.',
+    hints: [
+      'First create superposition with H so both amplitudes are active.',
+      'S multiplies only the |1⟩ amplitude by i, rotating its phase by 90°: (|0⟩+|1⟩)/√2 → (|0⟩+i|1⟩)/√2.',
+    ],
+    solutionExplanation:
+        'H|0⟩ = (|0⟩+|1⟩)/√2. '
+        'S then rotates |1⟩ by 90°: S(|0⟩+|1⟩)/√2 = (|0⟩+i|1⟩)/√2 = |+i⟩. '
+        'This state is also called |R⟩ (right circular polarisation) on the Bloch sphere.',
     numQubits: 1,
-    initialQubitsStateString: "0", // |0> state
+    initialQubitsStateString: "0",
     availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.z)],
     solutionFinalVector: [[Complex(sqrt1_2)], [Complex(0, sqrt1_2)]], // Target: |+> state
   ),
   // H + Z
   ComposerLevel.fromBinaryString(
+    title: 'The Minus State',
     taskDescription: r"Transform \( |+\rangle \) to \( |-\rangle \).",
+    conceptIntro:
+        'The |-⟩ state is (|0⟩−|1⟩)/√2 — a superposition where the |1⟩ amplitude is negative. '
+        'It is the Hadamard of |1⟩: H|1⟩ = |-⟩. '
+        'To transform |+⟩ into |-⟩ you need to flip the sign of the |1⟩ component. '
+        'Think about which gate does exactly that.',
+    hints: [
+      'Start by creating |+⟩ with H, then you need to flip the sign of |1⟩.',
+      'Z|1⟩ = −|1⟩ and Z|0⟩ = |0⟩, so Z turns (|0⟩+|1⟩)/√2 into (|0⟩−|1⟩)/√2 = |-⟩.',
+    ],
+    solutionExplanation:
+        'H|0⟩ = (|0⟩+|1⟩)/√2 = |+⟩. '
+        'Z then flips the sign of |1⟩: Z|+⟩ = (|0⟩−|1⟩)/√2 = |−⟩. '
+        '|+⟩ and |−⟩ are called the Hadamard basis (or X-basis) states — they are the eigenstates of the X gate.',
     numQubits: 1,
-    initialQubitsStateString: "0", // Requires creating |+> first
+    initialQubitsStateString: "0",
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.x)],
     solutionFinalVector: [[Complex(sqrt1_2, 0)], [Complex(-sqrt1_2, 0)]], // Target: |-> state (H then Z)
   ),
   // H(1) + X(0)
   ComposerLevel.fromBinaryString( // 10
+    title: '2-Qubit Product State',
     taskDescription: r"From \( |00\rangle \), create the product state \( |+\rangle \otimes |1\rangle = (|01\rangle + |11\rangle)/\sqrt{2} \).",
+    conceptIntro:
+        'Two-qubit systems are described by tensor products. '
+        'When no controlled gate connects them, each qubit can be operated independently. '
+        'The full state vector has 2² = 4 entries: |00⟩, |01⟩, |10⟩, |11⟩. '
+        'A product (non-entangled) state like |+⟩⊗|1⟩ factors into separate single-qubit states.',
+    hints: [
+      'You need to act on both qubits separately — no controlled gate is required here.',
+      'Apply H to Q0 (qubit 0) to create superposition, and X to Q1 (qubit 1) to flip it to |1⟩. The result is |+⟩⊗|1⟩.',
+    ],
+    solutionExplanation:
+        'H on Q0 gives (|0⟩+|1⟩)/√2 on qubit 0. X on Q1 flips qubit 1 to |1⟩. '
+        'Combining via tensor product: (|0⟩+|1⟩)/√2 ⊗ |1⟩ = (|01⟩+|11⟩)/√2. '
+        'This is a product state — the two qubits are independent and not entangled.',
     numQubits: 2,
     initialQubitsStateString: "00",
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.z)],

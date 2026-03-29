@@ -45,7 +45,11 @@
         "level title shown as subtitle in home-screen grid button"
       ],
       "pending_goals": [
-        "CONTENT: Write conceptIntro, hints[], solutionExplanation for all 46 existing levels (currently null on all — this is the highest-impact educational improvement)",
+        "CONTENT: Write conceptIntro, hints[], solutionExplanation for the levels 1-10 (currently null on all — this is the highest-impact educational improvement)",
+        "CONTENT: Write conceptIntro, hints[], solutionExplanation for the levels 11-20 (currently null on all — this is the highest-impact educational improvement)",
+        "CONTENT: Write conceptIntro, hints[], solutionExplanation for the levels 21-30 (currently null on all — this is the highest-impact educational improvement)",
+        "CONTENT: Write conceptIntro, hints[], solutionExplanation for the levels 31-40 (currently null on all — this is the highest-impact educational improvement)",
+        "CONTENT: Write conceptIntro, hints[], solutionExplanation for the levels 41-46 (currently null on all — this is the highest-impact educational improvement)",
         "CONTENT: Add title field to all 46 levels (currently null — grid shows number only)",
         "FEATURE: Bloch sphere widget for single-qubit state visualisation (levels 1–13, 40–46)",
         "FEATURE: Show target state vector alongside current state in StateVectorDisplay for direct comparison",
