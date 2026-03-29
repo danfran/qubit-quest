@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:advance_math/advance_math.dart' show Complex;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/qq_level.dart';
@@ -236,5 +237,241 @@ void main() {
         _testBody(i, tests[i - 1]);
       });
     }
+  });
+
+  // ── Non-composer levels (47+) ───────────────────────────────────────────────
+  group('Non-composer levels (47+)', () {
+
+    // Shared helper: run a ComposerLevel through QuantumCircuit and return the
+    // final state (runSimulation() is called automatically in the constructor).
+    QuantumCircuit _simulate(ComposerLevel level) => QuantumCircuit(currentLevel: level);
+
+    // Shorthand for the |+⟩ / Bell-diagonal amplitude.
+    final s = math.sqrt1_2;
+
+    // ── Structural sanity ───────────────────────────────────────────────────
+    test('total level count is 54', () {
+      expect(numberOfLevels, equals(54));
+    });
+
+    test('levels 47–54 have the expected types', () {
+      expect(getQQLevelById(47), isA<McqLevel>());
+      expect(getQQLevelById(48), isA<McqLevel>());
+      expect(getQQLevelById(49), isA<MeasurementLabLevel>());
+      expect(getQQLevelById(50), isA<MeasurementLabLevel>());
+      expect(getQQLevelById(51), isA<FillTheGateLevel>());
+      expect(getQQLevelById(52), isA<FillTheGateLevel>());
+      expect(getQQLevelById(53), isA<CircuitReadingLevel>());
+      expect(getQQLevelById(54), isA<CircuitReadingLevel>());
+    });
+
+    // ── MCQ ─────────────────────────────────────────────────────────────────
+    group('MCQ', () {
+      void _checkMcq(int levelId, int expectedCorrectIndex) {
+        final level = getQQLevelById(levelId)! as McqLevel;
+        expect(level.options.length, equals(4),
+            reason: 'MCQ level $levelId must have exactly 4 options');
+        expect(level.correctOptionIndex, inInclusiveRange(0, 3),
+            reason: 'correctOptionIndex must be a valid index');
+        expect(level.correctOptionIndex, equals(expectedCorrectIndex),
+            reason: 'Wrong correctOptionIndex for level $levelId');
+        expect(level.conceptIntro, isNotNull,
+            reason: 'level $levelId missing conceptIntro');
+        expect(level.solutionExplanation, isNotNull,
+            reason: 'level $levelId missing solutionExplanation');
+        expect(level.hints, isNotNull,
+            reason: 'level $levelId missing hints');
+        expect(level.hints!, isNotEmpty,
+            reason: 'level $levelId hints list must not be empty');
+        expect(level.taskDescription, isNotEmpty,
+            reason: 'level $levelId missing taskDescription');
+      }
+
+      test('level 47 — What is Superposition?', () {
+        // Correct: "In both |0⟩ and |1⟩ simultaneously…" (index 1)
+        _checkMcq(47, 1);
+      });
+
+      test('level 48 — What is Entanglement?', () {
+        // Correct: "Their joint state cannot be written as a product…" (index 2)
+        _checkMcq(48, 2);
+      });
+    });
+
+    // ── MeasurementLab ───────────────────────────────────────────────────────
+    group('MeasurementLab', () {
+      test('level 49 — Measure |+⟩: structure', () {
+        final level = getQQLevelById(49)! as MeasurementLabLevel;
+        expect(level.numQubits, equals(1));
+        expect(level.requiredMeasurements, greaterThanOrEqualTo(1));
+        expect(level.conceptIntro, isNotNull);
+        expect(level.solutionExplanation, isNotNull);
+        expect(level.hints, isNotNull);
+        expect(level.hints!, isNotEmpty);
+      });
+
+      test('level 49 — Measure |+⟩: circuit simulates to (|0⟩+|1⟩)/√2', () {
+        final level = getQQLevelById(49)! as MeasurementLabLevel;
+        final circuit = _simulate(level.toComposerLevel());
+        final expected = QuantumMatrix([
+          [Complex(s)],
+          [Complex(s)],
+        ]);
+        expect(circuit.currentState.state.almostEqualTo(expected), isTrue,
+            reason: 'Level 49 circuit should produce the |+⟩ state');
+      });
+
+      test('level 50 — Measure Bell State: structure', () {
+        final level = getQQLevelById(50)! as MeasurementLabLevel;
+        expect(level.numQubits, equals(2));
+        expect(level.requiredMeasurements, greaterThanOrEqualTo(1));
+        expect(level.conceptIntro, isNotNull);
+        expect(level.solutionExplanation, isNotNull);
+        expect(level.hints, isNotNull);
+        expect(level.hints!, isNotEmpty);
+      });
+
+      test('level 50 — Measure Bell State: circuit simulates to (|00⟩+|11⟩)/√2', () {
+        final level = getQQLevelById(50)! as MeasurementLabLevel;
+        final circuit = _simulate(level.toComposerLevel());
+        final expected = QuantumMatrix([
+          [Complex(s)],     // |00⟩
+          [Complex.zero()], // |01⟩ — zero amplitude
+          [Complex.zero()], // |10⟩ — zero amplitude
+          [Complex(s)],     // |11⟩
+        ]);
+        expect(circuit.currentState.state.almostEqualTo(expected), isTrue,
+            reason: 'Level 50 circuit should produce the Bell Φ+ state');
+      });
+    });
+
+    // ── FillTheGate ──────────────────────────────────────────────────────────
+    group('FillTheGate', () {
+      void _checkFtgStructure(int levelId) {
+        final level = getQQLevelById(levelId)! as FillTheGateLevel;
+        expect(level.options.length, equals(4),
+            reason: 'FillTheGate level $levelId must have exactly 4 options');
+        expect(
+          level.options.any((g) => g.type == level.correctGate.type),
+          isTrue,
+          reason: 'correctGate must appear in the options list',
+        );
+        expect(level.hints, isNotNull);
+        expect(level.hints!, isNotEmpty);
+        expect(level.solutionExplanation, isNotNull);
+        expect(level.conceptIntro, isNotNull);
+      }
+
+      test('level 51 — Fill: Create |+⟩: structure', () {
+        _checkFtgStructure(51);
+        final level = getQQLevelById(51)! as FillTheGateLevel;
+        expect(level.correctGate.type, equals(SelectedGateType.hadamard));
+      });
+
+      test('level 51 — Fill: Create |+⟩: correct gate simulation matches solution', () {
+        final level = getQQLevelById(51)! as FillTheGateLevel;
+        final circuit = _simulate(level.toComposerLevelWith(level.correctGate));
+        expect(
+          circuit.currentState.state.almostEqualTo(QuantumMatrix(level.solutionFinalVector)),
+          isTrue,
+          reason: 'Filling with the correct gate must produce solutionFinalVector',
+        );
+      });
+
+      test('level 51 — Fill: Create |+⟩: wrong gates do NOT match solution', () {
+        final level = getQQLevelById(51)! as FillTheGateLevel;
+        final wrongOptions = level.options.where((g) => g.type != level.correctGate.type);
+        for (final wrong in wrongOptions) {
+          final circuit = _simulate(level.toComposerLevelWith(wrong));
+          expect(
+            circuit.currentState.state.almostEqualTo(QuantumMatrix(level.solutionFinalVector)),
+            isFalse,
+            reason: 'Gate ${wrong.type} should NOT match the solution',
+          );
+        }
+      });
+
+      test('level 52 — Fill: Flip the Bit: structure', () {
+        _checkFtgStructure(52);
+        final level = getQQLevelById(52)! as FillTheGateLevel;
+        expect(level.correctGate.type, equals(SelectedGateType.x));
+      });
+
+      test('level 52 — Fill: Flip the Bit: correct gate simulation matches solution', () {
+        final level = getQQLevelById(52)! as FillTheGateLevel;
+        final circuit = _simulate(level.toComposerLevelWith(level.correctGate));
+        expect(
+          circuit.currentState.state.almostEqualTo(QuantumMatrix(level.solutionFinalVector)),
+          isTrue,
+          reason: 'Filling with the correct gate must produce solutionFinalVector',
+        );
+      });
+
+      test('level 52 — Fill: Flip the Bit: wrong gates do NOT match solution', () {
+        final level = getQQLevelById(52)! as FillTheGateLevel;
+        final wrongOptions = level.options.where((g) => g.type != level.correctGate.type);
+        for (final wrong in wrongOptions) {
+          final circuit = _simulate(level.toComposerLevelWith(wrong));
+          expect(
+            circuit.currentState.state.almostEqualTo(QuantumMatrix(level.solutionFinalVector)),
+            isFalse,
+            reason: 'Gate ${wrong.type} should NOT match the solution',
+          );
+        }
+      });
+    });
+
+    // ── CircuitReading ───────────────────────────────────────────────────────
+    group('CircuitReading', () {
+      void _checkCrStructure(int levelId, int expectedCorrectIndex) {
+        final level = getQQLevelById(levelId)! as CircuitReadingLevel;
+        expect(level.options.length, equals(4),
+            reason: 'CircuitReading level $levelId must have exactly 4 options');
+        expect(level.correctOptionIndex, inInclusiveRange(0, 3));
+        expect(level.correctOptionIndex, equals(expectedCorrectIndex),
+            reason: 'Wrong correctOptionIndex for level $levelId');
+        expect(level.conceptIntro, isNotNull,
+            reason: 'level $levelId missing conceptIntro');
+        expect(level.solutionExplanation, isNotNull,
+            reason: 'level $levelId missing solutionExplanation');
+        expect(level.hints, isNotNull,
+            reason: 'level $levelId missing hints');
+        expect(level.hints!, isNotEmpty);
+      }
+
+      test('level 53 — Read: H Gate: structure', () {
+        // Correct option index 2 → |+⟩ = (|0⟩+|1⟩)/√2
+        _checkCrStructure(53, 2);
+      });
+
+      test('level 53 — Read: H Gate: circuit simulates to |+⟩', () {
+        final level = getQQLevelById(53)! as CircuitReadingLevel;
+        final circuit = _simulate(level.toComposerLevel());
+        final expected = QuantumMatrix([
+          [Complex(s)],
+          [Complex(s)],
+        ]);
+        expect(circuit.currentState.state.almostEqualTo(expected), isTrue,
+            reason: 'H|0⟩ must equal |+⟩ = (|0⟩+|1⟩)/√2');
+      });
+
+      test('level 54 — Read: Bell State: structure', () {
+        // Correct option index 1 → (|00⟩+|11⟩)/√2 = Φ+
+        _checkCrStructure(54, 1);
+      });
+
+      test('level 54 — Read: Bell State: circuit simulates to Φ+', () {
+        final level = getQQLevelById(54)! as CircuitReadingLevel;
+        final circuit = _simulate(level.toComposerLevel());
+        final expected = QuantumMatrix([
+          [Complex(s)],     // |00⟩
+          [Complex.zero()], // |01⟩
+          [Complex.zero()], // |10⟩
+          [Complex(s)],     // |11⟩
+        ]);
+        expect(circuit.currentState.state.almostEqualTo(expected), isTrue,
+            reason: 'H⊗I then CNOT on |00⟩ must produce Bell state Φ+');
+      });
+    });
   });
 }
