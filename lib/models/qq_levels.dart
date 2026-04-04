@@ -17,9 +17,11 @@ final List<QQLevel> allQQLevels = [
     title: 'Bit Flip',
     taskDescription: r"Your first quantum challenge! Apply a gate to transform \( |0\rangle \) to \( |1\rangle \).",
     conceptIntro:
-        'The Pauli-X gate is the quantum NOT gate. '
-        'Just like a classical NOT flips 0→1, X swaps |0⟩ and |1⟩. '
-        'It is the simplest single-qubit gate and the building block for more complex operations.',
+        'Quantum gates are the elementary operations that transform qubit states. '
+        'Just as classical computers have logic gates (AND, OR, NOT), quantum computers have '
+        'single-qubit gates that flip or rotate a qubit state. '
+        'The simplest kind of transformation maps one basis state directly to the other — '
+        'your job is to find which gate in your toolbar achieves the required flip.',
     hints: [
       'Think of a classical NOT gate — what does it do to a 0 bit?',
       'The X gate swaps the two basis states: X|0⟩ = |1⟩ and X|1⟩ = |0⟩.',
@@ -38,10 +40,12 @@ final List<QQLevel> allQQLevels = [
     title: 'Phase Flip',
     taskDescription: r"Let's change now only the phase of \( |1\rangle \) without flipping the bit. Transform \( |1\rangle \) to \( -|1\rangle \).",
     conceptIntro:
-        'The Pauli-Z gate is a phase-flip gate. '
-        'It leaves |0⟩ unchanged but multiplies the amplitude of |1⟩ by -1. '
-        'A global phase like −1 is invisible in a single measurement (|−1|² = 1), '
-        'but it has real physical consequences when qubits interfere with each other.',
+        'Not every quantum operation changes which basis state a qubit occupies. '
+        'Some gates leave the bit value completely unchanged while introducing a phase factor '
+        '(a complex multiplier) to one of the amplitudes. '
+        'A phase change is invisible in a single measurement — |−1|² = 1 — '
+        'but has real physical consequences when qubits interfere with each other. '
+        'Look at the target state and the available gates: which one changes only the phase?',
     hints: [
       'Z does not change which state you are in — it only changes the sign of |1⟩.',
       'Z|0⟩ = |0⟩ and Z|1⟩ = −|1⟩. You are already in |1⟩, so apply Z directly.',
@@ -59,9 +63,12 @@ final List<QQLevel> allQQLevels = [
     title: 'Bit & Phase Flip',
     taskDescription: r"Let's change now the phase and flipping the bit from \( |1\rangle \) to \( |0\rangle \).",
     conceptIntro:
-        'The Pauli-Y gate combines a bit flip and a phase change in one step. '
-        'Its matrix is [[0, -i], [i, 0]], so it maps |0⟩→i|1⟩ and |1⟩→-i|0⟩. '
-        'You can think of Y as X followed by a 90° phase rotation (Y = iXZ).',
+        'The three Pauli gates — X, Y, and Z — form a family of fundamental single-qubit operations. '
+        'You have already met two of them: X is a pure bit flip, and Z is a pure phase flip. '
+        'The third Pauli gate combines both effects in a single step: it flips the bit '
+        'and simultaneously introduces an imaginary phase factor of ±i. '
+        'Examine the target state carefully — the required combination of bit flip and phase '
+        'will tell you which gate to use.',
     hints: [
       'Y both flips the qubit AND adds a complex phase of ±i.',
       'Y|1⟩ = −i|0⟩. The result is |0⟩ with a phase of −i.',
@@ -81,9 +88,12 @@ final List<QQLevel> allQQLevels = [
     taskDescription: r"From \( |0\rangle \), reach \( |1\rangle \) with a phase of \( i \). This state is \( |i\rangle \).",
     conceptIntro:
         'A quantum state can have any complex amplitude. '
-        'The state i|1⟩ is physically distinct from |1⟩ because the phase i matters '
-        'when the state is later combined with other amplitudes (interference). '
-        'You need a gate that maps |0⟩ to i|1⟩ in a single step.',
+        'The imaginary unit i appears naturally as a phase factor in quantum mechanics — '
+        'states like i|1⟩ are physically distinct from |1⟩ because the phase matters '
+        'when states combine through interference. '
+        'Not every gate produces complex phases: some map basis states to states with only real amplitudes, '
+        'while others introduce factors of i or −i. '
+        'Inspect each available gate to reason about what phase it produces.',
     hints: [
       'The X gate gives |1⟩ but without the phase i. You need a gate that also adds the imaginary phase.',
       'Y|0⟩ = i|1⟩. The Y gate is the only single gate here that produces the required phase.',
@@ -102,9 +112,12 @@ final List<QQLevel> allQQLevels = [
     taskDescription: r"Starting from \( |0\rangle \), achieve \( -|0\rangle \).",
     conceptIntro:
         'Gates compose: applying multiple gates in sequence multiplies their matrices. '
-        'The Z gate only flips the phase of |1⟩ — it does nothing to |0⟩. '
-        'To apply a phase to |0⟩ you need to temporarily convert it to |1⟩, apply Z, '
-        'then convert back. This "sandwich" trick is a recurring pattern in quantum circuits.',
+        'Some operations cannot be applied directly to the current state — '
+        'but they can be applied indirectly by first transforming into a convenient basis. '
+        'A recurring quantum circuit pattern is to (1) transform the state into a useful form, '
+        '(2) apply the desired operation, and (3) transform back. '
+        'This "conjugation" trick — wrapping one gate inside two others — '
+        'is a fundamental building block in quantum algorithm design.',
     hints: [
       'Z|0⟩ = |0⟩ — Z alone cannot phase-flip |0⟩. You need to flip the qubit to |1⟩ first.',
       'Sequence: X turns |0⟩→|1⟩, Z turns |1⟩→−|1⟩, X turns −|1⟩→−|0⟩.',
@@ -124,10 +137,12 @@ final List<QQLevel> allQQLevels = [
     title: 'Superposition',
     taskDescription: r"Create a superposition! Turn \( |0\rangle \) into \( |+\rangle \).",
     conceptIntro:
-        'Superposition is the defining feature of quantum computing. '
-        'The Hadamard gate H maps |0⟩ to (|0⟩+|1⟩)/√2, called |+⟩. '
-        'In this state the qubit is genuinely in both |0⟩ and |1⟩ at once — '
-        'measuring it collapses it to each outcome with exactly 50% probability (Born rule: P = |amplitude|²).',
+        'Superposition is a defining feature of quantum computing. '
+        'Unlike a classical bit that is always exactly 0 or 1, a qubit can exist in a '
+        'combination of both states at once — described by complex probability amplitudes. '
+        'When you measure a qubit in superposition, the outcome is probabilistic: '
+        'the chance of each result equals the squared magnitude of its amplitude (Born rule: P = |amplitude|²). '
+        'The notation |+⟩ is the standard label for the equal-weight superposition that is your target here.',
     hints: [
       'There is exactly one gate in your toolbar that creates an equal superposition from a basis state.',
       'It is the H (Hadamard) gate. H|0⟩ = (|0⟩+|1⟩)/√2 = |+⟩.',
@@ -146,9 +161,12 @@ final List<QQLevel> allQQLevels = [
     title: 'T Gate Phase',
     taskDescription: r"You're at \( |0\rangle \). Apply gates to reach a state where the \( |1\rangle \) amplitude has a phase of \( e^{i\pi/4} \). This is \( (|0\rangle + e^{i\pi/4}|1\rangle)/\sqrt{2} \).",
     conceptIntro:
-        'The T gate (π/8 gate) rotates the phase of |1⟩ by π/4 (45°), multiplying its amplitude by e^(iπ/4) = (1+i)/√2. '
-        'Phase gates like T and S do not change measurement probabilities on their own — '
-        'their power emerges when a qubit is in superposition and the phase affects interference.',
+        'Phase gates rotate only the phase of the |1⟩ amplitude by a fixed angle, leaving |0⟩ unchanged. '
+        'On their own, phase gates are invisible to a single measurement — |e^(iφ)|² = 1 regardless of φ. '
+        'Their power emerges when a qubit is first placed in superposition: '
+        'the relative phase between |0⟩ and |1⟩ then affects how amplitudes interfere in subsequent steps. '
+        'The target state has a specific phase on the |1⟩ component — '
+        'use the target amplitudes to reason about which gate and angle you need.',
     hints: [
       'First use H to put the qubit in superposition (|0⟩+|1⟩)/√2 — this gives both amplitudes.',
       'Then apply T: it leaves |0⟩ alone and multiplies |1⟩ by e^(iπ/4), rotating its phase by 45°.',
@@ -167,10 +185,12 @@ final List<QQLevel> allQQLevels = [
     title: 'S Gate — 90° Phase',
     taskDescription: r"Transform the initial state of the qubit from \( |0\rangle \) to the target state \( |+i\rangle = (|0\rangle + |i\rangle)/\sqrt{2} \).",
     conceptIntro:
-        'The S gate (phase gate) applies a 90° rotation to |1⟩: S|1⟩ = i|1⟩. '
-        'S = T², so two T gates equal one S gate. '
-        'Combined with Hadamard, S rotates the equatorial circle of the Bloch sphere, '
-        'moving |+⟩ to |+i⟩ = (|0⟩+i|1⟩)/√2.',
+        'The S gate is a phase gate that applies a 90° rotation to the |1⟩ amplitude: S|1⟩ = i|1⟩. '
+        'Like all phase gates, S cannot create superposition on its own — '
+        'it only affects the phase of an existing |1⟩ amplitude. '
+        'The four cardinal equatorial states |+⟩, |−⟩, |+i⟩, |−i⟩ are related to each other '
+        'by 90° phase steps on the Bloch sphere. '
+        'Think about which sequence of gates takes you from |0⟩ to the target state.',
     hints: [
       'First create superposition with H so both amplitudes are active.',
       'S multiplies only the |1⟩ amplitude by i, rotating its phase by 90°: (|0⟩+|1⟩)/√2 → (|0⟩+i|1⟩)/√2.',
@@ -189,10 +209,11 @@ final List<QQLevel> allQQLevels = [
     title: 'The Minus State',
     taskDescription: r"Transform \( |+\rangle \) to \( |-\rangle \).",
     conceptIntro:
-        'The |-⟩ state is (|0⟩−|1⟩)/√2 — a superposition where the |1⟩ amplitude is negative. '
-        'It is the Hadamard of |1⟩: H|1⟩ = |-⟩. '
-        'To transform |+⟩ into |-⟩ you need to flip the sign of the |1⟩ component. '
-        'Think about which gate does exactly that.',
+        'The |-⟩ state is (|0⟩−|1⟩)/√2 — a superposition where the |1⟩ amplitude carries a negative sign. '
+        'Together with |+⟩, |+i⟩, and |−i⟩, it forms the four cardinal "compass points" '
+        'on the equatorial plane of the Bloch sphere. '
+        'Think about what kind of operation selectively adjusts the relative phase between '
+        'the |0⟩ and |1⟩ amplitudes without changing their magnitudes.',
     hints: [
       'Start by creating |+⟩ with H, then you need to flip the sign of |1⟩.',
       'Z|1⟩ = −|1⟩ and Z|0⟩ = |0⟩, so Z turns (|0⟩+|1⟩)/√2 into (|0⟩−|1⟩)/√2 = |-⟩.',
@@ -239,9 +260,10 @@ final List<QQLevel> allQQLevels = [
     taskDescription: r"From \( |+\rangle \), achieve \( |-i\rangle = (|0\rangle - i|1\rangle)/\sqrt{2} \).",
     conceptIntro:
         'You have seen |+i⟩ = (|0⟩+i|1⟩)/√2 — now aim for its mirror: |-i⟩ = (|0⟩−i|1⟩)/√2. '
-        'The four cardinal equatorial states |+⟩, |−⟩, |+i⟩, |-i⟩ are the six faces of the Bloch sphere. '
-        'Combining Z and S gives a net phase of −i on |1⟩: Z adds π (i.e. ×−1), S adds π/2 (i.e. ×i), '
-        'so Z·S gives ×(−1·i) = ×(−i).',
+        'The four cardinal equatorial states |+⟩, |−⟩, |+i⟩, |−i⟩ each differ by a 90° phase step on |1⟩. '
+        'To reach |−i⟩ you need a net phase of −i on the |1⟩ component. '
+        'Phase angles add when gates are applied in sequence — '
+        'think about which combination of available phase gates accumulates to that total rotation.',
     hints: [
       'Start with H to create superposition |+⟩. Then you need to rotate |1⟩\'s phase to −i.',
       'Apply Z first (flips |1⟩ sign), then S (multiplies by i): together they give −i on |1⟩. '
@@ -292,10 +314,11 @@ final List<QQLevel> allQQLevels = [
     title: 'T† — Inverse Phase Gate',
     taskDescription: r"From \( |0\rangle \), reach \( (|0\rangle + e^{-i\pi/4}|1\rangle)/\sqrt{2} \).",
     conceptIntro:
-        'T† (T-dagger, also written T⁻¹) is the inverse of T. '
-        'Where T rotates |1⟩\'s phase by +π/4, T† rotates by −π/4. '
-        'T† is not directly in your toolbar, but it can be constructed by composing T, S, and Z. '
-        'Finding gate decompositions is a core quantum computing skill.',
+        'T† (T-dagger, also written T⁻¹) is the inverse of the T gate. '
+        'Where T rotates the |1⟩ phase by +π/4, T† rotates by −π/4. '
+        'T† is not directly available in your toolbar, but like many quantum gates '
+        'it can be constructed by combining simpler gates whose phase rotations add up correctly. '
+        'Finding such decompositions is a core quantum computing skill.',
     hints: [
       'Start with H to create |+⟩. Then you need a net phase of −π/4 on |1⟩.',
       'T adds +π/4, S adds +π/2, Z adds +π. Total T+S+Z = π/4+π/2+π = 7π/4 ≡ −π/4 (mod 2π). '
@@ -319,9 +342,11 @@ final List<QQLevel> allQQLevels = [
     taskDescription: r"From \( |10\rangle \), create a circuit where Qubit 1 will 'mirror' the state of Qubit 0. The final state should be \( |11\rangle \).",
     conceptIntro:
         'The CNOT (Controlled-NOT, CX) gate is the fundamental two-qubit gate. '
-        'It flips the target qubit if and only if the control qubit is |1⟩. '
-        'Truth table: |00⟩→|00⟩, |01⟩→|01⟩, |10⟩→|11⟩, |11⟩→|10⟩. '
-        'CNOT is the quantum equivalent of classical XOR: target_out = target ⊕ control.',
+        'It has a "control" qubit and a "target" qubit: the target flips if and only if the control is |1⟩, '
+        'and is left unchanged if the control is |0⟩. '
+        'CNOT is the quantum equivalent of classical XOR: target_out = target ⊕ control. '
+        'Before applying it, identify which qubit should be the control and which the target '
+        'based on the current state and the desired outcome.',
     hints: [
       'In |10⟩, Q0=1 and Q1=0. You want Q1 to flip to 1. Which qubit should be the control?',
       'Use CNOT with Q0 as control and Q1 as target. Q0=1 satisfies the condition, so Q1 flips: 0→1, giving |11⟩.',
@@ -346,10 +371,12 @@ final List<QQLevel> allQQLevels = [
     title: 'CNOT: Swapping Control & Target',
     taskDescription: r"Transform \( |01\rangle \) to \( |11\rangle \).",
     conceptIntro:
-        'CNOT is asymmetric — the choice of control and target matters. '
-        'In level 14, Q0 was the control. Here Q0=0 and Q1=1, so Q1 is the "active" qubit. '
-        'To flip Q0 you need Q1 as the control and Q0 as the target. '
-        'Swapping control and target gives a completely different gate!',
+        'CNOT is not symmetric — swapping the roles of the control and target qubit '
+        'produces a completely different operation. '
+        'The key question before applying CNOT is always: which qubit is in |1⟩ and should act '
+        'as the "condition", and which qubit needs to be flipped? '
+        'Getting the control and target assignment wrong means the condition is never met '
+        'and the circuit leaves the state unchanged.',
     hints: [
       'In |01⟩, Q0=0 and Q1=1. You need Q0 to flip to 1.',
       'Use CNOT with Q1 as control (Q1=1 triggers the condition) and Q0 as target. '
@@ -401,9 +428,12 @@ final List<QQLevel> allQQLevels = [
     title: 'Uncomputing with CNOT',
     taskDescription: r"From \( |11\rangle \), transform the state to \( |00\rangle \).",
     conceptIntro:
-        'CNOT followed by X (or vice versa) lets you reach any two-qubit basis state from any other. '
-        'The order of gates matters: unlike single-qubit gates, applying two gates in different orders '
-        'generally gives different results. Think carefully about which gate to apply first.',
+        'Reaching any two-qubit basis state from any other requires the right combination of gates '
+        'applied in the correct order. '
+        'Unlike single-qubit gates, the order in which you apply two-qubit and single-qubit operations '
+        'generally matters — different orderings produce different results. '
+        'Think carefully about which qubit needs to change first and what the intermediate '
+        'state looks like after each gate.',
     hints: [
       'Try CNOT(Q0→Q1) on |11⟩ first: Q0=1 flips Q1: 1→0, giving |10⟩. Now you only need to fix Q0.',
       'After CNOT gives |10⟩, apply X on Q0: 1→0. Final state: |00⟩. Total: CNOT(Q0→Q1) then X on Q0.',
@@ -457,9 +487,11 @@ final List<QQLevel> allQQLevels = [
     title: 'Toffoli: Choose Your Controls',
     taskDescription: r"From \( |011\rangle \), transform the state to \( |111\rangle \).",
     conceptIntro:
-        'Any two qubits can be the controls and any distinct qubit can be the target in a Toffoli gate. '
-        'In level 18 Q0 and Q2 were controls. Here you need to identify the two qubits that are already |1⟩ '
-        'and use them as controls to flip the remaining qubit.',
+        'The Toffoli gate is flexible — any two qubits can be the controls and '
+        'any distinct third qubit can be the target. '
+        'Before applying CCX, identify which two qubits satisfy the AND condition '
+        '(both must be |1⟩) and which qubit needs to be flipped. '
+        'Compare the initial state with the target to determine the correct qubit assignments.',
     hints: [
       'In |011⟩: Q0=0, Q1=1, Q2=1. The two |1⟩ qubits are Q1 and Q2. Q0 needs to flip to 1.',
       'Set Q1 and Q2 as controls, Q0 as target. Both controls are 1, so Q0 flips: 0→1. '
@@ -529,9 +561,10 @@ final List<QQLevel> allQQLevels = [
     conceptIntro:
         'The Toffoli gate computes a quantum AND: CCX(ctrl₁,ctrl₂→tgt) sets '
         'tgt ← tgt ⊕ (ctrl₁ AND ctrl₂). '
-        'In |010⟩, Q1=1 is ready as one control, but Q0=0 and Q2=0. '
-        'For the AND to fire and write a 1 into Q2, both controls must be |1⟩. '
-        'A single X gate can prepare the missing control.',
+        'For the AND to fire, BOTH control qubits must be |1⟩. '
+        'Inspect the initial state carefully: if any intended control qubit is |0⟩, '
+        'the Toffoli condition will never be satisfied and the target will not flip. '
+        'You may need to prepare one or more qubits before applying CCX.',
     hints: [
       'CCX flips the target only when BOTH controls are |1⟩. '
           'In |010⟩ only Q1=1 — you need a second qubit to also be |1⟩ first.',
@@ -597,8 +630,9 @@ final List<QQLevel> allQQLevels = [
         'There are four Bell states, each a maximally-entangled two-qubit state. '
         'Ψ⁺ = (|01⟩+|10⟩)/√2 is anti-correlated: measuring one qubit always gives the '
         'opposite result on the other. '
-        'Compared to level 22 (Φ⁺), the initial state has one qubit already in |1⟩ — '
-        'this determines which Bell state the H+CNOT circuit produces.',
+        'The Bell states differ from each other by local single-qubit operations — '
+        'the initial state before entangling determines which Bell state the circuit produces. '
+        'Compare the target Ψ⁺ to Φ⁺ from level 22 and think about what is different.',
     hints: [
       'The initial state has one qubit as |1⟩ and one as |0⟩. '
           'Apply H to the qubit that is in |0⟩ to create a superposition without a minus sign.',
@@ -627,10 +661,9 @@ final List<QQLevel> allQQLevels = [
     taskDescription: r"Time for disentangling Bell State. Can you reverse the process to get back to \( |00\rangle \)?",
     conceptIntro:
         'Quantum circuits are reversible — every entangling operation can be undone. '
-        'The pre-inserted H→CNOT created Φ⁺. '
-        'Since H and CNOT are both self-inverse (H²=I, CNOT²=I), '
-        'the Bell circuit is reversed by applying the same gates in reverse order: '
-        'CNOT first, then H. '
+        'The pre-inserted circuit created the Bell state Φ⁺. '
+        'Since each gate used is self-inverse (applying the same gate twice returns to the start), '
+        'the reversal follows a simple principle: apply the same gates, but in the opposite order. '
         'This "Bell measurement" circuit is the decoder in quantum teleportation.',
     hints: [
       'To reverse a sequence of self-inverse gates, apply them in reverse order. '
@@ -664,8 +697,9 @@ final List<QQLevel> allQQLevels = [
     conceptIntro:
         'Ψ⁻ = (|01⟩−|10⟩)/√2 is the only Bell state antisymmetric under qubit swap '
         '(swapping the two qubits gives −Ψ⁻). It is known as the "singlet" state in physics. '
-        'Ψ⁻ differs from Ψ⁺ only by a relative minus sign between the two terms — '
-        'a phase flip applied to one qubit after entangling converts Ψ⁺ into Ψ⁻.',
+        'Ψ⁻ and Ψ⁺ differ only by a relative sign between their two terms. '
+        'The four Bell states are all related to each other by simple local single-qubit operations — '
+        'think about what kind of operation introduces a sign change to one of the two terms.',
     hints: [
       'First create Ψ⁺: apply H to the |0⟩ qubit, then CNOT with that qubit as control '
           '(same approach as level 23). You will have (|01⟩+|10⟩)/√2.',
@@ -696,8 +730,8 @@ final List<QQLevel> allQQLevels = [
         'The four Bell states — Φ⁺, Φ⁻, Ψ⁺, Ψ⁻ — form a complete orthonormal basis for '
         'two-qubit space. Any two-qubit state can be expanded in the Bell basis. '
         'Φ⁻ = (|00⟩−|11⟩)/√2 differs from Φ⁺ only by the sign of the |11⟩ term. '
-        'A single Z gate on either qubit converts Φ⁺ into Φ⁻ — '
-        'two valid solutions exist here due to the entanglement symmetry.',
+        'Due to the entanglement symmetry of Bell states, more than one local single-qubit operation '
+        'can achieve this sign change — two solutions are accepted here.',
     hints: [
       'Start as in level 22: H on Q0, then CNOT(Q0→Q1). This gives Φ⁺=(|00⟩+|11⟩)/√2.',
       'Now flip the sign of |11⟩. Z on any qubit flips the sign when that qubit is |1⟩ — '
@@ -724,10 +758,12 @@ final List<QQLevel> allQQLevels = [
     taskDescription: r"This circuit is pre-configured. Your task is to transform this state back to \( |00\rangle \).",
     conceptIntro:
         'The pre-inserted H→CNOT→Z sequence has created Φ⁻=(|00⟩−|11⟩)/√2. '
-        'To reverse it, apply the gates in reverse order: '
-        'Z† → CNOT† → H†. Since all three are self-inverse (Z²=CNOT²=H²=I), '
-        'the reversal is simply Z → CNOT → H. '
-        'This pattern — undo a circuit by reversing its gates — is called "uncomputation".',
+        'To reverse an entangled state, apply the inverse operations in reverse order. '
+        'Since all three gates here are self-inverse, their inverses are the gates themselves — '
+        'the only question is what order to apply them. '
+        'Work backwards through the pre-inserted sequence to determine what to add. '
+        'This reversal pattern — called "uncomputation" — is essential in quantum algorithms '
+        'for resetting ancilla qubits without measurement.',
     hints: [
       'The pre-inserted circuit is H→CNOT→Z. '
           'To undo it, apply the inverse in reverse order: Z, then CNOT, then H.',
@@ -761,9 +797,11 @@ final List<QQLevel> allQQLevels = [
     title: 'SWAP via Three CNOTs',
     taskDescription: r"From \( |10\rangle \), swap the states of the two qubits to achieve \( |01\rangle \). This can be done using only CX gates.",
     conceptIntro:
-        'A SWAP gate exchanges two qubits: SWAP|ab⟩=|ba⟩. '
-        'There is no SWAP in your toolbar, but it can be decomposed into exactly three CNOTs: '
-        'CNOT(Q0→Q1), CNOT(Q1→Q0), CNOT(Q0→Q1). '
+        'A SWAP gate exchanges the states of two qubits: SWAP|ab⟩ = |ba⟩. '
+        'There is no SWAP gate in your toolbar, but it can be constructed from gates you already know. '
+        'Think about how to use CNOT to transfer information between qubits step by step: '
+        'each CNOT propagates part of one qubit\'s value into the other. '
+        'A sequence of CNOTs in the right order and direction can implement a complete qubit exchange. '
         'This identity holds for any input state, including superpositions and entangled states.',
     hints: [
       'Three CNOTs are needed for a general SWAP. '
@@ -795,10 +833,11 @@ final List<QQLevel> allQQLevels = [
     conceptIntro:
         'Flipping only the phase of |11⟩ while leaving all other basis states unchanged '
         'is called a Controlled-Z (CZ) operation. '
-        'CZ can be decomposed as H→CNOT→H on one of the qubits: '
-        'the Hadamards change the "basis" in which the CNOT acts, '
-        'converting a bit flip into a phase flip. '
-        'This basis-conjugation technique appears in Grover\'s algorithm and quantum error correction.',
+        'CZ is not directly available in your toolbar, but it can be constructed from '
+        'Hadamard and CNOT gates. '
+        'The Hadamard gate changes the basis in which an operation acts — a technique called '
+        '"basis conjugation" — which can convert a bit flip into a phase flip. '
+        'This technique appears throughout Grover\'s algorithm and quantum error correction.',
     hints: [
       'First create the uniform superposition (|00⟩+|01⟩+|10⟩+|11⟩)/2 '
           'by applying H to both qubits. Now all four states have equal amplitude.',
@@ -828,10 +867,11 @@ final List<QQLevel> allQQLevels = [
     title: 'Bell Ψ⁺ from |00⟩',
     taskDescription: r"From \( |00\rangle \), create the Bell state \( |\Psi^+\rangle = (|01\rangle + |10\rangle)/\sqrt{2} \).",
     conceptIntro:
-        'All four Bell states can be prepared from |00⟩ by inserting X or Z gates '
-        'before or after the standard H+CNOT entangling circuit. '
-        'Ψ⁺ requires anti-correlated qubits (one always 0, the other always 1). '
-        'To achieve this from |00⟩, flip one qubit to |1⟩ before creating the entanglement.',
+        'All four Bell states can be prepared from |00⟩ by adjusting what you do '
+        'before or after the standard entangling circuit. '
+        'Ψ⁺ = (|01⟩+|10⟩)/√2 is anti-correlated: the two qubits are always opposite when measured. '
+        'Compare this to Φ⁺ from level 22, where both qubits always agree. '
+        'Think about what initial or final adjustment produces anti-correlation instead of correlation.',
     hints: [
       'To reach Ψ⁺=(|01⟩+|10⟩)/√2 from |00⟩, you need one qubit to be |1⟩ before the '
           'H+CNOT circuit. Apply X to one qubit first.',
@@ -860,10 +900,12 @@ final List<QQLevel> allQQLevels = [
     title: 'Bell Φ⁻ from |10⟩',
     taskDescription: r"From \( |10\rangle \), create the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle)/\sqrt{2} \).",
     conceptIntro:
-        'H|1⟩ = (|0⟩−|1⟩)/√2 = |−⟩ — a superposition with a minus sign. '
-        'When the starting qubit is |1⟩, H produces this negative superposition directly. '
-        'This minus propagates through CNOT, creating Φ⁻ without any extra Z gate. '
-        'Compare level 22: H on Q0=|0⟩ gave Φ⁺. Here Q0=|1⟩ gives Φ⁻ with the same circuit.',
+        'H|1⟩ = (|0⟩−|1⟩)/√2 = |−⟩ — when applied to a qubit that is already |1⟩, '
+        'the Hadamard gate produces a superposition with a built-in minus sign. '
+        'This negative sign in the initial superposition propagates differently through '
+        'subsequent gates than the positive superposition H|0⟩ produces. '
+        'Compare the starting state here to level 22 — notice what is different and reason '
+        'about whether a simpler or different circuit is possible.',
     hints: [
       'From |10⟩, Q0=1. H on Q0 maps |1⟩ → (|0⟩−|1⟩)/√2 — '
           'note the minus sign! The state is now (|00⟩−|10⟩)/√2.',
@@ -893,11 +935,11 @@ final List<QQLevel> allQQLevels = [
     title: 'Complete the SWAP',
     taskDescription: r"This circuit is pre-configured with the first CNOT of a qubit swap. Complete the swap of qubits 0 and 1, so \( |01\rangle \) becomes \( |10\rangle \).",
     conceptIntro:
-        'A full SWAP requires three CNOTs: CNOT(A→B), CNOT(B→A), CNOT(A→B). '
-        'The first step is already pre-inserted. '
-        'Your task is to add the remaining two to complete the swap. '
-        'This decomposition is how SWAP is implemented on real quantum hardware '
-        'that lacks a native SWAP gate.',
+        'A SWAP gate exchanges the states of two qubits and can be built from CNOT gates alone '
+        '(as you discovered in level 28). Here the first CNOT of the decomposition is already pre-inserted. '
+        'Your task is to complete the SWAP by adding only the remaining gates. '
+        'Think back to the full SWAP decomposition you worked out before and identify '
+        'which steps are still needed to finish the exchange.',
     hints: [
       'The pre-inserted CNOT(Q0→Q1) leaves |01⟩ unchanged (Q0=0, no flip). '
           'You still need to move the |1⟩ from Q1 into Q0.',
@@ -966,12 +1008,12 @@ final List<QQLevel> allQQLevels = [
     title: 'CNOT Fan-Out',
     taskDescription: r"Transform \( |010\rangle \) to \( |111\rangle \). This requires a careful sequence of gates.",
     conceptIntro:
-        'CNOT "copies" (fans out) a |1⟩ control into a |0⟩ target: '
-        'CNOT|10⟩ = |11⟩. '
-        'Note: this only works for classical basis states — '
-        'for superpositions it creates entanglement instead of copying. '
-        'Here you must first set up the right control qubit with X, '
-        'then use CNOT to propagate its value to the remaining qubit.',
+        'CNOT "fans out" (copies) a |1⟩ value from a control qubit into a |0⟩ target qubit. '
+        'Note: this copying only works for classical basis states — '
+        'for superpositions, CNOT creates entanglement instead of copying. '
+        'CNOT can only trigger a flip when its control is |1⟩; if the intended control is |0⟩, '
+        'no flip will occur. Look at the initial state and plan the correct sequence '
+        'to get every qubit into the required value.',
     hints: [
       'In |010⟩: Q0=0, Q1=1, Q2=0. Q1 is already |1⟩. '
           'You need Q0 and Q2 to also become |1⟩. '
@@ -1007,9 +1049,11 @@ final List<QQLevel> allQQLevels = [
     conceptIntro:
         'The GHZ (Greenberger–Horne–Zeilinger) state (|000⟩+|111⟩)/√2 is '
         'maximally entangled across all three qubits. '
-        'A striking property: applying X to any single qubit flips that bit in '
-        'EVERY term simultaneously — the qubits are perfectly correlated. '
-        'This lets a single local operation transform both terms of the superposition at once.',
+        'A striking property of maximally entangled states is that a local operation '
+        'on a single qubit affects all terms of the superposition simultaneously — '
+        'the qubits are perfectly correlated. '
+        'Compare the target state term by term with the GHZ state: identify which bit position '
+        'has changed in each term, and reason about which single-qubit operation causes that change.',
     hints: [
       'The GHZ state has exactly two terms: |000⟩ and |111⟩. '
           'The target (|001⟩+|110⟩)/√2 also has two terms, '
@@ -1049,12 +1093,13 @@ final List<QQLevel> allQQLevels = [
     title: 'Uniform 2-Qubit Superposition',
     taskDescription: r"From \( |00\rangle \), create a uniform superposition of all possible 2-qubit states: \( (|00\rangle + |01\rangle + |10\rangle + |11\rangle)/2 \).",
     conceptIntro:
-        'Applying H independently to every qubit in a register creates '
-        'a uniform superposition over all 2ⁿ basis states. '
-        'For n=2: H⊗H|00⟩ = (|00⟩+|01⟩+|10⟩+|11⟩)/2. '
-        'Each state has equal amplitude 1/2 and probability 1/4. '
-        'This "quantum parallelism" initialization is the first step '
-        'in Grover\'s search and the quantum Fourier transform.',
+        'A uniform superposition over all 2ⁿ basis states gives each state equal amplitude '
+        'and equal measurement probability 1/2ⁿ. '
+        'For n=2, the target (|00⟩+|01⟩+|10⟩+|11⟩)/2 spans all four basis states at once. '
+        'This "quantum parallelism" initialisation is the first step in Grover\'s search '
+        'and the quantum Fourier transform. '
+        'Think about how to independently prepare each qubit in superposition '
+        'so their combined state covers every basis string equally.',
     hints: [
       'H on one qubit creates superposition over 2 states. '
           'What happens when you apply H to both qubits independently?',
@@ -1084,11 +1129,13 @@ final List<QQLevel> allQQLevels = [
     title: 'GHZ State with Phase',
     taskDescription: r"From \( |001\rangle \), transform the state to \( (|000\rangle - |111\rangle)/\sqrt{2} \).",
     conceptIntro:
-        'The GHZ state (|000⟩+|111⟩)/√2 is created by H on one qubit followed by '
-        'a CNOT cascade: CNOT(Q0→Q1) then CNOT(Q1→Q2). '
-        'Appending Z to any qubit flips the sign of the |111⟩ term '
-        '(all qubits are |1⟩ there), giving the "anti-GHZ" state (|000⟩−|111⟩)/√2. '
-        'This state is orthogonal to GHZ and plays a role in quantum error correction.',
+        'The GHZ state (|000⟩+|111⟩)/√2 is a maximally entangled 3-qubit state. '
+        'Building it requires creating a single-qubit superposition and then spreading '
+        'the entanglement step by step to the remaining qubits. '
+        'The target (|000⟩−|111⟩)/√2 is the "anti-GHZ" state — orthogonal to GHZ '
+        'and used in quantum error correction. '
+        'It differs from GHZ only by a relative sign between the two terms. '
+        'Think about how to construct the GHZ state first, then how to introduce that sign change.',
     hints: [
       'First undo the |1⟩ in the initial state with X. '
           'Then build GHZ: H on one qubit to create superposition, '
@@ -1178,12 +1225,12 @@ final List<QQLevel> allQQLevels = [
     title: 'Uncomputing CZ Entanglement',
     taskDescription: r"This circuit is pre-configured to an entangled state where the \( |11\rangle \) component has a negative phase. Your task is to transform this state back to \( |00\rangle \).",
     conceptIntro:
-        'The pre-inserted H→H→CZ sequence has created (|00⟩+|01⟩+|10⟩−|11⟩)/2. '
-        'To reverse this, apply the gates in reverse order: '
-        'CZ (self-inverse, removes the phase flip), '
-        'then H on each qubit (self-inverse, collapses the superposition). '
-        'Uncomputation of a phase-entangled state is a key subroutine in '
-        'Grover\'s oracle circuits.',
+        'The pre-inserted H→H→CZ sequence has created the state (|00⟩+|01⟩+|10⟩−|11⟩)/2. '
+        'To return to |00⟩, you must reverse the pre-inserted circuit. '
+        'All three gates used are self-inverse, so each gate is its own undo operation. '
+        'Apply the reversal principle: the undo of a sequence A→B→C is C→B→A — '
+        'the same gates in the opposite order. '
+        'Uncomputation of phase-entangled states is a key subroutine in Grover\'s oracle circuits.',
     hints: [
       'The pre-inserted H→H→CZ created the state with negative |11⟩ phase. '
           'To undo it, apply CZ first (it is self-inverse), then H on both qubits.',
@@ -1221,12 +1268,13 @@ final List<QQLevel> allQQLevels = [
     title: 'Rx Rotation Gate',
     taskDescription: r"Transform the initial state \( |0\rangle \) to the 'plus' state \( |+\rangle \). This can be achieved with a single rotation gate.",
     conceptIntro:
-        'Rotation gates rotate a qubit around the Bloch sphere axes by a specific angle. '
+        'Rotation gates rotate a qubit around a Bloch sphere axis by a specific angle θ. '
         'Rx(θ) rotates around the X-axis: Rx(θ)|0⟩ = cos(θ/2)|0⟩ − i·sin(θ/2)|1⟩. '
-        'For θ=π/2: Rx(π/2)|0⟩ = (|0⟩−i|1⟩)/√2 — an equatorial state with equal '
-        'measurement probabilities to |+⟩, but a phase of −i on |1⟩. '
-        'Ry(θ) rotates around the Y-axis: Ry(θ)|0⟩ = cos(θ/2)|0⟩ + sin(θ/2)|1⟩ '
-        '— giving real amplitudes with no phase.',
+        'Ry(θ) rotates around the Y-axis: Ry(θ)|0⟩ = cos(θ/2)|0⟩ + sin(θ/2)|1⟩. '
+        'The key difference: Rx introduces an imaginary phase factor on |1⟩, '
+        'while Ry keeps all amplitudes real. '
+        'Examine the target state — pay attention to both magnitudes and any imaginary components '
+        'to identify the correct axis and angle.',
     hints: [
       'Both Rx(π/2) and Ry(π/2) produce equatorial states. '
           'Look at the target amplitudes: the |1⟩ component has a specific sign and phase.',
@@ -1255,8 +1303,8 @@ final List<QQLevel> allQQLevels = [
         'Ry(θ) rotates around the Y-axis of the Bloch sphere: '
         'Ry(θ)|0⟩ = cos(θ/2)|0⟩ + sin(θ/2)|1⟩. '
         'Unlike Rx, the Y-axis rotation keeps all amplitudes real — no imaginary phase on |1⟩. '
-        'Ry(π/2)|0⟩ = (|0⟩+|1⟩)/√2, which has the same measurement statistics as H|0⟩ '
-        'but lies on a different meridian of the Bloch sphere.',
+        'The target state has specific real amplitudes on both |0⟩ and |1⟩ — '
+        'use the Ry formula to work out which angle θ produces equal magnitudes with no imaginary part.',
     hints: [
       'Compare the two available gates: Rx(π/4) and Ry(π/2). '
           'The target has both amplitudes real and equal — no imaginary part.',
@@ -1419,12 +1467,13 @@ final List<QQLevel> allQQLevels = [
     title: 'Precise Bloch Sphere Navigation',
     taskDescription: r"Transform the initial state to a specific point on the Bloch sphere. This requires precise rotations.",
     conceptIntro:
-        'Any point on the Bloch sphere requires at most two rotations around different axes '
-        '(Euler angle decomposition). '
-        'The target state has equal-magnitude amplitudes with a specific complex phase — '
+        'Any point on the Bloch sphere can be reached with at most two rotations around different axes — '
+        'the Euler angle decomposition. '
+        'The target state has equal-magnitude amplitudes with a specific complex phase: '
         'it lives on the equatorial plane but offset from the X and Y axes. '
-        'Reaching it from |0⟩ requires a Y-axis rotation to create the superposition '
-        'followed by an X-axis rotation to introduce the correct phase mix.',
+        'Two rotations are needed to reach it from |0⟩: one to create the superposition '
+        'and another to introduce the right phase mix. '
+        'Inspect the available gates and think about what each axis of rotation contributes.',
     hints: [
       'The target has both amplitudes equal in magnitude (1/√2) with a specific phase. '
           'Start with Ry(π/4) to create an unequal superposition, '
