@@ -29,7 +29,7 @@ final List<QQLevel> allQQLevels = [
     solutionExplanation:
         'Applying the X (Pauli-X) gate flips the qubit: X|0⟩ = |1⟩. '
         'This is the quantum equivalent of a classical NOT. '
-        'Notice that applying X twice returns to the original state — every quantum gate is its own inverse (or has one).',
+        'Notice that applying X twice returns to the original state — every quantum gate is unitary and therefore invertible — X happens to be its own inverse (X² = I), a property called being self-inverse.',
     numQubits: 1,
     initialQubitsStateString: "0",
     availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.y)],
@@ -99,8 +99,8 @@ final List<QQLevel> allQQLevels = [
       'Y|0⟩ = i|1⟩. The Y gate is the only single gate here that produces the required phase.',
     ],
     solutionExplanation:
-        'Y|0⟩ = i|1⟩. The Y gate maps |0⟩ to i|1⟩, producing the so-called |i⟩ state (also written |R⟩). '
-        'This is a 90° rotation around the Y-axis of the Bloch sphere.',
+        'Y|0⟩ = i|1⟩. The Y gate maps |0⟩ to i|1⟩, producing the so-called |i⟩ state. '
+        'This is a 180° rotation around the Y-axis of the Bloch sphere (Y = i·Ry(π)).',
     numQubits: 1,
     initialQubitsStateString: "0",
     availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z)],
@@ -441,8 +441,8 @@ final List<QQLevel> allQQLevels = [
     solutionExplanation:
         'CNOT(Q0→Q1)|11⟩ = |10⟩ (Q0=1 flips Q1: 1→0). '
         'X on Q0: |10⟩ → |00⟩. '
-        'Two gates are sufficient. Note the alternative order also works: '
-        'X on Q0 first gives |01⟩, then CNOT(Q0→Q1) leaves it as |01⟩ (Q0=0 now — wrong!). '
+        'Two gates are sufficient. Note the alternative order does NOT work: '
+        'X on Q0 first gives |01⟩, then CNOT(Q0→Q1) leaves it as |01⟩ (Q0=0, condition never triggers — wrong!). '
         'So CNOT first is the correct order here.',
     numQubits: 2,
     initialQubitsStateString: "11",
@@ -473,7 +473,8 @@ final List<QQLevel> allQQLevels = [
         'CCX with controls Q0,Q2 and target Q1: Q0=1 AND Q2=1 → Q1 flips: 0→1. '
         'Result: |111⟩. '
         'This is equivalent to Q1_new = Q1 ⊕ (Q0 AND Q2) = 0 ⊕ (1 AND 1) = 1. '
-        'The Toffoli gate is the simplest gate that cannot be simulated efficiently classically.',
+        'Toffoli (CCX) combined with the Hadamard gate forms a universal gate set for '
+        'quantum computation, and on its own it is universal for classical reversible logic.',
     numQubits: 3,
     initialQubitsStateString: "101", // |000> state
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.ccnot), Gate.fromIdentifier(SelectedGateType.z),],
@@ -701,17 +702,19 @@ final List<QQLevel> allQQLevels = [
         'The four Bell states are all related to each other by simple local single-qubit operations — '
         'think about what kind of operation introduces a sign change to one of the two terms.',
     hints: [
-      'First create Ψ⁺: apply H to the |0⟩ qubit, then CNOT with that qubit as control '
-          '(same approach as level 23). You will have (|01⟩+|10⟩)/√2.',
-      'Now apply Z to one of the qubits. Z flips the sign of the |1⟩ component only. '
-          'On the qubit that is |1⟩ in the |10⟩ term, Z gives −|10⟩. '
-          'Result: (|01⟩−|10⟩)/√2 = Ψ⁻.',
+      'First create Ψ⁺: apply H to Q0 (the top qubit, which starts as |0⟩), then CNOT with '
+          'Q0 as control and Q1 as target (same approach as level 23). '
+          'You will have (|01⟩+|10⟩)/√2.',
+      'Now apply Z to Q1 (the bottom qubit, which starts as |1⟩). '
+          'Z flips the sign of the |1⟩ component only. '
+          'In the |10⟩ term Q1=1, so Z gives −|10⟩; in the |01⟩ term Q1=0, so it is unchanged. '
+          'Result: (|01⟩−|10⟩)/√2 = Ψ⁻. '
+          'Important: Z on Q0 flips the |01⟩ term instead, giving −Ψ⁻ which does NOT match.',
     ],
     solutionExplanation:
-        'H on the |0⟩ qubit + CNOT (with that qubit as control) gives Ψ⁺=(|01⟩+|10⟩)/√2. '
-        'Z on one qubit then flips the relative phase: Ψ⁺ → Ψ⁻. '
-        'All four Bell states are reachable from any of the others by a local single-qubit operation — '
-        'X or Z on one qubit is enough to navigate between them.',
+        'H on Q0 (top, starts as |0⟩) + CNOT (Q0 control → Q1 target) gives Ψ⁺=(|01⟩+|10⟩)/√2. '
+        'Z on Q1 flips the phase of the |10⟩ term (Q1=1 there) while leaving the |01⟩ term unchanged (Q1=0): Ψ⁺ → Ψ⁻. '
+        'Only Z on Q1 works — Z on Q0 flips the |01⟩ term (Q0=1 there), producing −Ψ⁻ instead.',
     numQubits: 2,
     initialQubitsStateString: "10",
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y)],
@@ -720,7 +723,7 @@ final List<QQLevel> allQQLevels = [
       [Complex(sqrt1_2, 0)],
       [Complex(-sqrt1_2, 0)],
       [Complex.zero()],
-    ], // Target: (1/sqrt(2))|01> - (1/sqrt(2))|10> (Solution: H on Q0, CNOT(0,1), Z on Q0)
+    ], // Target: (1/sqrt(2))|01> - (1/sqrt(2))|10> (Solution: H on Q0, CNOT(Q0→Q1), Z on Q1)
   ),
   // H + CX + Z(0) (or Z(1)). It can have 2 solution potentially, with Z(0) + Z(1)
   ComposerLevel.fromBinaryString(
@@ -849,7 +852,9 @@ final List<QQLevel> allQQLevels = [
     solutionExplanation:
         'H on both qubits gives (|00⟩+|01⟩+|10⟩+|11⟩)/2. '
         'The decomposition CZ = H(tgt)·CNOT·H(tgt) then flips only |11⟩. '
-        'Full circuit: H(Q0), H(Q1), CNOT, H(Q1) — or equivalently H(Q0), CNOT, H(Q1) from |00⟩. '
+        'The explicit decomposition CZ = H(Q1)·CNOT·H(Q1), applied after the uniform '
+        'superposition H(Q0)·H(Q1), gives a 5-gate sequence that simplifies (H·H=I) '
+        'to: H(Q0), CNOT, H(Q1) from |00⟩. '
         'Result: (|00⟩+|01⟩+|10⟩−|11⟩)/2. '
         'The CZ decomposition via H·CNOT·H is fundamental in quantum computing.',
     numQubits: 2,
@@ -907,18 +912,18 @@ final List<QQLevel> allQQLevels = [
         'Compare the starting state here to level 22 — notice what is different and reason '
         'about whether a simpler or different circuit is possible.',
     hints: [
-      'From |10⟩, Q0=1. H on Q0 maps |1⟩ → (|0⟩−|1⟩)/√2 — '
+      'From |10⟩, Q1=1 (bottom row). H on Q1 maps |1⟩ → (|0⟩−|1⟩)/√2 — '
           'note the minus sign! The state is now (|00⟩−|10⟩)/√2.',
-      'CNOT(Q0→Q1) on (|00⟩−|10⟩)/√2: |10⟩→|11⟩. '
+      'CNOT(Q1→Q0) on (|00⟩−|10⟩)/√2: in the |10⟩ term Q1=1 (control), so Q0 flips 0→1 → |11⟩. '
           'Result: (|00⟩−|11⟩)/√2 = Φ⁻. '
           'Only two gates needed — the minus sign from H|1⟩ does the job.',
     ],
     solutionExplanation:
-        'H on Q0 (which is |1⟩) gives (|0⟩−|1⟩)/√2. '
+        'H on Q1 (which is |1⟩, the bottom qubit) gives (|0⟩−|1⟩)/√2. '
         'State: (|00⟩−|10⟩)/√2. '
-        'CNOT(Q0→Q1): |10⟩→|11⟩. Result: (|00⟩−|11⟩)/√2 = Φ⁻. '
-        'Two solutions exist: H+CNOT (2 gates), or X+H+CNOT+Z (4 gates). '
-        'The initial qubit state — |0⟩ or |1⟩ — controls the sign of the Bell state produced.',
+        'CNOT(Q1→Q0): in |10⟩, Q1=1 (control) flips Q0 0→1 → |11⟩. Result: (|00⟩−|11⟩)/√2 = Φ⁻. '
+        'Two solutions exist: H(Q1)+CNOT(Q1→Q0) in 2 gates, or X(Q1)+H(Q0)+CNOT(Q0→Q1)+Z(Q0) in 4 gates. '
+        'The initial qubit state — |0⟩ or |1⟩ — determines the sign of the superposition after H.',
     numQubits: 2,
     initialQubitsStateString: "10",
     availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.z)],
@@ -941,18 +946,17 @@ final List<QQLevel> allQQLevels = [
         'Think back to the full SWAP decomposition you worked out before and identify '
         'which steps are still needed to finish the exchange.',
     hints: [
-      'The pre-inserted CNOT(Q0→Q1) leaves |01⟩ unchanged (Q0=0, no flip). '
-          'You still need to move the |1⟩ from Q1 into Q0.',
-      'CNOT(Q1→Q0): Q1=1 → flip Q0: 0→1 → |11⟩. '
-          'Then CNOT(Q0→Q1): Q0=1 → flip Q1: 1→0 → |10⟩. '
-          'Two more CNOTs complete the SWAP.',
+      'In the ket |01⟩, Q0 is the right-hand bit, so Q0=1 and Q1=0. '
+          'The pre-inserted CNOT(Q0→Q1) therefore DOES trigger and flips Q1: 0→1 → |11⟩.',
+      'From |11⟩, add CNOT(Q1→Q0): Q1=1 triggers, flipping Q0: 1→0 → |10⟩. '
+          'That is the target — just one gate to add.',
     ],
     solutionExplanation:
-        'Pre-inserted CNOT(Q0→Q1)|01⟩ = |01⟩ (no change, Q0=0). '
-        'CNOT(Q1→Q0)|01⟩ = |11⟩. '
-        'CNOT(Q0→Q1)|11⟩ = |10⟩. '
-        'The three-CNOT SWAP identity works for any input state, including superpositions — '
-        'this is the universal SWAP decomposition used across all quantum hardware.',
+        'In |01⟩, Q0 is the rightmost bit, so Q0=1 and Q1=0. '
+        'Pre-inserted CNOT(Q0→Q1): Q0=1 triggers, flipping Q1: 0→1 → |11⟩. '
+        'CNOT(Q1→Q0): Q1=1 triggers, flipping Q0: 1→0 → |10⟩. Done. '
+        'The third CNOT of the full decomposition would be a no-op here (Q0=0 after the second step), '
+        'so only one gate needs to be added.',
     numQubits: 2,
     initialQubitsStateString: "01",
     preInsertedGates: (QuantumCircuit circuit) {
@@ -964,7 +968,7 @@ final List<QQLevel> allQQLevels = [
       [Complex.zero()],
       [Complex.one()],
       [Complex.zero()],
-    ], // Target: |10> (Solution: CNOT(1,0), CNOT(0,1) after pre-inserted CNOT(0,1))
+    ], // Target: |10⟩ — Solution: add CNOT(Q1→Q0) after the pre-inserted CNOT(Q0→Q1)
   ),
   // CNOT(2,0) + CNOT(2,1)
   ComposerLevel.fromBinaryString(
@@ -1060,13 +1064,13 @@ final List<QQLevel> allQQLevels = [
           'differing from the original in exactly one bit position per term.',
       'X on any single qubit flips that bit in both |000⟩ and |111⟩. '
           'Find the qubit position where "000"→"001" and "111"→"110" — '
-          'that is the last (rightmost) qubit.',
+          'the rightmost bit in the ket string changes, which is Q0 (top row in the circuit).',
     ],
     solutionExplanation:
-        'X on the last qubit: |000⟩→|001⟩ and |111⟩→|110⟩. '
+        'X on Q0 (top row): |000⟩→|001⟩ and |111⟩→|110⟩. '
         'Result: (|001⟩+|110⟩)/√2. '
         'This demonstrates the all-or-nothing nature of GHZ entanglement: '
-        'a single local X operation correlates changes across all three qubits globally. '
+        'a single local X on Q0 flips the rightmost bit in every term simultaneously. '
         'GHZ states are used in quantum secret sharing and quantum communication protocols.',
     numQubits: 3,
     initialQubitsStateString: "000", // Base for pre-inserted gates
@@ -1085,7 +1089,7 @@ final List<QQLevel> allQQLevels = [
       [Complex.zero()],
       [Complex(sqrt1_2, 0)],
       [Complex.zero()],
-    ], // Target: (1/sqrt(2))(|100> + |011>)
+    ], // Target: (1/sqrt(2))(|001> + |110>)
     // Solution: X on Q0
   ),
   // H(0) + H(1)
@@ -1149,8 +1153,9 @@ final List<QQLevel> allQQLevels = [
         'H creates superposition on one qubit. '
         'CNOT(Q0→Q1) then CNOT(Q1→Q2) cascade the entanglement: (|000⟩+|111⟩)/√2. '
         'Z on any qubit flips the sign of |111⟩ → (|000⟩−|111⟩)/√2. '
-        'This "GHZ with a phase" state is one of the 8 maximally-entangled 3-qubit states '
-        'used as logical qubits in the [[3,1,1]] quantum error-correcting code.',
+        'This "GHZ with a phase" state is one of the 8 maximally-entangled 3-qubit states. '
+        'GHZ-class states form a complete, maximally-entangled basis for 3-qubit Hilbert '
+        'space and appear in quantum secret sharing and quantum communication protocols.',
     numQubits: 3,
     initialQubitsStateString: "001",
     availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.ccnot), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.t)],
@@ -1476,20 +1481,23 @@ final List<QQLevel> allQQLevels = [
         'Inspect the available gates and think about what each axis of rotation contributes.',
     hints: [
       'The target has both amplitudes equal in magnitude (1/√2) with a specific phase. '
-          'Start with Ry(π/4) to create an unequal superposition, '
-          'then use Rx(π/2) to rotate toward equal magnitudes with the right phase.',
-      'Ry(π/4)|0⟩ = (cos(π/8)|0⟩ + sin(π/8)|1⟩). '
-          'Then Rx(π/2) mixes in the imaginary part: '
-          'the result is (cos(π/8)−i·sin(π/8))/√2 on both components. '
-          'Two gates: Ry(π/4) → Rx(π/2).',
+          'Start with Rx(π/2) to create the superposition (|0⟩ − i|1⟩)/√2, '
+          'then Ry(π/4) rotates the amplitudes, '
+          'and finally Rz(π/2) equalises the phases.',
+      'Rx(π/2)|0⟩ = (|0⟩ − i|1⟩)/√2. '
+          'Ry(π/4) then gives amplitudes e^(iπ/8)/√2 and −i·e^(iπ/8)/√2. '
+          'Rz(π/2) applies phases e^(−iπ/4) and e^(iπ/4): '
+          'both components become e^(−iπ/8)/√2. '
+          'Three gates: Rx(π/2) → Ry(π/4) → Rz(π/2).',
     ],
     solutionExplanation:
-        'Ry(π/4)|0⟩ = [cos(π/8), sin(π/8)]. '
-        'Rx(π/2) then mixes real and imaginary parts: '
-        'first component becomes (cos(π/8)−i·sin(π/8))/√2 = e^(−iπ/8)/√2. '
-        'Both amplitudes end up equal (e^(−iπ/8)/√2). '
-        'This two-gate decomposition Ry·Rx is the final form of the '
-        'Euler rotation U = Rz·Ry·Rz — here Rz(0) is trivial. '
+        'Rx(π/2)|0⟩ = (|0⟩ − i|1⟩)/√2. '
+        'Ry(π/4) rotates further: component 0 → e^(iπ/8)/√2, component 1 → −i·e^(iπ/8)/√2. '
+        'Rz(π/2) applies phases e^(−iπ/4) and e^(iπ/4), making both components equal: '
+        'e^(−iπ/8)/√2 = (cos(π/8) − i·sin(π/8))/√2. '
+        'The three-gate sequence Rx → Ry → Rz navigates the Bloch sphere along three axes; '
+        'any single-qubit gate has an Euler decomposition Rz(α)·Ry(β)·Rz(γ), '
+        'and Rx → Ry → Rz here is an alternative three-axis factorisation for this target. '
         'VQE and QAOA circuits use exactly this parameterised gate structure.',
     numQubits: 1,
     initialQubitsStateString: "0",

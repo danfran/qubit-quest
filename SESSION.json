@@ -45,13 +45,14 @@
         "level title shown as subtitle in home-screen grid button"
       ],
       "pending_goals": [
+        "CONTENT [DONE]: Fix the solutions of the levels based on the review in task-notes.txt",
         "FEATURE: Bloch sphere widget for single-qubit state visualisation (levels 1–13, 40–46)",
-        "FEATURE: Show target state vector alongside current state in StateVectorDisplay for direct comparison",
+        "FEATURE [DONE]: Show target state vector alongside current state in StateVectorDisplay for direct comparison",
         "FEATURE: Long-press gate button to show its matrix and description (quantum_doc_dialog_TBR.dart has the skeleton — integrate it per-gate)",
         "FEATURE: Add a way to re-read the category intro after it has been dismissed (e.g. info icon in AppBar)"
       ],
-      "version": "2.6",
-      "last_session": "2026-04-04_session1"
+      "version": "2.7",
+      "last_session": "2026-04-04_session2"
     },
 
     "mcq": {
@@ -137,7 +138,7 @@
     "FEATURE: Bloch sphere widget for single-qubit state visualisation (new widget, significant effort)",
     "FEATURE: Per-gate long-press reference panel (gate matrix + plain-English description) — quantum_doc_dialog_TBR.dart has the TeX skeleton, needs wiring into the gate toolbar",
     "FEATURE: Add blankPosition/blankQubit to FillTheGateLevel and upgrade its circuit display to QuantumCircuitPainter",
-    "FEATURE: Target state panel in StateVectorDisplay — show solution vector alongside current vector",
+    "FEATURE [DONE]: Target state panel in StateVectorDisplay — show solution vector alongside current vector",
     "FEATURE: User progress analytics (levels attempted, hints used, wrong answers) — extend SharedPreferences tracking",
     "CLEANUP: quantum_doc_dialog_TBR.dart — either integrate as gate reference or delete",
     "CLEANUP: Resolve pre-existing warnings (unused imports in quantum_composer.dart, state_vector_display.dart, quantum_matrix.dart)"
