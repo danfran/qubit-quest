@@ -12,7 +12,7 @@ class QuantumCircuit extends ChangeNotifier {
   List<List<PlacedQuantumGate>> placedGates;
 
   // The number of qubits in the circuit (assuming fixed)
-  final QQLevel currentLevel;
+  final ComposerLevel currentLevel;
   // final List<Complex> initialQubitsState;
   // Property to hold the current/final quantum state vector (updated by simulation)
   final QubitState initialState;

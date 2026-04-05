@@ -1,6 +1,6 @@
 import 'package:advance_math/advance_math.dart';
-import 'package:flutter_tex/flutter_tex.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/screens/operator_matrix_dialog.dart';
@@ -10,6 +10,7 @@ import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialo
 import 'package:quantumquiz/screens/webview_page.dart';
 import 'package:quantumquiz/utils/complex_formatter.dart';
 import 'package:quantumquiz/utils/qq_fraction.dart';
+import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
@@ -19,7 +20,7 @@ import '../models/qq_level.dart';
 
 class QuantumComposer extends StatefulWidget {
   final int levelId;
-  final QQLevel level; // Now, QuantumComposer accepts a Level object
+  final ComposerLevel level;
   final Function(int unlockedLevel)? onLevelUnlocked;
 
   const QuantumComposer({
@@ -41,14 +42,17 @@ class _QuantumComposerState extends State<QuantumComposer> {
   late List<List<Complex>> _solutionVector;
   late QuantumCircuit _circuit;
 
-  // List<double> measurementProbabilities = [0.0, 0.0, 0.0, 0.0];
   SelectedGateType _currentMode = SelectedGateType.none;
-  int? _cnotControlQubit; // To track the target for CNOT
+  int? _cnotControlQubit;
 
-  int? _ccnotControl1Qubit; // To track the control 1 for CCNOT
-  int? _ccnotControl2Qubit; // To track the control 2 for CCNOT
+  int? _ccnotControl1Qubit;
+  int? _ccnotControl2Qubit;
 
-  double? _rotationAngle; // To track the Rx,y,z angle rotation
+  double? _rotationAngle;
+
+  // Hints state
+  List<String> _hints = [];
+  int _currentHintIndex = -1;
 
   // State to manage the highlight box for drag-and-drop
   Offset? _draggingOffset;
@@ -73,7 +77,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateScrollButtonStates();
+      if (widget.level.conceptIntro != null && !runningAsQuantumComposer()) {
+        _showConceptIntro(widget.level.conceptIntro!);
+      }
     });
+
+    _hints = widget.level.hints ?? [];
+    _currentHintIndex = -1;
 
     _numQubits = widget.level.numQubits;
     _taskDescription = widget.level.taskDescription;
@@ -441,79 +451,207 @@ class _QuantumComposerState extends State<QuantumComposer> {
   Future<Map<String, dynamic>?> _showLevelCompleteDialog() {
     return showDialog<Map<String, dynamic>>(
       context: context,
-      barrierDismissible: false, // User must choose an option
+      barrierDismissible: false,
       builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey[800], // Dark background for the dialog
+        final double maxHeight = MediaQuery.of(context).size.height - 80;
+        return Dialog(
+          backgroundColor: Colors.grey[800],
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Column(
-            children: [
-              Icon(Icons.check_circle, color: Colors.green, size: 60),
-              SizedBox(height: 10),
-              Text('Level Complete!', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: maxHeight),
+              child: Column(
+                // mainAxisSize: max — lets Expanded children work correctly
+                children: [
+
+                  // ── Fixed header ──────────────────────────────────────────
+                  const Icon(Icons.check_circle, color: Colors.green, size: 48),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Level Complete!',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white),
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(color: Colors.white24, height: 1),
+                  const SizedBox(height: 10),
+
+                  // ── Flexible two-column body ──────────────────────────────
+                  // Expanded gives the Row all remaining height between header and footer.
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+
+                        // Left 35% — fixed congratulations (vertically centred)
+                        Expanded(
+                          flex: 35,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.emoji_events, color: Colors.amber, size: 36),
+                              SizedBox(height: 10),
+                              Text(
+                                'Congratulations!\nYou\'ve successfully solved the puzzle.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 13, color: Colors.white70, height: 1.4),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Vertical divider
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: VerticalDivider(color: Colors.white24, width: 1),
+                        ),
+
+                        // Right 65% — solution fills all available height
+                        Expanded(
+                          flex: 65,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'SOLUTION',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                  color: Colors.blueAccent,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Expanded(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black26,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Scrollbar(
+                                    child: SingleChildScrollView(
+                                      padding: const EdgeInsets.all(10),
+                                      child: Text(
+                                        widget.level.solutionExplanation ?? '',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.white70,
+                                          height: 1.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── Fixed footer ──────────────────────────────────────────
+                  const SizedBox(height: 12),
+                  const Divider(color: Colors.white24, height: 1),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () => Navigator.of(context).pop({
+                          'action': LevelCompletionAction.reviewSolution,
+                          'shouldUnlock': true,
+                        }),
+                        icon: const Icon(Icons.menu_book, size: 16),
+                        label: const Text('Review'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF5D5FE6),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () => Navigator.of(context).pop({
+                          'action': LevelCompletionAction.levelSelect,
+                          'shouldUnlock': true,
+                        }),
+                        icon: const Icon(Icons.grid_view, size: 16),
+                        label: const Text('Level Select'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () => Navigator.of(context).pop({
+                          'action': LevelCompletionAction.nextLevel,
+                          'shouldUnlock': true,
+                        }),
+                        icon: const Icon(Icons.arrow_forward, size: 16),
+                        label: const Text('Next Level'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-          content: Text(
-            'Congratulations! You\'ve successfully solved the puzzle.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16),
-          ),
-          actionsAlignment: MainAxisAlignment.center,
-          actions: <Widget>[
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.of(context).pop({
-                  'action': LevelCompletionAction.reviewSolution,
-                  'shouldUnlock': true, // Indicate that the level should be unlocked
-                }); // Close dialog
-              },
-              icon: const Icon(Icons.list),
-              label: const Text('Review Solution'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.blueGrey,
-                side: const BorderSide(color: Colors.blueGrey),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-            const SizedBox(height: 10), // Space between buttons
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.of(context).pop({
-                  'action': LevelCompletionAction.levelSelect,
-                  'shouldUnlock': true, // Next level implies unlock
-                }); // Close dialog
-              },
-              icon: const Icon(Icons.list),
-              label: const Text('Level Select'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.blueGrey,
-                side: const BorderSide(color: Colors.blueGrey),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-            const SizedBox(height: 10), // Space between buttons
-            ElevatedButton.icon(
-              onPressed: () {
-                debugPrint('Going to the next level.');
-                Navigator.of(context).pop({
-                  'action': LevelCompletionAction.nextLevel,
-                  'shouldUnlock': true, // Next level implies unlock
-                }); // Close dialog
-              },
-              icon: const Icon(Icons.arrow_forward),
-              label: const Text('Next Level'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-          ],
         );
       },
+    );
+  }
+
+  void _showConceptIntro(String intro) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF2D2E40),
+        title: const Text('Before you start',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Text(intro,
+            style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.5)),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5D5FE6)),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Got it →', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNextHint() {
+    final nextIndex = _currentHintIndex + 1;
+    if (nextIndex >= _hints.length) return;
+    setState(() => _currentHintIndex = nextIndex);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF2D2E40),
+        title: Text('Hint ${nextIndex + 1} / ${_hints.length}',
+            style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+        content: Text(_hints[nextIndex],
+            style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.5)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK', style: TextStyle(color: Colors.blueAccent)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -701,11 +839,22 @@ class _QuantumComposerState extends State<QuantumComposer> {
           TextButton.icon(
             onPressed: _clearCircuit,
             icon: Icon(Icons.cleaning_services),
-            label: Text('Clear'), // Shorten text for AppBar
+            label: Text('Clear'),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.white, // White text color
+              foregroundColor: Colors.white,
             ),
           ),
+          if (_hints.isNotEmpty && !runningAsQuantumComposer())
+            TextButton.icon(
+              onPressed: _currentHintIndex < _hints.length - 1 ? _showNextHint : null,
+              icon: const Icon(Icons.lightbulb_outline),
+              label: Text(_currentHintIndex < 0
+                  ? 'Hint'
+                  : 'Hint ${_currentHintIndex + 1}/${_hints.length}'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.amber,
+              ),
+            ),
         ],
         // ****************************
       ),
@@ -918,34 +1067,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
                                     thumbVisibility: true,
                                     child: SingleChildScrollView(
                                       controller: _taskTextScrollController, // <-- Assign controller to SingleChildScrollView
-                                      child: TeXWidget(
+                                      child: LatexText(
                                         math: _taskDescription,
-                                        textWidgetBuilder: (context, text) {
-                                          return TextSpan(
-                                            text: text,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 16,
-                                            ),
-                                          );
-                                        },
-                                        inlineFormulaWidgetBuilder: (context, inlineFormula) {
-                                          return TeX2SVG(
-                                            math: inlineFormula,
-                                            formulaWidgetBuilder: (context, svg) {
-                                              double displayFontSize = 16;
-                                              return SvgPicture.string(
-                                                svg,
-                                                colorFilter: const ColorFilter.mode(
-                                                    Colors.white, BlendMode.srcIn),
-                                                height: displayFontSize,
-                                                width: displayFontSize,
-                                                fit: BoxFit.contain,
-                                                alignment: Alignment.center,
-                                              );
-                                            },
-                                          );
-                                        },
+                                        textStyle: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                        ),
+                                        inlineMathHeight: 16,
                                       ),
                                     ),
                                   ),
@@ -967,6 +1095,11 @@ class _QuantumComposerState extends State<QuantumComposer> {
                               child: StateVectorDisplay(
                                 stateVector: _circuit.currentState.stateVector,
                                 numQubits: _numQubits,
+                                targetStateVector: runningAsQuantumComposer()
+                                    ? null
+                                    : _solutionVector
+                                        .map((col) => col.first)
+                                        .toList(),
                               ),
                             ),
                           ),

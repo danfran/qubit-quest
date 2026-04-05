@@ -4,6 +4,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:in_app_review/in_app_review.dart';
+import 'package:quantumquiz/screens/circuit_reading_screen.dart';
+import 'package:quantumquiz/screens/fill_the_gate_screen.dart';
+import 'package:quantumquiz/screens/mcq_screen.dart';
+import 'package:quantumquiz/screens/measurement_lab_screen.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/screens/webview_page.dart';
@@ -11,8 +15,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../models/qq_level.dart';
 import '../models/qq_levels.dart';
-
+import '../models/qq_levels_category.dart';
 class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => _HomePageState();
@@ -552,19 +557,43 @@ class _HomePageState extends State<HomePage> {
                   padding: EdgeInsets.zero,
                 ),
                 child: isUnlocked
-                    ? Text(
-                  '$levelNumber',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                )
+                    ? FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: SizedBox(
+                          width: 62,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '$levelNumber',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              if (allQQLevels[currentIndex].title != null)
+                                Text(
+                                  allQQLevels[currentIndex].title!,
+                                  style: const TextStyle(
+                                    fontSize: 8,
+                                    color: Colors.white70,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
+                        ),
+                      )
                     : Icon(
-                  Icons.lock,
-                  color: Colors.grey[600],
-                  size: 28,
-                ),
+                        Icons.lock,
+                        color: Colors.grey[600],
+                        size: 28,
+                      ),
               ),
             );
           },
@@ -574,8 +603,80 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // Route to the correct screen based on level type
+  Widget _screenForLevel(QQLevel level, int levelId) {
+    return switch (level) {
+      ComposerLevel l => QuantumComposer(
+          levelId: levelId,
+          level: l,
+          onLevelUnlocked: _updateMaxUnlockedLevel,
+        ),
+      FillTheGateLevel l => FillTheGateScreen(
+          levelId: levelId,
+          level: l,
+          onLevelUnlocked: _updateMaxUnlockedLevel,
+        ),
+      CircuitReadingLevel l => CircuitReadingScreen(
+          levelId: levelId,
+          level: l,
+          onLevelUnlocked: _updateMaxUnlockedLevel,
+        ),
+      McqLevel l => McqScreen(
+          levelId: levelId,
+          level: l,
+          onLevelUnlocked: _updateMaxUnlockedLevel,
+        ),
+      MeasurementLabLevel l => MeasurementLabScreen(
+          levelId: levelId,
+          level: l,
+          onLevelUnlocked: _updateMaxUnlockedLevel,
+        ),
+    };
+  }
+
+  // Show category intro dialog once per category (tracked in SharedPreferences)
+  Future<void> _showCategoryIntroIfNeeded(int levelNumber) async {
+    final category = groupedLevels.cast<QQLevelsCategory?>().firstWhere(
+          (c) => c != null && (c.from + 1) == levelNumber && c.categoryIntro != null,
+          orElse: () => null,
+        );
+    if (category == null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final seenKey = 'intro_seen_${category.groupName}';
+    if (prefs.getBool(seenKey) == true) return;
+    await prefs.setBool(seenKey, true);
+
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF2D2E40),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          category.groupName,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          category.categoryIntro!,
+          style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.6),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF5D5FE6),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text("Let's go →", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _playLevelSequence(int levelNumber, BuildContext context) async {
-    int currentLevelToPlay = levelNumber; // Start with the level that was tapped
+    int currentLevelToPlay = levelNumber;
     bool continueLevelChain = true;
 
     while (continueLevelChain) {
@@ -583,37 +684,32 @@ class _HomePageState extends State<HomePage> {
 
       if (levelData == null) {
         debugPrint('HomePage: Error: Level $currentLevelToPlay data not found. Exiting chain.');
-        _showGameCompleteDialog(); // Or an error message
-        continueLevelChain = false; // Stop the loop
-        break; // Exit the loop
+        _showGameCompleteDialog();
+        continueLevelChain = false;
+        break;
       }
 
-      debugPrint('HomePage: Pushing QuantumComposerScreen for Level $currentLevelToPlay...');
-      // Push the QuantumComposerScreen and AWAIT its result
+      // Show category intro once if this is the first level of a category
+      await _showCategoryIntroIfNeeded(currentLevelToPlay);
+      if (!mounted) break;
+
+      debugPrint('HomePage: Pushing screen for Level $currentLevelToPlay (${levelData.runtimeType})...');
       final result = await Navigator.push<LevelCompletionAction>(
         context,
         MaterialPageRoute(
-          builder: (context) => QuantumComposer(
-            levelId: currentLevelToPlay,
-            level: levelData,
-            onLevelUnlocked: _updateMaxUnlockedLevel, // Pass the entire Level object
-          ),
+          builder: (context) => _screenForLevel(levelData, currentLevelToPlay),
         ),
       );
 
-      debugPrint('HomePage: Returned from Composer (Level $currentLevelToPlay) with result: $result');
+      debugPrint('HomePage: Returned from Level $currentLevelToPlay with result: $result');
 
       if (result == LevelCompletionAction.nextLevel) {
-        currentLevelToPlay++; // Increment to load the next level in the loop
-        debugPrint('HomePage: Preparing to load next level: $currentLevelToPlay');
+        currentLevelToPlay++;
       } else if (result == LevelCompletionAction.levelSelect) {
-        debugPrint('HomePage: User chose Level Select. Exiting chain.');
         continueLevelChain = false;
       } else if (result == LevelCompletionAction.reviewSolution) {
-        debugPrint('HomePage: User chose Review Solution. Exiting chain.');
         continueLevelChain = false;
-      } else { // result is LevelCompletionAction.none, or null (back button)
-        debugPrint('HomePage: User chose Back/None. Exiting chain.');
+      } else {
         continueLevelChain = false;
       }
     }

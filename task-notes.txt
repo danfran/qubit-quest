@@ -1,0 +1,125 @@
+=== solutionExplanation Review — Levels ===
+
+--- LEVEL 1 (Bit Flip) — Minor / Misleading ---
+File: lib/models/qq_levels.dart, line 32
+Text: "every quantum gate is its own inverse (or has one)"
+Issue: Misleading phrasing. Many gates (T, S, Rx with angle ≠ π) are NOT self-inverse.
+       The correct statement is "every quantum gate is invertible (unitary), though not
+       every gate is its own inverse." The current wording implies most gates are
+       self-inverse, which contradicts the T and S gates introduced later.
+Suggestion: Replace with "every quantum gate is unitary and therefore invertible — X
+       happens to be its own inverse (X² = I), a property called being self-inverse."
+
+--- LEVEL 4 (The i-State) — ERROR 1 ---
+File: lib/models/qq_levels.dart, line 102
+Text: "producing the so-called |i⟩ state (also written |R⟩)"
+Issue: WRONG label. The |R⟩ (right-circular) state is conventionally defined as the
+       equatorial superposition (|0⟩ + i|1⟩)/√2. This is the state produced in Level 8
+       (S Gate). The state Y|0⟩ = i|1⟩ is merely |1⟩ with a global phase of i, which is
+       physically indistinguishable from |1⟩ — it is NOT |R⟩.
+Suggestion: Remove "(also written |R⟩)". The level's own notation "|i⟩" is fine as an
+       internal game label, but equating it to |R⟩ is factually wrong.
+
+--- LEVEL 4 (The i-State) — ERROR 2 ---
+File: lib/models/qq_levels.dart, line 103
+Text: "This is a 90° rotation around the Y-axis of the Bloch sphere."
+Issue: WRONG angle. The Pauli Y gate equals i·Ry(π), which is a 180° (π) rotation around
+       the Y-axis of the Bloch sphere (up to global phase). A 90° Y-axis rotation is
+       Ry(π/2), which produces (|0⟩+|1⟩)/√2 from |0⟩ — a completely different state.
+Suggestion: Replace "90°" with "180°":
+       "This is a 180° rotation around the Y-axis of the Bloch sphere (Y = i·Ry(π))."
+
+--- LEVEL 17 (Uncomputing with CNOT) — ERROR ---
+File: lib/models/qq_levels.dart, line 444
+Text: "Two gates are sufficient. Note the alternative order also works: X on Q0 first
+       gives |01⟩, then CNOT(Q0→Q1) leaves it as |01⟩ (Q0=0 now — wrong!)."
+Issue: Self-contradictory sentence. "Note the alternative order also works:" is
+       immediately followed by a demonstration that it does NOT work (stuck at |01⟩ ≠ |00⟩).
+Suggestion: Replace "also works" with "does NOT work":
+       "Note the alternative order does NOT work: X on Q0 first gives |01⟩, then
+       CNOT(Q0→Q1) leaves it as |01⟩ (Q0=0, condition never triggers — wrong!)."
+
+--- LEVEL 18 (Toffoli Gate CCX) — ERROR ---
+File: lib/models/qq_levels.dart, line 476
+Text: "The Toffoli gate is the simplest gate that cannot be simulated efficiently classically."
+Issue: Factually WRONG. The Toffoli gate is a deterministic conditional NOT — a classical
+       computer simulates it in O(1). Classical simulation of the Toffoli gate is trivial.
+       The conceptIntro for the same level already states the correct fact: "Toffoli is
+       universal for classical reversible computation."
+Suggestion: Replace the sentence with the correct claim, e.g.:
+       "Toffoli (CCX) combined with the Hadamard gate forms a universal gate set for
+       quantum computation, and on its own it is universal for classical reversible logic."
+
+--- LEVEL 29 (Conditional Phase Flip) — ERROR ---
+File: lib/models/qq_levels.dart, line 852
+Text: "Full circuit: H(Q0), H(Q1), CNOT, H(Q1) — or equivalently H(Q0), CNOT, H(Q1) from |00⟩."
+Issue: The two circuits claimed to be equivalent are NOT equivalent, and the "Full circuit"
+       is wrong. Tracing H(Q0), H(Q1), CNOT, H(Q1) from |00⟩:
+         H(Q0) → (|00⟩+|10⟩)/√2
+         H(Q1) → (|00⟩+|01⟩+|10⟩+|11⟩)/2  [uniform superposition]
+         CNOT   → still uniform (CNOT is a permutation; the uniform state is invariant)
+         H(Q1)  → (|00⟩+|10⟩)/√2           [H·H=I collapses Q1 back to |0⟩]
+       This gives (|00⟩+|10⟩)/√2, NOT the target (|00⟩+|01⟩+|10⟩−|11⟩)/2.
+       The correct relationship is:
+         CZ = H(Q1)·CNOT·H(Q1), applied after uniform superposition H(Q0)·H(Q1):
+           H(Q0), H(Q1), H(Q1), CNOT, H(Q1)
+         = H(Q0), I, CNOT, H(Q1)           [since H(Q1)·H(Q1) = I]
+         = H(Q0), CNOT, H(Q1)              ← the correct 3-gate circuit
+Suggestion: Replace the "Full circuit" line with:
+       "The explicit decomposition CZ = H(Q1)·CNOT·H(Q1), applied after the uniform
+       superposition H(Q0)·H(Q1), gives a 5-gate sequence that simplifies (H·H=I)
+       to: H(Q0), CNOT, H(Q1) from |00⟩."
+
+--- LEVEL 37 (GHZ State with Phase) — ERROR ---
+File: lib/models/qq_levels.dart, lines 1152–1153
+Text: "This 'GHZ with a phase' state is one of the 8 maximally-entangled 3-qubit states
+       used as logical qubits in the [[3,1,1]] quantum error-correcting code."
+Issue: Factually WRONG on two counts.
+       1. The [[3,1,1]] code (3 physical qubits, 1 logical qubit, distance 1) uses
+          |000⟩ as |0⟩_L and |111⟩ as |1⟩_L — plain computational basis states, NOT
+          GHZ-class superpositions. The state (|000⟩−|111⟩)/√2 is simply the logical
+          |−⟩_L superposition of those two codewords; it is not itself called "a logical
+          qubit" in that code.
+       2. The [[3,1,1]] code has distance d=1, meaning it cannot correct any errors
+          (it can only detect 1 error). Calling it a useful error-correcting code is
+          misleading.
+       The 8 GHZ-class states are not defined or used as "logical qubits" in the
+       [[3,1,1]] repetition code — they appear in quantum secret sharing, multipartite
+       entanglement protocols, and tests of quantum nonlocality.
+Suggestion: Replace the last sentence with:
+       "GHZ-class states form a complete, maximally-entangled basis for 3-qubit Hilbert
+       space and appear in quantum secret sharing and quantum communication protocols."
+
+--- LEVEL 46 (Precise Bloch Sphere Navigation) — ERROR 1 ---
+File: lib/models/qq_levels.dart, line 1490
+Text: "Both amplitudes end up equal (e^(−iπ/8)/√2)."
+Issue: WRONG. Applying Ry(π/4) then Rx(π/2) to |0⟩ gives TWO DIFFERENT amplitudes:
+       Component 0: (cos(π/8) − i·sin(π/8))/√2 = e^(−iπ/8)/√2 ≈ 0.653 − 0.271i
+       Component 1: (sin(π/8) − i·cos(π/8))/√2 = e^(−i3π/8)/√2 ≈ 0.271 − 0.653i
+       These have equal magnitude (both 1/√2) but different phases (−π/8 vs −3π/8).
+       They are NOT both equal to e^(−iπ/8)/√2. The same error appears in the hint
+       at line 1483: "the result is (cos(π/8)−i·sin(π/8))/√2 on both components."
+       The solutionFinalVector is also wrong as a consequence: Component 1 is set to
+       Complex(sqrt1_2*cos(π/8), −sqrt1_2*sin(π/8)) but should be
+       Complex(sqrt1_2*sin(π/8), −sqrt1_2*cos(π/8)).
+Suggestion: Correct the solutionExplanation to:
+       "Component 0: (cos(π/8)−i·sin(π/8))/√2 = e^(−iπ/8)/√2.
+        Component 1: (sin(π/8)−i·cos(π/8))/√2 = e^(−i3π/8)/√2.
+        Both have equal magnitude 1/√2 but differ in phase by π/4."
+       Also fix solutionFinalVector Component 1 to
+       Complex(sqrt1_2 * math.sin(math.pi / 8), -sqrt1_2 * math.cos(math.pi / 8)).
+
+--- LEVEL 46 (Precise Bloch Sphere Navigation) — ERROR 2 ---
+File: lib/models/qq_levels.dart, lines 1491–1492
+Text: "This two-gate decomposition Ry·Rx is the final form of the Euler rotation
+       U = Rz·Ry·Rz — here Rz(0) is trivial."
+Issue: WRONG. Setting Rz(0) = I in the Euler decomposition Rz(α)·Ry(β)·Rz(γ) gives
+       I·Ry·I = Ry alone — it does NOT reduce to Ry·Rx. Rx and Rz are rotations
+       around different axes; one cannot become the other by setting an angle to zero.
+       Ry·Rx is a valid two-axis decomposition but it is NOT a degenerate case of
+       the ZYZ Euler decomposition.
+Suggestion: Replace with a correct statement, e.g.:
+       "Two rotations around different axes can reach any point on the Bloch sphere.
+        Any single-qubit gate has a ZYZ Euler decomposition Rz(α)·Ry(β)·Rz(γ);
+        Ry·Rx here is an alternative two-axis factorisation for this specific target."
+
