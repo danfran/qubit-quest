@@ -1,6 +1,6 @@
 import 'package:advance_math/advance_math.dart';
-import 'package:flutter_tex/flutter_tex.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/screens/operator_matrix_dialog.dart';
@@ -10,6 +10,7 @@ import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialo
 import 'package:quantumquiz/screens/webview_page.dart';
 import 'package:quantumquiz/utils/complex_formatter.dart';
 import 'package:quantumquiz/utils/qq_fraction.dart';
+import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
@@ -1066,34 +1067,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
                                     thumbVisibility: true,
                                     child: SingleChildScrollView(
                                       controller: _taskTextScrollController, // <-- Assign controller to SingleChildScrollView
-                                      child: TeXWidget(
+                                      child: LatexText(
                                         math: _taskDescription,
-                                        textWidgetBuilder: (context, text) {
-                                          return TextSpan(
-                                            text: text,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 16,
-                                            ),
-                                          );
-                                        },
-                                        inlineFormulaWidgetBuilder: (context, inlineFormula) {
-                                          return TeX2SVG(
-                                            math: inlineFormula,
-                                            formulaWidgetBuilder: (context, svg) {
-                                              double displayFontSize = 16;
-                                              return SvgPicture.string(
-                                                svg,
-                                                colorFilter: const ColorFilter.mode(
-                                                    Colors.white, BlendMode.srcIn),
-                                                height: displayFontSize,
-                                                width: displayFontSize,
-                                                fit: BoxFit.contain,
-                                                alignment: Alignment.center,
-                                              );
-                                            },
-                                          );
-                                        },
+                                        textStyle: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                        ),
+                                        inlineMathHeight: 16,
                                       ),
                                     ),
                                   ),
