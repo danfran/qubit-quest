@@ -4,7 +4,7 @@
   "version": "1.1.2+20",
   "flutter_branch": "new_improvements",
   "description": "Educational quantum computing app with 5 learning modes: circuit composer puzzles, MCQ concept checks, fill-the-gate challenges, circuit reading analysis, and measurement probability labs.",
-  "notes": "Update completed_levels and pending_goals after each session. All level IDs are 1-based (level 1 = allQQLevels[0]). Videos released for composer levels 1–23: DO NOT renumber or change those levels. New level types are appended after index 45 (level 46). All 116 tests pass. Zero analyzer errors.",
+  "notes": "Update completed_levels and pending_goals after each session. All level IDs are 1-based (level 1 = allQQLevels[0]). Videos released for composer levels 1–23: DO NOT renumber or change those levels. New level types are appended after index 45 (level 46). All 116 tests pass. Zero analyzer errors. LaTeX rendering fixed across all screens via LatexText widget (lib/widgets/latex_text.dart) — replaces broken TeXWidget from flutter_tex which had a missing | in its delimiter regex.",
 
   "architecture": {
     "level_model": "lib/models/qq_level.dart — sealed class QQLevel with 5 subclasses: ComposerLevel, McqLevel, FillTheGateLevel, CircuitReadingLevel, MeasurementLabLevel. All have optional fields: title, conceptIntro, solutionExplanation, hints[].",
@@ -45,9 +45,7 @@
         "level title shown as subtitle in home-screen grid button"
       ],
       "pending_goals": [
-        "CONTENT [DONE]: Fix the solutions of the levels based on the review in task-notes.txt",
         "FEATURE: Bloch sphere widget for single-qubit state visualisation (levels 1–13, 40–46)",
-        "FEATURE [DONE]: Show target state vector alongside current state in StateVectorDisplay for direct comparison",
         "FEATURE: Long-press gate button to show its matrix and description (quantum_doc_dialog_TBR.dart has the skeleton — integrate it per-gate)",
         "FEATURE: Add a way to re-read the category intro after it has been dismissed (e.g. info icon in AppBar)"
       ],
@@ -134,11 +132,9 @@
   },
 
   "general_goals": [
-    "CONTENT [DONE]: conceptIntro, hints[], solutionExplanation written for all 54 levels (ComposerLevels 1–46 + MCQ/Lab/Fill/Reading 47–54)",
     "FEATURE: Bloch sphere widget for single-qubit state visualisation (new widget, significant effort)",
     "FEATURE: Per-gate long-press reference panel (gate matrix + plain-English description) — quantum_doc_dialog_TBR.dart has the TeX skeleton, needs wiring into the gate toolbar",
     "FEATURE: Add blankPosition/blankQubit to FillTheGateLevel and upgrade its circuit display to QuantumCircuitPainter",
-    "FEATURE [DONE]: Target state panel in StateVectorDisplay — show solution vector alongside current vector",
     "FEATURE: User progress analytics (levels attempted, hints used, wrong answers) — extend SharedPreferences tracking",
     "CLEANUP: quantum_doc_dialog_TBR.dart — either integrate as gate reference or delete",
     "CLEANUP: Resolve pre-existing warnings (unused imports in quantum_composer.dart, state_vector_display.dart, quantum_matrix.dart)"
@@ -182,6 +178,6 @@
     "analyzer_command": "flutter analyze --no-pub"
   },
 
-  "last_session": "2026-04-04_session1"
+  "last_session": "2026-04-05_session1"
 }
 
