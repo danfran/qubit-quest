@@ -1,7 +1,7 @@
 {
   "project": "Qubit-Quest",
   "app_id": "com.qubitquest",
-  "version": "1.1.2+20",
+  "version": "1.5.0+21",
   "flutter_branch": "new_improvements",
   "description": "Educational quantum computing app with 5 learning modes: circuit composer puzzles, MCQ concept checks, fill-the-gate challenges, circuit reading analysis, and measurement probability labs.",
   "notes": "Update completed_levels and pending_goals after each session. All level IDs are 1-based (level 1 = allQQLevels[0]). Videos released for composer levels 1–23: DO NOT renumber or change those levels. New level types are appended after index 45 (level 46). All 116 tests pass. Zero analyzer errors. LaTeX rendering fixed across all screens via LatexText widget (lib/widgets/latex_text.dart) — replaces broken TeXWidget from flutter_tex which had a missing | in its delimiter regex.",

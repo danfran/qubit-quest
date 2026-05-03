@@ -8,18 +8,17 @@ class QuantumMatrix {
   final Matrix _matrix;
 
   // Constructor now directly takes the List<List<Complex>>
-  QuantumMatrix(List<List<Complex>> elements)
-      : _matrix = Matrix(elements);
+  QuantumMatrix(List<List<Complex>> elements) : _matrix = Matrix(elements);
 
-  QuantumMatrix.fromMatrix(Matrix matrix)
-      : _matrix = matrix;
+  QuantumMatrix.fromMatrix(Matrix matrix) : _matrix = matrix;
 
   QuantumMatrix.transpose(List<List<Complex>> elements)
       : _matrix = Matrix(elements).transpose();
 
   // Utility to create common quantum gates
   factory QuantumMatrix.identity(int size) {
-    final List<List<Complex>> elements = List.generate(size, (i) => List.filled(size, Complex.zero()));
+    final List<List<Complex>> elements =
+        List.generate(size, (i) => List.filled(size, Complex.zero()));
     for (int i = 0; i < size; i++) {
       elements[i][i] = Complex.one();
     }
@@ -30,7 +29,10 @@ class QuantumMatrix {
     final complexSqrtHalf = Complex(sqrt1_2, 0);
     return QuantumMatrix([
       [complexSqrtHalf, complexSqrtHalf],
-      [complexSqrtHalf, Complex(-complexSqrtHalf.real, -complexSqrtHalf.imaginary)],
+      [
+        complexSqrtHalf,
+        Complex(-complexSqrtHalf.real, -complexSqrtHalf.imaginary)
+      ],
     ]);
   }
 
@@ -120,21 +122,26 @@ class QuantumMatrix {
     required int control,
     required int target,
   }) {
-    return QuantumMatrix.buildTwoQubitsGateOperator(control: control, target: target, targetOperator: QuantumMatrix.pauliZ());
+    return QuantumMatrix.buildTwoQubitsGateOperator(
+        control: control,
+        target: target,
+        targetOperator: QuantumMatrix.pauliZ());
   }
 
   factory QuantumMatrix.cnot({
     required int control,
     required int target,
   }) {
-    return QuantumMatrix.buildTwoQubitsGateOperator(control: control, target: target, targetOperator: QuantumMatrix.pauliX());
+    return QuantumMatrix.buildTwoQubitsGateOperator(
+        control: control,
+        target: target,
+        targetOperator: QuantumMatrix.pauliX());
   }
 
-  factory QuantumMatrix.buildTwoQubitsGateOperator({
-    required int control,
-    required int target,
-    required QuantumMatrix targetOperator
-  }) {
+  factory QuantumMatrix.buildTwoQubitsGateOperator(
+      {required int control,
+      required int target,
+      required QuantumMatrix targetOperator}) {
     // if (control < 0 || control >= nQubits || target < 0 || target >= nQubits) {
     //   throw ArgumentError("Control or target qubit index out of range (0 to ${nQubits - 1}).");
     // }
@@ -186,13 +193,15 @@ class QuantumMatrix {
 
     // Compute the tensor product for Term 0: I_{N-1} \otimes ... \otimes P0_control \otimes ... \otimes I_target \otimes ... \otimes I_0
     // Note: List is built from Q0 to Q_{N-1}. Kronecker product order is reversed (A \otimes B \otimes C for [C, B, A])
-    QuantumMatrix kronTerm0 = term0Ops[nQubits - 1]; // Start with the leftmost qubit (Q_{N-1})
+    QuantumMatrix kronTerm0 =
+        term0Ops[nQubits - 1]; // Start with the leftmost qubit (Q_{N-1})
     for (int i = nQubits - 2; i >= 0; i--) {
       kronTerm0 = kronTerm0.tensorProduct(term0Ops[i]);
     }
 
     // Compute the tensor product for Term 1: I_{N-1} \otimes ... \otimes P1_control \otimes ... \otimes X_target \otimes ... \otimes I_0
-    QuantumMatrix kronTerm1 = term1Ops[nQubits - 1]; // Start with the leftmost qubit (Q_{N-1})
+    QuantumMatrix kronTerm1 =
+        term1Ops[nQubits - 1]; // Start with the leftmost qubit (Q_{N-1})
     for (int i = nQubits - 2; i >= 0; i--) {
       kronTerm1 = kronTerm1.tensorProduct(term1Ops[i]);
     }
@@ -213,7 +222,8 @@ class QuantumMatrix {
     //   throw ArgumentError("Control or target qubit index out of range (0 to ${nQubits - 1}).");
     // }
     if (control1 == control2 || control1 == target || control2 == target) {
-      throw ArgumentError("Control and target qubits must be distinct for CCNOT.");
+      throw ArgumentError(
+          "Control and target qubits must be distinct for CCNOT.");
     }
 
     // should adapt control and target position relative to the number of qubits
@@ -278,7 +288,8 @@ class QuantumMatrix {
     // Helper function to compute the tensor product of a list of matrices
     // This maintains the little-endian convention (Q_N-1 \otimes ... \otimes Q_0)
     QuantumMatrix _computeFullTensorProduct(List<QuantumMatrix> ops) {
-      QuantumMatrix result = ops[nQubits - 1]; // Start with the highest indexed qubit (leftmost in tensor product)
+      QuantumMatrix result = ops[nQubits -
+          1]; // Start with the highest indexed qubit (leftmost in tensor product)
       for (int i = nQubits - 2; i >= 0; i--) {
         result = result.tensorProduct(ops[i]);
       }
@@ -304,9 +315,20 @@ class QuantumMatrix {
   Iterable<List> get rows => _matrix.rows;
   Iterable<List> get cols => _matrix.columns;
 
+  List<List<Complex>> toComplexList() {
+    return List.generate(
+      rowCount,
+      (row) => List.generate(
+        columnCount,
+        (col) => _matrix.row(row).getValueAt(col) as Complex,
+      ),
+    );
+  }
+
   // (a + ib) (c + id) = (ac - bd) + i(ad + bc)
-  Complex multiply(Complex x, Complex y) =>
-      Complex(x.real*y.real - x.imaginary*y.imaginary, x.real*y.imaginary + x.imaginary*y.real);
+  Complex multiply(Complex x, Complex y) => Complex(
+      x.real * y.real - x.imaginary * y.imaginary,
+      x.real * y.imaginary + x.imaginary * y.real);
 
   // Apply a quantum gate (matrix multiplication)
   // This will handle both matrix-matrix and matrix-vector multiplication
@@ -328,7 +350,8 @@ class QuantumMatrix {
     final newRows = rowCount * other.rowCount;
     final newCols = columnCount * other.columnCount;
 
-    final List<List<Complex>> resultElements = List.generate(newRows, (i) => List.filled(newCols, Complex.zero()));
+    final List<List<Complex>> resultElements =
+        List.generate(newRows, (i) => List.filled(newCols, Complex.zero()));
 
     for (int i = 0; i < rowCount; i++) {
       for (int j = 0; j < columnCount; j++) {
@@ -336,8 +359,10 @@ class QuantumMatrix {
 
         for (int r = 0; r < other.rowCount; r++) {
           for (int c = 0; c < other.columnCount; c++) {
-            final Complex elementB = other._matrix.row(r).getValueAt(c) as Complex;
-            resultElements[i * other.rowCount + r][j * other.columnCount + c] = multiply(elementA, elementB);
+            final Complex elementB =
+                other._matrix.row(r).getValueAt(c) as Complex;
+            resultElements[i * other.rowCount + r][j * other.columnCount + c] =
+                multiply(elementA, elementB);
           }
         }
       }
@@ -354,7 +379,8 @@ class QuantumMatrix {
       for (int j = 0; j < _matrix.columnCount; j++) {
         final Complex c1 = _matrix.row(i).getValueAt(j);
         final Complex c2 = other._matrix.row(i).getValueAt(j) as Complex;
-        if ((c1.real - c2.real).abs() > tolerance || (c1.imaginary - c2.imaginary).abs() > tolerance) {
+        if ((c1.real - c2.real).abs() > tolerance ||
+            (c1.imaginary - c2.imaginary).abs() > tolerance) {
           return false;
         }
       }

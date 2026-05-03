@@ -60,7 +60,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   String _currentInstructionMessage = "Drag a gate onto the circuit.";
 
-  final ValueNotifier<double> _circuitWidthNotifier = ValueNotifier<double>(0.0);
+  final ValueNotifier<double> _circuitWidthNotifier =
+      ValueNotifier<double>(0.0);
 
   late ScrollController _taskTextScrollController;
   late ScrollController _gatesScrollController;
@@ -116,17 +117,17 @@ class _QuantumComposerState extends State<QuantumComposer> {
       if (mode == SelectedGateType.delete) {
         _currentInstructionMessage = "Tap on a gate to delete it.";
       } else {
-        _currentInstructionMessage = "Drag a gate onto the circuit."; // Default message for drag mode
+        _currentInstructionMessage =
+            "Drag a gate onto the circuit."; // Default message for drag mode
       }
-
     });
     debugPrint('Interaction mode set to: $_currentMode');
   }
 
   // Method to handle a gate being dropped onto the circuit area
   Offset? _gatePositionToLocal(Offset offset) {
-    final RenderBox? renderBox = _gestureDetectorKey.currentContext
-        ?.findRenderObject() as RenderBox?;
+    final RenderBox? renderBox =
+        _gestureDetectorKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) {
       debugPrint('Error: Could not find RenderBox for GestureDetector.');
       return null;
@@ -138,8 +139,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
   // Method to handle a gate being dropped onto the circuit area
   Future<void> _handleGateDrop(DragTargetDetails<Gate> details) async {
     // Corrected: Use details.offset for the local drop position
-    debugPrint('Gate dropped at local position: ${details.offset}'); // localPosition relative to the DragTarget
-    debugPrint('Dropped gate type: ${details.data}'); // The data from the Draggable
+    debugPrint(
+        'Gate dropped at local position: ${details.offset}'); // localPosition relative to the DragTarget
+    debugPrint(
+        'Dropped gate type: ${details.data}'); // The data from the Draggable
 
     final localPosition = _gatePositionToLocal(details.offset);
 
@@ -154,7 +157,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
     final dropPosition = localPosition; // Use details.offset
 
     // Use the painter's logic to determine the qubit line and insertion position
-    final painter = QuantumCircuitPainter(_circuit, _circuitWidthNotifier, _draggingOffset, _draggingGate); // Painter knows layout constants
+    final painter = QuantumCircuitPainter(_circuit, _circuitWidthNotifier,
+        _draggingOffset, _draggingGate); // Painter knows layout constants
 
     // Determine the tapped qubit line based on the vertical drop position
     final tappedQubitLine = painter.getTappedQubitLine(dropPosition);
@@ -166,17 +170,21 @@ class _QuantumComposerState extends State<QuantumComposer> {
     }
 
     // Determine the horizontal insertion position based on the horizontal drop position
-    final insertionPosition = painter.getInsertionPosition(dropPosition); // <-- Need to implement this in Painter
+    final insertionPosition = painter.getInsertionPosition(
+        dropPosition); // <-- Need to implement this in Painter
 
     if (insertionPosition == null) {
-      debugPrint('Could not determine valid insertion position. Ignoring drop.');
+      debugPrint(
+          'Could not determine valid insertion position. Ignoring drop.');
       // Optionally provide feedback
       return;
     }
 
-    debugPrint('Dropped on Qubit line: $tappedQubitLine at insertion position: $insertionPosition');
+    debugPrint(
+        'Dropped on Qubit line: $tappedQubitLine at insertion position: $insertionPosition');
 
-    if (droppedGateType == SelectedGateType.cnot || droppedGateType == SelectedGateType.cz) {
+    if (droppedGateType == SelectedGateType.cnot ||
+        droppedGateType == SelectedGateType.cz) {
       // For CNOT/CZ drag and drop, we need to select control/target after dropping.
       // This is a more complex interaction. For simplicity in this initial drag/drop,
       // let's assume CNOT/CZ drag requires dropping the control part, and then
@@ -196,8 +204,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
       String gateLabel = droppedGate.label;
 
       if (_numQubits == 1) {
-        debugPrint('Cannot place $gateLabel on single qubit or invalid target.');
-          // Optionally provide feedback
+        debugPrint(
+            'Cannot place $gateLabel on single qubit or invalid target.');
+        // Optionally provide feedback
         return;
       } else if (_numQubits == 2) {
         if (tappedQubitLine == 0) {
@@ -205,66 +214,90 @@ class _QuantumComposerState extends State<QuantumComposer> {
         } else if (tappedQubitLine == 1) {
           controlQubitLine = 0;
         }
-      } else if (_numQubits > 2){
-        await _showCNOTTargetSelectionDialog(context, tappedQubitLine, _numQubits);
+      } else if (_numQubits > 2) {
+        await _showCNOTTargetSelectionDialog(
+            context, tappedQubitLine, _numQubits);
         if (_cnotControlQubit != null) {
           controlQubitLine = _cnotControlQubit;
         }
       }
 
       if (controlQubitLine != null && tappedQubitLine != controlQubitLine) {
-        debugPrint('$gateLabel placement (control line = $_cnotControlQubit and target line = $tappedQubitLine).');
-        _circuit.insertDoublePlacedGateAt(droppedGate, insertionPosition, tappedQubitLine, controlQubitLine);
-        debugPrint("Gate $gateLabel inserted at position $insertionPosition on qubits $tappedQubitLine and $controlQubitLine.");
+        debugPrint(
+            '$gateLabel placement (control line = $_cnotControlQubit and target line = $tappedQubitLine).');
+        _circuit.insertDoublePlacedGateAt(
+            droppedGate, insertionPosition, tappedQubitLine, controlQubitLine);
+        debugPrint(
+            "Gate $gateLabel inserted at position $insertionPosition on qubits $tappedQubitLine and $controlQubitLine.");
       } else {
-        debugPrint('Invalid $gateLabel placement (control == target or not enough qubits).');
+        debugPrint(
+            'Invalid $gateLabel placement (control == target or not enough qubits).');
         // Optionally provide feedback
         return;
       }
     } else if (droppedGateType == SelectedGateType.ccnot) {
-
       if (_numQubits < 3) {
-        debugPrint('Cannot place CCNOT on less than 3 qubits circuit or invalid target.');
+        debugPrint(
+            'Cannot place CCNOT on less than 3 qubits circuit or invalid target.');
         // Optionally provide feedback
         return;
       } else if (_numQubits >= 3) {
-        await _showCCNOTTargetSelectionDialog(context, tappedQubitLine, _numQubits);
+        await _showCCNOTTargetSelectionDialog(
+            context, tappedQubitLine, _numQubits);
       }
 
-      if (_ccnotControl1Qubit != null && _ccnotControl2Qubit != null && tappedQubitLine != _ccnotControl1Qubit && tappedQubitLine != _ccnotControl2Qubit) {
-        debugPrint('CCNOT placement (control line 1 = $_ccnotControl1Qubit, control line 2 = $_ccnotControl2Qubit and target line = $tappedQubitLine).');
-        _circuit.insertTriplePlacedGateAt(droppedGate, insertionPosition, tappedQubitLine, _ccnotControl1Qubit!, _ccnotControl2Qubit!);
-        debugPrint("Gate CCNOT inserted at position $insertionPosition on qubits $tappedQubitLine, $_ccnotControl1Qubit and $_ccnotControl2Qubit.");
+      if (_ccnotControl1Qubit != null &&
+          _ccnotControl2Qubit != null &&
+          tappedQubitLine != _ccnotControl1Qubit &&
+          tappedQubitLine != _ccnotControl2Qubit) {
+        debugPrint(
+            'CCNOT placement (control line 1 = $_ccnotControl1Qubit, control line 2 = $_ccnotControl2Qubit and target line = $tappedQubitLine).');
+        _circuit.insertTriplePlacedGateAt(droppedGate, insertionPosition,
+            tappedQubitLine, _ccnotControl1Qubit!, _ccnotControl2Qubit!);
+        debugPrint(
+            "Gate CCNOT inserted at position $insertionPosition on qubits $tappedQubitLine, $_ccnotControl1Qubit and $_ccnotControl2Qubit.");
       } else {
-        debugPrint('Invalid CCNOT placement (control == target or not enough qubits).');
+        debugPrint(
+            'Invalid CCNOT placement (control == target or not enough qubits).');
         // Optionally provide feedback
         return;
       }
-    } else if ((droppedGateType == SelectedGateType.rx || droppedGateType == SelectedGateType.ry || droppedGateType == SelectedGateType.rz) && widget.levelId == -1) {
+    } else if ((droppedGateType == SelectedGateType.rx ||
+            droppedGateType == SelectedGateType.ry ||
+            droppedGateType == SelectedGateType.rz) &&
+        widget.levelId == -1) {
       // if in the composer screen >> widget.levelId == -1
       await _showRotationAngleSetDialog(context);
       if (_rotationAngle != null) {
-        Gate updatedRotationGate = Gate.fromIdentifier(droppedGateType, angle: _rotationAngle!);
-        _circuit.insertSinglePlacedGateAt(updatedRotationGate, insertionPosition, tappedQubitLine);
+        Gate updatedRotationGate =
+            Gate.fromIdentifier(droppedGateType, angle: _rotationAngle!);
+        _circuit.insertSinglePlacedGateAt(
+            updatedRotationGate, insertionPosition, tappedQubitLine);
       }
-      debugPrint("Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
+      debugPrint(
+          "Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
     } else if (droppedGateType != SelectedGateType.draggedGate) {
-      _circuit.insertSinglePlacedGateAt(droppedGate, insertionPosition, tappedQubitLine);
-      debugPrint("Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
+      _circuit.insertSinglePlacedGateAt(
+          droppedGate, insertionPosition, tappedQubitLine);
+      debugPrint(
+          "Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
     }
 
     _runSimulation(); // Optionally run simulation after placing
   }
 
-  Future<void> _showCNOTTargetSelectionDialog(BuildContext context, int targetQubit, int numQubits) async {
+  Future<void> _showCNOTTargetSelectionDialog(
+      BuildContext context, int targetQubit, int numQubits) async {
     // Ensure dialog is not already shown
-    if (ModalRoute.of(context)?.isCurrent != true || Navigator.of(context).canPop() == false) {
+    if (ModalRoute.of(context)?.isCurrent != true ||
+        Navigator.of(context).canPop() == false) {
       // This is a crude check to avoid showing multiple dialogs.
       // A more robust solution might involve a global boolean or state for dialog visibility.
       return;
     }
 
-    final Map<String, dynamic>? selectedQubit = await showDialog<Map<String, dynamic>>(
+    final Map<String, dynamic>? selectedQubit =
+        await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (BuildContext dialogContext) {
         return TwoQubitsGateTargetQubitSelectionDialog(
@@ -279,13 +312,15 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   Future<void> _showRotationAngleSetDialog(BuildContext context) async {
     // Ensure dialog is not already shown
-    if (ModalRoute.of(context)?.isCurrent != true || Navigator.of(context).canPop() == false) {
+    if (ModalRoute.of(context)?.isCurrent != true ||
+        Navigator.of(context).canPop() == false) {
       // This is a crude check to avoid showing multiple dialogs.
       // A more robust solution might involve a global boolean or state for dialog visibility.
       return;
     }
 
-    final Map<String, dynamic>? selectedAngle = await showDialog<Map<String, dynamic>>(
+    final Map<String, dynamic>? selectedAngle =
+        await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (BuildContext dialogContext) {
         return RotationGateDialog();
@@ -295,15 +330,18 @@ class _QuantumComposerState extends State<QuantumComposer> {
     _rotationAngle = selectedAngle?['angle1'];
   }
 
-  Future<void> _showCCNOTTargetSelectionDialog(BuildContext context, int targetQubit, int numQubits) async {
+  Future<void> _showCCNOTTargetSelectionDialog(
+      BuildContext context, int targetQubit, int numQubits) async {
     // Ensure dialog is not already shown
-    if (ModalRoute.of(context)?.isCurrent != true || Navigator.of(context).canPop() == false) {
+    if (ModalRoute.of(context)?.isCurrent != true ||
+        Navigator.of(context).canPop() == false) {
       // This is a crude check to avoid showing multiple dialogs.
       // A more robust solution might involve a global boolean or state for dialog visibility.
       return;
     }
 
-    final Map<String, dynamic>? selectedQubits = await showDialog<Map<String, dynamic>>(
+    final Map<String, dynamic>? selectedQubits =
+        await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (BuildContext dialogContext) {
         return ThreeQubitsGateTargetQubitsSelectionDialog(
@@ -332,7 +370,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
   final GlobalKey _gestureDetectorKey = GlobalKey();
   // *****************************************
 
-
   void _handleCircuitTap(TapDownDetails details) {
     debugPrint('Tap detected.');
     // final localPosition = _gatePositionToLocal(details.globalPosition);
@@ -345,8 +382,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
     debugPrint('Local tap position: $localPosition');
 
     // Create a temporary painter instance for hit testing
-    final painter = QuantumCircuitPainter(_circuit, _circuitWidthNotifier, _draggingOffset, _draggingGate);
-
+    final painter = QuantumCircuitPainter(
+        _circuit, _circuitWidthNotifier, _draggingOffset, _draggingGate);
 
     if (_currentMode == SelectedGateType.delete) {
       debugPrint('In delete mode.');
@@ -356,10 +393,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
       if (gateRemoved) {
         _runSimulation(); // Update simulation after deletion
         setState(() {
-          _currentMode = SelectedGateType.none; // Reset mode after successful deletion
+          _currentMode =
+              SelectedGateType.none; // Reset mode after successful deletion
           _currentInstructionMessage = "Gate deleted."; // Reset message
         });
-
       } else {
         debugPrint('Gate not deleted.');
         setState(() {
@@ -408,10 +445,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   Future<void> _checkLevelCompletion() async {
     // Only check if not already completed to avoid re-triggering
-    // expect(circuit.currentState.state.rawMatrix, Matrix(level.solutionFinalVector));
-    bool match = _circuit.currentState.state.almostEqualTo(QuantumMatrix(_solutionVector));
+    bool match = widget.level.validateCircuit(_circuit);
     if (match) {
-      final dialogResult = await _showLevelCompleteDialog(); // Trigger success actions
+      final dialogResult =
+          await _showLevelCompleteDialog(); // Trigger success actions
 
       if (dialogResult != null) {
         final LevelCompletionAction action = dialogResult['action'];
@@ -432,7 +469,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
         } else if (action == LevelCompletionAction.reviewSolution) {
           // If user chose to review, pop the composer screen and return to HomePage.
           // HomePage will then simply be visible again.
-          debugPrint("Review solution selected. Staying on QuantumComposerScreen.");
+          debugPrint(
+              "Review solution selected. Staying on QuantumComposerScreen.");
         } else {
           // Default case: dialog might have been dismissed without a specific action
           // (e.g., tapping outside if barrierDismissible was true, or system back button on dialog).
@@ -456,8 +494,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
         final double maxHeight = MediaQuery.of(context).size.height - 80;
         return Dialog(
           backgroundColor: Colors.grey[800],
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
             child: ConstrainedBox(
@@ -465,13 +505,15 @@ class _QuantumComposerState extends State<QuantumComposer> {
               child: Column(
                 // mainAxisSize: max — lets Expanded children work correctly
                 children: [
-
                   // ── Fixed header ──────────────────────────────────────────
                   const Icon(Icons.check_circle, color: Colors.green, size: 48),
                   const SizedBox(height: 6),
                   const Text(
                     'Level Complete!',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        color: Colors.white),
                   ),
                   const SizedBox(height: 12),
                   const Divider(color: Colors.white24, height: 1),
@@ -483,19 +525,22 @@ class _QuantumComposerState extends State<QuantumComposer> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-
                         // Left 35% — fixed congratulations (vertically centred)
                         Expanded(
                           flex: 35,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: const [
-                              Icon(Icons.emoji_events, color: Colors.amber, size: 36),
+                              Icon(Icons.emoji_events,
+                                  color: Colors.amber, size: 36),
                               SizedBox(height: 10),
                               Text(
                                 'Congratulations!\nYou\'ve successfully solved the puzzle.',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(fontSize: 13, color: Colors.white70, height: 1.4),
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.white70,
+                                    height: 1.4),
                               ),
                             ],
                           ),
@@ -504,7 +549,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
                         // Vertical divider
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 12),
-                          child: VerticalDivider(color: Colors.white24, width: 1),
+                          child:
+                              VerticalDivider(color: Colors.white24, width: 1),
                         ),
 
                         // Right 65% — solution fills all available height
@@ -570,8 +616,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF5D5FE6),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
                       ElevatedButton.icon(
@@ -584,8 +632,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orange,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
                       ElevatedButton.icon(
@@ -598,8 +648,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
                     ],
@@ -621,12 +673,15 @@ class _QuantumComposerState extends State<QuantumComposer> {
         title: const Text('Before you start',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: Text(intro,
-            style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.5)),
+            style: const TextStyle(
+                color: Colors.white70, fontSize: 15, height: 1.5)),
         actions: [
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5D5FE6)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5D5FE6)),
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Got it →', style: TextStyle(color: Colors.white)),
+            child:
+                const Text('Got it →', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -642,9 +697,11 @@ class _QuantumComposerState extends State<QuantumComposer> {
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF2D2E40),
         title: Text('Hint ${nextIndex + 1} / ${_hints.length}',
-            style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+            style: const TextStyle(
+                color: Colors.amber, fontWeight: FontWeight.bold)),
         content: Text(_hints[nextIndex],
-            style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.5)),
+            style: const TextStyle(
+                color: Colors.white70, fontSize: 15, height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -690,12 +747,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }
 
   void _showOperatorMatrixDialog() {
-    final String teXMatrix = _formatMatrixForTeX(_circuit.getOverallCircuitMatrix());
+    final String teXMatrix =
+        _formatMatrixForTeX(_circuit.getOverallCircuitMatrix());
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return OperatorMatrixDialog(numQubits: _numQubits, teXMatrix: teXMatrix);
+        return OperatorMatrixDialog(
+            numQubits: _numQubits, teXMatrix: teXMatrix);
       },
     );
   }
@@ -722,7 +781,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }
 
   void _updateScrollButtonStates() {
-    if (!_gatesScrollController.hasClients) return; // Ensure controller is attached to a view
+    if (!_gatesScrollController.hasClients)
+      return; // Ensure controller is attached to a view
     final position = _gatesScrollController.position;
 
     // Debug prints (helpful to see the values if issues persist)
@@ -735,13 +795,16 @@ class _QuantumComposerState extends State<QuantumComposer> {
     debugPrint('---');
 
     // Determine if there's content to scroll before the current view
-    bool newCanScrollLeft = position.extentBefore > 0.1; // If > 0.1, there's content to the left
+    bool newCanScrollLeft =
+        position.extentBefore > 0.1; // If > 0.1, there's content to the left
 
     // Determine if there's content to scroll after the current view
-    bool newCanScrollRight = position.extentAfter > 0.1; // If > 0.1, there's content to the right
+    bool newCanScrollRight =
+        position.extentAfter > 0.1; // If > 0.1, there's content to the right
 
     // Only call setState if the scrollability state has actually changed
-    if (_canScrollLeft != newCanScrollLeft || _canScrollRight != newCanScrollRight) {
+    if (_canScrollLeft != newCanScrollLeft ||
+        _canScrollRight != newCanScrollRight) {
       setState(() {
         _canScrollLeft = newCanScrollLeft;
         _canScrollRight = newCanScrollRight;
@@ -761,358 +824,467 @@ class _QuantumComposerState extends State<QuantumComposer> {
   void _scrollLeft() {
     if (!_gatesScrollController.hasClients) return;
     double scrollAmount = _gatesScrollController.position.viewportDimension;
-    _scroll(-scrollAmount/3);
+    _scroll(-scrollAmount / 3);
   }
 
   void _scrollRight() {
     if (!_gatesScrollController.hasClients) return;
     double scrollAmount = _gatesScrollController.position.viewportDimension;
-    _scroll(scrollAmount/3);
+    _scroll(scrollAmount / 3);
   }
-
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: Color(0xFF1E1E2C),
-      // Modify the AppBar
-      appBar: AppBar(
-        backgroundColor: Color(0xFF1E1E2C), // Dark app bar
-        scrolledUnderElevation: 0.0, // Prevent elevation change on scroll
-        surfaceTintColor: Colors.transparent, // Prevent color tinting on scroll
-        title: Row( // Use a Row to hold multiple widgets
-          mainAxisSize: MainAxisSize.min, // Make the row take minimal horizontal space
-          children: [
-            SvgPicture.asset(
-              'assets/images/logo_mini.svg', // Path to your white SVG logo
-              height: 32, // Adjust the height to fit nicely in the AppBar
-              colorFilter: ColorFilter.mode(
-                Colors.white,
-                BlendMode.srcIn,
-              ), // Ensure the SVG is white
-            ),
-            SizedBox(width: 8), // Add some spacing between the logo and the text
-            Text(
-              runningAsQuantumComposer() ? "Composer" : "Level ${widget.levelId}", // Keep your dynamic level text
-              style: TextStyle(
-                fontSize: 28, // Adjust font size as needed
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+        // Modify the AppBar
+        appBar: AppBar(
+          backgroundColor: Color(0xFF1E1E2C), // Dark app bar
+          scrolledUnderElevation: 0.0, // Prevent elevation change on scroll
+          surfaceTintColor:
+              Colors.transparent, // Prevent color tinting on scroll
+          title: Row(
+            // Use a Row to hold multiple widgets
+            mainAxisSize:
+                MainAxisSize.min, // Make the row take minimal horizontal space
+            children: [
+              SvgPicture.asset(
+                'assets/images/logo_mini.svg', // Path to your white SVG logo
+                height: 32, // Adjust the height to fit nicely in the AppBar
+                colorFilter: ColorFilter.mode(
+                  Colors.white,
+                  BlendMode.srcIn,
+                ), // Ensure the SVG is white
               ),
-            ),
-          ],
-        ),
-        // ** Add the actions list here **
-        actions: [
-          // Run Simulation Button (as TextButton)
-          TextButton.icon(
-            onPressed: _showOperatorMatrixDialog,
-            icon: Icon(Icons.grid_on),
-            label: Text('Operator Matrix'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white, // White icon/text color for contrast on AppBar
-              // You might adjust padding if needed to fit
-              // padding: EdgeInsets.symmetric(horizontal: 8.0),
-            ),
-          ),
-          TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) =>
-                  const WebViewPage(
-                    title: 'Quantum Fundamentals',
-                    url: 'https://danfran.github.io/qubit-quest/quantum-fundamentals.html',
-                  ),
+              SizedBox(
+                  width: 8), // Add some spacing between the logo and the text
+              Text(
+                runningAsQuantumComposer()
+                    ? "Composer"
+                    : "Level ${widget.levelId}", // Keep your dynamic level text
+                style: TextStyle(
+                  fontSize: 28, // Adjust font size as needed
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
-              );
-            },
-            icon: Icon(Icons.book),
-            label: Text('Quantum Fundamentals'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white, // White icon/text color for contrast on AppBar
-              // You might adjust padding if needed to fit
-              // padding: EdgeInsets.symmetric(horizontal: 8.0),
-            ),
+              ),
+            ],
           ),
-          TextButton.icon(
-            onPressed: _clearCircuit,
-            icon: Icon(Icons.cleaning_services),
-            label: Text('Clear'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
-            ),
-          ),
-          if (_hints.isNotEmpty && !runningAsQuantumComposer())
+          // ** Add the actions list here **
+          actions: [
+            // Run Simulation Button (as TextButton)
             TextButton.icon(
-              onPressed: _currentHintIndex < _hints.length - 1 ? _showNextHint : null,
-              icon: const Icon(Icons.lightbulb_outline),
-              label: Text(_currentHintIndex < 0
-                  ? 'Hint'
-                  : 'Hint ${_currentHintIndex + 1}/${_hints.length}'),
+              onPressed: _showOperatorMatrixDialog,
+              icon: Icon(Icons.grid_on),
+              label: Text('Operator Matrix'),
               style: TextButton.styleFrom(
-                foregroundColor: Colors.amber,
+                foregroundColor: Colors
+                    .white, // White icon/text color for contrast on AppBar
+                // You might adjust padding if needed to fit
+                // padding: EdgeInsets.symmetric(horizontal: 8.0),
               ),
             ),
-        ],
-        // ****************************
-      ),
-      body: SafeArea(child: Column( // Main Column stacking the top section and controls
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded( // This Expanded makes the Row take available vertical space
-            child: Row( // <-- Main Row for Circuit and Histogram side-by-side
-              children: [
-                // Circuit Visualization (Left - 70% width)
-                Expanded(
-                  flex: 7, // Allocate 70% width
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-                  Expanded(child: Container( // Container for padding
-                    // color: Colors.grey[900],
-                    decoration: BoxDecoration(
-                        shape: BoxShape.rectangle,
-                        color: Color(0xFF1E1E2C),
-                        border: Border.all(color: Color(0xFF4D4D5C), width: 1),
-                        borderRadius: BorderRadius.circular(12.0),
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const WebViewPage(
+                      title: 'Quantum Fundamentals',
+                      url:
+                          'https://danfran.github.io/qubit-quest/quantum-fundamentals.html',
                     ),
-                    padding: EdgeInsets.all(2.0),
-                    child: LayoutBuilder( // LayoutBuilder gets bounded constraints from Container/Expanded
-                        builder: (context, constraints) {
-                          debugPrint("  LayoutBuilder constraints: $constraints"); // Debug constraints
-                          final double availableContainerWidth = constraints.maxWidth;
-                          final double availableContainerHeight = constraints.maxHeight;
-                          debugPrint("  Available container size: Size($availableContainerWidth, $availableContainerHeight)"); // Debug available size
-
-
-                          // Calculate the minimum width needed based on the maximum position of placed gates
-                          final int maxPosition = _circuit.isCircuitEmpty() ? -1 : _circuit.placedGates.map((e) => e.length).reduce(max);
-                          // Add 2 for the next column and some extra space
-                          final double minRequiredWidth = (maxPosition + 3) * QuantumCircuitPainter.gateSpacing + QuantumCircuitPainter.padding * 2;
-
-
-                          final double sizedBoxWidth = max(minRequiredWidth, availableContainerWidth);
-                          // The height of the SizedBox should be fixed based on the number of qubits and spacing
-                          final double sizedBoxHeight = _numQubits * QuantumCircuitPainter.qubitSpacing + QuantumCircuitPainter.padding * 2;
-                          debugPrint("  Calculated SizedBox size: Size($sizedBoxWidth, $sizedBoxHeight)"); // Debug SizedBox size
-
-                          return DragTarget<Gate>( // DragTarget wraps the scrollable area
-                            // onWillAccept: (data) => data != null && data != SelectedGateType.delete, // Accept any gate type except delete
-                            onAcceptWithDetails: (details) {
-                              _handleGateDrop(details);
-                              _onDragLeave();
-                              }, // Handle the drop event
-                            onLeave: (data) {
-                              _onDragLeave();
-                              },
-                            onMove: (data) {
-                              _onDragEnter(data.offset, data.data);
-                            },
-                            onWillAcceptWithDetails: (details) {
-                              Gate data = details.data;
-                              _onDragEnter(details.offset, details.data);
-                              bool isNotDelete = data != null && data != SelectedGateType.delete;
-                              return isNotDelete;
-                            },
-                            builder: (context, candidateData, rejectedData) {
-                              // We can use the presence of candidateData to provide visual feedback
-                              bool isDraggingOver = candidateData.isNotEmpty;
-
-                              return GestureDetector( // GestureDetector wraps the scrollable area
-                                key: _gestureDetectorKey,
-                                onTapDown: _handleCircuitTap, // Tap handler for deletion
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  // ** Wrap CustomPaint in ConstrainedBox to force size **
-                                  child: CustomPaint(
-                                    painter: QuantumCircuitPainter(_circuit, _circuitWidthNotifier, _draggingOffset, _draggingGate), // Pass the circuit
-                                    child: ListenableBuilder(
-                                      listenable: _circuit, // Listen to the circuit object
-                                      builder: (context, child) {
-                                        debugPrint("ListenableBuilder rebuilding CustomPaint."); // Debug rebuild
-                                        return Container(
-                                            width: max(sizedBoxWidth, _circuitWidthNotifier.value),
-                                            // color: isDraggingOver ? Colors.white.withOpacity(0.1) : Colors.transparent, // Subtle overlay when dragging over
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        }
-                    ),
-                  )),
-
-            // Add Gates Buttons (This section remains)
-            Padding(
-              padding: const EdgeInsets.only(top:8.0, bottom:8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    Text("Add/Remove Gates:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    Spacer(),
-                    IconButton(
-                      icon: Icon(Icons.arrow_left, color: _canScrollLeft ? Colors.white : Colors.grey),
-                      onPressed: _canScrollLeft ? _scrollLeft : null,
-                      tooltip: 'Scroll Left',
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.arrow_right, color: _canScrollRight ? Colors.white : Colors.grey),
-                      onPressed: _canScrollRight ? _scrollRight : null,
-                      tooltip: 'Scroll Right',
-                    ),
-                  ]),
-                  // SizedBox(height: 8),
-                  Scrollbar(
-                    controller: _gatesScrollController, // <-- Assign controller to Scrollbar
-                    thumbVisibility: true,
-                    child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        controller: _gatesScrollController, // <-- Assign controller to Scrollbar
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () => _initDeletion(),
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize), // Use gate size for button size
-                                padding: EdgeInsets.zero, // Remove internal padding
-                                backgroundColor: Colors.green[700], // Red color for delete
-                                foregroundColor: Colors.white, // White text/icon color
-                                shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),), // Square shape
-                              ),
-                              child: FittedBox(
-                                  fit: BoxFit.fitWidth,
-                                  child: Icon(Icons.delete, size: 18)),
-                              // child: Text('DEL', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), // Button text
-                            ),
-
-                            SizedBox(width: 4), // Space after Delete button
-                            // ** Add the Vertical Divider **
-                            Container( // Wrap divider in Container to give it a height matching buttons
-                              height: QuantumCircuitPainter.gateSize * 0.75, // Match button height
-                              child: VerticalDivider(
-                                width: 1,
-                                thickness: 2,
-                                indent: 0, // Adjust indent/endIndent if buttons have different padding
-                                endIndent: 0,
-                                color: Colors.white, // White divider for visibility on black background
-                              ),
-                            ),
-                            SizedBox(width: 4), // Space after divider
-                            // --- Dynamic Draggable Gate Buttons ---
-                            ..._availableGates.map((gateType) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4.0), // Add spacing between dynamic buttons
-                                child: _buildDraggableGateButton(gateType),
-                              );
-                            }), // Convert the iterable to a List<Widget>
-                          ],
-                        ),
-                      ),
                   ),
-                ],
+                );
+              },
+              icon: Icon(Icons.book),
+              label: Text('Quantum Fundamentals'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors
+                    .white, // White icon/text color for contrast on AppBar
+                // You might adjust padding if needed to fit
+                // padding: EdgeInsets.symmetric(horizontal: 8.0),
               ),
             ),
-            ]),
-
+            TextButton.icon(
+              onPressed: _clearCircuit,
+              icon: Icon(Icons.cleaning_services),
+              label: Text('Clear'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+              ),
+            ),
+            if (_hints.isNotEmpty && !runningAsQuantumComposer())
+              TextButton.icon(
+                onPressed: _currentHintIndex < _hints.length - 1
+                    ? _showNextHint
+                    : null,
+                icon: const Icon(Icons.lightbulb_outline),
+                label: Text(_currentHintIndex < 0
+                    ? 'Hint'
+                    : 'Hint ${_currentHintIndex + 1}/${_hints.length}'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.amber,
                 ),
-
-                // Histogram Visualization (Right - 30% width)
-                Expanded(
-                  flex: 3,
-                  child:
-                    Padding(
-                      // padding: const EdgeInsets.only(left: 8.0, right: 8.0),
-                      padding: const EdgeInsets.all(8.0),
+              ),
+          ],
+          // ****************************
+        ),
+        body: SafeArea(
+          child: Column(
+            // Main Column stacking the top section and controls
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                // This Expanded makes the Row take available vertical space
+                child: Row(
+                  // <-- Main Row for Circuit and Histogram side-by-side
+                  children: [
+                    // Circuit Visualization (Left - 70% width)
+                    Expanded(
+                      flex: 7, // Allocate 70% width
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start, // Align content to the left
-                        children: [
-                          // TOP SECTION: Scrollable Task Text
-                          Flexible( // Use Flexible to allow the task text to take some space, but not too much
-                            flex: 35, // Adjust this flex to control vertical space distribution (e.g., 20% of right column's height)
-                            child: Column( // <--- NEW: Column to stack "Task:" label and text
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: double.infinity, // This container will try to fill its parent's horizontal space
-                                  padding: const EdgeInsets.all(2.0),
-                                  margin: const EdgeInsets.only(bottom: 12.0),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blueGrey[700],
-                                    borderRadius: BorderRadius.circular(8.0),
-                                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2))],
-                                  ),
-                                  child: Text(
-                                    _currentInstructionMessage,
-                                    style: const TextStyle(color: Colors.white, fontSize: 14, fontStyle: FontStyle.italic),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                                Text( // <--- "Task:" label
-                                  runningAsQuantumComposer() ? "Welcome to the Composer!" : "Task:",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    fontSize: 16, // Font size 16 for the label
-                                  ),
-                                ),
-                                Expanded( // <--- Ensures the task description text takes available space and scrolls
-                                  child: Scrollbar(
-                                    controller: _taskTextScrollController, // <-- Assign controller to Scrollbar
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                                child: Container(
+                              // Container for padding
+                              // color: Colors.grey[900],
+                              decoration: BoxDecoration(
+                                shape: BoxShape.rectangle,
+                                color: Color(0xFF1E1E2C),
+                                border: Border.all(
+                                    color: Color(0xFF4D4D5C), width: 1),
+                                borderRadius: BorderRadius.circular(12.0),
+                              ),
+                              padding: EdgeInsets.all(2.0),
+                              child: LayoutBuilder(
+                                  // LayoutBuilder gets bounded constraints from Container/Expanded
+                                  builder: (context, constraints) {
+                                debugPrint(
+                                    "  LayoutBuilder constraints: $constraints"); // Debug constraints
+                                final double availableContainerWidth =
+                                    constraints.maxWidth;
+                                final double availableContainerHeight =
+                                    constraints.maxHeight;
+                                debugPrint(
+                                    "  Available container size: Size($availableContainerWidth, $availableContainerHeight)"); // Debug available size
+
+                                // Calculate the minimum width needed based on the maximum position of placed gates
+                                final int maxPosition =
+                                    _circuit.isCircuitEmpty()
+                                        ? -1
+                                        : _circuit.placedGates
+                                            .map((e) => e.length)
+                                            .reduce(max);
+                                // Add 2 for the next column and some extra space
+                                final double minRequiredWidth =
+                                    (maxPosition + 3) *
+                                            QuantumCircuitPainter.gateSpacing +
+                                        QuantumCircuitPainter.padding * 2;
+
+                                final double sizedBoxWidth = max(
+                                    minRequiredWidth, availableContainerWidth);
+                                // The height of the SizedBox should be fixed based on the number of qubits and spacing
+                                final double sizedBoxHeight = _numQubits *
+                                        QuantumCircuitPainter.qubitSpacing +
+                                    QuantumCircuitPainter.padding * 2;
+                                debugPrint(
+                                    "  Calculated SizedBox size: Size($sizedBoxWidth, $sizedBoxHeight)"); // Debug SizedBox size
+
+                                return DragTarget<Gate>(
+                                  // DragTarget wraps the scrollable area
+                                  // onWillAccept: (data) => data != null && data != SelectedGateType.delete, // Accept any gate type except delete
+                                  onAcceptWithDetails: (details) {
+                                    _handleGateDrop(details);
+                                    _onDragLeave();
+                                  }, // Handle the drop event
+                                  onLeave: (data) {
+                                    _onDragLeave();
+                                  },
+                                  onMove: (data) {
+                                    _onDragEnter(data.offset, data.data);
+                                  },
+                                  onWillAcceptWithDetails: (details) {
+                                    Gate data = details.data;
+                                    _onDragEnter(details.offset, details.data);
+                                    bool isNotDelete = data != null &&
+                                        data != SelectedGateType.delete;
+                                    return isNotDelete;
+                                  },
+                                  builder:
+                                      (context, candidateData, rejectedData) {
+                                    // We can use the presence of candidateData to provide visual feedback
+                                    bool isDraggingOver =
+                                        candidateData.isNotEmpty;
+
+                                    return GestureDetector(
+                                      // GestureDetector wraps the scrollable area
+                                      key: _gestureDetectorKey,
+                                      onTapDown:
+                                          _handleCircuitTap, // Tap handler for deletion
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        // ** Wrap CustomPaint in ConstrainedBox to force size **
+                                        child: CustomPaint(
+                                          painter: QuantumCircuitPainter(
+                                              _circuit,
+                                              _circuitWidthNotifier,
+                                              _draggingOffset,
+                                              _draggingGate), // Pass the circuit
+                                          child: ListenableBuilder(
+                                            listenable:
+                                                _circuit, // Listen to the circuit object
+                                            builder: (context, child) {
+                                              debugPrint(
+                                                  "ListenableBuilder rebuilding CustomPaint."); // Debug rebuild
+                                              return Container(
+                                                width: max(
+                                                    sizedBoxWidth,
+                                                    _circuitWidthNotifier
+                                                        .value),
+                                                // color: isDraggingOver ? Colors.white.withOpacity(0.1) : Colors.transparent, // Subtle overlay when dragging over
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              }),
+                            )),
+
+                            // Add Gates Buttons (This section remains)
+                            Padding(
+                              padding:
+                                  const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(children: [
+                                    Text("Add/Remove Gates:",
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold)),
+                                    Spacer(),
+                                    IconButton(
+                                      icon: Icon(Icons.arrow_left,
+                                          color: _canScrollLeft
+                                              ? Colors.white
+                                              : Colors.grey),
+                                      onPressed:
+                                          _canScrollLeft ? _scrollLeft : null,
+                                      tooltip: 'Scroll Left',
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.arrow_right,
+                                          color: _canScrollRight
+                                              ? Colors.white
+                                              : Colors.grey),
+                                      onPressed:
+                                          _canScrollRight ? _scrollRight : null,
+                                      tooltip: 'Scroll Right',
+                                    ),
+                                  ]),
+                                  // SizedBox(height: 8),
+                                  Scrollbar(
+                                    controller:
+                                        _gatesScrollController, // <-- Assign controller to Scrollbar
                                     thumbVisibility: true,
                                     child: SingleChildScrollView(
-                                      controller: _taskTextScrollController, // <-- Assign controller to SingleChildScrollView
-                                      child: LatexText(
-                                        math: _taskDescription,
-                                        textStyle: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                        ),
-                                        inlineMathHeight: 16,
+                                      scrollDirection: Axis.horizontal,
+                                      controller:
+                                          _gatesScrollController, // <-- Assign controller to Scrollbar
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                        children: [
+                                          ElevatedButton(
+                                            onPressed: () => _initDeletion(),
+                                            style: ElevatedButton.styleFrom(
+                                              minimumSize: Size(
+                                                  QuantumCircuitPainter
+                                                      .gateSize,
+                                                  QuantumCircuitPainter
+                                                      .gateSize), // Use gate size for button size
+                                              padding: EdgeInsets
+                                                  .zero, // Remove internal padding
+                                              backgroundColor: Colors.green[
+                                                  700], // Red color for delete
+                                              foregroundColor: Colors
+                                                  .white, // White text/icon color
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(0.0),
+                                              ), // Square shape
+                                            ),
+                                            child: FittedBox(
+                                                fit: BoxFit.fitWidth,
+                                                child: Icon(Icons.delete,
+                                                    size: 18)),
+                                            // child: Text('DEL', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), // Button text
+                                          ),
+
+                                          SizedBox(
+                                              width:
+                                                  4), // Space after Delete button
+                                          // ** Add the Vertical Divider **
+                                          Container(
+                                            // Wrap divider in Container to give it a height matching buttons
+                                            height:
+                                                QuantumCircuitPainter.gateSize *
+                                                    0.75, // Match button height
+                                            child: VerticalDivider(
+                                              width: 1,
+                                              thickness: 2,
+                                              indent:
+                                                  0, // Adjust indent/endIndent if buttons have different padding
+                                              endIndent: 0,
+                                              color: Colors
+                                                  .white, // White divider for visibility on black background
+                                            ),
+                                          ),
+                                          SizedBox(
+                                              width: 4), // Space after divider
+                                          // --- Dynamic Draggable Gate Buttons ---
+                                          ..._availableGates.map((gateType) {
+                                            return Padding(
+                                              padding: const EdgeInsets
+                                                  .symmetric(
+                                                  horizontal:
+                                                      4.0), // Add spacing between dynamic buttons
+                                              child: _buildDraggableGateButton(
+                                                  gateType),
+                                            );
+                                          }), // Convert the iterable to a List<Widget>
+                                        ],
                                       ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Divider(),
-                          // SizedBox(height: 10.0),
-                          Expanded(
-                            flex: 40, // Changed from 8 to 6 for 60% vertical space
-                            child: Container(
-                              padding: const EdgeInsets.all(8.0),
-                              decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8.0),
-                                  border: Border.all(color: Colors.blueGrey.withOpacity(0.5), width: 0.5)
-                              ),
-                              child: StateVectorDisplay(
-                                stateVector: _circuit.currentState.stateVector,
-                                numQubits: _numQubits,
-                                targetStateVector: runningAsQuantumComposer()
-                                    ? null
-                                    : _solutionVector
-                                        .map((col) => col.first)
-                                        .toList(),
+                                ],
                               ),
                             ),
-                          ),
-                          // State Vector Display (Below buttons)
-                        ]),
+                          ]),
                     ),
+
+                    // Histogram Visualization (Right - 30% width)
+                    Expanded(
+                      flex: 3,
+                      child: Padding(
+                        // padding: const EdgeInsets.only(left: 8.0, right: 8.0),
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment
+                                .start, // Align content to the left
+                            children: [
+                              // TOP SECTION: Scrollable Task Text
+                              Flexible(
+                                // Use Flexible to allow the task text to take some space, but not too much
+                                flex:
+                                    35, // Adjust this flex to control vertical space distribution (e.g., 20% of right column's height)
+                                child: Column(
+                                  // <--- NEW: Column to stack "Task:" label and text
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      width: double
+                                          .infinity, // This container will try to fill its parent's horizontal space
+                                      padding: const EdgeInsets.all(2.0),
+                                      margin:
+                                          const EdgeInsets.only(bottom: 12.0),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blueGrey[700],
+                                        borderRadius:
+                                            BorderRadius.circular(8.0),
+                                        boxShadow: [
+                                          BoxShadow(
+                                              color:
+                                                  Colors.black.withOpacity(0.2),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2))
+                                        ],
+                                      ),
+                                      child: Text(
+                                        _currentInstructionMessage,
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontStyle: FontStyle.italic),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    Text(
+                                      // <--- "Task:" label
+                                      runningAsQuantumComposer()
+                                          ? "Welcome to the Composer!"
+                                          : "Task:",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                        fontSize:
+                                            16, // Font size 16 for the label
+                                      ),
+                                    ),
+                                    Expanded(
+                                      // <--- Ensures the task description text takes available space and scrolls
+                                      child: Scrollbar(
+                                        controller:
+                                            _taskTextScrollController, // <-- Assign controller to Scrollbar
+                                        thumbVisibility: true,
+                                        child: SingleChildScrollView(
+                                          controller:
+                                              _taskTextScrollController, // <-- Assign controller to SingleChildScrollView
+                                          child: LatexText(
+                                            math: _taskDescription,
+                                            textStyle: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                            ),
+                                            inlineMathHeight: 16,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Divider(),
+                              // SizedBox(height: 10.0),
+                              Expanded(
+                                flex:
+                                    40, // Changed from 8 to 6 for 60% vertical space
+                                child: Container(
+                                  padding: const EdgeInsets.all(8.0),
+                                  decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(8.0),
+                                      border: Border.all(
+                                          color:
+                                              Colors.blueGrey.withOpacity(0.5),
+                                          width: 0.5)),
+                                  child: StateVectorDisplay(
+                                    stateVector:
+                                        _circuit.currentState.stateVector,
+                                    numQubits: _numQubits,
+                                    targetStateVector:
+                                        runningAsQuantumComposer()
+                                            ? null
+                                            : _solutionVector
+                                                .map((col) => col.first)
+                                                .toList(),
+                                  ),
+                                ),
+                              ),
+                              // State Vector Display (Below buttons)
+                            ]),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ));
+        ));
   }
 
   bool runningAsQuantumComposer() => widget.levelId == -1;
@@ -1121,32 +1293,44 @@ class _QuantumComposerState extends State<QuantumComposer> {
     double fontSizeW;
     if (gate.type == SelectedGateType.ccnot) {
       fontSizeW = 14;
-    } else if ((gate.type == SelectedGateType.rx || gate.type == SelectedGateType.ry || gate.type == SelectedGateType.rz) && gate.angle != null) {
+    } else if ((gate.type == SelectedGateType.rx ||
+            gate.type == SelectedGateType.ry ||
+            gate.type == SelectedGateType.rz) &&
+        gate.angle != null) {
       fontSizeW = 10;
     } else {
       fontSizeW = 18;
     }
 
-    return Draggable<Gate>( // Draggable for Hadamard
+    return Draggable<Gate>(
+      // Draggable for Hadamard
       data: gate, // Data carried by the drag
-      feedback: Container( // Visual feedback while dragging
+      feedback: Container(
+        // Visual feedback while dragging
         width: QuantumCircuitPainter.gateSize,
         height: QuantumCircuitPainter.gateSize,
         color: gate.color.withOpacity(0.7), // Semi-transparent feedback
         child: Center(
-            child: Text(
-                gate.label,
+            child: Text(gate.label,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: fontSizeW, fontWeight: FontWeight.bold))),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: fontSizeW,
+                    fontWeight: FontWeight.bold))),
       ),
-      child: ElevatedButton( // The original button appearance
-        onPressed: () => _setInteractionMode(SelectedGateType.none), // Tapping button resets mode
+      child: ElevatedButton(
+        // The original button appearance
+        onPressed: () => _setInteractionMode(
+            SelectedGateType.none), // Tapping button resets mode
         style: ElevatedButton.styleFrom(
-          minimumSize: Size(QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
+          minimumSize: Size(
+              QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
           padding: EdgeInsets.zero,
           backgroundColor: gate.color,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(0.0),),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(0.0),
+          ),
         ),
         child: Text(
           gate.label,

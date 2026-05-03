@@ -9,14 +9,14 @@ import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 
-
 void main() {
   _testBody(int levelNumber, Function(QuantumCircuit) body) {
     final level = getQQLevelById(levelNumber)!;
 
     // Only ComposerLevels can be tested via circuit simulation
     if (level is! ComposerLevel) {
-      debugPrint('Level $levelNumber is ${level.runtimeType}, skipping circuit test.\n\n');
+      debugPrint(
+          'Level $levelNumber is ${level.runtimeType}, skipping circuit test.\n\n');
       return;
     }
 
@@ -30,7 +30,7 @@ void main() {
 
     circuit.runSimulation();
 
-    expect(circuit.currentState.state.almostEqualTo(QuantumMatrix(level.solutionFinalVector)), true);
+    expect(level.validateCircuit(circuit), true);
 
     debugPrint('\n\n');
   }
@@ -38,197 +38,305 @@ void main() {
   group('Test results for all levels', () {
     var tests = [
       (QuantumCircuit circuit) {
-      // check X is in the avaiable gates
-      //   assert(circuit.availableGates.contains(Gate.fromIdentifier(SelectedGateType.x)));
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+        // check X is in the avaiable gates
+        //   assert(circuit.availableGates.contains(Gate.fromIdentifier(SelectedGateType.x)));
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.x), 0, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.z), 0, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.y), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.y), 0, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.y), 0, 0);
-      },
-      (QuantumCircuit circuit) { // 5
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 0, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 1, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 2, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.y), 0, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        // 5
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.z), 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.x), 2, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.t), 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.s), 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.t), 1, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 1, 0);
-      },
-      (QuantumCircuit circuit) { // 10
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 1);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.s), 1, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.s), 1, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 2, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.z), 1, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.s), 3, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 4, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 5, 0);
+        // 10
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 1);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.x), 0, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.s), 1, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.t), 2, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 3, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.s), 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.z), 2, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 1);
-      },
-      (QuantumCircuit circuit) { // 15
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
-      },
-      (QuantumCircuit circuit) {
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 2);
-      },
-      (QuantumCircuit circuit) {
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.s), 3, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 4, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.x), 5, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertTriplePlacedGateAt(Gate.fromIdentifier(SelectedGateType.ccnot), 0, 1, 0, 2);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.s), 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.t), 2, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.z), 3, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertTriplePlacedGateAt(Gate.fromIdentifier(SelectedGateType.ccnot), 0, 2, 1, 0);
-      },
-      (QuantumCircuit circuit) { // 20
-        circuit.insertTriplePlacedGateAt(Gate.fromIdentifier(SelectedGateType.ccnot), 0, 0, 1, 2);
-      },
-      (QuantumCircuit circuit) { // more than one solution, example X(0) + X(1)
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 0, 2);
-        circuit.insertTriplePlacedGateAt(Gate.fromIdentifier(SelectedGateType.ccnot), 1, 0, 1, 2);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 1);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
+        // 15
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 2);
       },
       (QuantumCircuit circuit) {
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 2, 1, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 3, 0);
-      },
-      (QuantumCircuit circuit) { // 25
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 2, 1);
-      },
-      (QuantumCircuit circuit) { // 2 solution with Z(1)
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 2, 0);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.x), 1, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 3, 0);
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 4, 1, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 5, 0);
+        circuit.insertTriplePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.ccnot), 0, 1, 0, 2);
       },
       (QuantumCircuit circuit) {
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 1);
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
+        circuit.insertTriplePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.ccnot), 0, 2, 1, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 2, 0);
-      },
-      (QuantumCircuit circuit) { // 30
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 0, 1);
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
-      },
-      (QuantumCircuit circuit) { // to check if double solution present
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 0, 1);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 2, 0);
+        // 20
+        circuit.insertTriplePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.ccnot), 0, 0, 1, 2);
       },
       (QuantumCircuit circuit) {
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 1, 0, 1);
+        // more than one solution, example X(0) + X(1)
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.x), 0, 2);
+        circuit.insertTriplePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.ccnot), 1, 0, 1, 2);
       },
       (QuantumCircuit circuit) {
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 0, 2, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 0, 0);
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 1, 2, 0);
-      },
-      (QuantumCircuit circuit) { // 35
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 2, 0);
-      },
-      (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 1);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 0, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 1, 0);
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 2, 1, 0);
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 3, 2, 1);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 4, 2);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 2, 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 3, 0);
       },
-      (QuantumCircuit circuit) { // double solution
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 1);
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cz), 1, 1, 0);
+      (QuantumCircuit circuit) {
+        // 25
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.z), 2, 1);
       },
-      (QuantumCircuit circuit) { // double solution
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cz), 2, 1, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 3, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 3, 1);
+      (QuantumCircuit circuit) {
+        // 2 solution with Z(1)
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.z), 2, 0);
       },
-      (QuantumCircuit circuit) { // 40
+      (QuantumCircuit circuit) {
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.z), 3, 0);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 4, 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 5, 0);
+      },
+      (QuantumCircuit circuit) {
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 1);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 2, 0, 1);
+      },
+      (QuantumCircuit circuit) {
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 2, 0);
+      },
+      (QuantumCircuit circuit) {
+        // 30
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.x), 0, 1);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
+      },
+      (QuantumCircuit circuit) {
+        // to check if double solution present
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.x), 0, 1);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.z), 2, 0);
+      },
+      (QuantumCircuit circuit) {
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 1, 0, 1);
+      },
+      (QuantumCircuit circuit) {
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 0, 2, 0);
+      },
+      (QuantumCircuit circuit) {
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 1, 2, 0);
+      },
+      (QuantumCircuit circuit) {
+        // 35
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.x), 2, 0);
+      },
+      (QuantumCircuit circuit) {
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 1);
+      },
+      (QuantumCircuit circuit) {
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 1, 0);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 2, 1, 0);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 3, 2, 1);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.z), 4, 2);
+      },
+      (QuantumCircuit circuit) {
+        // double solution
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 1);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cz), 1, 1, 0);
+      },
+      (QuantumCircuit circuit) {
+        // double solution
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cz), 2, 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 3, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 3, 1);
+      },
+      (QuantumCircuit circuit) {
+        // 40
         // Solution: Rx(pi/2) on Q0
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2), 0, 0);
       },
       (QuantumCircuit circuit) {
         // Solution: Ry(pi/2) on Q0
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 2), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 2), 0, 0);
       },
       (QuantumCircuit circuit) {
         // Solution: Rz(pi/2) on Q0
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2), 0, 0);
       },
       (QuantumCircuit circuit) {
         // Solution: Ry(-pi/2) on Q0
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.ry, angle: -math.pi / 2), 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.ry, angle: -math.pi / 2),
+            1,
+            0);
       },
       (QuantumCircuit circuit) {
         // Solution: Ry(pi/2) on Q0
         // This gate is placed after the pre-inserted Rx gate.
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 2), 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 2), 1, 0);
       },
-      (QuantumCircuit circuit) { // 45
+      (QuantumCircuit circuit) {
+        // 45
         // Solution: Rz(pi/4) on Q1
         // This gate is placed after the pre-inserted gates.
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 4), 2, 1);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 4), 2, 1);
       },
       (QuantumCircuit circuit) {
         // Solution: Rx(pi/2), Ry(pi/4), then Rz(pi/2) on Q0.
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2), 0, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 4), 1, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2), 2, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 4), 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2), 2, 0);
       },
     ];
 
@@ -241,10 +349,10 @@ void main() {
 
   // ── Non-composer levels (47+) ───────────────────────────────────────────────
   group('Non-composer levels (47+)', () {
-
     // Shared helper: run a ComposerLevel through QuantumCircuit and return the
     // final state (runSimulation() is called automatically in the constructor).
-    QuantumCircuit _simulate(ComposerLevel level) => QuantumCircuit(currentLevel: level);
+    QuantumCircuit _simulate(ComposerLevel level) =>
+        QuantumCircuit(currentLevel: level);
 
     // Shorthand for the |+⟩ / Bell-diagonal amplitude.
     final s = math.sqrt1_2;
@@ -279,8 +387,7 @@ void main() {
             reason: 'level $levelId missing conceptIntro');
         expect(level.solutionExplanation, isNotNull,
             reason: 'level $levelId missing solutionExplanation');
-        expect(level.hints, isNotNull,
-            reason: 'level $levelId missing hints');
+        expect(level.hints, isNotNull, reason: 'level $levelId missing hints');
         expect(level.hints!, isNotEmpty,
             reason: 'level $levelId hints list must not be empty');
         expect(level.taskDescription, isNotEmpty,
@@ -331,14 +438,15 @@ void main() {
         expect(level.hints!, isNotEmpty);
       });
 
-      test('level 50 — Measure Bell State: circuit simulates to (|00⟩+|11⟩)/√2', () {
+      test('level 50 — Measure Bell State: circuit simulates to (|00⟩+|11⟩)/√2',
+          () {
         final level = getQQLevelById(50)! as MeasurementLabLevel;
         final circuit = _simulate(level.toComposerLevel());
         final expected = QuantumMatrix([
-          [Complex(s)],     // |00⟩
+          [Complex(s)], // |00⟩
           [Complex.zero()], // |01⟩ — zero amplitude
           [Complex.zero()], // |10⟩ — zero amplitude
-          [Complex(s)],     // |11⟩
+          [Complex(s)], // |11⟩
         ]);
         expect(circuit.currentState.state.almostEqualTo(expected), isTrue,
             reason: 'Level 50 circuit should produce the Bell Φ+ state');
@@ -368,23 +476,30 @@ void main() {
         expect(level.correctGate.type, equals(SelectedGateType.hadamard));
       });
 
-      test('level 51 — Fill: Create |+⟩: correct gate simulation matches solution', () {
+      test(
+          'level 51 — Fill: Create |+⟩: correct gate simulation matches solution',
+          () {
         final level = getQQLevelById(51)! as FillTheGateLevel;
         final circuit = _simulate(level.toComposerLevelWith(level.correctGate));
         expect(
-          circuit.currentState.state.almostEqualTo(QuantumMatrix(level.solutionFinalVector)),
+          circuit.currentState.state
+              .almostEqualTo(QuantumMatrix(level.solutionFinalVector)),
           isTrue,
-          reason: 'Filling with the correct gate must produce solutionFinalVector',
+          reason:
+              'Filling with the correct gate must produce solutionFinalVector',
         );
       });
 
-      test('level 51 — Fill: Create |+⟩: wrong gates do NOT match solution', () {
+      test('level 51 — Fill: Create |+⟩: wrong gates do NOT match solution',
+          () {
         final level = getQQLevelById(51)! as FillTheGateLevel;
-        final wrongOptions = level.options.where((g) => g.type != level.correctGate.type);
+        final wrongOptions =
+            level.options.where((g) => g.type != level.correctGate.type);
         for (final wrong in wrongOptions) {
           final circuit = _simulate(level.toComposerLevelWith(wrong));
           expect(
-            circuit.currentState.state.almostEqualTo(QuantumMatrix(level.solutionFinalVector)),
+            circuit.currentState.state
+                .almostEqualTo(QuantumMatrix(level.solutionFinalVector)),
             isFalse,
             reason: 'Gate ${wrong.type} should NOT match the solution',
           );
@@ -397,23 +512,30 @@ void main() {
         expect(level.correctGate.type, equals(SelectedGateType.x));
       });
 
-      test('level 52 — Fill: Flip the Bit: correct gate simulation matches solution', () {
+      test(
+          'level 52 — Fill: Flip the Bit: correct gate simulation matches solution',
+          () {
         final level = getQQLevelById(52)! as FillTheGateLevel;
         final circuit = _simulate(level.toComposerLevelWith(level.correctGate));
         expect(
-          circuit.currentState.state.almostEqualTo(QuantumMatrix(level.solutionFinalVector)),
+          circuit.currentState.state
+              .almostEqualTo(QuantumMatrix(level.solutionFinalVector)),
           isTrue,
-          reason: 'Filling with the correct gate must produce solutionFinalVector',
+          reason:
+              'Filling with the correct gate must produce solutionFinalVector',
         );
       });
 
-      test('level 52 — Fill: Flip the Bit: wrong gates do NOT match solution', () {
+      test('level 52 — Fill: Flip the Bit: wrong gates do NOT match solution',
+          () {
         final level = getQQLevelById(52)! as FillTheGateLevel;
-        final wrongOptions = level.options.where((g) => g.type != level.correctGate.type);
+        final wrongOptions =
+            level.options.where((g) => g.type != level.correctGate.type);
         for (final wrong in wrongOptions) {
           final circuit = _simulate(level.toComposerLevelWith(wrong));
           expect(
-            circuit.currentState.state.almostEqualTo(QuantumMatrix(level.solutionFinalVector)),
+            circuit.currentState.state
+                .almostEqualTo(QuantumMatrix(level.solutionFinalVector)),
             isFalse,
             reason: 'Gate ${wrong.type} should NOT match the solution',
           );
@@ -426,7 +548,8 @@ void main() {
       void _checkCrStructure(int levelId, int expectedCorrectIndex) {
         final level = getQQLevelById(levelId)! as CircuitReadingLevel;
         expect(level.options.length, equals(4),
-            reason: 'CircuitReading level $levelId must have exactly 4 options');
+            reason:
+                'CircuitReading level $levelId must have exactly 4 options');
         expect(level.correctOptionIndex, inInclusiveRange(0, 3));
         expect(level.correctOptionIndex, equals(expectedCorrectIndex),
             reason: 'Wrong correctOptionIndex for level $levelId');
@@ -434,8 +557,7 @@ void main() {
             reason: 'level $levelId missing conceptIntro');
         expect(level.solutionExplanation, isNotNull,
             reason: 'level $levelId missing solutionExplanation');
-        expect(level.hints, isNotNull,
-            reason: 'level $levelId missing hints');
+        expect(level.hints, isNotNull, reason: 'level $levelId missing hints');
         expect(level.hints!, isNotEmpty);
       }
 
@@ -464,14 +586,122 @@ void main() {
         final level = getQQLevelById(54)! as CircuitReadingLevel;
         final circuit = _simulate(level.toComposerLevel());
         final expected = QuantumMatrix([
-          [Complex(s)],     // |00⟩
+          [Complex(s)], // |00⟩
           [Complex.zero()], // |01⟩
           [Complex.zero()], // |10⟩
-          [Complex(s)],     // |11⟩
+          [Complex(s)], // |11⟩
         ]);
         expect(circuit.currentState.state.almostEqualTo(expected), isTrue,
             reason: 'H⊗I then CNOT on 00⟩ must produce Bell state Φ+');
       });
+    });
+  });
+
+  group('ComposerLevel validation modes', () {
+    QuantumCircuit simulate(ComposerLevel level) =>
+        QuantumCircuit(currentLevel: level);
+
+    ComposerLevel findComposerLevelByTitle(String title) {
+      for (int id = 1; id <= numberOfLevels; id++) {
+        final level = getQQLevelById(id);
+        if (level is ComposerLevel && level.title == title) {
+          return level;
+        }
+      }
+      throw StateError('ComposerLevel with title "$title" not found');
+    }
+
+    test('finalState validation remains the default', () {
+      final level = ComposerLevel.fromBinaryString(
+        title: 'Default final-state validation',
+        taskDescription: 'Apply X to reach |1>.',
+        initialQubitsStateString: '0',
+        availableGates: [Gate.fromIdentifier(SelectedGateType.x)],
+        solutionFinalVector: [
+          [Complex.zero()],
+          [Complex.one()],
+        ],
+      );
+
+      final circuit = simulate(level);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+      circuit.runSimulation();
+
+      expect(level.validationMode, ValidationMode.finalState);
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('SWAP via Three CNOTs rejects two CNOTs even if |10> reaches |01>',
+        () {
+      final level = findComposerLevelByTitle('SWAP via Three CNOTs');
+      final circuit = simulate(level);
+
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 1);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
+      circuit.runSimulation();
+
+      expect(
+        circuit.currentState.state
+            .almostEqualTo(QuantumMatrix(level.solutionFinalVector)),
+        isTrue,
+        reason: 'Two CNOTs still map the configured |10> input to |01>.',
+      );
+      expect(level.validateCircuit(circuit), isFalse);
+    });
+
+    test('SWAP via Three CNOTs passes with the full three-CNOT unitary', () {
+      final level = findComposerLevelByTitle('SWAP via Three CNOTs');
+      final circuit = simulate(level);
+
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 1);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 2, 0, 1);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('unitary validation fails safely when targetUnitary is null', () {
+      final level = ComposerLevel.fromBinaryString(
+        title: 'Missing target unitary',
+        taskDescription: 'Invalid unitary level',
+        initialQubitsStateString: '0',
+        availableGates: const [],
+        solutionFinalVector: [
+          [Complex.one()],
+          [Complex.zero()],
+        ],
+        validationMode: ValidationMode.unitary,
+      );
+
+      expect(level.validateCircuit(simulate(level)), isFalse);
+    });
+
+    test('unitary validation fails safely on matrix dimension mismatch', () {
+      final level = ComposerLevel.fromBinaryString(
+        title: 'Mismatched target unitary',
+        taskDescription: 'Invalid unitary dimensions',
+        initialQubitsStateString: '0',
+        availableGates: const [],
+        solutionFinalVector: [
+          [Complex.one()],
+          [Complex.zero()],
+        ],
+        validationMode: ValidationMode.unitary,
+        targetUnitary: [
+          [Complex.one(), Complex.zero()],
+          [Complex.zero(), Complex.one()],
+          [Complex.zero(), Complex.zero()],
+        ],
+      );
+
+      expect(level.validateCircuit(simulate(level)), isFalse);
     });
   });
 
@@ -481,7 +711,6 @@ void main() {
   // (2) one exact-string spot-check per category group to guard against
   // accidental renames or copy-paste errors.
   group('Titles', () {
-
     // ── Exhaustive: every level must have a title ──────────────────────────
     test('all 54 levels have a non-null, non-empty title', () {
       for (int id = 1; id <= numberOfLevels; id++) {
@@ -536,7 +765,8 @@ void main() {
 
     // Advanced Entanglement and Algorithms (levels 36–39)
     test('level 36 — "Uniform 2-Qubit Superposition"', () {
-      expect(getQQLevelById(36)!.title, equals('Uniform 2-Qubit Superposition'));
+      expect(
+          getQQLevelById(36)!.title, equals('Uniform 2-Qubit Superposition'));
     });
 
     // Rotation Gates (levels 40–46) — first and last
@@ -544,7 +774,8 @@ void main() {
       expect(getQQLevelById(40)!.title, equals('Rx Rotation Gate'));
     });
     test('level 46 — "Precise Bloch Sphere Navigation"', () {
-      expect(getQQLevelById(46)!.title, equals('Precise Bloch Sphere Navigation'));
+      expect(
+          getQQLevelById(46)!.title, equals('Precise Bloch Sphere Navigation'));
     });
 
     // Concept Checks — MCQ (levels 47–48)
@@ -580,4 +811,3 @@ void main() {
     });
   });
 }
-

@@ -10,12 +10,12 @@ import 'package:quantumquiz/models/qq_level.dart';
 Complex get negOne => Complex(-1.0, 0.0); // -1
 Complex get negI => Complex(0.0, -1.0); // -i
 
-
 final List<QQLevel> allQQLevels = [
   // X
   ComposerLevel.fromBinaryString(
     title: 'Bit Flip',
-    taskDescription: r"Your first quantum challenge! Apply a gate to transform \( |0\rangle \) to \( |1\rangle \).",
+    taskDescription:
+        r"Your first quantum challenge! Apply a gate to transform \( |0\rangle \) to \( |1\rangle \).",
     conceptIntro:
         'Quantum gates are the elementary operations that transform qubit states. '
         'Just as classical computers have logic gates (AND, OR, NOT), quantum computers have '
@@ -32,13 +32,21 @@ final List<QQLevel> allQQLevels = [
         'Notice that applying X twice returns to the original state — every quantum gate is unitary and therefore invertible — X happens to be its own inverse (X² = I), a property called being self-inverse.',
     numQubits: 1,
     initialQubitsStateString: "0",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.y)],
-    solutionFinalVector: [[Complex.zero()], [Complex.one()]], // Target: |1> state
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.y)
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()]
+    ], // Target: |1> state
   ),
   // Z
   ComposerLevel.fromBinaryString(
     title: 'Phase Flip',
-    taskDescription: r"Let's change now only the phase of \( |1\rangle \) without flipping the bit. Transform \( |1\rangle \) to \( -|1\rangle \).",
+    taskDescription:
+        r"Let's change now only the phase of \( |1\rangle \) without flipping the bit. Transform \( |1\rangle \) to \( -|1\rangle \).",
     conceptIntro:
         'Not every quantum operation changes which basis state a qubit occupies. '
         'Some gates leave the bit value completely unchanged while introducing a phase factor '
@@ -55,13 +63,21 @@ final List<QQLevel> allQQLevels = [
         'This is called a phase flip — it changes the sign (phase) of the amplitude but not the measurement probability.',
     numQubits: 1,
     initialQubitsStateString: "1",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y)],
-    solutionFinalVector: [[Complex.zero()], [negOne]], // Target: |1> state
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.y)
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [negOne]
+    ], // Target: |1> state
   ),
   // Y
   ComposerLevel.fromBinaryString(
     title: 'Bit & Phase Flip',
-    taskDescription: r"Let's change now the phase and flipping the bit from \( |1\rangle \) to \( |0\rangle \).",
+    taskDescription:
+        r"Let's change now the phase and flipping the bit from \( |1\rangle \) to \( |0\rangle \).",
     conceptIntro:
         'The three Pauli gates — X, Y, and Z — form a family of fundamental single-qubit operations. '
         'You have already met two of them: X is a pure bit flip, and Z is a pure phase flip. '
@@ -79,15 +95,22 @@ final List<QQLevel> allQQLevels = [
         'Pauli matrices X, Y, Z all satisfy Y = iXZ.',
     numQubits: 1,
     initialQubitsStateString: "1",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y)],
-    solutionFinalVector: [[negI], [Complex.zero()]], // Target: |1> state
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.y)
+    ],
+    solutionFinalVector: [
+      [negI],
+      [Complex.zero()]
+    ], // Target: |1> state
   ),
   // Y
   ComposerLevel.fromBinaryString(
     title: 'The i-State',
-    taskDescription: r"From \( |0\rangle \), reach \( |1\rangle \) with a phase of \( i \). This state is \( |i\rangle \).",
-    conceptIntro:
-        'A quantum state can have any complex amplitude. '
+    taskDescription:
+        r"From \( |0\rangle \), reach \( |1\rangle \) with a phase of \( i \). This state is \( |i\rangle \).",
+    conceptIntro: 'A quantum state can have any complex amplitude. '
         'The imaginary unit i appears naturally as a phase factor in quantum mechanics — '
         'states like i|1⟩ are physically distinct from |1⟩ because the phase matters '
         'when states combine through interference. '
@@ -103,13 +126,22 @@ final List<QQLevel> allQQLevels = [
         'This is a 180° rotation around the Y-axis of the Bloch sphere (Y = i·Ry(π)).',
     numQubits: 1,
     initialQubitsStateString: "0",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z)],
-    solutionFinalVector: [[Complex.zero()], [Complex.i()]], // Target: |i> state (Y|0> = i|1>)
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.y),
+      Gate.fromIdentifier(SelectedGateType.z)
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.i()]
+    ], // Target: |i> state (Y|0> = i|1>)
   ),
   // X + Z + X
-  ComposerLevel.fromBinaryString( // 5
+  ComposerLevel.fromBinaryString(
+    // 5
     title: 'Phase Sandwich',
-    taskDescription: r"Starting from \( |0\rangle \), achieve \( -|0\rangle \).",
+    taskDescription:
+        r"Starting from \( |0\rangle \), achieve \( -|0\rangle \).",
     conceptIntro:
         'Gates compose: applying multiple gates in sequence multiplies their matrices. '
         'Some operations cannot be applied directly to the current state — '
@@ -122,22 +154,28 @@ final List<QQLevel> allQQLevels = [
       'Z|0⟩ = |0⟩ — Z alone cannot phase-flip |0⟩. You need to flip the qubit to |1⟩ first.',
       'Sequence: X turns |0⟩→|1⟩, Z turns |1⟩→−|1⟩, X turns −|1⟩→−|0⟩.',
     ],
-    solutionExplanation:
-        'XZX|0⟩ = −|0⟩. '
+    solutionExplanation: 'XZX|0⟩ = −|0⟩. '
         'Step by step: X|0⟩ = |1⟩, then Z|1⟩ = −|1⟩, then X(−|1⟩) = −|0⟩. '
         'This is the canonical example of gate composition and the "conjugation" pattern: '
         'UGU† applies gate G in the basis defined by U.',
     numQubits: 1,
     initialQubitsStateString: "0",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y)],
-    solutionFinalVector: [[negOne], [Complex.zero()]], // Target: -|0> state (e.g., XZX)
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.y)
+    ],
+    solutionFinalVector: [
+      [negOne],
+      [Complex.zero()]
+    ], // Target: -|0> state (e.g., XZX)
   ),
   // H
   ComposerLevel.fromBinaryString(
     title: 'Superposition',
-    taskDescription: r"Create a superposition! Turn \( |0\rangle \) into \( |+\rangle \).",
-    conceptIntro:
-        'Superposition is a defining feature of quantum computing. '
+    taskDescription:
+        r"Create a superposition! Turn \( |0\rangle \) into \( |+\rangle \).",
+    conceptIntro: 'Superposition is a defining feature of quantum computing. '
         'Unlike a classical bit that is always exactly 0 or 1, a qubit can exist in a '
         'combination of both states at once — described by complex probability amplitudes. '
         'When you measure a qubit in superposition, the outcome is probabilistic: '
@@ -147,19 +185,26 @@ final List<QQLevel> allQQLevels = [
       'There is exactly one gate in your toolbar that creates an equal superposition from a basis state.',
       'It is the H (Hadamard) gate. H|0⟩ = (|0⟩+|1⟩)/√2 = |+⟩.',
     ],
-    solutionExplanation:
-        'H|0⟩ = (|0⟩+|1⟩)/√2 = |+⟩. '
+    solutionExplanation: 'H|0⟩ = (|0⟩+|1⟩)/√2 = |+⟩. '
         'Both amplitudes are 1/√2, so |1/√2|² = 0.5 — a 50% chance of measuring either outcome. '
         'H is its own inverse: H² = I, so applying H twice returns to |0⟩.',
     numQubits: 1,
     initialQubitsStateString: "0",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.z)],
-    solutionFinalVector: [[Complex(sqrt1_2)], [Complex(sqrt1_2)]], // Target: |+> state
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.z)
+    ],
+    solutionFinalVector: [
+      [Complex(sqrt1_2)],
+      [Complex(sqrt1_2)]
+    ], // Target: |+> state
   ),
   // H + T
   ComposerLevel.fromBinaryString(
     title: 'T Gate Phase',
-    taskDescription: r"You're at \( |0\rangle \). Apply gates to reach a state where the \( |1\rangle \) amplitude has a phase of \( e^{i\pi/4} \). This is \( (|0\rangle + e^{i\pi/4}|1\rangle)/\sqrt{2} \).",
+    taskDescription:
+        r"You're at \( |0\rangle \). Apply gates to reach a state where the \( |1\rangle \) amplitude has a phase of \( e^{i\pi/4} \). This is \( (|0\rangle + e^{i\pi/4}|1\rangle)/\sqrt{2} \).",
     conceptIntro:
         'Phase gates rotate only the phase of the |1⟩ amplitude by a fixed angle, leaving |0⟩ unchanged. '
         'On their own, phase gates are invisible to a single measurement — |e^(iφ)|² = 1 regardless of φ. '
@@ -177,13 +222,22 @@ final List<QQLevel> allQQLevels = [
         'T is fundamental to quantum computing — it is one of the gates needed for universal quantum computation.',
     numQubits: 1,
     initialQubitsStateString: "0",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.t), Gate.fromIdentifier(SelectedGateType.z)],
-    solutionFinalVector: [[Complex(sqrt1_2)], [Complex(0.5, 0.5)]], // Target: |+> state
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.y),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.t),
+      Gate.fromIdentifier(SelectedGateType.z)
+    ],
+    solutionFinalVector: [
+      [Complex(sqrt1_2)],
+      [Complex(0.5, 0.5)]
+    ], // Target: |+> state
   ),
   // H + S
   ComposerLevel.fromBinaryString(
     title: 'S Gate — 90° Phase',
-    taskDescription: r"Transform the initial state of the qubit from \( |0\rangle \) to the target state \( |+i\rangle = (|0\rangle + |i\rangle)/\sqrt{2} \).",
+    taskDescription:
+        r"Transform the initial state of the qubit from \( |0\rangle \) to the target state \( |+i\rangle = (|0\rangle + |i\rangle)/\sqrt{2} \).",
     conceptIntro:
         'The S gate is a phase gate that applies a 90° rotation to the |1⟩ amplitude: S|1⟩ = i|1⟩. '
         'Like all phase gates, S cannot create superposition on its own — '
@@ -195,14 +249,21 @@ final List<QQLevel> allQQLevels = [
       'First create superposition with H so both amplitudes are active.',
       'S multiplies only the |1⟩ amplitude by i, rotating its phase by 90°: (|0⟩+|1⟩)/√2 → (|0⟩+i|1⟩)/√2.',
     ],
-    solutionExplanation:
-        'H|0⟩ = (|0⟩+|1⟩)/√2. '
+    solutionExplanation: 'H|0⟩ = (|0⟩+|1⟩)/√2. '
         'S then rotates |1⟩ by 90°: S(|0⟩+|1⟩)/√2 = (|0⟩+i|1⟩)/√2 = |+i⟩. '
         'This state is also called |R⟩ (right circular polarisation) on the Bloch sphere.',
     numQubits: 1,
     initialQubitsStateString: "0",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.z)],
-    solutionFinalVector: [[Complex(sqrt1_2)], [Complex(0, sqrt1_2)]], // Target: |+> state
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.s),
+      Gate.fromIdentifier(SelectedGateType.z)
+    ],
+    solutionFinalVector: [
+      [Complex(sqrt1_2)],
+      [Complex(0, sqrt1_2)]
+    ], // Target: |+> state
   ),
   // H + Z
   ComposerLevel.fromBinaryString(
@@ -218,21 +279,29 @@ final List<QQLevel> allQQLevels = [
       'Start by creating |+⟩ with H, then you need to flip the sign of |1⟩.',
       'Z|1⟩ = −|1⟩ and Z|0⟩ = |0⟩, so Z turns (|0⟩+|1⟩)/√2 into (|0⟩−|1⟩)/√2 = |-⟩.',
     ],
-    solutionExplanation:
-        'H|0⟩ = (|0⟩+|1⟩)/√2 = |+⟩. '
+    solutionExplanation: 'H|0⟩ = (|0⟩+|1⟩)/√2 = |+⟩. '
         'Z then flips the sign of |1⟩: Z|+⟩ = (|0⟩−|1⟩)/√2 = |−⟩. '
         '|+⟩ and |−⟩ are called the Hadamard basis (or X-basis) states — they are the eigenstates of the X gate.',
     numQubits: 1,
     initialQubitsStateString: "0",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.x)],
-    solutionFinalVector: [[Complex(sqrt1_2, 0)], [Complex(-sqrt1_2, 0)]], // Target: |-> state (H then Z)
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.y),
+      Gate.fromIdentifier(SelectedGateType.x)
+    ],
+    solutionFinalVector: [
+      [Complex(sqrt1_2, 0)],
+      [Complex(-sqrt1_2, 0)]
+    ], // Target: |-> state (H then Z)
   ),
   // H(1) + X(0)
-  ComposerLevel.fromBinaryString( // 10
+  ComposerLevel.fromBinaryString(
+    // 10
     title: '2-Qubit Product State',
-    taskDescription: r"From \( |00\rangle \), create the product state \( |+\rangle \otimes |1\rangle = (|01\rangle + |11\rangle)/\sqrt{2} \).",
-    conceptIntro:
-        'Two-qubit systems are described by tensor products. '
+    taskDescription:
+        r"From \( |00\rangle \), create the product state \( |+\rangle \otimes |1\rangle = (|01\rangle + |11\rangle)/\sqrt{2} \).",
+    conceptIntro: 'Two-qubit systems are described by tensor products. '
         'When no controlled gate connects them, each qubit can be operated independently. '
         'The full state vector has 2² = 4 entries: |00⟩, |01⟩, |10⟩, |11⟩. '
         'A product (non-entangled) state like |+⟩⊗|1⟩ factors into separate single-qubit states.',
@@ -246,7 +315,12 @@ final List<QQLevel> allQQLevels = [
         'This is a product state — the two qubits are independent and not entangled.',
     numQubits: 2,
     initialQubitsStateString: "00",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.z)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.z)
+    ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex(sqrt1_2, 0)],
@@ -257,7 +331,8 @@ final List<QQLevel> allQQLevels = [
   // H + S + Z
   ComposerLevel.fromBinaryString(
     title: 'The −i State',
-    taskDescription: r"From \( |+\rangle \), achieve \( |-i\rangle = (|0\rangle - i|1\rangle)/\sqrt{2} \).",
+    taskDescription:
+        r"From \( |+\rangle \), achieve \( |-i\rangle = (|0\rangle - i|1\rangle)/\sqrt{2} \).",
     conceptIntro:
         'You have seen |+i⟩ = (|0⟩+i|1⟩)/√2 — now aim for its mirror: |-i⟩ = (|0⟩−i|1⟩)/√2. '
         'The four cardinal equatorial states |+⟩, |−⟩, |+i⟩, |−i⟩ each differ by a 90° phase step on |1⟩. '
@@ -269,20 +344,29 @@ final List<QQLevel> allQQLevels = [
       'Apply Z first (flips |1⟩ sign), then S (multiplies by i): together they give −i on |1⟩. '
           'Sequence: H → Z → S.',
     ],
-    solutionExplanation:
-        'H|0⟩ = (|0⟩+|1⟩)/√2. '
+    solutionExplanation: 'H|0⟩ = (|0⟩+|1⟩)/√2. '
         'Z flips |1⟩: (|0⟩−|1⟩)/√2. '
         'S multiplies |1⟩ by i: (|0⟩ − i|1⟩)/√2 = |-i⟩. '
         '|-i⟩ is also called the |L⟩ (left circular) state on the Bloch sphere.',
     numQubits: 1,
     initialQubitsStateString: "0", // Requires H and ZS or YS or something
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y)],
-    solutionFinalVector: [[Complex(sqrt1_2, 0)], [Complex(0, -sqrt1_2)]], // Target: |-i> state (e.g., HZ then S)
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.s),
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.y)
+    ],
+    solutionFinalVector: [
+      [Complex(sqrt1_2, 0)],
+      [Complex(0, -sqrt1_2)]
+    ], // Target: |-i> state (e.g., HZ then S)
   ),
   // (H + S + Z) + S + H + X
   ComposerLevel.fromBinaryString(
     title: 'Uncomputing a Phase State',
-    taskDescription: r"You're at \( (|0\rangle - i|1\rangle)/\sqrt{2} \). Transform this state back to \( |1\rangle \).",
+    taskDescription:
+        r"You're at \( (|0\rangle - i|1\rangle)/\sqrt{2} \). Transform this state back to \( |1\rangle \).",
     conceptIntro:
         'Quantum circuits are reversible — every operation can be undone. '
         'The pre-inserted gates H→S→Z have already transformed |0⟩ into |-i⟩ = (|0⟩−i|1⟩)/√2. '
@@ -300,19 +384,36 @@ final List<QQLevel> allQQLevels = [
         'Sequence to add: S → H → X. '
         'Together with the pre-inserted H→S→Z, the full 6-gate circuit maps |0⟩ → |1⟩.',
     numQubits: 1,
-    initialQubitsStateString: "0", // User must reach the initial state first, then transform.
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y)],
-    solutionFinalVector: [[Complex.zero()], [Complex.one()]], // Target: |1> state (e.g., first create initial state with H S Z, then apply S H X)
+    initialQubitsStateString:
+        "0", // User must reach the initial state first, then transform.
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.s),
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.y)
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()]
+    ], // Target: |1> state (e.g., first create initial state with H S Z, then apply S H X)
     preInsertedGates: (QuantumCircuit circuit) {
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0, isDeletable: false);
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.s), 1, 0, isDeletable: false);
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 2, 0, isDeletable: false);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0,
+          isDeletable: false);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.s), 1, 0,
+          isDeletable: false);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 2, 0,
+          isDeletable: false);
     },
   ),
   // H + S + T + Z
   ComposerLevel.fromBinaryString(
     title: 'T† — Inverse Phase Gate',
-    taskDescription: r"From \( |0\rangle \), reach \( (|0\rangle + e^{-i\pi/4}|1\rangle)/\sqrt{2} \).",
+    taskDescription:
+        r"From \( |0\rangle \), reach \( (|0\rangle + e^{-i\pi/4}|1\rangle)/\sqrt{2} \).",
     conceptIntro:
         'T† (T-dagger, also written T⁻¹) is the inverse of the T gate. '
         'Where T rotates the |1⟩ phase by +π/4, T† rotates by −π/4. '
@@ -324,8 +425,7 @@ final List<QQLevel> allQQLevels = [
       'T adds +π/4, S adds +π/2, Z adds +π. Total T+S+Z = π/4+π/2+π = 7π/4 ≡ −π/4 (mod 2π). '
           'Sequence: H → T → S → Z.',
     ],
-    solutionExplanation:
-        'H gives (|0⟩+|1⟩)/√2. '
+    solutionExplanation: 'H gives (|0⟩+|1⟩)/√2. '
         'T adds phase +π/4 → e^(iπ/4). '
         'S adds +π/2 → e^(i3π/4). '
         'Z adds +π → e^(i7π/4) = e^(−iπ/4). '
@@ -333,13 +433,23 @@ final List<QQLevel> allQQLevels = [
         'This is exactly what T†|+⟩ produces — constructed from T, S, Z.',
     numQubits: 1,
     initialQubitsStateString: "0",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.t), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y)],
-    solutionFinalVector: [[Complex(sqrt1_2, 0)], [Complex(0.5, -0.5)]], // Target: HZ T |0> (HT then Z) or (H then T.conjugate())
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.t),
+      Gate.fromIdentifier(SelectedGateType.s),
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.y)
+    ],
+    solutionFinalVector: [
+      [Complex(sqrt1_2, 0)],
+      [Complex(0.5, -0.5)]
+    ], // Target: HZ T |0> (HT then Z) or (H then T.conjugate())
   ),
   // CX(0,1)
   ComposerLevel.fromBinaryString(
     title: 'CNOT Gate',
-    taskDescription: r"From \( |10\rangle \), create a circuit where Qubit 1 will 'mirror' the state of Qubit 0. The final state should be \( |11\rangle \).",
+    taskDescription:
+        r"From \( |10\rangle \), create a circuit where Qubit 1 will 'mirror' the state of Qubit 0. The final state should be \( |11\rangle \).",
     conceptIntro:
         'The CNOT (Controlled-NOT, CX) gate is the fundamental two-qubit gate. '
         'It has a "control" qubit and a "target" qubit: the target flips if and only if the control is |1⟩, '
@@ -351,14 +461,17 @@ final List<QQLevel> allQQLevels = [
       'In |10⟩, Q0=1 and Q1=0. You want Q1 to flip to 1. Which qubit should be the control?',
       'Use CNOT with Q0 as control and Q1 as target. Q0=1 satisfies the condition, so Q1 flips: 0→1, giving |11⟩.',
     ],
-    solutionExplanation:
-        'CNOT(Q0→Q1)|10⟩ = |11⟩. '
+    solutionExplanation: 'CNOT(Q0→Q1)|10⟩ = |11⟩. '
         'Q0=1 triggers the flip: Q1 goes from 0 to 1. '
         'Equivalently: Q1_new = Q1 ⊕ Q0 = 0 ⊕ 1 = 1. '
         'CNOT combined with single-qubit gates forms a universal gate set for quantum computing.',
     numQubits: 2,
     initialQubitsStateString: "10",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.y),
+      Gate.fromIdentifier(SelectedGateType.z)
+    ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.zero()],
@@ -367,7 +480,8 @@ final List<QQLevel> allQQLevels = [
     ], // Target: |00>
   ),
   // CX(1,0)
-  ComposerLevel.fromBinaryString( // 15
+  ComposerLevel.fromBinaryString(
+    // 15
     title: 'CNOT: Swapping Control & Target',
     taskDescription: r"Transform \( |01\rangle \) to \( |11\rangle \).",
     conceptIntro:
@@ -382,14 +496,16 @@ final List<QQLevel> allQQLevels = [
       'Use CNOT with Q1 as control (Q1=1 triggers the condition) and Q0 as target. '
           'CNOT(Q1→Q0)|01⟩ = |11⟩.',
     ],
-    solutionExplanation:
-        'CNOT(Q1→Q0)|01⟩ = |11⟩. '
+    solutionExplanation: 'CNOT(Q1→Q0)|01⟩ = |11⟩. '
         'Q1=1 is the control, so Q0 flips: 0→1. '
         'Compare with level 14 where the roles were reversed. '
         'Note: CNOT(Q0→Q1) on |01⟩ would give |01⟩ unchanged (Q0=0 does not trigger).',
     numQubits: 2,
     initialQubitsStateString: "01",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.y)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.y)
+    ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.zero()],
@@ -400,7 +516,8 @@ final List<QQLevel> allQQLevels = [
   // CX (0,2)
   ComposerLevel.fromBinaryString(
     title: '3-Qubit CNOT',
-    taskDescription: r"Explore 3 qubits! Transform \( |101\rangle \) to \( |100\rangle \).",
+    taskDescription:
+        r"Explore 3 qubits! Transform \( |101\rangle \) to \( |100\rangle \).",
     conceptIntro:
         'CNOT can connect any two qubits in a multi-qubit register — they do not need to be adjacent. '
         'A 3-qubit system has a state vector with 2³=8 entries. '
@@ -410,15 +527,20 @@ final List<QQLevel> allQQLevels = [
       'Q0=1 and Q2=1 in |101⟩. You want to flip Q2 from 1 to 0. Which qubit is active enough to be the control?',
       'Use CNOT with Q0 as control and Q2 as target. Q0=1 triggers the flip: Q2 goes 1→0, giving |100⟩.',
     ],
-    solutionExplanation:
-        'CNOT(Q0→Q2)|101⟩ = |100⟩. '
+    solutionExplanation: 'CNOT(Q0→Q2)|101⟩ = |100⟩. '
         'Q0=1 is the control, so Q2 flips: 1→0. Q1 is untouched. '
         'In the 8-entry state vector (|000⟩…|111⟩), |100⟩ is index 4 (big-endian). '
         'This level shows that CNOT works over any qubit distance.',
     numQubits: 3,
     initialQubitsStateString: "101", // |000> state
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y)],
-    solutionFinalVector: [ // CNOT(Q0, Q2) applied to |000> results in |000>
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.y)
+    ],
+    solutionFinalVector: [
+      // CNOT(Q0, Q2) applied to |000> results in |000>
       [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
       [Complex.one()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
     ],
@@ -426,7 +548,8 @@ final List<QQLevel> allQQLevels = [
   // CX(0,1) + X(0)
   ComposerLevel.fromBinaryString(
     title: 'Uncomputing with CNOT',
-    taskDescription: r"From \( |11\rangle \), transform the state to \( |00\rangle \).",
+    taskDescription:
+        r"From \( |11\rangle \), transform the state to \( |00\rangle \).",
     conceptIntro:
         'Reaching any two-qubit basis state from any other requires the right combination of gates '
         'applied in the correct order. '
@@ -438,15 +561,19 @@ final List<QQLevel> allQQLevels = [
       'Try CNOT(Q0→Q1) on |11⟩ first: Q0=1 flips Q1: 1→0, giving |10⟩. Now you only need to fix Q0.',
       'After CNOT gives |10⟩, apply X on Q0: 1→0. Final state: |00⟩. Total: CNOT(Q0→Q1) then X on Q0.',
     ],
-    solutionExplanation:
-        'CNOT(Q0→Q1)|11⟩ = |10⟩ (Q0=1 flips Q1: 1→0). '
+    solutionExplanation: 'CNOT(Q0→Q1)|11⟩ = |10⟩ (Q0=1 flips Q1: 1→0). '
         'X on Q0: |10⟩ → |00⟩. '
         'Two gates are sufficient. Note the alternative order does NOT work: '
         'X on Q0 first gives |01⟩, then CNOT(Q0→Q1) leaves it as |01⟩ (Q0=0, condition never triggers — wrong!). '
         'So CNOT first is the correct order here.',
     numQubits: 2,
     initialQubitsStateString: "11",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.x),  Gate.fromIdentifier(SelectedGateType.z),  Gate.fromIdentifier(SelectedGateType.y)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.y)
+    ],
     solutionFinalVector: [
       [Complex.one()],
       [Complex.zero()],
@@ -477,16 +604,27 @@ final List<QQLevel> allQQLevels = [
         'quantum computation, and on its own it is universal for classical reversible logic.',
     numQubits: 3,
     initialQubitsStateString: "101", // |000> state
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.ccnot), Gate.fromIdentifier(SelectedGateType.z),],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.ccnot),
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
     solutionFinalVector: [
-      [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
-      [Complex.zero()], [Complex.zero()], [Complex.zero()], [Complex.one()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
     ],
   ),
   // CCX(0,1,2)
   ComposerLevel.fromBinaryString(
     title: 'Toffoli: Choose Your Controls',
-    taskDescription: r"From \( |011\rangle \), transform the state to \( |111\rangle \).",
+    taskDescription:
+        r"From \( |011\rangle \), transform the state to \( |111\rangle \).",
     conceptIntro:
         'The Toffoli gate is flexible — any two qubits can be the controls and '
         'any distinct third qubit can be the target. '
@@ -498,14 +636,17 @@ final List<QQLevel> allQQLevels = [
       'Set Q1 and Q2 as controls, Q0 as target. Both controls are 1, so Q0 flips: 0→1. '
           'CCX(ctrl:Q1,Q2; target:Q0)|011⟩ = |111⟩.',
     ],
-    solutionExplanation:
-        'CCX(ctrl:Q1,Q2; target:Q0)|011⟩ = |111⟩. '
+    solutionExplanation: 'CCX(ctrl:Q1,Q2; target:Q0)|011⟩ = |111⟩. '
         'Q1=1 AND Q2=1 → Q0 flips: 0→1. '
         'Compare with level 18 (controls Q0,Q2; target Q1) — same gate type, different qubit assignment. '
         'Choosing controls flexibly is essential for implementing quantum arithmetic circuits.',
     numQubits: 3,
     initialQubitsStateString: "011",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.ccnot), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.ccnot),
+      Gate.fromIdentifier(SelectedGateType.y),
+      Gate.fromIdentifier(SelectedGateType.z)
+    ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.zero()],
@@ -521,9 +662,11 @@ final List<QQLevel> allQQLevels = [
     // |011> --(CCNOT_{1,2;0})--> |111>
   ),
   // (CCNOT(0,1,2)) + CCNOT(0,1,2)
-  ComposerLevel.fromBinaryString( // LEVEL 20
+  ComposerLevel.fromBinaryString(
+    // LEVEL 20
     title: 'Toffoli Self-Inverse',
-    taskDescription: r"You are given a 3-qubit circuit already in the state \( |111\rangle \). Transform this state back to \( |110\rangle \).",
+    taskDescription:
+        r"You are given a 3-qubit circuit already in the state \( |111\rangle \). Transform this state back to \( |110\rangle \).",
     conceptIntro:
         'Like X and CNOT, the Toffoli gate is its own inverse: CCX·CCX = I. '
         'Applying CCX twice in a row restores the original state, because flipping a bit twice returns it to its start. '
@@ -541,9 +684,14 @@ final List<QQLevel> allQQLevels = [
     numQubits: 3,
     initialQubitsStateString: "110", // Base for pre-inserted gates
     preInsertedGates: (QuantumCircuit circuit) {
-      circuit.insertTriplePlacedGateAt(Gate.fromIdentifier(SelectedGateType.ccnot), 0, 0, 1, 2, isDeletable: false);
+      circuit.insertTriplePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.ccnot), 0, 0, 1, 2,
+          isDeletable: false);
     },
-    availableGates: [Gate.fromIdentifier(SelectedGateType.ccnot), Gate.fromIdentifier(SelectedGateType.z)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.ccnot),
+      Gate.fromIdentifier(SelectedGateType.z)
+    ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.zero()],
@@ -558,7 +706,8 @@ final List<QQLevel> allQQLevels = [
   // X(2) + CCNOT(0,1,2)
   ComposerLevel.fromBinaryString(
     title: 'Toffoli as AND Gate',
-    taskDescription: r"From \( |010\rangle \), transform the state to \( |111\rangle \).",
+    taskDescription:
+        r"From \( |010\rangle \), transform the state to \( |111\rangle \).",
     conceptIntro:
         'The Toffoli gate computes a quantum AND: CCX(ctrl₁,ctrl₂→tgt) sets '
         'tgt ← tgt ⊕ (ctrl₁ AND ctrl₂). '
@@ -572,15 +721,19 @@ final List<QQLevel> allQQLevels = [
       'Apply X on Q0: |010⟩ → |110⟩. Now CCX with Q0 and Q1 as controls, Q2 as target: '
           'both controls are 1, so Q2 flips: 0→1, giving |111⟩.',
     ],
-    solutionExplanation:
-        'X flips Q0: |010⟩ → |110⟩. '
+    solutionExplanation: 'X flips Q0: |010⟩ → |110⟩. '
         'CCX(ctrl:Q0,Q1; target:Q2): Q0∧Q1 = 1∧1 = 1, so Q2 flips: 0→1. '
         'Result: |111⟩. '
         'This is the quantum AND circuit: Q2 stores Q0 AND Q1, '
         'while Q0 and Q1 are left unchanged (reversibility).',
     numQubits: 3,
     initialQubitsStateString: "010",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.ccnot), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.ccnot),
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.y)
+    ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.zero()],
@@ -595,9 +748,9 @@ final List<QQLevel> allQQLevels = [
   // H + CX
   ComposerLevel.fromBinaryString(
     title: 'First Bell State Φ⁺',
-    taskDescription: r"Entangle two qubits! Create the Bell state \( |00\rangle + |11\rangle\).",
-    conceptIntro:
-        'Entanglement is the defining feature of quantum mechanics. '
+    taskDescription:
+        r"Entangle two qubits! Create the Bell state \( |00\rangle + |11\rangle\).",
+    conceptIntro: 'Entanglement is the defining feature of quantum mechanics. '
         'The Bell state Φ⁺ = (|00⟩+|11⟩)/√2 cannot be written as (state of Q0)⊗(state of Q1). '
         'After creating it, measuring either qubit instantly determines the other — '
         'both are always 0 or always 1, with 50% probability each. '
@@ -615,7 +768,12 @@ final List<QQLevel> allQQLevels = [
         'used as the first step in quantum teleportation and superdense coding.',
     numQubits: 2,
     initialQubitsStateString: "00", // |00> state
-    availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.z)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.z)
+    ],
     solutionFinalVector: [
       [Complex(sqrt1_2)],
       [Complex.zero()],
@@ -626,7 +784,8 @@ final List<QQLevel> allQQLevels = [
   // H + CX
   ComposerLevel.fromBinaryString(
     title: 'Bell State Ψ⁺',
-    taskDescription: r"From \( |01\rangle \), create the Bell state \( |\Psi^+\rangle = (|01\rangle + |10\rangle)/\sqrt{2} \).",
+    taskDescription:
+        r"From \( |01\rangle \), create the Bell state \( |\Psi^+\rangle = (|01\rangle + |10\rangle)/\sqrt{2} \).",
     conceptIntro:
         'There are four Bell states, each a maximally-entangled two-qubit state. '
         'Ψ⁺ = (|01⟩+|10⟩)/√2 is anti-correlated: measuring one qubit always gives the '
@@ -648,7 +807,11 @@ final List<QQLevel> allQQLevels = [
         'Every Bell state differs from the others by a local X or Z applied to one qubit.',
     numQubits: 2,
     initialQubitsStateString: "10",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.x)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.x)
+    ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex(sqrt1_2, 0)],
@@ -659,7 +822,8 @@ final List<QQLevel> allQQLevels = [
   // (H + CX) + H + CX
   ComposerLevel.fromBinaryString(
     title: 'Disentangling a Bell State',
-    taskDescription: r"Time for disentangling Bell State. Can you reverse the process to get back to \( |00\rangle \)?",
+    taskDescription:
+        r"Time for disentangling Bell State. Can you reverse the process to get back to \( |00\rangle \)?",
     conceptIntro:
         'Quantum circuits are reversible — every entangling operation can be undone. '
         'The pre-inserted circuit created the Bell state Φ⁺. '
@@ -679,10 +843,19 @@ final List<QQLevel> allQQLevels = [
         'quantum teleportation to decode the transmitted qubit.',
     numQubits: 2,
     initialQubitsStateString: "00",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.cnot)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.y),
+      Gate.fromIdentifier(SelectedGateType.cnot)
+    ],
     preInsertedGates: (QuantumCircuit circuit) {
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0, isDeletable: false);
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0, isDeletable: false);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0,
+          isDeletable: false);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0,
+          isDeletable: false);
     },
     solutionFinalVector: [
       [Complex.one()],
@@ -692,9 +865,11 @@ final List<QQLevel> allQQLevels = [
     ], // Target: |00>
   ),
   // H + CX + Z(1)
-  ComposerLevel.fromBinaryString( // 25
+  ComposerLevel.fromBinaryString(
+    // 25
     title: 'Bell State Ψ⁻',
-    taskDescription: r"From \( |10\rangle \), create the Bell state \( |\Psi^-\rangle = (|01\rangle - |10\rangle)/\sqrt{2} \).",
+    taskDescription:
+        r"From \( |10\rangle \), create the Bell state \( |\Psi^-\rangle = (|01\rangle - |10\rangle)/\sqrt{2} \).",
     conceptIntro:
         'Ψ⁻ = (|01⟩−|10⟩)/√2 is the only Bell state antisymmetric under qubit swap '
         '(swapping the two qubits gives −Ψ⁻). It is known as the "singlet" state in physics. '
@@ -717,7 +892,12 @@ final List<QQLevel> allQQLevels = [
         'Only Z on Q1 works — Z on Q0 flips the |01⟩ term (Q0=1 there), producing −Ψ⁻ instead.',
     numQubits: 2,
     initialQubitsStateString: "10",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.y)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.y)
+    ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex(sqrt1_2, 0)],
@@ -728,7 +908,8 @@ final List<QQLevel> allQQLevels = [
   // H + CX + Z(0) (or Z(1)). It can have 2 solution potentially, with Z(0) + Z(1)
   ComposerLevel.fromBinaryString(
     title: 'Bell State Φ⁻',
-    taskDescription: r"From \( |00\rangle \), prepare the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle)/\sqrt{2} \). You need only one solution although it can have 2 solutions potenially, due to entanglement.",
+    taskDescription:
+        r"From \( |00\rangle \), prepare the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle)/\sqrt{2} \). You need only one solution although it can have 2 solutions potenially, due to entanglement.",
     conceptIntro:
         'The four Bell states — Φ⁺, Φ⁻, Ψ⁺, Ψ⁻ — form a complete orthonormal basis for '
         'two-qubit space. Any two-qubit state can be expanded in the Bell basis. '
@@ -740,14 +921,21 @@ final List<QQLevel> allQQLevels = [
       'Now flip the sign of |11⟩. Z on any qubit flips the sign when that qubit is |1⟩ — '
           'since both qubits are |1⟩ in the |11⟩ term, Z on either one converts Φ⁺ to Φ⁻.',
     ],
-    solutionExplanation:
-        'H+CNOT from |00⟩ gives Φ⁺=(|00⟩+|11⟩)/√2. '
+    solutionExplanation: 'H+CNOT from |00⟩ gives Φ⁺=(|00⟩+|11⟩)/√2. '
         'Z on Q0 flips the |11⟩ sign (Q0=1): (|00⟩−|11⟩)/√2 = Φ⁻. '
         'Alternatively Z on Q1 achieves the same result — '
         'both are valid because in an entangled state local operations can have global effects.',
     numQubits: 2,
     initialQubitsStateString: "00",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.t)], // Wide range of gates
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.y),
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.s),
+      Gate.fromIdentifier(SelectedGateType.t)
+    ], // Wide range of gates
     solutionFinalVector: [
       [Complex(sqrt1_2, 0)],
       [Complex.zero()],
@@ -758,7 +946,8 @@ final List<QQLevel> allQQLevels = [
   // (H + CX + Z) + Z + CX + H
   ComposerLevel.fromBinaryString(
     title: 'Uncomputing Φ⁻',
-    taskDescription: r"This circuit is pre-configured. Your task is to transform this state back to \( |00\rangle \).",
+    taskDescription:
+        r"This circuit is pre-configured. Your task is to transform this state back to \( |00\rangle \).",
     conceptIntro:
         'The pre-inserted H→CNOT→Z sequence has created Φ⁻=(|00⟩−|11⟩)/√2. '
         'To reverse an entangled state, apply the inverse operations in reverse order. '
@@ -774,8 +963,7 @@ final List<QQLevel> allQQLevels = [
           'CNOT(Q0→Q1) disentangles: (|00⟩+|10⟩)/√2. '
           'H on Q0 maps |+⟩→|0⟩. Final: |00⟩.',
     ],
-    solutionExplanation:
-        'Z on Q0: Φ⁻ → Φ⁺. '
+    solutionExplanation: 'Z on Q0: Φ⁻ → Φ⁺. '
         'CNOT(Q0→Q1): Φ⁺ → (|00⟩+|10⟩)/√2. '
         'H on Q0: |+⟩ → |0⟩. Final: |00⟩. '
         'Total: Z→CNOT→H — the exact reverse of the pre-inserted H→CNOT→Z. '
@@ -783,11 +971,22 @@ final List<QQLevel> allQQLevels = [
     numQubits: 2,
     initialQubitsStateString: "00", // The simulation starts from |00>
     preInsertedGates: (QuantumCircuit circuit) {
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0, isDeletable: false);
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0, isDeletable: false);
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 2, 0, isDeletable: false);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0,
+          isDeletable: false);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0,
+          isDeletable: false);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 2, 0,
+          isDeletable: false);
     },
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.x)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.x)
+    ],
     solutionFinalVector: [
       [Complex.one()],
       [Complex.zero()],
@@ -798,7 +997,8 @@ final List<QQLevel> allQQLevels = [
   // CX(0,1) +  CX(1,0)
   ComposerLevel.fromBinaryString(
     title: 'SWAP via Three CNOTs',
-    taskDescription: r"From \( |10\rangle \), swap the states of the two qubits to achieve \( |01\rangle \). This can be done using only CX gates.",
+    taskDescription:
+        r"From \( |10\rangle \), swap the states of the two qubits to achieve \( |01\rangle \). This can be done using only CX gates.",
     conceptIntro:
         'A SWAP gate exchanges the states of two qubits: SWAP|ab⟩ = |ba⟩. '
         'There is no SWAP gate in your toolbar, but it can be constructed from gates you already know. '
@@ -813,8 +1013,7 @@ final List<QQLevel> allQQLevels = [
           'At this point |01⟩ is already the target — one more CNOT(Q0→Q1) completes '
           'the full SWAP decomposition (Q0=0, no flip, stays |01⟩).',
     ],
-    solutionExplanation:
-        'CNOT(Q0→Q1)|10⟩=|11⟩. CNOT(Q1→Q0)|11⟩=|01⟩. '
+    solutionExplanation: 'CNOT(Q0→Q1)|10⟩=|11⟩. CNOT(Q1→Q0)|11⟩=|01⟩. '
         'The third CNOT(Q0→Q1) leaves |01⟩ unchanged (Q0=0). '
         'The general SWAP identity SWAP = CNOT(0→1)·CNOT(1→0)·CNOT(0→1) '
         'works for any input, including superpositions — '
@@ -822,6 +1021,13 @@ final List<QQLevel> allQQLevels = [
     numQubits: 2,
     initialQubitsStateString: "10",
     availableGates: [Gate.fromIdentifier(SelectedGateType.cnot)], // Only CNOTs
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+      [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+      [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+      [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+    ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.one()],
@@ -832,7 +1038,8 @@ final List<QQLevel> allQQLevels = [
   // H(1) + CX(0,1) + H(1)
   ComposerLevel.fromBinaryString(
     title: 'Conditional Phase Flip',
-    taskDescription: r"From \( |00\rangle \), flip the phase of \( |11\rangle \).",
+    taskDescription:
+        r"From \( |00\rangle \), flip the phase of \( |11\rangle \).",
     conceptIntro:
         'Flipping only the phase of |11⟩ while leaving all other basis states unchanged '
         'is called a Controlled-Z (CZ) operation. '
@@ -849,8 +1056,7 @@ final List<QQLevel> allQQLevels = [
           'This implements CZ, which maps (|00⟩+|01⟩+|10⟩+|11⟩)/2 '
           'to (|00⟩+|01⟩+|10⟩−|11⟩)/2.',
     ],
-    solutionExplanation:
-        'H on both qubits gives (|00⟩+|01⟩+|10⟩+|11⟩)/2. '
+    solutionExplanation: 'H on both qubits gives (|00⟩+|01⟩+|10⟩+|11⟩)/2. '
         'The decomposition CZ = H(tgt)·CNOT·H(tgt) then flips only |11⟩. '
         'The explicit decomposition CZ = H(Q1)·CNOT·H(Q1), applied after the uniform '
         'superposition H(Q0)·H(Q1), gives a 5-gate sequence that simplifies (H·H=I) '
@@ -859,18 +1065,23 @@ final List<QQLevel> allQQLevels = [
         'The CZ decomposition via H·CNOT·H is fundamental in quantum computing.',
     numQubits: 2,
     initialQubitsStateString: "00",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.y)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.y)
+    ],
     solutionFinalVector: [
-      [Complex(0.5, 0)],           // Amplitude for |00>
-      [Complex(0.5, 0)],           // Amplitude for |01>
-      [Complex(0.5, 0)],           // Amplitude for |10>
-      [Complex(-0.5, 0)],          // Amplitude for |11> (phase flipped)
+      [Complex(0.5, 0)], // Amplitude for |00>
+      [Complex(0.5, 0)], // Amplitude for |01>
+      [Complex(0.5, 0)], // Amplitude for |10>
+      [Complex(-0.5, 0)], // Amplitude for |11> (phase flipped)
     ], // Target: (1/2)(|00> + |01> + |10> - |11>)
   ),
   // H(0) + X(1) + CX(0,1)
   ComposerLevel.fromBinaryString(
     title: 'Bell Ψ⁺ from |00⟩',
-    taskDescription: r"From \( |00\rangle \), create the Bell state \( |\Psi^+\rangle = (|01\rangle + |10\rangle)/\sqrt{2} \).",
+    taskDescription:
+        r"From \( |00\rangle \), create the Bell state \( |\Psi^+\rangle = (|01\rangle + |10\rangle)/\sqrt{2} \).",
     conceptIntro:
         'All four Bell states can be prepared from |00⟩ by adjusting what you do '
         'before or after the standard entangling circuit. '
@@ -892,7 +1103,12 @@ final List<QQLevel> allQQLevels = [
         'Ψ⁺: X+H+CNOT from |00⟩; Ψ⁻: X+H+CNOT+Z from |00⟩.',
     numQubits: 2,
     initialQubitsStateString: "00",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.cnot)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.y),
+      Gate.fromIdentifier(SelectedGateType.cnot)
+    ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex(sqrt1_2, 0)],
@@ -901,9 +1117,11 @@ final List<QQLevel> allQQLevels = [
     ], // Target: (1/sqrt(2))|01> + (1/sqrt(2))|10> (Psi+ Bell state)
   ),
   // X(1) + H(0) + CX(0,1) + Z(0)
-  ComposerLevel.fromBinaryString( // multiple solutions, for example H(0) + CX(0,1) + H(0) + H(1)
+  ComposerLevel.fromBinaryString(
+    // multiple solutions, for example H(0) + CX(0,1) + H(0) + H(1)
     title: 'Bell Φ⁻ from |10⟩',
-    taskDescription: r"From \( |10\rangle \), create the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle)/\sqrt{2} \).",
+    taskDescription:
+        r"From \( |10\rangle \), create the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle)/\sqrt{2} \).",
     conceptIntro:
         'H|1⟩ = (|0⟩−|1⟩)/√2 = |−⟩ — when applied to a qubit that is already |1⟩, '
         'the Hadamard gate produces a superposition with a built-in minus sign. '
@@ -926,7 +1144,12 @@ final List<QQLevel> allQQLevels = [
         'The initial qubit state — |0⟩ or |1⟩ — determines the sign of the superposition after H.',
     numQubits: 2,
     initialQubitsStateString: "10",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.z)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.z)
+    ],
     solutionFinalVector: [
       [Complex(sqrt1_2, 0)],
       [Complex.zero()],
@@ -938,7 +1161,8 @@ final List<QQLevel> allQQLevels = [
   // (CNOT(0,1)) + CNOT(1,0) + CNOT(0,1)
   ComposerLevel.fromBinaryString(
     title: 'Complete the SWAP',
-    taskDescription: r"This circuit is pre-configured with the first CNOT of a qubit swap. Complete the swap of qubits 0 and 1, so \( |01\rangle \) becomes \( |10\rangle \).",
+    taskDescription:
+        r"This circuit is pre-configured with the first CNOT of a qubit swap. Complete the swap of qubits 0 and 1, so \( |01\rangle \) becomes \( |10\rangle \).",
     conceptIntro:
         'A SWAP gate exchanges the states of two qubits and can be built from CNOT gates alone '
         '(as you discovered in level 28). Here the first CNOT of the decomposition is already pre-inserted. '
@@ -951,8 +1175,7 @@ final List<QQLevel> allQQLevels = [
       'From |11⟩, add CNOT(Q1→Q0): Q1=1 triggers, flipping Q0: 1→0 → |10⟩. '
           'That is the target — just one gate to add.',
     ],
-    solutionExplanation:
-        'In |01⟩, Q0 is the rightmost bit, so Q0=1 and Q1=0. '
+    solutionExplanation: 'In |01⟩, Q0 is the rightmost bit, so Q0=1 and Q1=0. '
         'Pre-inserted CNOT(Q0→Q1): Q0=1 triggers, flipping Q1: 0→1 → |11⟩. '
         'CNOT(Q1→Q0): Q1=1 triggers, flipping Q0: 1→0 → |10⟩. Done. '
         'The third CNOT of the full decomposition would be a no-op here (Q0=0 after the second step), '
@@ -960,9 +1183,15 @@ final List<QQLevel> allQQLevels = [
     numQubits: 2,
     initialQubitsStateString: "01",
     preInsertedGates: (QuantumCircuit circuit) {
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0, isDeletable: false);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0,
+          isDeletable: false);
     },
-    availableGates: [Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.y),
+      Gate.fromIdentifier(SelectedGateType.z)
+    ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.zero()],
@@ -973,9 +1202,9 @@ final List<QQLevel> allQQLevels = [
   // CNOT(2,0) + CNOT(2,1)
   ComposerLevel.fromBinaryString(
     title: 'Long-Range CNOT',
-    taskDescription: r"From \( |001\rangle \), transform the state to \( |101\rangle \).",
-    conceptIntro:
-        'In a 3-qubit register CNOT can connect any two qubits — '
+    taskDescription:
+        r"From \( |001\rangle \), transform the state to \( |101\rangle \).",
+    conceptIntro: 'In a 3-qubit register CNOT can connect any two qubits — '
         'they do not need to be adjacent. '
         'Here Q2=1 is the only available control. '
         'Using it to flip Q0 (skipping Q1 entirely) is called a "long-range" CNOT. '
@@ -987,8 +1216,7 @@ final List<QQLevel> allQQLevels = [
       'Q0 must flip from 0→1. Use CNOT with Q2 as control and Q0 as target. '
           'Q2=1 → flip Q0: 0→1 → |101⟩. One gate is enough.',
     ],
-    solutionExplanation:
-        'CNOT(Q2→Q0)|001⟩ = |101⟩. '
+    solutionExplanation: 'CNOT(Q2→Q0)|001⟩ = |101⟩. '
         'Q2=1 is the control; Q0 flips: 0→1. Q1 is untouched. '
         'In the 8-entry state vector, |101⟩ is index 5. '
         'This long-range CNOT is the basic building block for '
@@ -1002,7 +1230,7 @@ final List<QQLevel> allQQLevels = [
       [Complex.zero()],
       [Complex.zero()],
       [Complex.zero()],
-      [Complex.one()],   // Amplitude for |101>
+      [Complex.one()], // Amplitude for |101>
       [Complex.zero()],
       [Complex.zero()],
     ], // Target: |101>
@@ -1010,7 +1238,8 @@ final List<QQLevel> allQQLevels = [
   // X(0) + CX(0,2)
   ComposerLevel.fromBinaryString(
     title: 'CNOT Fan-Out',
-    taskDescription: r"Transform \( |010\rangle \) to \( |111\rangle \). This requires a careful sequence of gates.",
+    taskDescription:
+        r"Transform \( |010\rangle \) to \( |111\rangle \). This requires a careful sequence of gates.",
     conceptIntro:
         'CNOT "fans out" (copies) a |1⟩ value from a control qubit into a |0⟩ target qubit. '
         'Note: this copying only works for classical basis states — '
@@ -1026,15 +1255,19 @@ final List<QQLevel> allQQLevels = [
           'Now Q0=1 can act as control: CNOT(Q0→Q2) flips Q2: 0→1 → |111⟩. '
           'Two gates, no Toffoli needed.',
     ],
-    solutionExplanation:
-        'X flips Q0: |010⟩ → |110⟩. '
+    solutionExplanation: 'X flips Q0: |010⟩ → |110⟩. '
         'CNOT(Q0→Q2): Q0=1 → Q2 flips: 0→1 → |111⟩. '
         'Q1 was already |1⟩ and is left untouched. '
         'This fan-out pattern — X to set a control, then CNOT to copy its value — '
         'appears in quantum adder circuits and quantum error correction encoders.',
     numQubits: 3,
     initialQubitsStateString: "010",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.ccnot), Gate.fromIdentifier(SelectedGateType.hadamard)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.ccnot),
+      Gate.fromIdentifier(SelectedGateType.hadamard)
+    ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.zero()],
@@ -1049,7 +1282,8 @@ final List<QQLevel> allQQLevels = [
   // X(0)
   ComposerLevel.fromBinaryString(
     title: 'GHZ State Manipulation',
-    taskDescription: r"This circuit is pre-configured to the GHZ state \( (|000\rangle + |111\rangle)/\sqrt{2} \). Transform this state to \( (|001\rangle + |110\rangle)/\sqrt{2} \).",
+    taskDescription:
+        r"This circuit is pre-configured to the GHZ state \( (|000\rangle + |111\rangle)/\sqrt{2} \). Transform this state to \( (|001\rangle + |110\rangle)/\sqrt{2} \).",
     conceptIntro:
         'The GHZ (Greenberger–Horne–Zeilinger) state (|000⟩+|111⟩)/√2 is '
         'maximally entangled across all three qubits. '
@@ -1066,8 +1300,7 @@ final List<QQLevel> allQQLevels = [
           'Find the qubit position where "000"→"001" and "111"→"110" — '
           'the rightmost bit in the ket string changes, which is Q0 (top row in the circuit).',
     ],
-    solutionExplanation:
-        'X on Q0 (top row): |000⟩→|001⟩ and |111⟩→|110⟩. '
+    solutionExplanation: 'X on Q0 (top row): |000⟩→|001⟩ and |111⟩→|110⟩. '
         'Result: (|001⟩+|110⟩)/√2. '
         'This demonstrates the all-or-nothing nature of GHZ entanglement: '
         'a single local X on Q0 flips the rightmost bit in every term simultaneously. '
@@ -1075,11 +1308,21 @@ final List<QQLevel> allQQLevels = [
     numQubits: 3,
     initialQubitsStateString: "000", // Base for pre-inserted gates
     preInsertedGates: (QuantumCircuit circuit) {
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0, isDeletable: false);
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0, isDeletable: false);
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 2, 2, 1, isDeletable: false);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0,
+          isDeletable: false);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0,
+          isDeletable: false);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 2, 2, 1,
+          isDeletable: false);
     },
-    availableGates: [Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.y)
+    ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex(sqrt1_2, 0)],
@@ -1095,7 +1338,8 @@ final List<QQLevel> allQQLevels = [
   // H(0) + H(1)
   ComposerLevel.fromBinaryString(
     title: 'Uniform 2-Qubit Superposition',
-    taskDescription: r"From \( |00\rangle \), create a uniform superposition of all possible 2-qubit states: \( (|00\rangle + |01\rangle + |10\rangle + |11\rangle)/2 \).",
+    taskDescription:
+        r"From \( |00\rangle \), create a uniform superposition of all possible 2-qubit states: \( (|00\rangle + |01\rangle + |10\rangle + |11\rangle)/2 \).",
     conceptIntro:
         'A uniform superposition over all 2ⁿ basis states gives each state equal amplitude '
         'and equal measurement probability 1/2ⁿ. '
@@ -1119,7 +1363,11 @@ final List<QQLevel> allQQLevels = [
         'over all 2ⁿ bit strings — the starting state for most quantum search algorithms.',
     numQubits: 2,
     initialQubitsStateString: "00",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.t), Gate.fromIdentifier(SelectedGateType.s)], // Only Hadamard needed
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.t),
+      Gate.fromIdentifier(SelectedGateType.s)
+    ], // Only Hadamard needed
     solutionFinalVector: [
       [Complex(0.5, 0)],
       [Complex(0.5, 0)],
@@ -1131,7 +1379,8 @@ final List<QQLevel> allQQLevels = [
   // X(0) + H(0) + CX(0,1) + CX(1,2) + Z(2)
   ComposerLevel.fromBinaryString(
     title: 'GHZ State with Phase',
-    taskDescription: r"From \( |001\rangle \), transform the state to \( (|000\rangle - |111\rangle)/\sqrt{2} \).",
+    taskDescription:
+        r"From \( |001\rangle \), transform the state to \( (|000\rangle - |111\rangle)/\sqrt{2} \).",
     conceptIntro:
         'The GHZ state (|000⟩+|111⟩)/√2 is a maximally entangled 3-qubit state. '
         'Building it requires creating a single-qubit superposition and then spreading '
@@ -1148,8 +1397,7 @@ final List<QQLevel> allQQLevels = [
           'Now add Z on any qubit to flip the |111⟩ sign — '
           'all three qubits are |1⟩ in that term, so Z on any of them works.',
     ],
-    solutionExplanation:
-        'X clears the initial |1⟩. '
+    solutionExplanation: 'X clears the initial |1⟩. '
         'H creates superposition on one qubit. '
         'CNOT(Q0→Q1) then CNOT(Q1→Q2) cascade the entanglement: (|000⟩+|111⟩)/√2. '
         'Z on any qubit flips the sign of |111⟩ → (|000⟩−|111⟩)/√2. '
@@ -1158,16 +1406,25 @@ final List<QQLevel> allQQLevels = [
         'space and appear in quantum secret sharing and quantum communication protocols.',
     numQubits: 3,
     initialQubitsStateString: "001",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.ccnot), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.t)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.y),
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.ccnot),
+      Gate.fromIdentifier(SelectedGateType.s),
+      Gate.fromIdentifier(SelectedGateType.t)
+    ],
     solutionFinalVector: [
-      [Complex(sqrt1_2, 0)],      // Index 0: |000>
+      [Complex(sqrt1_2, 0)], // Index 0: |000>
       [Complex.zero()],
       [Complex.zero()],
       [Complex.zero()],
       [Complex.zero()],
       [Complex.zero()],
       [Complex.zero()],
-      [Complex(-sqrt1_2, 0)],     // Index 7: |111>
+      [Complex(-sqrt1_2, 0)], // Index 7: |111>
     ], // Target: (1/sqrt(2))(|000> - |111>)
     // Solution:
     // 1. X on Q0 (to get |000>)
@@ -1182,7 +1439,8 @@ final List<QQLevel> allQQLevels = [
   // which is key to Quantum Phase Estimation and Shor's algorithm.
   ComposerLevel.fromBinaryString(
     title: 'CZ Gate — Controlled Phase',
-    taskDescription: r"This is about Conditional Phase Shift (Shor's Principle Hint). From \( |00\rangle \), create a uniform superposition where the \( |11\rangle \) component has its phase flipped to \(-1\). The target state is \( (|00\rangle + |01\rangle + |10\rangle - |11\rangle)/2 \).",
+    taskDescription:
+        r"This is about Conditional Phase Shift (Shor's Principle Hint). From \( |00\rangle \), create a uniform superposition where the \( |11\rangle \) component has its phase flipped to \(-1\). The target state is \( (|00\rangle + |01\rangle + |10\rangle - |11\rangle)/2 \).",
     conceptIntro:
         'The Controlled-Z (CZ) gate applies a phase of −1 to |11⟩ and '
         'leaves all other basis states unchanged. '
@@ -1199,8 +1457,7 @@ final List<QQLevel> allQQLevels = [
           'Compare with level 29: the same target state was reached via H·CNOT·H '
           'because CZ = H(tgt)·CNOT·H(tgt).',
     ],
-    solutionExplanation:
-        'H⊗H gives (|00⟩+|01⟩+|10⟩+|11⟩)/2. '
+    solutionExplanation: 'H⊗H gives (|00⟩+|01⟩+|10⟩+|11⟩)/2. '
         'CZ flips the phase of |11⟩: (|00⟩+|01⟩+|10⟩−|11⟩)/2. '
         'CZ is self-inverse (CZ²=I) and symmetric. '
         'This is the same target state as level 29, reached in fewer gates '
@@ -1209,12 +1466,18 @@ final List<QQLevel> allQQLevels = [
         'information that the QFT then converts into a period.',
     numQubits: 2,
     initialQubitsStateString: "00",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cz), Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.t), Gate.fromIdentifier(SelectedGateType.y)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cz),
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.t),
+      Gate.fromIdentifier(SelectedGateType.y)
+    ],
     solutionFinalVector: [
-      [Complex(0.5, 0)],           // Amplitude for |00>
-      [Complex(0.5, 0)],           // Amplitude for |01>
-      [Complex(0.5, 0)],           // Amplitude for |10>
-      [Complex(-0.5, 0)],          // Amplitude for |11> (phase flipped)
+      [Complex(0.5, 0)], // Amplitude for |00>
+      [Complex(0.5, 0)], // Amplitude for |01>
+      [Complex(0.5, 0)], // Amplitude for |10>
+      [Complex(-0.5, 0)], // Amplitude for |11> (phase flipped)
     ], // Target: (1/2)(|00> + |01> + |10> - |11>)
     // Solution:
     // 1. Hadamard (H) on Qubit 0
@@ -1228,7 +1491,8 @@ final List<QQLevel> allQQLevels = [
   // (H(0) + H(1) + CZ(0,1)) + CZ(0,1) + H(0) + H(1)
   ComposerLevel.fromBinaryString(
     title: 'Uncomputing CZ Entanglement',
-    taskDescription: r"This circuit is pre-configured to an entangled state where the \( |11\rangle \) component has a negative phase. Your task is to transform this state back to \( |00\rangle \).",
+    taskDescription:
+        r"This circuit is pre-configured to an entangled state where the \( |11\rangle \) component has a negative phase. Your task is to transform this state back to \( |00\rangle \).",
     conceptIntro:
         'The pre-inserted H→H→CZ sequence has created the state (|00⟩+|01⟩+|10⟩−|11⟩)/2. '
         'To return to |00⟩, you must reverse the pre-inserted circuit. '
@@ -1252,11 +1516,21 @@ final List<QQLevel> allQQLevels = [
     numQubits: 2,
     initialQubitsStateString: "00", // Base for pre-inserted gates
     preInsertedGates: (QuantumCircuit circuit) {
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0, isDeletable: false);
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 1, 1, isDeletable: false);
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cz), 2, 1, 0, isDeletable: false);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0,
+          isDeletable: false);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 1, 1,
+          isDeletable: false);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cz), 2, 1, 0,
+          isDeletable: false);
     },
-    availableGates: [Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.cz)], // Provide gates for reversal
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.cz)
+    ], // Provide gates for reversal
     solutionFinalVector: [
       [Complex.one()],
       [Complex.zero()],
@@ -1271,7 +1545,8 @@ final List<QQLevel> allQQLevels = [
 
   ComposerLevel.fromBinaryString(
     title: 'Rx Rotation Gate',
-    taskDescription: r"Transform the initial state \( |0\rangle \) to the 'plus' state \( |+\rangle \). This can be achieved with a single rotation gate.",
+    taskDescription:
+        r"Transform the initial state \( |0\rangle \) to the 'plus' state \( |+\rangle \). This can be achieved with a single rotation gate.",
     conceptIntro:
         'Rotation gates rotate a qubit around a Bloch sphere axis by a specific angle θ. '
         'Rx(θ) rotates around the X-axis: Rx(θ)|0⟩ = cos(θ/2)|0⟩ − i·sin(θ/2)|1⟩. '
@@ -1287,15 +1562,18 @@ final List<QQLevel> allQQLevels = [
           'Rx(π/2)|0⟩ = cos(π/4)|0⟩ − i·sin(π/4)|1⟩ = (|0⟩−i|1⟩)/√2. '
           'That matches — use Rx(π/2).',
     ],
-    solutionExplanation:
-        'Rx(π/2)|0⟩ = (|0⟩−i|1⟩)/√2. '
+    solutionExplanation: 'Rx(π/2)|0⟩ = (|0⟩−i|1⟩)/√2. '
         'The amplitude on |1⟩ is −i/√2, giving probability |−i/√2|²=1/2 — '
         'equal to |+⟩, but the phase of |1⟩ differs. '
         'Rx, Ry, Rz together can represent any single-qubit unitary. '
         'This is the Euler angle decomposition, fundamental to variational quantum circuits.',
     numQubits: 1,
     initialQubitsStateString: "0",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2), Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 2)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2),
+      Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 2)
+    ],
     solutionFinalVector: [
       [Complex(sqrt1_2, 0)],
       [Complex(0, -sqrt1_2)],
@@ -1303,9 +1581,9 @@ final List<QQLevel> allQQLevels = [
   ),
   ComposerLevel.fromBinaryString(
     title: 'Ry Rotation Gate',
-    taskDescription: r"Rotate the initial state \( |0\rangle \) to a new state on the equatorial plane of the Bloch sphere. Try to find the correct rotation.",
-    conceptIntro:
-        'Ry(θ) rotates around the Y-axis of the Bloch sphere: '
+    taskDescription:
+        r"Rotate the initial state \( |0\rangle \) to a new state on the equatorial plane of the Bloch sphere. Try to find the correct rotation.",
+    conceptIntro: 'Ry(θ) rotates around the Y-axis of the Bloch sphere: '
         'Ry(θ)|0⟩ = cos(θ/2)|0⟩ + sin(θ/2)|1⟩. '
         'Unlike Rx, the Y-axis rotation keeps all amplitudes real — no imaginary phase on |1⟩. '
         'The target state has specific real amplitudes on both |0⟩ and |1⟩ — '
@@ -1324,7 +1602,10 @@ final List<QQLevel> allQQLevels = [
         'Ry and Rx reach different equatorial points despite equal measurement probabilities.',
     numQubits: 1,
     initialQubitsStateString: "0",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 4), Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 2)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 4),
+      Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 2)
+    ],
     solutionFinalVector: [
       [Complex(sqrt1_2, 0)],
       [Complex(sqrt1_2, 0)],
@@ -1332,7 +1613,8 @@ final List<QQLevel> allQQLevels = [
   ),
   ComposerLevel.fromBinaryString(
     title: 'Rz — Phase Rotation',
-    taskDescription: r"Apply a phase shift to the state \( |1\rangle \) to transform it to \( |i\rangle \). This requires an Rz gate.",
+    taskDescription:
+        r"Apply a phase shift to the state \( |1\rangle \) to transform it to \( |i\rangle \). This requires an Rz gate.",
     conceptIntro:
         'Rz(θ) rotates around the Z-axis: Rz(θ)|0⟩ = e^(−iθ/2)|0⟩ and Rz(θ)|1⟩ = e^(iθ/2)|1⟩. '
         'Since |0⟩ and |1⟩ get opposite phases, Rz only creates a relative phase — '
@@ -1354,7 +1636,11 @@ final List<QQLevel> allQQLevels = [
         'All add phase exclusively to the |1⟩ component without touching |0⟩.',
     numQubits: 1,
     initialQubitsStateString: "1",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.z), Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2), Gate.fromIdentifier(SelectedGateType.ry)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2),
+      Gate.fromIdentifier(SelectedGateType.ry)
+    ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex(sqrt1_2, sqrt1_2)],
@@ -1362,7 +1648,8 @@ final List<QQLevel> allQQLevels = [
   ),
   ComposerLevel.fromBinaryString(
     title: 'Inverse Rotation',
-    taskDescription: r"You start with a pre-configured superposition. Use a rotation gate to return to the \( |0\rangle \) state.",
+    taskDescription:
+        r"You start with a pre-configured superposition. Use a rotation gate to return to the \( |0\rangle \) state.",
     conceptIntro:
         'Every rotation gate has an inverse: Rx(−θ) = Rx(θ)†, Ry(−θ) = Ry(θ)†, Rz(−θ) = Rz(θ)†. '
         'Applying a rotation followed by its inverse cancels to the identity: R(θ)·R(−θ) = I. '
@@ -1376,8 +1663,7 @@ final List<QQLevel> allQQLevels = [
           'Apply Ry(−π/2): Ry(−π/2)·Ry(π/2)|0⟩ = Ry(0)|0⟩ = |0⟩. '
           'The negative-angle gate is in your toolbar.',
     ],
-    solutionExplanation:
-        'Ry(π/2)|0⟩ = (|0⟩+|1⟩)/√2 (pre-inserted). '
+    solutionExplanation: 'Ry(π/2)|0⟩ = (|0⟩+|1⟩)/√2 (pre-inserted). '
         'Ry(−π/2) reverses the rotation: '
         'Ry(−π/2)·(|0⟩+|1⟩)/√2 = |0⟩. '
         'Net rotation angle: π/2 + (−π/2) = 0. '
@@ -1386,9 +1672,14 @@ final List<QQLevel> allQQLevels = [
     numQubits: 1,
     initialQubitsStateString: "0",
     preInsertedGates: (QuantumCircuit circuit) {
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 2), 0, 0, isDeletable: false);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 2), 0, 0,
+          isDeletable: false);
     },
-    availableGates: [Gate.fromIdentifier(SelectedGateType.ry, angle: -math.pi / 2), Gate.fromIdentifier(SelectedGateType.hadamard)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.ry, angle: -math.pi / 2),
+      Gate.fromIdentifier(SelectedGateType.hadamard)
+    ],
     solutionFinalVector: [
       [Complex.one()],
       [Complex.zero()],
@@ -1396,7 +1687,8 @@ final List<QQLevel> allQQLevels = [
   ),
   ComposerLevel.fromBinaryString(
     title: 'Composing Rx and Ry',
-    taskDescription: r"Combine two different rotation gates to get a specific final state. The first rotation is given.",
+    taskDescription:
+        r"Combine two different rotation gates to get a specific final state. The first rotation is given.",
     conceptIntro:
         'Combining rotations around different axes creates states unreachable by either axis alone. '
         'The Bloch sphere shows why: a single axis can only reach a circle of states, '
@@ -1412,8 +1704,7 @@ final List<QQLevel> allQQLevels = [
           'The Y-rotation mixes the real and imaginary parts from the Rx result, '
           'yielding exactly [0.5+0.5i, 0.5−0.5i].',
     ],
-    solutionExplanation:
-        'Rx(π/2)|0⟩ = (|0⟩−i|1⟩)/√2. '
+    solutionExplanation: 'Rx(π/2)|0⟩ = (|0⟩−i|1⟩)/√2. '
         'Ry(π/2) on (|0⟩−i|1⟩)/√2: the Y-rotation mixes components, '
         'giving [0.5+0.5i, 0.5−0.5i]. '
         'Each amplitude has magnitude 1/√2 (50/50 measurement probability), '
@@ -1422,9 +1713,15 @@ final List<QQLevel> allQQLevels = [
     numQubits: 1,
     initialQubitsStateString: "0",
     preInsertedGates: (QuantumCircuit circuit) {
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2), 0, 0, isDeletable: false);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2), 0, 0,
+          isDeletable: false);
     },
-    availableGates: [Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 2), Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 4), Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 8)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 2),
+      Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 4),
+      Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 8)
+    ],
     solutionFinalVector: [
       [Complex(0.5, 0.5)],
       [Complex(0.5, -0.5)],
@@ -1432,7 +1729,8 @@ final List<QQLevel> allQQLevels = [
   ),
   ComposerLevel.fromBinaryString(
     title: 'Rz on an Entangled State',
-    taskDescription: r"Use a rotation gate to apply a very specific phase shift on a multi-qubit state. The initial state is a superposition.",
+    taskDescription:
+        r"Use a rotation gate to apply a very specific phase shift on a multi-qubit state. The initial state is a superposition.",
     conceptIntro:
         'Rotation gates can be applied to individual qubits of an entangled state. '
         'Rz(θ) on Q0 of Φ⁺=(|00⟩+|11⟩)/√2 adds e^(−iθ/2) when Q0=0 '
@@ -1447,8 +1745,7 @@ final List<QQLevel> allQQLevels = [
           'So e^(iθ/2) = e^(iπ/8) → θ/2 = π/8 → θ = π/4. '
           'Apply Rz(π/4) on Q0.',
     ],
-    solutionExplanation:
-        'Rz(π/4) on Q0 applied to Φ⁺=(|00⟩+|11⟩)/√2: '
+    solutionExplanation: 'Rz(π/4) on Q0 applied to Φ⁺=(|00⟩+|11⟩)/√2: '
         '|00⟩ → e^(−iπ/8)|00⟩, |11⟩ → e^(iπ/8)|11⟩. '
         'Result: (e^(−iπ/8)|00⟩ + e^(iπ/8)|11⟩)/√2 — a "phased Bell state". '
         'The entanglement is preserved but a relative phase π/4 has been introduced. '
@@ -1457,20 +1754,36 @@ final List<QQLevel> allQQLevels = [
     numQubits: 2,
     initialQubitsStateString: "00",
     preInsertedGates: (QuantumCircuit circuit) {
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0, isDeletable: false);
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0, isDeletable: false);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0,
+          isDeletable: false);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0,
+          isDeletable: false);
     },
-    availableGates: [Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2), Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 4), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.x)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2),
+      Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 4),
+      Gate.fromIdentifier(SelectedGateType.y),
+      Gate.fromIdentifier(SelectedGateType.x)
+    ],
     solutionFinalVector: [
-      [Complex(sqrt1_2 * math.cos(math.pi / 8), -sqrt1_2 * math.sin(math.pi / 8))],
+      [
+        Complex(
+            sqrt1_2 * math.cos(math.pi / 8), -sqrt1_2 * math.sin(math.pi / 8))
+      ],
       [Complex.zero()],
       [Complex.zero()],
-      [Complex(sqrt1_2 * math.cos(math.pi / 8), sqrt1_2 * math.sin(math.pi / 8))],
+      [
+        Complex(
+            sqrt1_2 * math.cos(math.pi / 8), sqrt1_2 * math.sin(math.pi / 8))
+      ],
     ], // Target: (1/sqrt(2))|00> + (e^(i*pi/4)/sqrt(2))|11>
   ),
   ComposerLevel.fromBinaryString(
     title: 'Precise Bloch Sphere Navigation',
-    taskDescription: r"Transform the initial state to a specific point on the Bloch sphere. This requires precise rotations.",
+    taskDescription:
+        r"Transform the initial state to a specific point on the Bloch sphere. This requires precise rotations.",
     conceptIntro:
         'Any point on the Bloch sphere can be reached with at most two rotations around different axes — '
         'the Euler angle decomposition. '
@@ -1490,8 +1803,7 @@ final List<QQLevel> allQQLevels = [
           'both components become e^(−iπ/8)/√2. '
           'Three gates: Rx(π/2) → Ry(π/4) → Rz(π/2).',
     ],
-    solutionExplanation:
-        'Rx(π/2)|0⟩ = (|0⟩ − i|1⟩)/√2. '
+    solutionExplanation: 'Rx(π/2)|0⟩ = (|0⟩ − i|1⟩)/√2. '
         'Ry(π/4) rotates further: component 0 → e^(iπ/8)/√2, component 1 → −i·e^(iπ/8)/√2. '
         'Rz(π/2) applies phases e^(−iπ/4) and e^(iπ/4), making both components equal: '
         'e^(−iπ/8)/√2 = (cos(π/8) − i·sin(π/8))/√2. '
@@ -1501,10 +1813,21 @@ final List<QQLevel> allQQLevels = [
         'VQE and QAOA circuits use exactly this parameterised gate structure.',
     numQubits: 1,
     initialQubitsStateString: "0",
-    availableGates: [Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2), Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 8), Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 4), Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2)],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2),
+      Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 8),
+      Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 4),
+      Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2)
+    ],
     solutionFinalVector: [
-      [Complex(sqrt1_2 * math.cos(math.pi / 8), -sqrt1_2 * math.sin(math.pi / 8))],
-      [Complex(sqrt1_2 * math.cos(math.pi / 8), -sqrt1_2 * math.sin(math.pi / 8))],
+      [
+        Complex(
+            sqrt1_2 * math.cos(math.pi / 8), -sqrt1_2 * math.sin(math.pi / 8))
+      ],
+      [
+        Complex(
+            sqrt1_2 * math.cos(math.pi / 8), -sqrt1_2 * math.sin(math.pi / 8))
+      ],
     ], // Target: a complex superposition
   ),
 
@@ -1513,8 +1836,7 @@ final List<QQLevel> allQQLevels = [
   McqLevel(
     title: 'What is Superposition?',
     taskDescription: 'A qubit in superposition is...',
-    conceptIntro:
-        'You have applied the Hadamard gate many times. '
+    conceptIntro: 'You have applied the Hadamard gate many times. '
         'Let\'s check the concept behind it.\n\n'
         'Classical bits are always exactly 0 or 1. '
         'Qubits can exist in a combination of both states at once — '
@@ -1579,8 +1901,7 @@ final List<QQLevel> allQQLevels = [
     taskDescription:
         r'This qubit is prepared in the superposition state \( |+\rangle = (|0\rangle + |1\rangle)/\sqrt{2} \). '
         r'Press Measure at least 20 times and watch the outcome distribution.',
-    conceptIntro:
-        'Each measurement randomly collapses the superposition. '
+    conceptIntro: 'Each measurement randomly collapses the superposition. '
         'After many repetitions the histogram converges to the true probabilities — this is the Born rule.',
     numQubits: 1,
     initialQubitsStateString: '0',
@@ -1598,8 +1919,7 @@ final List<QQLevel> allQQLevels = [
       '|1/√2|² = 0.5, so you expect roughly 50 % |0⟩ and 50 % |1⟩. '
           'With 20 measurements you won\'t get exactly 10 each — randomness is real!',
     ],
-    solutionExplanation:
-        'You should see roughly 50 % |0⟩ and 50 % |1⟩. '
+    solutionExplanation: 'You should see roughly 50 % |0⟩ and 50 % |1⟩. '
         'The H gate gives both amplitudes equal magnitude 1/√2, so |amplitude|² = 0.5 for each. '
         'The more measurements you take, the closer the histogram gets to the true 50/50 split.',
   ),
@@ -1658,7 +1978,10 @@ final List<QQLevel> allQQLevels = [
       Gate.fromIdentifier(SelectedGateType.z),
       Gate.fromIdentifier(SelectedGateType.s),
     ],
-    solutionFinalVector: [[Complex(sqrt1_2)], [Complex(sqrt1_2)]],
+    solutionFinalVector: [
+      [Complex(sqrt1_2)],
+      [Complex(sqrt1_2)]
+    ],
     hints: [
       'This gate is named after a French mathematician and creates equal superposition.',
       'It\'s the H (Hadamard) gate.',
@@ -1687,7 +2010,10 @@ final List<QQLevel> allQQLevels = [
       Gate.fromIdentifier(SelectedGateType.z),
       Gate.fromIdentifier(SelectedGateType.y),
     ],
-    solutionFinalVector: [[Complex.one()], [Complex.zero()]],
+    solutionFinalVector: [
+      [Complex.one()],
+      [Complex.zero()]
+    ],
     hints: [
       'This gate is the quantum equivalent of a classical NOT gate.',
       'It\'s the X (Pauli-X) gate.',
@@ -1703,8 +2029,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Read: H Gate',
     taskDescription:
         r'The circuit below applies a single H gate to \( |0\rangle \). What is the output state?',
-    conceptIntro:
-        'Reading circuits is just as important as building them. '
+    conceptIntro: 'Reading circuits is just as important as building them. '
         'Trace through each gate from left to right to find the final state.',
     numQubits: 1,
     initialQubitsStateString: '0',
@@ -1765,8 +2090,7 @@ final List<QQLevel> allQQLevels = [
       'After H on Q0 the state is (|00⟩+|10⟩)/√2. What does CNOT do to each term?',
       'CNOT flips Q1 only when Q0=1. So |10⟩ → |11⟩ and |00⟩ → |00⟩.',
     ],
-    solutionExplanation:
-        'H creates superposition on Q0 giving (|00⟩+|10⟩)/√2. '
+    solutionExplanation: 'H creates superposition on Q0 giving (|00⟩+|10⟩)/√2. '
         'CNOT(0→1) then flips Q1 when Q0=1, producing (|00⟩+|11⟩)/√2 — the Bell state Φ⁺.',
   ),
 ];
@@ -1785,14 +2109,23 @@ QQLevel? getQQLevelById(int id) {
 
 ComposerLevel getComposerAsLevel(int numQubits) {
   return ComposerLevel.fromBinaryString(
-    taskDescription: r"Experiment with any combination of gates on your chosen number of qubits. Build circuits, visualize the resulting quantum state, and generate the overall unitary operator matrix for your circuit.",
+    taskDescription:
+        r"Experiment with any combination of gates on your chosen number of qubits. Build circuits, visualize the resulting quantum state, and generate the overall unitary operator matrix for your circuit.",
     numQubits: numQubits,
     initialQubitsStateString: "0" * numQubits,
     availableGates: [
-      Gate.fromIdentifier(SelectedGateType.x), Gate.fromIdentifier(SelectedGateType.y), Gate.fromIdentifier(SelectedGateType.z),
-      Gate.fromIdentifier(SelectedGateType.hadamard), Gate.fromIdentifier(SelectedGateType.s), Gate.fromIdentifier(SelectedGateType.t),
-      Gate.fromIdentifier(SelectedGateType.cz), Gate.fromIdentifier(SelectedGateType.cnot), Gate.fromIdentifier(SelectedGateType.ccnot),
-      Gate.fromIdentifier(SelectedGateType.rx), Gate.fromIdentifier(SelectedGateType.ry), Gate.fromIdentifier(SelectedGateType.rz),
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.y),
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.s),
+      Gate.fromIdentifier(SelectedGateType.t),
+      Gate.fromIdentifier(SelectedGateType.cz),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.ccnot),
+      Gate.fromIdentifier(SelectedGateType.rx),
+      Gate.fromIdentifier(SelectedGateType.ry),
+      Gate.fromIdentifier(SelectedGateType.rz),
     ],
     solutionFinalVector: List.empty(),
   );
@@ -1801,7 +2134,8 @@ ComposerLevel getComposerAsLevel(int numQubits) {
 final List<QQLevelsCategory> groupedLevels = [
   QQLevelsCategory(
     groupName: 'Basic Gate Operations',
-    from: 0, to: 4,
+    from: 0,
+    to: 4,
     categoryIntro:
         'Quantum gates are reversible operations that transform qubit states. '
         'Unlike classical logic gates, every quantum gate has an inverse — '
@@ -1809,7 +2143,8 @@ final List<QQLevelsCategory> groupedLevels = [
   ),
   QQLevelsCategory(
     groupName: 'Superposition and Phase Gates',
-    from: 5, to: 12,
+    from: 5,
+    to: 12,
     categoryIntro:
         'The Hadamard gate puts a qubit in superposition — existing as both |0⟩ and |1⟩ '
         'simultaneously until measured. Phase gates (S, T) rotate the |1⟩ amplitude on the '
@@ -1817,7 +2152,8 @@ final List<QQLevelsCategory> groupedLevels = [
   ),
   QQLevelsCategory(
     groupName: 'Controlled Gates',
-    from: 13, to: 20,
+    from: 13,
+    to: 20,
     categoryIntro:
         'Controlled gates apply an operation to a target qubit only when a control qubit is |1⟩. '
         'The CNOT (Controlled-NOT) is the most important two-qubit gate and is universal '
@@ -1825,7 +2161,8 @@ final List<QQLevelsCategory> groupedLevels = [
   ),
   QQLevelsCategory(
     groupName: 'Entanglement & Disentanglement',
-    from: 21, to: 26,
+    from: 21,
+    to: 26,
     categoryIntro:
         'Entanglement is a uniquely quantum correlation where the state of two qubits '
         'cannot be described independently. Bell states are the simplest maximally-entangled states. '
@@ -1833,15 +2170,16 @@ final List<QQLevelsCategory> groupedLevels = [
   ),
   QQLevelsCategory(
     groupName: 'Advanced 2-Qubit Puzzles',
-    from: 27, to: 31,
-    categoryIntro:
-        'These puzzles combine multiple two-qubit operations. '
+    from: 27,
+    to: 31,
+    categoryIntro: 'These puzzles combine multiple two-qubit operations. '
         'Pay attention to which qubit is the control and which is the target — '
         'the order matters.',
   ),
   QQLevelsCategory(
     groupName: 'Toffoli Gate Logic',
-    from: 32, to: 34,
+    from: 32,
+    to: 34,
     categoryIntro:
         'The Toffoli gate (CCX) has two control qubits: it flips the target only when BOTH '
         'controls are |1⟩. This makes it a quantum AND gate and means it can simulate '
@@ -1849,7 +2187,8 @@ final List<QQLevelsCategory> groupedLevels = [
   ),
   QQLevelsCategory(
     groupName: 'Advanced Entanglement and Algorithms',
-    from: 35, to: 38,
+    from: 35,
+    to: 38,
     categoryIntro:
         'These levels build circuits that are stepping stones to real quantum algorithms. '
         'The GHZ state, conditional phase shifts, and multi-qubit entanglement all appear '
@@ -1857,7 +2196,8 @@ final List<QQLevelsCategory> groupedLevels = [
   ),
   QQLevelsCategory(
     groupName: 'Rotation Gates',
-    from: 39, to: 45,
+    from: 39,
+    to: 45,
     categoryIntro:
         'Rx, Ry, and Rz rotate a qubit by an angle on the Bloch sphere around each axis. '
         'Any single-qubit gate can be expressed as a combination of rotations. '
@@ -1865,30 +2205,33 @@ final List<QQLevelsCategory> groupedLevels = [
   ),
   QQLevelsCategory(
     groupName: 'Concept Checks',
-    from: 46, to: 47,
+    from: 46,
+    to: 47,
     categoryIntro:
         'Quick questions to consolidate the key ideas you have encountered. '
         'No circuits — just concepts.',
   ),
   QQLevelsCategory(
     groupName: 'Measurement Labs',
-    from: 48, to: 49,
+    from: 48,
+    to: 49,
     categoryIntro:
         'Quantum measurement is probabilistic. Press Measure repeatedly and watch '
         'the outcome distribution converge — this is the Born rule in action.',
   ),
   QQLevelsCategory(
     groupName: 'Fill the Gate',
-    from: 50, to: 51,
+    from: 50,
+    to: 51,
     categoryIntro:
         'A circuit is shown with one gate missing. Choose the correct gate to complete it. '
         'This tests your ability to reason about gate effects without building from scratch.',
   ),
   QQLevelsCategory(
     groupName: 'Circuit Reading',
-    from: 52, to: 53,
-    categoryIntro:
-        'Read a pre-built circuit and identify its output state. '
+    from: 52,
+    to: 53,
+    categoryIntro: 'Read a pre-built circuit and identify its output state. '
         'Being able to analyse circuits is as important as building them.',
   ),
 ];

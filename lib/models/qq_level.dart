@@ -1,17 +1,23 @@
 // lib/models/level.dart
 
 import 'package:advance_math/advance_math.dart';
+import 'package:flutter/foundation.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/utils/math_utils.dart';
 
+enum ValidationMode {
+  finalState,
+  unitary,
+}
+
 // ── Base sealed class ──────────────────────────────────────────────────────────
 sealed class QQLevel {
-  final String? title;               // shown in level grid; shows number if null
+  final String? title; // shown in level grid; shows number if null
   final String taskDescription;
-  final String? conceptIntro;        // shown BEFORE the puzzle
+  final String? conceptIntro; // shown BEFORE the puzzle
   final String? solutionExplanation; // shown AFTER success
-  final List<String>? hints;         // progressive hints revealed one at a time
+  final List<String>? hints; // progressive hints revealed one at a time
 
   const QQLevel({
     this.title,
@@ -30,6 +36,8 @@ class ComposerLevel extends QQLevel {
   final Function(QuantumCircuit)? preInsertedGates;
   final List<Gate> availableGates;
   final List<List<Complex>> solutionFinalVector;
+  final ValidationMode validationMode;
+  final List<List<Complex>>? targetUnitary;
 
   const ComposerLevel({
     super.title,
@@ -42,6 +50,8 @@ class ComposerLevel extends QQLevel {
     required this.initialQubitsState,
     required this.availableGates,
     required this.solutionFinalVector,
+    this.validationMode = ValidationMode.finalState,
+    this.targetUnitary,
     this.preInsertedGates,
   });
 
@@ -51,15 +61,19 @@ class ComposerLevel extends QQLevel {
     String? conceptIntro,
     String? solutionExplanation,
     List<String>? hints,
-    int? numQubits, // kept for backward compat with existing levels; derived from string if null
+    int?
+        numQubits, // kept for backward compat with existing levels; derived from string if null
     required String initialQubitsStateString,
     required List<Gate> availableGates,
     required List<List<Complex>> solutionFinalVector,
+    ValidationMode validationMode = ValidationMode.finalState,
+    List<List<Complex>>? targetUnitary,
     Function(QuantumCircuit)? preInsertedGates,
   }) {
     final int resolvedNumQubits = initialQubitsStateString.length;
     final List<Complex> convertedInitialState =
-        binaryStringToInitialStateVector(initialQubitsStateString, resolvedNumQubits);
+        binaryStringToInitialStateVector(
+            initialQubitsStateString, resolvedNumQubits);
     return ComposerLevel(
       title: title,
       taskDescription: taskDescription,
@@ -71,12 +85,52 @@ class ComposerLevel extends QQLevel {
       initialQubitsState: convertedInitialState,
       availableGates: availableGates,
       solutionFinalVector: solutionFinalVector,
+      validationMode: validationMode,
+      targetUnitary: targetUnitary,
       preInsertedGates: preInsertedGates,
     );
   }
 
   void preInsertGates(QuantumCircuit quantumCircuit) {
     preInsertedGates?.call(quantumCircuit);
+  }
+
+  bool validateCircuit(QuantumCircuit circuit, {double eps = 1e-9}) {
+    switch (validationMode) {
+      case ValidationMode.finalState:
+        return matrixClose(
+          circuit.currentState.state.toComplexList(),
+          solutionFinalVector,
+          eps: eps,
+        );
+      case ValidationMode.unitary:
+        if (targetUnitary == null) {
+          debugPrint(
+            'ComposerLevel "${title ?? taskDescription}" uses unitary validation but targetUnitary is null.',
+          );
+          return false;
+        }
+
+        final currentUnitary =
+            circuit.getOverallCircuitMatrix().toComplexList();
+        if (currentUnitary.length != targetUnitary!.length) {
+          debugPrint(
+            'ComposerLevel "${title ?? taskDescription}" unitary validation failed: row count mismatch '
+            '(${currentUnitary.length} vs ${targetUnitary!.length}).',
+          );
+          return false;
+        }
+        for (int row = 0; row < currentUnitary.length; row++) {
+          if (currentUnitary[row].length != targetUnitary![row].length) {
+            debugPrint(
+              'ComposerLevel "${title ?? taskDescription}" unitary validation failed: '
+              'column count mismatch at row $row (${currentUnitary[row].length} vs ${targetUnitary![row].length}).',
+            );
+            return false;
+          }
+        }
+        return matrixClose(currentUnitary, targetUnitary!, eps: eps);
+    }
   }
 
   static List<Complex> getZeroStateVector(int numQubits) {
@@ -127,7 +181,8 @@ class FillTheGateLevel extends QQLevel {
       solutionFinalVector: solutionFinalVector,
       preInsertedGates: (circuit) {
         preBuiltGates(circuit);
-        circuit.insertSinglePlacedGateAt(filledGate, circuit.maxCircuitDepth(), 0,
+        circuit.insertSinglePlacedGateAt(
+            filledGate, circuit.maxCircuitDepth(), 0,
             isDeletable: false);
       },
     );
@@ -140,7 +195,7 @@ class CircuitReadingLevel extends QQLevel {
   final int numQubits;
   final String initialQubitsStateString;
   final Function(QuantumCircuit) circuit; // pre-built read-only circuit
-  final List<String> options;             // LaTeX state descriptions
+  final List<String> options; // LaTeX state descriptions
   final int correctOptionIndex;
 
   const CircuitReadingLevel({
