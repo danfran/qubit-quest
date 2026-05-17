@@ -2,6 +2,17 @@ import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/utils/complex_formatter.dart';
 
+class _ResultPalette {
+  // Qubit Quest composer result tokens mirror the exact composer visual system.
+  static const Color qqCard2 = Color(0xFF18233A);
+  static const Color qqInner = Color(0xFF030814);
+  static const Color qqInner2 = Color(0xFF101A2D);
+  static const Color qqBorderSoft = Color(0xFF253755);
+  static const Color qqCyan = Color(0xFF56CCF2);
+  static const Color qqPurple = Color(0xFFB388FF);
+  static const Color qqGreen = Color(0xFF7CFFB2);
+}
+
 class StateVectorDisplay extends StatefulWidget {
   final List<Complex> stateVector;
 
@@ -78,7 +89,7 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildHeader(hasTarget),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Expanded(
           child: Scrollbar(
             controller: _stateVectorVerticalScrollController,
@@ -93,9 +104,9 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildOutcomeSummary(hasTarget),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 5),
                         _buildProbabilityList(vectorSize, hasTarget),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
                         _buildAdvancedDetails(vectorSize, hasTarget),
                       ],
                     ),
@@ -118,7 +129,7 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
             hasTarget ? 'Measurement Result' : 'Current Result',
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
             overflow: TextOverflow.ellipsis,
@@ -127,16 +138,16 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('All outcomes',
-                style: TextStyle(color: Colors.white70, fontSize: 11)),
+            const Text('All',
+                style: TextStyle(color: Colors.white70, fontSize: 10)),
             Transform.scale(
-              scale: 0.75,
+              scale: 0.62,
               child: Switch(
                 value: _showAllValues,
                 onChanged: (v) => setState(() => _showAllValues = v),
-                activeThumbColor: Colors.blueAccent,
+                activeThumbColor: _ResultPalette.qqCyan,
                 inactiveThumbColor: Colors.grey,
-                inactiveTrackColor: Colors.grey[700],
+                inactiveTrackColor: _ResultPalette.qqInner2,
               ),
             ),
           ],
@@ -200,11 +211,11 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFF172033),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF31405F)),
+        color: _ResultPalette.qqInner,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _ResultPalette.qqBorderSoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,12 +228,12 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
               return _OutcomeChip(
                 ket: _toBinaryKet(index, widget.numQubits),
                 percentLabel: _formatPercent(probability),
-                color: const Color(0xFF66D9E8),
+                color: _ResultPalette.qqCyan,
               );
             }).toList(),
           ),
           if (hasTarget) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 5),
             _OutcomeGroup(
               label: 'Target',
               chips: targetOutcomes.map((index) {
@@ -231,7 +242,7 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
                 return _OutcomeChip(
                   ket: _toBinaryKet(index, widget.numQubits),
                   percentLabel: _formatPercent(probability),
-                  color: const Color(0xFF8C8EFF),
+                  color: _ResultPalette.qqPurple,
                 );
               }).toList(),
             ),
@@ -252,7 +263,7 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
             const Text(
               'Probabilities',
               style: TextStyle(
-                color: Color(0xFF8FD4FF),
+                color: _ResultPalette.qqCyan,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -261,14 +272,14 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
             Text(
               _showAllValues ? 'showing all' : 'non-zero only',
               style: const TextStyle(
-                color: Color(0xFF8EA2C6),
+                color: Color(0xFF9BAAC4),
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         ...visibleIndexes.map((index) {
           final Complex current = widget.stateVector[index];
           final Complex? target =
@@ -298,8 +309,8 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
       child: ExpansionTile(
         tilePadding: EdgeInsets.zero,
         childrenPadding: EdgeInsets.zero,
-        iconColor: const Color(0xFF8FD4FF),
-        collapsedIconColor: const Color(0xFF8EA2C6),
+        iconColor: _ResultPalette.qqCyan,
+        collapsedIconColor: const Color(0xFF9BAAC4),
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -307,30 +318,30 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
               'Advanced Details',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 12,
+                fontSize: 11.5,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            SizedBox(height: 2),
+            SizedBox(height: 1),
             Text(
               'Raw amplitudes and exact statevector entries',
               style: TextStyle(
-                color: Color(0xFF8EA2C6),
-                fontSize: 10,
+                color: Color(0xFF9BAAC4),
+                fontSize: 9.5,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ],
         ),
         children: [
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF2A344D)),
+              color: _ResultPalette.qqInner,
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: _ResultPalette.qqBorderSoft),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,14 +403,14 @@ class _OutcomeGroup extends StatelessWidget {
         label,
         style: const TextStyle(
           color: Color(0xFFCAD5EA),
-          fontSize: 11,
+          fontSize: 10.5,
           fontWeight: FontWeight.w700,
         ),
       );
 
       final Widget chipsWidget = Wrap(
-        spacing: 6,
-        runSpacing: 6,
+        spacing: 5,
+        runSpacing: 5,
         children: chips,
       );
 
@@ -408,7 +419,7 @@ class _OutcomeGroup extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             labelWidget,
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             chipsWidget,
           ],
         );
@@ -417,7 +428,7 @@ class _OutcomeGroup extends StatelessWidget {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 82, child: labelWidget),
+          SizedBox(width: 72, child: labelWidget),
           Expanded(child: chipsWidget),
         ],
       );
@@ -439,11 +450,11 @@ class _OutcomeChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.56)),
+        color: _ResultPalette.qqCard2,
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: color.withValues(alpha: 0.48)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -452,16 +463,16 @@ class _OutcomeChip extends StatelessWidget {
             ket,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 5),
           Text(
             percentLabel,
             style: TextStyle(
               color: color,
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -495,7 +506,7 @@ class _ProbabilityRow extends StatelessWidget {
         targetProbability?.clamp(0, 1).toDouble();
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -507,25 +518,25 @@ class _ProbabilityRow extends StatelessWidget {
                   ket,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
               Expanded(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(5),
                   child: LinearProgressIndicator(
                     value: clampedProbability,
-                    minHeight: 8,
-                    backgroundColor: const Color(0xFF26324A),
+                    minHeight: 6,
+                    backgroundColor: _ResultPalette.qqInner2,
                     valueColor: const AlwaysStoppedAnimation<Color>(
-                      Color(0xFF66D9E8),
+                      _ResultPalette.qqCyan,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 7),
               SizedBox(
                 width: 46,
                 child: Text(
@@ -533,21 +544,24 @@ class _ProbabilityRow extends StatelessWidget {
                   textAlign: TextAlign.right,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
               if (matched) ...[
                 const SizedBox(width: 4),
-                const Icon(Icons.check_circle,
-                    color: Color(0xFF66BB6A), size: 13),
+                const Icon(
+                  Icons.check_circle,
+                  color: _ResultPalette.qqGreen,
+                  size: 13,
+                ),
               ],
             ],
           ),
           if (clampedTargetProbability != null &&
               targetPercentLabel != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Row(
               children: [
                 const SizedBox(
@@ -559,13 +573,13 @@ class _ProbabilityRow extends StatelessWidget {
                 ),
                 Expanded(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(5),
                     child: LinearProgressIndicator(
                       value: clampedTargetProbability,
-                      minHeight: 5,
-                      backgroundColor: const Color(0xFF26324A),
+                      minHeight: 4,
+                      backgroundColor: _ResultPalette.qqInner2,
                       valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFF5D5FE6),
+                        _ResultPalette.qqPurple,
                       ),
                     ),
                   ),
@@ -627,7 +641,7 @@ class _AdvancedAmplitudeRow extends StatelessWidget {
                     targetText!,
                     style: TextStyle(
                       color: targetActive
-                          ? const Color(0xFF64B5F6)
+                          ? _ResultPalette.qqCyan
                           : Colors.grey[700],
                       fontSize: 11,
                     ),
@@ -635,8 +649,11 @@ class _AdvancedAmplitudeRow extends StatelessWidget {
                 ),
                 if (matched) ...[
                   const SizedBox(width: 4),
-                  const Icon(Icons.check_circle,
-                      color: Color(0xFF66BB6A), size: 12),
+                  const Icon(
+                    Icons.check_circle,
+                    color: _ResultPalette.qqGreen,
+                    size: 12,
+                  ),
                 ],
               ],
             ),

@@ -36,6 +36,81 @@ class QuantumComposer extends StatefulWidget {
 }
 
 class _QuantumComposerState extends State<QuantumComposer> {
+  // Qubit Quest composer visual system tokens. Use these exact colours for composer surfaces.
+  static const Color qqBlack = Color(0xFF00030A);
+  static const Color qqCard = Color(0xFF111827);
+  static const Color qqCard2 = Color(0xFF18233A);
+  static const Color qqInner = Color(0xFF030814);
+  static const Color qqInner2 = Color(0xFF101A2D);
+
+  static const Color qqBorder = Color(0xFF344A73);
+  static const Color qqBorderSoft = Color(0xFF253755);
+
+  static const Color qqCyan = Color(0xFF56CCF2);
+  static const Color qqPurple = Color(0xFFB388FF);
+  static const Color qqGreen = Color(0xFF7CFFB2);
+  static const Color qqYellow = Color(0xFFFFD54F);
+
+  static const Color gateBlueTop = Color(0xFF5AA9FF);
+  static const Color gateBlueBottom = Color(0xFF0B4DDB);
+
+  static const Color gateCyanTop = Color(0xFF73ECFF);
+  static const Color gateCyanBottom = Color(0xFF0EA5D8);
+
+  static const Color gateRedTop = Color(0xFFFF625A);
+  static const Color gateRedBottom = Color(0xFFB91C1C);
+
+  static const Color gatePurpleTop = Color(0xFFD36BFF);
+  static const Color gatePurpleBottom = Color(0xFF6421D8);
+
+  static const Color gateGreenTop = Color(0xFF3EEB9B);
+  static const Color gateGreenBottom = Color(0xFF0F7A52);
+
+  static const Color checkTop = Color(0xFFC084FF);
+  static const Color checkBottom = Color(0xFF6D28FF);
+
+  static _GateVisual _gateVisualFor(Gate gate) {
+    switch (gate.type) {
+      case SelectedGateType.hadamard:
+        return const _GateVisual(
+          top: gateRedTop,
+          bottom: gateRedBottom,
+        );
+      case SelectedGateType.x:
+      case SelectedGateType.cnot:
+      case SelectedGateType.ccnot:
+      case SelectedGateType.cz:
+      case SelectedGateType.rx:
+        return const _GateVisual(
+          top: gateBlueTop,
+          bottom: gateBlueBottom,
+        );
+      case SelectedGateType.y:
+      case SelectedGateType.z:
+        return const _GateVisual(
+          top: gateCyanTop,
+          bottom: gateCyanBottom,
+        );
+      case SelectedGateType.s:
+      case SelectedGateType.t:
+      case SelectedGateType.rz:
+        return const _GateVisual(
+          top: gatePurpleTop,
+          bottom: gatePurpleBottom,
+        );
+      case SelectedGateType.ry:
+        return const _GateVisual(
+          top: gateGreenTop,
+          bottom: gateGreenBottom,
+        );
+      default:
+        return _GateVisual(
+          top: gate.color,
+          bottom: Color.lerp(gate.color, Colors.black, 0.30)!,
+        );
+    }
+  }
+
   late int _numQubits;
   late String _taskDescription;
   late List<Complex> _initialState;
@@ -553,16 +628,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
               const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Container(
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF1B2436),
-                  Color(0xFF111722),
-                ],
-              ),
+              color: qqCard,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF3A4866)),
+              border: Border.all(color: qqBorder),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.36),
@@ -665,7 +733,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                               Expanded(
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.black26,
+                                    color: qqInner,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Scrollbar(
@@ -707,7 +775,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                         icon: const Icon(Icons.arrow_forward, size: 16),
                         label: const Text('Next Level'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF5D5FE6),
+                          backgroundColor: qqPurple,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                               horizontal: 18, vertical: 11),
@@ -725,7 +793,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                         icon: const Icon(Icons.grid_view, size: 16),
                         label: const Text('Level Select'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF24304A),
+                          backgroundColor: qqCard2,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 10),
@@ -744,7 +812,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                         icon: const Icon(Icons.menu_book, size: 16),
                         label: const Text('Review'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF24304A),
+                          backgroundColor: qqCard2,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 10),
@@ -770,7 +838,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF2D2E40),
+        backgroundColor: qqCard,
         title: const Text('Before you start',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: Text(intro,
@@ -778,8 +846,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                 color: Colors.white70, fontSize: 15, height: 1.5)),
         actions: [
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5D5FE6)),
+            style: ElevatedButton.styleFrom(backgroundColor: qqPurple),
             onPressed: () => Navigator.of(ctx).pop(),
             child:
                 const Text('Got it →', style: TextStyle(color: Colors.white)),
@@ -796,7 +863,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF2D2E40),
+        backgroundColor: qqCard,
         title: Text('Hint ${nextIndex + 1} / ${_hints.length}',
             style: const TextStyle(
                 color: Colors.amber, fontWeight: FontWeight.bold)),
@@ -969,30 +1036,17 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   @override
   Widget build(BuildContext context) {
-    const Color surface = Color(0xFF05070B);
-    const Color panel = Color(0xFF171C2B);
     final bool compactAppBar = MediaQuery.sizeOf(context).width < 900;
 
     return Scaffold(
-        backgroundColor: surface,
+        backgroundColor: qqBlack,
         // Modify the AppBar
         appBar: AppBar(
-          toolbarHeight: compactAppBar ? 68 : 58,
-          backgroundColor: surface, // Dark app bar
+          toolbarHeight: compactAppBar ? 60 : 56,
+          backgroundColor: qqBlack, // Dark app bar
           leadingWidth: compactAppBar ? 42 : 50,
           leading: _buildHeaderBackButton(compact: compactAppBar),
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF070A10),
-                  Color(0xFF030407),
-                ],
-              ),
-            ),
-          ),
+          flexibleSpace: const ColoredBox(color: qqBlack),
           elevation: 0,
           shadowColor: Colors.transparent,
           scrolledUnderElevation: 0.0, // Prevent elevation change on scroll
@@ -1021,7 +1075,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: compactAppBar ? 16.5 : 20,
+                        fontSize: compactAppBar ? 16 : 19,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
                         height: 1.08,
@@ -1032,10 +1086,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: compactAppBar ? 11.5 : 13,
+                        fontSize: compactAppBar ? 11 : 12.5,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFFC7B5FF),
-                        height: 1.30,
+                        color: qqPurple,
+                        height: 1.18,
                       ),
                     ),
                   ],
@@ -1052,7 +1106,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
             final bool compact = constraints.maxWidth < 720;
             final bool short = constraints.maxHeight < 560;
             final Widget circuitCard = _buildCircuitCard(
-              panel,
               compact: short,
               showHeader: !compact,
             );
@@ -1061,9 +1114,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
             return Padding(
               padding: EdgeInsets.fromLTRB(
                 compact ? 12 : 16,
-                short ? 4 : 6,
+                short ? 3 : 5,
                 compact ? 12 : 16,
-                short ? 8 : (compact ? 10 : 12),
+                short ? 6 : (compact ? 8 : 10),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1104,7 +1157,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }
 
   Widget _buildHeaderLogo({required bool compact}) {
-    final double size = compact ? 38 : 42;
+    final double size = compact ? 34 : 38;
 
     return SizedBox(
       width: size,
@@ -1112,6 +1165,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
       child: SvgPicture.asset(
         'assets/images/qubit_quest_atom_logo.svg',
         fit: BoxFit.contain,
+        colorFilter: const ColorFilter.mode(
+          qqCyan,
+          BlendMode.srcIn,
+        ),
       ),
     );
   }
@@ -1150,13 +1207,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildPortraitGoalSection(short: short),
-        SizedBox(height: short ? 6 : 8),
-        Expanded(flex: short ? 42 : 48, child: circuitCard),
-        SizedBox(height: short ? 6 : 8),
-        SizedBox(height: short ? 116 : 150, child: statePanel),
-        SizedBox(height: short ? 6 : 8),
+        SizedBox(height: short ? 5 : 6),
+        Expanded(flex: short ? 44 : 52, child: circuitCard),
+        SizedBox(height: short ? 5 : 6),
+        SizedBox(height: short ? 96 : 118, child: statePanel),
+        SizedBox(height: short ? 5 : 6),
         _buildGatePalette(compact: true, dense: short),
-        SizedBox(height: short ? 6 : 8),
+        SizedBox(height: short ? 5 : 6),
         _buildPortraitCheckArea(compact: short),
       ],
     );
@@ -1173,7 +1230,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
         const SizedBox(width: 6),
         PopupMenuButton<String>(
           tooltip: 'Composer actions',
-          color: const Color(0xFF171C2B),
+          color: qqCard,
           offset: const Offset(0, 10),
           onSelected: _selectComposerMenuAction,
           itemBuilder: (context) => [
@@ -1195,8 +1252,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
               PopupMenuItem(
                 value: 'hint',
                 child: ListTile(
-                  leading:
-                      const Icon(Icons.lightbulb_outline, color: Colors.amber),
+                  leading: const Icon(
+                    Icons.lightbulb_outline,
+                    color: qqYellow,
+                  ),
                   title: Text(_currentHintIndex < 0
                       ? 'Hint'
                       : 'Hint ${_currentHintIndex + 1}/${_hints.length}'),
@@ -1206,7 +1265,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
           child: _HeaderActionShell(
             child: Icon(
               Icons.settings_outlined,
-              size: 19,
+              size: 18,
               color: Colors.white.withValues(alpha: 0.94),
             ),
           ),
@@ -1222,12 +1281,12 @@ class _QuantumComposerState extends State<QuantumComposer> {
         label: const Text('Learn'),
         style: TextButton.styleFrom(
           foregroundColor: Colors.white,
-          backgroundColor: const Color(0xFF6E5BFF).withValues(alpha: 0.14),
+          backgroundColor: qqPurple.withValues(alpha: 0.14),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(999),
             side: BorderSide(
-              color: const Color(0xFF8A7CFF).withValues(alpha: 0.22),
+              color: qqPurple.withValues(alpha: 0.22),
             ),
           ),
         ),
@@ -1276,12 +1335,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
               ? 'Hint'
               : 'Hint ${_currentHintIndex + 1}/${_hints.length}'),
           style: TextButton.styleFrom(
-            foregroundColor: Colors.amber,
-            backgroundColor: Colors.amber.withValues(alpha: 0.10),
+            foregroundColor: qqYellow,
+            backgroundColor: qqYellow.withValues(alpha: 0.10),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(999),
-              side: BorderSide(color: Colors.amber.withValues(alpha: 0.18)),
+              side: BorderSide(
+                color: qqYellow.withValues(alpha: 0.18),
+              ),
             ),
           ),
         ),
@@ -1300,11 +1361,11 @@ class _QuantumComposerState extends State<QuantumComposer> {
         child: IconButton(
           onPressed: onPressed,
           icon: Icon(icon),
-          iconSize: 19,
+          iconSize: 18,
           color: Colors.white.withValues(alpha: 0.94),
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints.tightFor(width: 36, height: 36),
-          splashRadius: 20,
+          constraints: const BoxConstraints.tightFor(width: 34, height: 34),
+          splashRadius: 18,
         ),
       ),
     );
@@ -1324,21 +1385,21 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
     return Container(
       padding: EdgeInsets.fromLTRB(
-        compact ? 12 : 14,
-        compact ? 9 : 11,
-        compact ? 8 : 10,
-        compact ? 9 : 11,
+        compact ? 10 : 12,
+        compact ? 6 : 9,
+        compact ? 4 : 8,
+        compact ? 6 : 9,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF151A28),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF2A344D)),
+        color: qqCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: qqBorder),
       ),
       child: Row(
         children: [
           Icon(
             Icons.lightbulb_outline,
-            color: Colors.amber,
+            color: qqYellow,
             size: compact ? 18 : 20,
           ),
           const SizedBox(width: 8),
@@ -1349,10 +1410,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
                 Text(
                   'Goal:',
                   style: TextStyle(
-                    color: const Color(0xFFC7B5FF),
-                    fontSize: compact ? 13 : 14,
+                    color: qqPurple,
+                    fontSize: compact ? 12.5 : 14,
                     fontWeight: FontWeight.w900,
-                    height: 1.28,
+                    height: 1.18,
                   ),
                 ),
                 const SizedBox(width: 5),
@@ -1364,11 +1425,12 @@ class _QuantumComposerState extends State<QuantumComposer> {
                         math: _taskDescription,
                         textStyle: TextStyle(
                           color: Colors.white,
-                          fontSize: compact ? 13 : 14,
+                          fontSize: compact ? 12.5 : 14,
                           fontWeight: FontWeight.w700,
-                          height: 1.28,
+                          height: 1.18,
                         ),
-                        inlineMathHeight: compact ? 13 : 14,
+                        inlineMathColor: qqGreen,
+                        inlineMathHeight: compact ? 12.5 : 14,
                         displayMathHeight: compact ? 18 : 20,
                       ),
                     ),
@@ -1385,14 +1447,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
                   _currentHintIndex < _hints.length - 1 ? _showNextHint : null,
               icon: const Icon(Icons.help_outline),
               iconSize: compact ? 20 : 21,
-              color: const Color(0xFFB9C6DD),
+              color: Colors.white.withValues(alpha: 0.72),
               disabledColor: const Color(0xFF6B7890),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints.tightFor(
-                width: 32,
-                height: 32,
+                width: 28,
+                height: 28,
               ),
-              splashRadius: 18,
+              splashRadius: 16,
               tooltip: _currentHintIndex < 0
                   ? 'Hint'
                   : 'Hint ${_currentHintIndex + 1}/${_hints.length}',
@@ -1403,8 +1465,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     );
   }
 
-  Widget _buildCircuitCard(
-    Color panelColor, {
+  Widget _buildCircuitCard({
     bool compact = false,
     bool showHeader = true,
   }) {
@@ -1414,30 +1475,21 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF1A2030),
-            Color(0xFF131927),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(18),
+        color: qqCard,
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isDraggingGate
-              ? const Color(0xFF66D9E8)
-              : const Color(0xFF2D3852),
+          color: isDraggingGate ? qqCyan : qqBorder,
           width: isDraggingGate ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.28),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
           ),
           if (isDraggingGate)
             BoxShadow(
-              color: const Color(0xFF66D9E8).withValues(alpha: 0.16),
+              color: qqCyan.withValues(alpha: 0.16),
               blurRadius: 24,
               spreadRadius: 1,
             ),
@@ -1445,9 +1497,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
       ),
       padding: EdgeInsets.fromLTRB(
         compact ? 8 : 12,
-        compact ? 8 : 10,
+        compact ? 6 : 9,
         compact ? 8 : 12,
-        compact ? 8 : 12,
+        compact ? 6 : 10,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1461,7 +1513,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
               SizedBox(height: compact ? 6 : 8),
               _buildCheckFeedbackBanner(compact: compact),
             ],
-            SizedBox(height: compact ? 7 : 9),
+            SizedBox(height: compact ? 5 : 7),
           ],
           Expanded(child: _buildCircuitDragTarget()),
         ],
@@ -1487,21 +1539,18 @@ class _QuantumComposerState extends State<QuantumComposer> {
               width: compact ? 28 : 32,
               height: compact ? 28 : 32,
               decoration: BoxDecoration(
-                color: isDraggingGate
-                    ? const Color(0xFF66D9E8).withValues(alpha: 0.16)
-                    : const Color(0xFF24304A),
+                color:
+                    isDraggingGate ? qqCyan.withValues(alpha: 0.16) : qqCard2,
                 borderRadius: BorderRadius.circular(9),
                 border: Border.all(
-                  color: isDraggingGate
-                      ? const Color(0xFF66D9E8)
-                      : const Color(0xFF405175),
+                  color: isDraggingGate ? qqCyan : qqBorder,
                 ),
               ),
               child: Icon(
                 runningAsQuantumComposer()
                     ? Icons.tune_outlined
                     : Icons.flag_outlined,
-                color: const Color(0xFF8FD4FF),
+                color: qqCyan,
                 size: compact ? 16 : 18,
               ),
             ),
@@ -1515,8 +1564,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
                     runningAsQuantumComposer()
                         ? 'Sandbox'
                         : 'Level ${widget.levelId}',
-                    style: const TextStyle(
-                      color: Color(0xFF8EA2C6),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.52),
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.0,
@@ -1550,16 +1599,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
               width: 3,
               height: compact ? 18 : 20,
               decoration: BoxDecoration(
-                color: isDraggingGate
-                    ? const Color(0xFF66D9E8)
-                    : const Color(0xFF5D5FE6),
+                color: isDraggingGate ? qqCyan : qqPurple,
                 borderRadius: BorderRadius.circular(99),
               ),
             ),
             SizedBox(width: compact ? 7 : 8),
             Icon(
               isDraggingGate ? Icons.add_box_outlined : Icons.timeline,
-              color: const Color(0xFF8FD4FF),
+              color: qqCyan,
               size: compact ? 14 : 15,
             ),
             const SizedBox(width: 6),
@@ -1567,7 +1614,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
               child: Text(
                 instruction,
                 style: TextStyle(
-                  color: const Color(0xFFB9C6DD),
+                  color: Colors.white.withValues(alpha: 0.72),
                   fontSize: compact ? 12 : 13,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1582,33 +1629,62 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }
 
   Widget _buildCheckResultButton({required bool compact}) {
-    final Color background =
-        _levelSolved ? const Color(0xFF2F8D72) : const Color(0xFF5D5FE6);
+    final Color topColor = _levelSolved ? gateGreenTop : checkTop;
+    final Color bottomColor = _levelSolved ? gateGreenBottom : checkBottom;
+    final Color glowColor = _levelSolved ? gateGreenBottom : checkBottom;
 
-    return ElevatedButton.icon(
-      onPressed: _isShowingCompletionDialog ? null : _handleCheckResultPressed,
-      icon: Icon(
-        _levelSolved ? Icons.check_circle_outline : Icons.play_arrow_rounded,
-        size: compact ? 16 : 18,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            topColor,
+            bottomColor,
+          ],
+        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.30)),
+        boxShadow: [
+          BoxShadow(
+            color: glowColor.withValues(alpha: 0.58),
+            blurRadius: 26,
+            spreadRadius: 2,
+            offset: const Offset(0, 7),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.30),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
-      label: Text(compact ? 'Check' : 'Check Result'),
-      style: ElevatedButton.styleFrom(
-        elevation: 0,
-        backgroundColor: background,
-        disabledBackgroundColor: background.withValues(alpha: 0.45),
-        foregroundColor: Colors.white,
-        disabledForegroundColor: Colors.white70,
-        padding: EdgeInsets.symmetric(
-          horizontal: compact ? 10 : 14,
-          vertical: compact ? 8 : 10,
+      child: ElevatedButton.icon(
+        onPressed:
+            _isShowingCompletionDialog ? null : _handleCheckResultPressed,
+        icon: Icon(
+          _levelSolved ? Icons.check_circle_outline : Icons.play_arrow_rounded,
+          size: compact ? 16 : 18,
         ),
-        textStyle: TextStyle(
-          fontSize: compact ? 12 : 13,
-          fontWeight: FontWeight.w800,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.16)),
+        label: Text(compact ? 'Check' : 'Check Result'),
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          backgroundColor: Colors.transparent,
+          disabledBackgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          disabledForegroundColor: Colors.white70,
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 10 : 14,
+            vertical: compact ? 7 : 9,
+          ),
+          textStyle: TextStyle(
+            fontSize: compact ? 12 : 13,
+            fontWeight: FontWeight.w800,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );
@@ -1628,7 +1704,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
           SizedBox(height: compact ? 6 : 8),
         ],
         SizedBox(
-          height: compact ? 42 : 48,
+          height: compact ? 40 : 44,
           child: _buildCheckResultButton(compact: false),
         ),
       ],
@@ -1650,9 +1726,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
         vertical: compact ? 7 : 9,
       ),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.11),
+        color: qqInner,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accent.withValues(alpha: 0.42)),
+        border: Border.all(color: qqBorderSoft),
       ),
       child: Row(
         children: [
@@ -1689,18 +1765,16 @@ class _QuantumComposerState extends State<QuantumComposer> {
       duration: const Duration(milliseconds: 140),
       curve: Curves.easeOut,
       decoration: BoxDecoration(
-        color: const Color(0xFF0A0F1B),
-        borderRadius: BorderRadius.circular(14),
+        color: qqInner,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDraggingGate
-              ? const Color(0xFF66D9E8)
-              : const Color(0xFF26324A),
+          color: isDraggingGate ? qqCyan : qqBorderSoft,
           width: isDraggingGate ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
             color: isDraggingGate
-                ? const Color(0xFF66D9E8).withValues(alpha: 0.13)
+                ? qqCyan.withValues(alpha: 0.13)
                 : Colors.black.withValues(alpha: 0.18),
             blurRadius: isDraggingGate ? 18 : 10,
             offset: const Offset(0, 8),
@@ -1810,48 +1884,82 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2F8D72).withValues(alpha: 0.22),
+            color: gateGreenBottom.withValues(alpha: 0.58),
+            blurRadius: 18,
+            spreadRadius: 1,
+            offset: const Offset(0, 5),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.32),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: ElevatedButton(
-        onPressed: () => _initDeletion(),
-        style: ElevatedButton.styleFrom(
-          minimumSize: Size.square(buttonSize),
-          fixedSize: Size.square(buttonSize),
-          padding: EdgeInsets.zero,
-          elevation: 0,
-          backgroundColor: const Color(0xFF2F8D72),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(13.0),
-            side: BorderSide(
-              color: Colors.white.withValues(alpha: 0.14),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              gateGreenTop,
+              gateGreenBottom,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.34)),
+        ),
+        child: ElevatedButton(
+          onPressed: () => _initDeletion(),
+          style: ElevatedButton.styleFrom(
+            minimumSize: Size.square(buttonSize),
+            fixedSize: Size.square(buttonSize),
+            padding: EdgeInsets.zero,
+            elevation: 0,
+            shadowColor: Colors.transparent,
+            backgroundColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14.0),
             ),
           ),
+          child: Stack(
+            children: [
+              Positioned(
+                left: 5,
+                right: 5,
+                top: 5,
+                child: Container(
+                  height: 1.5,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.30),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              Center(child: Icon(Icons.delete, size: dense ? 18 : 20)),
+            ],
+          ),
         ),
-        child: Icon(Icons.delete, size: dense ? 18 : 20),
       ),
     );
   }
 
   Widget _buildGatePalette({required bool compact, required bool dense}) {
     return Container(
-      padding: EdgeInsets.fromLTRB(12, dense ? 7 : 10, 12, dense ? 8 : 12),
+      padding: EdgeInsets.fromLTRB(10, dense ? 6 : 8, 10, dense ? 6 : 9),
       decoration: BoxDecoration(
-        color: const Color(0xFF151A28),
-        borderRadius: BorderRadius.circular(dense ? 14 : 18),
-        border: Border.all(color: const Color(0xFF2A344D)),
+        color: qqCard,
+        borderRadius: BorderRadius.circular(dense ? 12 : 14),
+        border: Border.all(color: qqBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.20),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.16),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -1874,7 +1982,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                 width: 6,
                 height: 6,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF66D9E8).withValues(alpha: 0.7),
+                  color: qqCyan.withValues(alpha: 0.7),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -1927,17 +2035,17 @@ class _QuantumComposerState extends State<QuantumComposer> {
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                           _buildDeleteGateButton(dense: dense),
-                          SizedBox(width: dense ? 7 : 10),
+                          SizedBox(width: dense ? 5 : 8),
                           Container(
-                            height: dense ? 32 : 38,
+                            height: dense ? 30 : 36,
                             width: 1,
-                            color: const Color(0xFF3B4967),
+                            color: qqBorder,
                           ),
-                          SizedBox(width: dense ? 7 : 10),
+                          SizedBox(width: dense ? 5 : 8),
                           ..._availableGates.map((gateType) {
                             return Padding(
                               padding: EdgeInsets.symmetric(
-                                  horizontal: dense ? 3.5 : 5.0),
+                                  horizontal: dense ? 2.5 : 4.0),
                               child: _buildDraggableGateButton(
                                 gateType,
                                 dense: dense,
@@ -1961,9 +2069,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
     return Container(
       constraints: BoxConstraints(maxHeight: compact ? 170 : double.infinity),
       decoration: BoxDecoration(
-        color: const Color(0xFF151A28),
+        color: qqCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF2A344D)),
+        border: Border.all(color: qqBorder),
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -1971,8 +2079,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
           initiallyExpanded: !compact,
           tilePadding: const EdgeInsets.symmetric(horizontal: 12),
           childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          iconColor: const Color(0xFF8FD4FF),
-          collapsedIconColor: const Color(0xFF8EA2C6),
+          iconColor: qqCyan,
+          collapsedIconColor: Colors.white.withValues(alpha: 0.48),
           title: Text(
             runningAsQuantumComposer() ? 'Composer notes' : 'Goal details',
             style: const TextStyle(
@@ -2009,11 +2117,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   Widget _buildStatePanel() {
     return Container(
-      padding: const EdgeInsets.all(10.0),
+      padding: const EdgeInsets.all(7.0),
       decoration: BoxDecoration(
-        color: const Color(0xFF111722),
-        borderRadius: BorderRadius.circular(14.0),
-        border: Border.all(color: const Color(0xFF2A344D), width: 1),
+        color: qqCard,
+        borderRadius: BorderRadius.circular(12.0),
+        border: Border.all(
+          color: qqBorder,
+          width: 1,
+        ),
       ),
       child: StateVectorDisplay(
         stateVector: _circuit.currentState.stateVector,
@@ -2039,6 +2150,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
     }
 
     final double buttonSize = dense ? 44 : 52;
+    final BorderRadius gateRadius = BorderRadius.circular(14);
+    final _GateVisual visual = _gateVisualFor(gate);
 
     return Draggable<Gate>(
       // Draggable for Hadamard
@@ -2049,32 +2162,58 @@ class _QuantumComposerState extends State<QuantumComposer> {
           width: buttonSize,
           height: buttonSize,
           decoration: BoxDecoration(
-            color: gate.color.withValues(alpha: 0.86),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color.lerp(visual.top, Colors.white, 0.10)!,
+                visual.top,
+                visual.bottom,
+              ],
+              stops: const [0.0, 0.42, 1.0],
+            ),
+            borderRadius: gateRadius,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.38)),
             boxShadow: [
               BoxShadow(
-                color: gate.color.withValues(alpha: 0.34),
-                blurRadius: 18,
+                color: visual.bottom.withValues(alpha: 0.62),
+                blurRadius: 20,
                 spreadRadius: 2,
+                offset: const Offset(0, 5),
               ),
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.34),
+                color: Colors.black.withValues(alpha: 0.42),
                 blurRadius: 14,
                 offset: const Offset(0, 8),
               ),
             ],
           ),
-          child: Center(
-            child: Text(
-              gate.label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: fontSizeW,
-                fontWeight: FontWeight.bold,
+          child: Stack(
+            children: [
+              Positioned(
+                left: 6,
+                right: 6,
+                top: 6,
+                child: Container(
+                  height: 1.5,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.36),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
               ),
-            ),
+              Center(
+                child: Text(
+                  gate.label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: fontSizeW,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -2113,41 +2252,101 @@ class _GatePaletteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final _GateVisual visual = _QuantumComposerState._gateVisualFor(gate);
+
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: gate.color.withValues(alpha: 0.24),
-            blurRadius: 9,
-            offset: const Offset(0, 4),
+            color: visual.bottom.withValues(alpha: 0.58),
+            blurRadius: 18,
+            spreadRadius: 1,
+            offset: const Offset(0, 5),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.32),
+            blurRadius: 10,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          minimumSize: Size.square(buttonSize),
-          fixedSize: Size.square(buttonSize),
-          padding: EdgeInsets.zero,
-          elevation: 0,
-          backgroundColor: gate.color,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(13.0),
-            side: BorderSide(
-              color: Colors.white.withValues(alpha: 0.16),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color.lerp(visual.top, Colors.white, 0.08)!,
+              visual.top,
+              visual.bottom,
+            ],
+            stops: const [0.0, 0.45, 1.0],
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.34)),
+        ),
+        child: ElevatedButton(
+          onPressed: onPressed,
+          style: ElevatedButton.styleFrom(
+            minimumSize: Size.square(buttonSize),
+            fixedSize: Size.square(buttonSize),
+            padding: EdgeInsets.zero,
+            elevation: 0,
+            shadowColor: Colors.transparent,
+            backgroundColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14.0),
             ),
           ),
-        ),
-        child: Text(
-          gate.label,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold),
+          child: Stack(
+            children: [
+              Positioned(
+                left: 6,
+                right: 6,
+                top: 6,
+                child: Container(
+                  height: 1.5,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.28),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              Center(
+                child: Text(
+                  gate.label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.bold,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withValues(alpha: 0.28),
+                        offset: const Offset(0, 1),
+                        blurRadius: 2,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+class _GateVisual {
+  final Color top;
+  final Color bottom;
+
+  const _GateVisual({
+    required this.top,
+    required this.bottom,
+  });
 }
 
 class _DropReadyPill extends StatelessWidget {
@@ -2157,17 +2356,18 @@ class _DropReadyPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFF66D9E8).withValues(alpha: 0.12),
+        color: _QuantumComposerState.qqCyan.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
-        border:
-            Border.all(color: const Color(0xFF66D9E8).withValues(alpha: 0.5)),
+        border: Border.all(
+          color: _QuantumComposerState.qqCyan.withValues(alpha: 0.5),
+        ),
       ),
       child: const Padding(
         padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
         child: Text(
           'Drop ready',
           style: TextStyle(
-            color: Color(0xFF9FEAFF),
+            color: Color(0xFFB9F0FF),
             fontSize: 10,
             fontWeight: FontWeight.w800,
           ),
@@ -2189,16 +2389,16 @@ class _EmptyCircuitPrompt extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 140),
           curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
           decoration: BoxDecoration(
             color: isDragging
-                ? const Color(0xFF66D9E8).withValues(alpha: 0.10)
-                : const Color(0xFF111A2B).withValues(alpha: 0.78),
-            borderRadius: BorderRadius.circular(12),
+                ? _QuantumComposerState.qqCyan.withValues(alpha: 0.10)
+                : _QuantumComposerState.qqCard2,
+            borderRadius: BorderRadius.circular(999),
             border: Border.all(
               color: isDragging
-                  ? const Color(0xFF66D9E8).withValues(alpha: 0.46)
-                  : const Color(0xFF31405F),
+                  ? _QuantumComposerState.qqCyan.withValues(alpha: 0.46)
+                  : _QuantumComposerState.qqBorderSoft,
             ),
           ),
           child: Row(
@@ -2208,15 +2408,15 @@ class _EmptyCircuitPrompt extends StatelessWidget {
                 isDragging
                     ? Icons.add_circle_outline
                     : Icons.touch_app_outlined,
-                color: const Color(0xFF8FD4FF),
-                size: 18,
+                color: _QuantumComposerState.qqCyan,
+                size: 15,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Text(
                 isDragging ? 'Release on a slot' : 'Drag a gate here',
                 style: const TextStyle(
                   color: Color(0xFFD6E3F8),
-                  fontSize: 13,
+                  fontSize: 11.5,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -2236,12 +2436,12 @@ class _HeaderActionShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 36,
-      height: 36,
+      width: 34,
+      height: 34,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.07),
+        color: _QuantumComposerState.qqCard2,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        border: Border.all(color: _QuantumComposerState.qqBorder),
       ),
       alignment: Alignment.center,
       child: child,
@@ -2265,18 +2465,22 @@ class _CircuitGuidePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final Paint lanePaint = Paint()
-      ..color = const Color(0xFF18233A)
+      ..color = _QuantumComposerState.qqInner2
       ..style = PaintingStyle.fill;
+    final Paint depthGuidePaint = Paint()
+      ..color = _QuantumComposerState.qqBorderSoft
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
     final Paint slotPaint = Paint()
-      ..color = const Color(0xFF8EA2C6).withValues(alpha: 0.14)
+      ..color = _QuantumComposerState.qqBorderSoft
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     final Paint activeSlotPaint = Paint()
-      ..color = const Color(0xFF66D9E8).withValues(alpha: 0.35)
+      ..color = _QuantumComposerState.qqCyan.withValues(alpha: 0.32)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     final Paint activeLanePaint = Paint()
-      ..color = const Color(0xFF66D9E8).withValues(alpha: 0.08)
+      ..color = _QuantumComposerState.qqCyan.withValues(alpha: 0.08)
       ..style = PaintingStyle.fill;
 
     int? activeQubit;
@@ -2284,6 +2488,17 @@ class _CircuitGuidePainter extends CustomPainter {
     if (dragOffset != null) {
       activeQubit = _qubitIndexForY(dragOffset!.dy);
       activeColumn = _columnIndexForX(dragOffset!.dx);
+    }
+
+    for (int column = 0; column < columns; column++) {
+      final double centerX = QuantumCircuitPainter.padding +
+          column * QuantumCircuitPainter.gateSpacing +
+          QuantumCircuitPainter.gateSpacing / 2;
+      canvas.drawLine(
+        Offset(centerX, 0),
+        Offset(centerX, size.height),
+        depthGuidePaint,
+      );
     }
 
     for (int qubit = 0; qubit < numQubits; qubit++) {
@@ -2310,11 +2525,11 @@ class _CircuitGuidePainter extends CustomPainter {
             QuantumCircuitPainter.gateSpacing / 2;
         final Rect slotRect = Rect.fromCenter(
           center: Offset(centerX, centerY),
-          width: QuantumCircuitPainter.gateSize + 8,
-          height: QuantumCircuitPainter.gateSize + 8,
+          width: QuantumCircuitPainter.gateSize + 4,
+          height: QuantumCircuitPainter.gateSize + 4,
         );
         final RRect slotRRect =
-            RRect.fromRectAndRadius(slotRect, const Radius.circular(9));
+            RRect.fromRectAndRadius(slotRect, const Radius.circular(7));
 
         canvas.drawRRect(
           slotRRect,
