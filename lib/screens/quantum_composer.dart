@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -9,7 +11,6 @@ import 'package:quantumquiz/screens/three_qubits_gate_target_qubits_selection_di
 import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
 import 'package:quantumquiz/screens/webview_page.dart';
 import 'package:quantumquiz/utils/complex_formatter.dart';
-import 'package:quantumquiz/utils/qq_fraction.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
@@ -31,7 +32,7 @@ class QuantumComposer extends StatefulWidget {
   });
 
   @override
-  _QuantumComposerState createState() => _QuantumComposerState();
+  State<QuantumComposer> createState() => _QuantumComposerState();
 }
 
 class _QuantumComposerState extends State<QuantumComposer> {
@@ -59,6 +60,11 @@ class _QuantumComposerState extends State<QuantumComposer> {
   Gate _draggingGate = Gate.fromIdentifier(SelectedGateType.none);
 
   String _currentInstructionMessage = "Drag a gate onto the circuit.";
+  String? _checkFeedbackTitle;
+  String? _checkFeedbackMessage;
+  bool _checkFeedbackSuccess = false;
+  bool _isShowingCompletionDialog = false;
+  bool _levelSolved = false;
 
   final ValueNotifier<double> _circuitWidthNotifier =
       ValueNotifier<double>(0.0);
@@ -375,10 +381,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
     // final localPosition = _gatePositionToLocal(details.globalPosition);
     final localPosition = details.localPosition;
 
-    if (localPosition == null) {
-      debugPrint('Error: Could not convert global position to local.');
-      return;
-    }
     debugPrint('Local tap position: $localPosition');
 
     // Create a temporary painter instance for hit testing
@@ -413,8 +415,15 @@ class _QuantumComposerState extends State<QuantumComposer> {
     debugPrint('Tapped on circuit in non-delete mode. Ignoring for now.');
   }
 
-  void _runSimulation() {
+  void _runSimulation({bool manualCheck = false}) {
     debugPrint("Running simulation...");
+
+    if (!manualCheck && _checkFeedbackTitle != null && !_checkFeedbackSuccess) {
+      setState(() {
+        _checkFeedbackTitle = null;
+        _checkFeedbackMessage = null;
+      });
+    }
 
     // ** Call the void simulation method on the circuit **
     // This method executes the simulation and updates circuit.currentState internally.
@@ -431,24 +440,53 @@ class _QuantumComposerState extends State<QuantumComposer> {
     //
     // debugPrint("Calculated probabilities: $measurementProbabilities");
 
-    // ** Update the UI state variables to trigger a rebuild **
     if (!runningAsQuantumComposer()) {
-      setState(() {
-        // Format the final state vector for display
-        // Access the state data via the finalState object obtained from circuit.currentState
-        // simulationResult = "Final State Vector:\n${_circuit.initialState}"; // Assuming formatStateVector helper
-        _checkLevelCompletion();
-      });
+      // Format the final state vector for display
+      // Access the state data via the finalState object obtained from circuit.currentState
+      // simulationResult = "Final State Vector:\n${_circuit.initialState}"; // Assuming formatStateVector helper
+      _checkLevelCompletion(manual: manualCheck);
     }
     debugPrint("Simulation finished.");
   }
 
-  Future<void> _checkLevelCompletion() async {
+  void _handleCheckResultPressed() {
+    _runSimulation(manualCheck: true);
+  }
+
+  void _setCheckFeedback({
+    required bool success,
+    required String title,
+    required String message,
+  }) {
+    if (!mounted) return;
+    setState(() {
+      _checkFeedbackSuccess = success;
+      _checkFeedbackTitle = title;
+      _checkFeedbackMessage = message;
+    });
+  }
+
+  Future<void> _checkLevelCompletion({bool manual = false}) async {
+    if (_isShowingCompletionDialog) return;
+
     // Only check if not already completed to avoid re-triggering
     bool match = widget.level.validateCircuit(_circuit);
     if (match) {
+      _levelSolved = true;
+      _setCheckFeedback(
+        success: true,
+        title: 'Solved',
+        message: 'Nice work. Your circuit reaches the target.',
+      );
+
+      _isShowingCompletionDialog = true;
+      await Future.delayed(const Duration(milliseconds: 420));
+      if (!mounted) return;
+
       final dialogResult =
           await _showLevelCompleteDialog(); // Trigger success actions
+      _isShowingCompletionDialog = false;
+      if (!mounted) return;
 
       if (dialogResult != null) {
         final LevelCompletionAction action = dialogResult['action'];
@@ -483,6 +521,21 @@ class _QuantumComposerState extends State<QuantumComposer> {
         // In this case, also pop the composer screen, returning 'none'.
         Navigator.of(context).pop(LevelCompletionAction.none);
       }
+    } else {
+      _levelSolved = false;
+      if (manual) {
+        _setCheckFeedback(
+          success: false,
+          title: 'Not yet',
+          message: 'Adjust the gates and try again.',
+        );
+      } else if (_checkFeedbackSuccess) {
+        setState(() {
+          _checkFeedbackTitle = null;
+          _checkFeedbackMessage = null;
+          _checkFeedbackSuccess = false;
+        });
+      }
     }
   }
 
@@ -493,12 +546,31 @@ class _QuantumComposerState extends State<QuantumComposer> {
       builder: (BuildContext context) {
         final double maxHeight = MediaQuery.of(context).size.height - 80;
         return Dialog(
-          backgroundColor: Colors.grey[800],
+          backgroundColor: Colors.transparent,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           insetPadding:
               const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Padding(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF1B2436),
+                  Color(0xFF111722),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFF3A4866)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.36),
+                  blurRadius: 24,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
             child: ConstrainedBox(
               constraints: BoxConstraints(maxHeight: maxHeight),
@@ -506,14 +578,35 @@ class _QuantumComposerState extends State<QuantumComposer> {
                 // mainAxisSize: max — lets Expanded children work correctly
                 children: [
                   // ── Fixed header ──────────────────────────────────────────
-                  const Icon(Icons.check_circle, color: Colors.green, size: 48),
-                  const SizedBox(height: 6),
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF66BB6A).withValues(alpha: 0.14),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color:
+                              const Color(0xFF66BB6A).withValues(alpha: 0.54)),
+                    ),
+                    child: const Icon(Icons.check_circle,
+                        color: Color(0xFF81C784), size: 36),
+                  ),
+                  const SizedBox(height: 8),
                   const Text(
                     'Level Complete!',
                     style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
                         color: Colors.white),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Your circuit reaches the target.',
+                    style: TextStyle(
+                      color: Color(0xFFB9C6DD),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   const Divider(color: Colors.white24, height: 1),
@@ -608,16 +701,18 @@ class _QuantumComposerState extends State<QuantumComposer> {
                     children: [
                       ElevatedButton.icon(
                         onPressed: () => Navigator.of(context).pop({
-                          'action': LevelCompletionAction.reviewSolution,
+                          'action': LevelCompletionAction.nextLevel,
                           'shouldUnlock': true,
                         }),
-                        icon: const Icon(Icons.menu_book, size: 16),
-                        label: const Text('Review'),
+                        icon: const Icon(Icons.arrow_forward, size: 16),
+                        label: const Text('Next Level'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF5D5FE6),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
+                              horizontal: 18, vertical: 11),
+                          textStyle:
+                              const TextStyle(fontWeight: FontWeight.w800),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
@@ -630,28 +725,34 @@ class _QuantumComposerState extends State<QuantumComposer> {
                         icon: const Icon(Icons.grid_view, size: 16),
                         label: const Text('Level Select'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
+                          backgroundColor: const Color(0xFF24304A),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 10),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
+                            borderRadius: BorderRadius.circular(10),
+                            side: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.12)),
+                          ),
                         ),
                       ),
                       ElevatedButton.icon(
                         onPressed: () => Navigator.of(context).pop({
-                          'action': LevelCompletionAction.nextLevel,
+                          'action': LevelCompletionAction.reviewSolution,
                           'shouldUnlock': true,
                         }),
-                        icon: const Icon(Icons.arrow_forward, size: 16),
-                        label: const Text('Next Level'),
+                        icon: const Icon(Icons.menu_book, size: 16),
+                        label: const Text('Review'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
+                          backgroundColor: const Color(0xFF24304A),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 10),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
+                            borderRadius: BorderRadius.circular(10),
+                            side: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.12)),
+                          ),
                         ),
                       ),
                     ],
@@ -719,8 +820,40 @@ class _QuantumComposerState extends State<QuantumComposer> {
     _cnotControlQubit = null;
     _ccnotControl1Qubit = null;
     _ccnotControl2Qubit = null;
+    _levelSolved = false;
+    _checkFeedbackTitle = null;
+    _checkFeedbackMessage = null;
     _runSimulation(); // Run simulation - empty circuit
     _circuitWidthNotifier.value = 0; // Reset width notifier
+  }
+
+  void _openQuantumFundamentals() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const WebViewPage(
+          title: 'Quantum Fundamentals',
+          url:
+              'https://danfran.github.io/qubit-quest/quantum-fundamentals.html',
+        ),
+      ),
+    );
+  }
+
+  void _selectComposerMenuAction(String action) {
+    switch (action) {
+      case 'matrix':
+        _showOperatorMatrixDialog();
+        break;
+      case 'fundamentals':
+        _openQuantumFundamentals();
+        break;
+      case 'clear':
+        _clearCircuit();
+        break;
+      case 'hint':
+        _showNextHint();
+        break;
+    }
   }
 
   // Helper to format a matrix for LaTeX display
@@ -781,8 +914,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }
 
   void _updateScrollButtonStates() {
-    if (!_gatesScrollController.hasClients)
+    if (!_gatesScrollController.hasClients) {
       return; // Ensure controller is attached to a view
+    }
     final position = _gatesScrollController.position;
 
     // Debug prints (helpful to see the values if issues persist)
@@ -835,448 +969,73 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   @override
   Widget build(BuildContext context) {
+    const Color surface = Color(0xFF05070B);
+    const Color panel = Color(0xFF171C2B);
+    final bool compactAppBar = MediaQuery.sizeOf(context).width < 900;
+
     return Scaffold(
-        backgroundColor: Color(0xFF1E1E2C),
+        backgroundColor: surface,
         // Modify the AppBar
         appBar: AppBar(
-          backgroundColor: Color(0xFF1E1E2C), // Dark app bar
+          toolbarHeight: compactAppBar ? 68 : 58,
+          backgroundColor: surface, // Dark app bar
+          leadingWidth: compactAppBar ? 42 : 50,
+          leading: _buildHeaderBackButton(compact: compactAppBar),
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF070A10),
+                  Color(0xFF030407),
+                ],
+              ),
+            ),
+          ),
+          elevation: 0,
+          shadowColor: Colors.transparent,
           scrolledUnderElevation: 0.0, // Prevent elevation change on scroll
           surfaceTintColor:
               Colors.transparent, // Prevent color tinting on scroll
+          titleSpacing: compactAppBar ? 0 : 8,
           title: Row(
             // Use a Row to hold multiple widgets
             mainAxisSize:
                 MainAxisSize.min, // Make the row take minimal horizontal space
             children: [
-              SvgPicture.asset(
-                'assets/images/logo_mini.svg', // Path to your white SVG logo
-                height: 32, // Adjust the height to fit nicely in the AppBar
-                colorFilter: ColorFilter.mode(
-                  Colors.white,
-                  BlendMode.srcIn,
-                ), // Ensure the SVG is white
-              ),
+              _buildHeaderLogo(compact: compactAppBar),
               SizedBox(
-                  width: 8), // Add some spacing between the logo and the text
-              Text(
-                runningAsQuantumComposer()
-                    ? "Composer"
-                    : "Level ${widget.levelId}", // Keep your dynamic level text
-                style: TextStyle(
-                  fontSize: 28, // Adjust font size as needed
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          // ** Add the actions list here **
-          actions: [
-            // Run Simulation Button (as TextButton)
-            TextButton.icon(
-              onPressed: _showOperatorMatrixDialog,
-              icon: Icon(Icons.grid_on),
-              label: Text('Operator Matrix'),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors
-                    .white, // White icon/text color for contrast on AppBar
-                // You might adjust padding if needed to fit
-                // padding: EdgeInsets.symmetric(horizontal: 8.0),
-              ),
-            ),
-            TextButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const WebViewPage(
-                      title: 'Quantum Fundamentals',
-                      url:
-                          'https://danfran.github.io/qubit-quest/quantum-fundamentals.html',
-                    ),
-                  ),
-                );
-              },
-              icon: Icon(Icons.book),
-              label: Text('Quantum Fundamentals'),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors
-                    .white, // White icon/text color for contrast on AppBar
-                // You might adjust padding if needed to fit
-                // padding: EdgeInsets.symmetric(horizontal: 8.0),
-              ),
-            ),
-            TextButton.icon(
-              onPressed: _clearCircuit,
-              icon: Icon(Icons.cleaning_services),
-              label: Text('Clear'),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-              ),
-            ),
-            if (_hints.isNotEmpty && !runningAsQuantumComposer())
-              TextButton.icon(
-                onPressed: _currentHintIndex < _hints.length - 1
-                    ? _showNextHint
-                    : null,
-                icon: const Icon(Icons.lightbulb_outline),
-                label: Text(_currentHintIndex < 0
-                    ? 'Hint'
-                    : 'Hint ${_currentHintIndex + 1}/${_hints.length}'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.amber,
-                ),
-              ),
-          ],
-          // ****************************
-        ),
-        body: SafeArea(
-          child: Column(
-            // Main Column stacking the top section and controls
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                // This Expanded makes the Row take available vertical space
-                child: Row(
-                  // <-- Main Row for Circuit and Histogram side-by-side
+                  width: compactAppBar
+                      ? 11
+                      : 12), // Add some spacing between the logo and the text
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Circuit Visualization (Left - 70% width)
-                    Expanded(
-                      flex: 7, // Allocate 70% width
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                                child: Container(
-                              // Container for padding
-                              // color: Colors.grey[900],
-                              decoration: BoxDecoration(
-                                shape: BoxShape.rectangle,
-                                color: Color(0xFF1E1E2C),
-                                border: Border.all(
-                                    color: Color(0xFF4D4D5C), width: 1),
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              padding: EdgeInsets.all(2.0),
-                              child: LayoutBuilder(
-                                  // LayoutBuilder gets bounded constraints from Container/Expanded
-                                  builder: (context, constraints) {
-                                debugPrint(
-                                    "  LayoutBuilder constraints: $constraints"); // Debug constraints
-                                final double availableContainerWidth =
-                                    constraints.maxWidth;
-                                final double availableContainerHeight =
-                                    constraints.maxHeight;
-                                debugPrint(
-                                    "  Available container size: Size($availableContainerWidth, $availableContainerHeight)"); // Debug available size
-
-                                // Calculate the minimum width needed based on the maximum position of placed gates
-                                final int maxPosition =
-                                    _circuit.isCircuitEmpty()
-                                        ? -1
-                                        : _circuit.placedGates
-                                            .map((e) => e.length)
-                                            .reduce(max);
-                                // Add 2 for the next column and some extra space
-                                final double minRequiredWidth =
-                                    (maxPosition + 3) *
-                                            QuantumCircuitPainter.gateSpacing +
-                                        QuantumCircuitPainter.padding * 2;
-
-                                final double sizedBoxWidth = max(
-                                    minRequiredWidth, availableContainerWidth);
-                                // The height of the SizedBox should be fixed based on the number of qubits and spacing
-                                final double sizedBoxHeight = _numQubits *
-                                        QuantumCircuitPainter.qubitSpacing +
-                                    QuantumCircuitPainter.padding * 2;
-                                debugPrint(
-                                    "  Calculated SizedBox size: Size($sizedBoxWidth, $sizedBoxHeight)"); // Debug SizedBox size
-
-                                return DragTarget<Gate>(
-                                  // DragTarget wraps the scrollable area
-                                  // onWillAccept: (data) => data != null && data != SelectedGateType.delete, // Accept any gate type except delete
-                                  onAcceptWithDetails: (details) {
-                                    _handleGateDrop(details);
-                                    _onDragLeave();
-                                  }, // Handle the drop event
-                                  onLeave: (data) {
-                                    _onDragLeave();
-                                  },
-                                  onMove: (data) {
-                                    _onDragEnter(data.offset, data.data);
-                                  },
-                                  onWillAcceptWithDetails: (details) {
-                                    Gate data = details.data;
-                                    _onDragEnter(details.offset, details.data);
-                                    bool isNotDelete = data != null &&
-                                        data != SelectedGateType.delete;
-                                    return isNotDelete;
-                                  },
-                                  builder:
-                                      (context, candidateData, rejectedData) {
-                                    // We can use the presence of candidateData to provide visual feedback
-                                    bool isDraggingOver =
-                                        candidateData.isNotEmpty;
-
-                                    return GestureDetector(
-                                      // GestureDetector wraps the scrollable area
-                                      key: _gestureDetectorKey,
-                                      onTapDown:
-                                          _handleCircuitTap, // Tap handler for deletion
-                                      child: SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        // ** Wrap CustomPaint in ConstrainedBox to force size **
-                                        child: CustomPaint(
-                                          painter: QuantumCircuitPainter(
-                                              _circuit,
-                                              _circuitWidthNotifier,
-                                              _draggingOffset,
-                                              _draggingGate), // Pass the circuit
-                                          child: ListenableBuilder(
-                                            listenable:
-                                                _circuit, // Listen to the circuit object
-                                            builder: (context, child) {
-                                              debugPrint(
-                                                  "ListenableBuilder rebuilding CustomPaint."); // Debug rebuild
-                                              return Container(
-                                                width: max(
-                                                    sizedBoxWidth,
-                                                    _circuitWidthNotifier
-                                                        .value),
-                                                // color: isDraggingOver ? Colors.white.withOpacity(0.1) : Colors.transparent, // Subtle overlay when dragging over
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              }),
-                            )),
-
-                            // Add Gates Buttons (This section remains)
-                            Padding(
-                              padding:
-                                  const EdgeInsets.only(top: 8.0, bottom: 8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(children: [
-                                    Text("Add/Remove Gates:",
-                                        style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold)),
-                                    Spacer(),
-                                    IconButton(
-                                      icon: Icon(Icons.arrow_left,
-                                          color: _canScrollLeft
-                                              ? Colors.white
-                                              : Colors.grey),
-                                      onPressed:
-                                          _canScrollLeft ? _scrollLeft : null,
-                                      tooltip: 'Scroll Left',
-                                    ),
-                                    IconButton(
-                                      icon: Icon(Icons.arrow_right,
-                                          color: _canScrollRight
-                                              ? Colors.white
-                                              : Colors.grey),
-                                      onPressed:
-                                          _canScrollRight ? _scrollRight : null,
-                                      tooltip: 'Scroll Right',
-                                    ),
-                                  ]),
-                                  // SizedBox(height: 8),
-                                  Scrollbar(
-                                    controller:
-                                        _gatesScrollController, // <-- Assign controller to Scrollbar
-                                    thumbVisibility: true,
-                                    child: SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      controller:
-                                          _gatesScrollController, // <-- Assign controller to Scrollbar
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.start,
-                                        children: [
-                                          ElevatedButton(
-                                            onPressed: () => _initDeletion(),
-                                            style: ElevatedButton.styleFrom(
-                                              minimumSize: Size(
-                                                  QuantumCircuitPainter
-                                                      .gateSize,
-                                                  QuantumCircuitPainter
-                                                      .gateSize), // Use gate size for button size
-                                              padding: EdgeInsets
-                                                  .zero, // Remove internal padding
-                                              backgroundColor: Colors.green[
-                                                  700], // Red color for delete
-                                              foregroundColor: Colors
-                                                  .white, // White text/icon color
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(0.0),
-                                              ), // Square shape
-                                            ),
-                                            child: FittedBox(
-                                                fit: BoxFit.fitWidth,
-                                                child: Icon(Icons.delete,
-                                                    size: 18)),
-                                            // child: Text('DEL', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), // Button text
-                                          ),
-
-                                          SizedBox(
-                                              width:
-                                                  4), // Space after Delete button
-                                          // ** Add the Vertical Divider **
-                                          Container(
-                                            // Wrap divider in Container to give it a height matching buttons
-                                            height:
-                                                QuantumCircuitPainter.gateSize *
-                                                    0.75, // Match button height
-                                            child: VerticalDivider(
-                                              width: 1,
-                                              thickness: 2,
-                                              indent:
-                                                  0, // Adjust indent/endIndent if buttons have different padding
-                                              endIndent: 0,
-                                              color: Colors
-                                                  .white, // White divider for visibility on black background
-                                            ),
-                                          ),
-                                          SizedBox(
-                                              width: 4), // Space after divider
-                                          // --- Dynamic Draggable Gate Buttons ---
-                                          ..._availableGates.map((gateType) {
-                                            return Padding(
-                                              padding: const EdgeInsets
-                                                  .symmetric(
-                                                  horizontal:
-                                                      4.0), // Add spacing between dynamic buttons
-                                              child: _buildDraggableGateButton(
-                                                  gateType),
-                                            );
-                                          }), // Convert the iterable to a List<Widget>
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ]),
+                    Text(
+                      runningAsQuantumComposer()
+                          ? 'Composer'
+                          : 'Level ${widget.levelId}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: compactAppBar ? 16.5 : 20,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        height: 1.08,
+                      ),
                     ),
-
-                    // Histogram Visualization (Right - 30% width)
-                    Expanded(
-                      flex: 3,
-                      child: Padding(
-                        // padding: const EdgeInsets.only(left: 8.0, right: 8.0),
-                        padding: const EdgeInsets.all(8.0),
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment
-                                .start, // Align content to the left
-                            children: [
-                              // TOP SECTION: Scrollable Task Text
-                              Flexible(
-                                // Use Flexible to allow the task text to take some space, but not too much
-                                flex:
-                                    35, // Adjust this flex to control vertical space distribution (e.g., 20% of right column's height)
-                                child: Column(
-                                  // <--- NEW: Column to stack "Task:" label and text
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      width: double
-                                          .infinity, // This container will try to fill its parent's horizontal space
-                                      padding: const EdgeInsets.all(2.0),
-                                      margin:
-                                          const EdgeInsets.only(bottom: 12.0),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blueGrey[700],
-                                        borderRadius:
-                                            BorderRadius.circular(8.0),
-                                        boxShadow: [
-                                          BoxShadow(
-                                              color:
-                                                  Colors.black.withOpacity(0.2),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2))
-                                        ],
-                                      ),
-                                      child: Text(
-                                        _currentInstructionMessage,
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontStyle: FontStyle.italic),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                    Text(
-                                      // <--- "Task:" label
-                                      runningAsQuantumComposer()
-                                          ? "Welcome to the Composer!"
-                                          : "Task:",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                        fontSize:
-                                            16, // Font size 16 for the label
-                                      ),
-                                    ),
-                                    Expanded(
-                                      // <--- Ensures the task description text takes available space and scrolls
-                                      child: Scrollbar(
-                                        controller:
-                                            _taskTextScrollController, // <-- Assign controller to Scrollbar
-                                        thumbVisibility: true,
-                                        child: SingleChildScrollView(
-                                          controller:
-                                              _taskTextScrollController, // <-- Assign controller to SingleChildScrollView
-                                          child: LatexText(
-                                            math: _taskDescription,
-                                            textStyle: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 16,
-                                            ),
-                                            inlineMathHeight: 16,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Divider(),
-                              // SizedBox(height: 10.0),
-                              Expanded(
-                                flex:
-                                    40, // Changed from 8 to 6 for 60% vertical space
-                                child: Container(
-                                  padding: const EdgeInsets.all(8.0),
-                                  decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(8.0),
-                                      border: Border.all(
-                                          color:
-                                              Colors.blueGrey.withOpacity(0.5),
-                                          width: 0.5)),
-                                  child: StateVectorDisplay(
-                                    stateVector:
-                                        _circuit.currentState.stateVector,
-                                    numQubits: _numQubits,
-                                    targetStateVector:
-                                        runningAsQuantumComposer()
-                                            ? null
-                                            : _solutionVector
-                                                .map((col) => col.first)
-                                                .toList(),
-                                  ),
-                                ),
-                              ),
-                              // State Vector Display (Below buttons)
-                            ]),
+                    Text(
+                      _goalTitle(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: compactAppBar ? 11.5 : 13,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFFC7B5FF),
+                        height: 1.30,
                       ),
                     ),
                   ],
@@ -1284,60 +1043,1314 @@ class _QuantumComposerState extends State<QuantumComposer> {
               ),
             ],
           ),
+          // ** Add the actions list here **
+          actions: _buildAppBarActions(compactAppBar),
+          // ****************************
+        ),
+        body: SafeArea(
+          child: LayoutBuilder(builder: (context, constraints) {
+            final bool compact = constraints.maxWidth < 720;
+            final bool short = constraints.maxHeight < 560;
+            final Widget circuitCard = _buildCircuitCard(
+              panel,
+              compact: short,
+              showHeader: !compact,
+            );
+            final Widget statePanel = _buildStatePanel();
+
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                compact ? 12 : 16,
+                short ? 4 : 6,
+                compact ? 12 : 16,
+                short ? 8 : (compact ? 10 : 12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: compact
+                        ? _buildPortraitComposerLayout(
+                            circuitCard: circuitCard,
+                            statePanel: statePanel,
+                            short: short,
+                          )
+                        : Row(
+                            children: [
+                              Expanded(flex: 68, child: circuitCard),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                flex: 32,
+                                child: Column(
+                                  children: [
+                                    _buildTaskDetailsPanel(compact: false),
+                                    const SizedBox(height: 10),
+                                    Expanded(child: statePanel),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                  if (!compact) ...[
+                    SizedBox(height: short ? 6 : 10),
+                    _buildGatePalette(compact: compact, dense: short),
+                  ],
+                ],
+              ),
+            );
+          }),
         ));
+  }
+
+  Widget _buildHeaderLogo({required bool compact}) {
+    final double size = compact ? 38 : 42;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: SvgPicture.asset(
+        'assets/images/qubit_quest_atom_logo.svg',
+        fit: BoxFit.contain,
+      ),
+    );
+  }
+
+  Widget? _buildHeaderBackButton({required bool compact}) {
+    if (!(ModalRoute.of(context)?.canPop ?? false)) {
+      return null;
+    }
+
+    return IconButton(
+      onPressed: () => Navigator.of(context).maybePop(),
+      icon: const Icon(Icons.arrow_back_rounded),
+      iconSize: compact ? 21 : 22,
+      color: Colors.white.withValues(alpha: 0.90),
+      padding: EdgeInsets.only(left: compact ? 2 : 4),
+      splashRadius: 22,
+      tooltip: 'Back',
+    );
+  }
+
+  Widget _buildPortraitGoalSection({required bool short}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildGoalBanner(compact: true),
+      ],
+    );
+  }
+
+  Widget _buildPortraitComposerLayout({
+    required Widget circuitCard,
+    required Widget statePanel,
+    required bool short,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildPortraitGoalSection(short: short),
+        SizedBox(height: short ? 6 : 8),
+        Expanded(flex: short ? 42 : 48, child: circuitCard),
+        SizedBox(height: short ? 6 : 8),
+        SizedBox(height: short ? 116 : 150, child: statePanel),
+        SizedBox(height: short ? 6 : 8),
+        _buildGatePalette(compact: true, dense: short),
+        SizedBox(height: short ? 6 : 8),
+        _buildPortraitCheckArea(compact: short),
+      ],
+    );
+  }
+
+  List<Widget> _buildAppBarActions(bool compact) {
+    if (compact) {
+      return [
+        _buildHeaderIconAction(
+          icon: Icons.school_outlined,
+          tooltip: 'Learn',
+          onPressed: _openQuantumFundamentals,
+        ),
+        const SizedBox(width: 6),
+        PopupMenuButton<String>(
+          tooltip: 'Composer actions',
+          color: const Color(0xFF171C2B),
+          offset: const Offset(0, 10),
+          onSelected: _selectComposerMenuAction,
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'matrix',
+              child: ListTile(
+                leading: Icon(Icons.grid_on, color: Colors.white),
+                title: Text('Operator Matrix'),
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'clear',
+              child: ListTile(
+                leading: Icon(Icons.cleaning_services, color: Colors.white),
+                title: Text('Clear'),
+              ),
+            ),
+            if (_hints.isNotEmpty && !runningAsQuantumComposer())
+              PopupMenuItem(
+                value: 'hint',
+                child: ListTile(
+                  leading:
+                      const Icon(Icons.lightbulb_outline, color: Colors.amber),
+                  title: Text(_currentHintIndex < 0
+                      ? 'Hint'
+                      : 'Hint ${_currentHintIndex + 1}/${_hints.length}'),
+                ),
+              ),
+          ],
+          child: _HeaderActionShell(
+            child: Icon(
+              Icons.settings_outlined,
+              size: 19,
+              color: Colors.white.withValues(alpha: 0.94),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+      ];
+    }
+
+    return [
+      TextButton.icon(
+        onPressed: _openQuantumFundamentals,
+        icon: const Icon(Icons.school_outlined),
+        label: const Text('Learn'),
+        style: TextButton.styleFrom(
+          foregroundColor: Colors.white,
+          backgroundColor: const Color(0xFF6E5BFF).withValues(alpha: 0.14),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+            side: BorderSide(
+              color: const Color(0xFF8A7CFF).withValues(alpha: 0.22),
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(width: 8),
+      TextButton.icon(
+        onPressed: _showOperatorMatrixDialog,
+        icon: const Icon(Icons.grid_on),
+        label: const Text('Operator Matrix'),
+        style: TextButton.styleFrom(
+          foregroundColor:
+              Colors.white, // White icon/text color for contrast on AppBar
+          backgroundColor: Colors.white.withValues(alpha: 0.06),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.10)),
+          ),
+          // You might adjust padding if needed to fit
+          // padding: EdgeInsets.symmetric(horizontal: 8.0),
+        ),
+      ),
+      const SizedBox(width: 8),
+      TextButton.icon(
+        onPressed: _clearCircuit,
+        icon: const Icon(Icons.cleaning_services),
+        label: const Text('Clear'),
+        style: TextButton.styleFrom(
+          foregroundColor: Colors.white,
+          backgroundColor: Colors.white.withValues(alpha: 0.06),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.10)),
+          ),
+        ),
+      ),
+      if (_hints.isNotEmpty && !runningAsQuantumComposer())
+        const SizedBox(width: 8),
+      if (_hints.isNotEmpty && !runningAsQuantumComposer())
+        TextButton.icon(
+          onPressed:
+              _currentHintIndex < _hints.length - 1 ? _showNextHint : null,
+          icon: const Icon(Icons.lightbulb_outline),
+          label: Text(_currentHintIndex < 0
+              ? 'Hint'
+              : 'Hint ${_currentHintIndex + 1}/${_hints.length}'),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.amber,
+            backgroundColor: Colors.amber.withValues(alpha: 0.10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(999),
+              side: BorderSide(color: Colors.amber.withValues(alpha: 0.18)),
+            ),
+          ),
+        ),
+      const SizedBox(width: 12),
+    ];
+  }
+
+  Widget _buildHeaderIconAction({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: _HeaderActionShell(
+        child: IconButton(
+          onPressed: onPressed,
+          icon: Icon(icon),
+          iconSize: 19,
+          color: Colors.white.withValues(alpha: 0.94),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+          splashRadius: 20,
+        ),
+      ),
+    );
   }
 
   bool runningAsQuantumComposer() => widget.levelId == -1;
 
-  Widget _buildDraggableGateButton(Gate gate) {
+  String _goalTitle() {
+    if (runningAsQuantumComposer()) {
+      return 'Composer';
+    }
+    return widget.level.title ?? 'Level ${widget.levelId}';
+  }
+
+  Widget _buildGoalBanner({required bool compact}) {
+    final bool canShowHint = _hints.isNotEmpty && !runningAsQuantumComposer();
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        compact ? 12 : 14,
+        compact ? 9 : 11,
+        compact ? 8 : 10,
+        compact ? 9 : 11,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF151A28),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF2A344D)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.lightbulb_outline,
+            color: Colors.amber,
+            size: compact ? 18 : 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Goal:',
+                  style: TextStyle(
+                    color: const Color(0xFFC7B5FF),
+                    fontSize: compact ? 13 : 14,
+                    fontWeight: FontWeight.w900,
+                    height: 1.28,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: compact ? 58 : 72),
+                    child: SingleChildScrollView(
+                      child: LatexText(
+                        math: _taskDescription,
+                        textStyle: TextStyle(
+                          color: Colors.white,
+                          fontSize: compact ? 13 : 14,
+                          fontWeight: FontWeight.w700,
+                          height: 1.28,
+                        ),
+                        inlineMathHeight: compact ? 13 : 14,
+                        displayMathHeight: compact ? 18 : 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (canShowHint) ...[
+            const SizedBox(width: 6),
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              onPressed:
+                  _currentHintIndex < _hints.length - 1 ? _showNextHint : null,
+              icon: const Icon(Icons.help_outline),
+              iconSize: compact ? 20 : 21,
+              color: const Color(0xFFB9C6DD),
+              disabledColor: const Color(0xFF6B7890),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(
+                width: 32,
+                height: 32,
+              ),
+              splashRadius: 18,
+              tooltip: _currentHintIndex < 0
+                  ? 'Hint'
+                  : 'Hint ${_currentHintIndex + 1}/${_hints.length}',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCircuitCard(
+    Color panelColor, {
+    bool compact = false,
+    bool showHeader = true,
+  }) {
+    final bool isDraggingGate = _draggingOffset != null &&
+        _draggingGate.type != SelectedGateType.none &&
+        _draggingGate.type != SelectedGateType.delete;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF1A2030),
+            Color(0xFF131927),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDraggingGate
+              ? const Color(0xFF66D9E8)
+              : const Color(0xFF2D3852),
+          width: isDraggingGate ? 1.5 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.28),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+          if (isDraggingGate)
+            BoxShadow(
+              color: const Color(0xFF66D9E8).withValues(alpha: 0.16),
+              blurRadius: 24,
+              spreadRadius: 1,
+            ),
+        ],
+      ),
+      padding: EdgeInsets.fromLTRB(
+        compact ? 8 : 12,
+        compact ? 8 : 10,
+        compact ? 8 : 12,
+        compact ? 8 : 12,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showHeader) ...[
+            _buildCircuitSurfaceHeader(
+              compact: compact,
+              isDraggingGate: isDraggingGate,
+            ),
+            if (_checkFeedbackTitle != null) ...[
+              SizedBox(height: compact ? 6 : 8),
+              _buildCheckFeedbackBanner(compact: compact),
+            ],
+            SizedBox(height: compact ? 7 : 9),
+          ],
+          Expanded(child: _buildCircuitDragTarget()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCircuitSurfaceHeader({
+    required bool compact,
+    required bool isDraggingGate,
+  }) {
+    final String instruction = isDraggingGate
+        ? 'Release on a highlighted slot'
+        : (compact ? 'Build circuit' : _currentInstructionMessage);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: compact ? 28 : 32,
+              height: compact ? 28 : 32,
+              decoration: BoxDecoration(
+                color: isDraggingGate
+                    ? const Color(0xFF66D9E8).withValues(alpha: 0.16)
+                    : const Color(0xFF24304A),
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                  color: isDraggingGate
+                      ? const Color(0xFF66D9E8)
+                      : const Color(0xFF405175),
+                ),
+              ),
+              child: Icon(
+                runningAsQuantumComposer()
+                    ? Icons.tune_outlined
+                    : Icons.flag_outlined,
+                color: const Color(0xFF8FD4FF),
+                size: compact ? 16 : 18,
+              ),
+            ),
+            SizedBox(width: compact ? 8 : 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    runningAsQuantumComposer()
+                        ? 'Sandbox'
+                        : 'Level ${widget.levelId}',
+                    style: const TextStyle(
+                      color: Color(0xFF8EA2C6),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.0,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    _goalTitle(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: compact ? 16 : 19,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!runningAsQuantumComposer()) ...[
+              SizedBox(width: compact ? 8 : 10),
+              _buildCheckResultButton(compact: compact),
+            ],
+          ],
+        ),
+        SizedBox(height: compact ? 6 : 7),
+        Row(
+          children: [
+            Container(
+              width: 3,
+              height: compact ? 18 : 20,
+              decoration: BoxDecoration(
+                color: isDraggingGate
+                    ? const Color(0xFF66D9E8)
+                    : const Color(0xFF5D5FE6),
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+            SizedBox(width: compact ? 7 : 8),
+            Icon(
+              isDraggingGate ? Icons.add_box_outlined : Icons.timeline,
+              color: const Color(0xFF8FD4FF),
+              size: compact ? 14 : 15,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                instruction,
+                style: TextStyle(
+                  color: const Color(0xFFB9C6DD),
+                  fontSize: compact ? 12 : 13,
+                  fontWeight: FontWeight.w700,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCheckResultButton({required bool compact}) {
+    final Color background =
+        _levelSolved ? const Color(0xFF2F8D72) : const Color(0xFF5D5FE6);
+
+    return ElevatedButton.icon(
+      onPressed: _isShowingCompletionDialog ? null : _handleCheckResultPressed,
+      icon: Icon(
+        _levelSolved ? Icons.check_circle_outline : Icons.play_arrow_rounded,
+        size: compact ? 16 : 18,
+      ),
+      label: Text(compact ? 'Check' : 'Check Result'),
+      style: ElevatedButton.styleFrom(
+        elevation: 0,
+        backgroundColor: background,
+        disabledBackgroundColor: background.withValues(alpha: 0.45),
+        foregroundColor: Colors.white,
+        disabledForegroundColor: Colors.white70,
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 10 : 14,
+          vertical: compact ? 8 : 10,
+        ),
+        textStyle: TextStyle(
+          fontSize: compact ? 12 : 13,
+          fontWeight: FontWeight.w800,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.16)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPortraitCheckArea({required bool compact}) {
+    if (runningAsQuantumComposer()) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_checkFeedbackTitle != null) ...[
+          _buildCheckFeedbackBanner(compact: compact),
+          SizedBox(height: compact ? 6 : 8),
+        ],
+        SizedBox(
+          height: compact ? 42 : 48,
+          child: _buildCheckResultButton(compact: false),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCheckFeedbackBanner({required bool compact}) {
+    final Color accent = _checkFeedbackSuccess
+        ? const Color(0xFF66BB6A)
+        : const Color(0xFFFFB74D);
+    final IconData icon =
+        _checkFeedbackSuccess ? Icons.emoji_events_outlined : Icons.refresh;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 12,
+        vertical: compact ? 7 : 9,
+      ),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.11),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accent.withValues(alpha: 0.42)),
+      ),
+      child: Row(
+        children: [
+          AnimatedScale(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutBack,
+            scale: _checkFeedbackSuccess ? 1.08 : 1.0,
+            child: Icon(icon, color: accent, size: compact ? 16 : 18),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${_checkFeedbackTitle!}: ${_checkFeedbackMessage!}',
+              style: TextStyle(
+                color: const Color(0xFFD6E3F8),
+                fontSize: compact ? 11 : 12,
+                fontWeight: FontWeight.w700,
+              ),
+              maxLines: compact ? 1 : 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCircuitDragTarget() {
+    final bool isDraggingGate = _draggingOffset != null &&
+        _draggingGate.type != SelectedGateType.none &&
+        _draggingGate.type != SelectedGateType.delete;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.easeOut,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A0F1B),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDraggingGate
+              ? const Color(0xFF66D9E8)
+              : const Color(0xFF26324A),
+          width: isDraggingGate ? 1.5 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDraggingGate
+                ? const Color(0xFF66D9E8).withValues(alpha: 0.13)
+                : Colors.black.withValues(alpha: 0.18),
+            blurRadius: isDraggingGate ? 18 : 10,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: LayoutBuilder(builder: (context, constraints) {
+        debugPrint("  LayoutBuilder constraints: $constraints");
+        final double availableContainerWidth = constraints.maxWidth;
+
+        final int maxPosition = _circuit.isCircuitEmpty()
+            ? -1
+            : _circuit.placedGates.map((e) => e.length).reduce(max);
+        final double minRequiredWidth =
+            (maxPosition + 3) * QuantumCircuitPainter.gateSpacing +
+                QuantumCircuitPainter.padding * 2;
+
+        final double sizedBoxWidth =
+            max(minRequiredWidth, availableContainerWidth);
+        final double sizedBoxHeight =
+            _numQubits * QuantumCircuitPainter.qubitSpacing +
+                QuantumCircuitPainter.padding * 2;
+        final double viewportHeight =
+            max(sizedBoxHeight, constraints.maxHeight);
+        final bool circuitIsEmpty = _circuit.isCircuitEmpty();
+        debugPrint(
+            "  Calculated SizedBox size: Size($sizedBoxWidth, $sizedBoxHeight)");
+
+        return DragTarget<Gate>(
+          onAcceptWithDetails: (details) {
+            _handleGateDrop(details);
+            _onDragLeave();
+          },
+          onLeave: (data) {
+            _onDragLeave();
+          },
+          onMove: (data) {
+            _onDragEnter(data.offset, data.data);
+          },
+          onWillAcceptWithDetails: (details) {
+            Gate data = details.data;
+            _onDragEnter(details.offset, details.data);
+            bool isNotDelete = data.type != SelectedGateType.delete;
+            return isNotDelete;
+          },
+          builder: (context, candidateData, rejectedData) {
+            return GestureDetector(
+              key: _gestureDetectorKey,
+              onTapDown: _handleCircuitTap,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: max(sizedBoxWidth, _circuitWidthNotifier.value),
+                  height: viewportHeight,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      CustomPaint(
+                        painter: _CircuitGuidePainter(
+                          numQubits: _numQubits,
+                          columns: math.max(
+                            4,
+                            maxPosition + 4,
+                          ),
+                          isDragging: isDraggingGate,
+                          dragOffset: _draggingOffset,
+                        ),
+                      ),
+                      CustomPaint(
+                        painter: QuantumCircuitPainter(
+                          _circuit,
+                          _circuitWidthNotifier,
+                          _draggingOffset,
+                          _draggingGate,
+                        ),
+                        child: ListenableBuilder(
+                          listenable: _circuit,
+                          builder: (context, child) {
+                            debugPrint(
+                                "ListenableBuilder rebuilding CustomPaint.");
+                            return const SizedBox.expand();
+                          },
+                        ),
+                      ),
+                      if (circuitIsEmpty)
+                        _EmptyCircuitPrompt(isDragging: isDraggingGate),
+                      if (isDraggingGate)
+                        const Positioned(
+                          right: 12,
+                          top: 10,
+                          child: _DropReadyPill(),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      }),
+    );
+  }
+
+  Widget _buildDeleteGateButton({required bool dense}) {
+    final double buttonSize = dense ? 44 : 52;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(13),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2F8D72).withValues(alpha: 0.22),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: () => _initDeletion(),
+        style: ElevatedButton.styleFrom(
+          minimumSize: Size.square(buttonSize),
+          fixedSize: Size.square(buttonSize),
+          padding: EdgeInsets.zero,
+          elevation: 0,
+          backgroundColor: const Color(0xFF2F8D72),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(13.0),
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.14),
+            ),
+          ),
+        ),
+        child: Icon(Icons.delete, size: dense ? 18 : 20),
+      ),
+    );
+  }
+
+  Widget _buildGatePalette({required bool compact, required bool dense}) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(12, dense ? 7 : 10, 12, dense ? 8 : 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF151A28),
+        borderRadius: BorderRadius.circular(dense ? 14 : 18),
+        border: Border.all(color: const Color(0xFF2A344D)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.20),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!dense)
+            Row(children: [
+              const Text(
+                "Gate Palette",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF66D9E8).withValues(alpha: 0.7),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.arrow_left,
+                    color: _canScrollLeft ? Colors.white : Colors.grey),
+                onPressed: _canScrollLeft ? _scrollLeft : null,
+                tooltip: 'Scroll Left',
+              ),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.arrow_right,
+                    color: _canScrollRight ? Colors.white : Colors.grey),
+                onPressed: _canScrollRight ? _scrollRight : null,
+                tooltip: 'Scroll Right',
+              ),
+            ]),
+          if (!dense) const SizedBox(height: 2),
+          Row(
+            children: [
+              if (dense) ...[
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(Icons.arrow_left,
+                      color: _canScrollLeft ? Colors.white : Colors.grey),
+                  onPressed: _canScrollLeft ? _scrollLeft : null,
+                  tooltip: 'Scroll Left',
+                ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(Icons.arrow_right,
+                      color: _canScrollRight ? Colors.white : Colors.grey),
+                  onPressed: _canScrollRight ? _scrollRight : null,
+                  tooltip: 'Scroll Right',
+                ),
+                const SizedBox(width: 4),
+              ],
+              Expanded(
+                child: Scrollbar(
+                  controller: _gatesScrollController,
+                  thumbVisibility: true,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    controller: _gatesScrollController,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          _buildDeleteGateButton(dense: dense),
+                          SizedBox(width: dense ? 7 : 10),
+                          Container(
+                            height: dense ? 32 : 38,
+                            width: 1,
+                            color: const Color(0xFF3B4967),
+                          ),
+                          SizedBox(width: dense ? 7 : 10),
+                          ..._availableGates.map((gateType) {
+                            return Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: dense ? 3.5 : 5.0),
+                              child: _buildDraggableGateButton(
+                                gateType,
+                                dense: dense,
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTaskDetailsPanel({required bool compact}) {
+    return Container(
+      constraints: BoxConstraints(maxHeight: compact ? 170 : double.infinity),
+      decoration: BoxDecoration(
+        color: const Color(0xFF151A28),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF2A344D)),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: !compact,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          iconColor: const Color(0xFF8FD4FF),
+          collapsedIconColor: const Color(0xFF8EA2C6),
+          title: Text(
+            runningAsQuantumComposer() ? 'Composer notes' : 'Goal details',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          children: [
+            SizedBox(
+              height: compact ? 86 : 132,
+              child: Scrollbar(
+                controller: _taskTextScrollController,
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  controller: _taskTextScrollController,
+                  child: LatexText(
+                    math: _taskDescription,
+                    textStyle: const TextStyle(
+                      color: Color(0xFFC3CEE2),
+                      fontSize: 14,
+                      height: 1.35,
+                    ),
+                    inlineMathHeight: 14,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatePanel() {
+    return Container(
+      padding: const EdgeInsets.all(10.0),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111722),
+        borderRadius: BorderRadius.circular(14.0),
+        border: Border.all(color: const Color(0xFF2A344D), width: 1),
+      ),
+      child: StateVectorDisplay(
+        stateVector: _circuit.currentState.stateVector,
+        numQubits: _numQubits,
+        targetStateVector: runningAsQuantumComposer()
+            ? null
+            : _solutionVector.map((col) => col.first).toList(),
+      ),
+    );
+  }
+
+  Widget _buildDraggableGateButton(Gate gate, {bool dense = false}) {
     double fontSizeW;
     if (gate.type == SelectedGateType.ccnot) {
-      fontSizeW = 14;
+      fontSizeW = dense ? 12 : 14;
     } else if ((gate.type == SelectedGateType.rx ||
             gate.type == SelectedGateType.ry ||
             gate.type == SelectedGateType.rz) &&
         gate.angle != null) {
-      fontSizeW = 10;
+      fontSizeW = dense ? 9 : 10;
     } else {
-      fontSizeW = 18;
+      fontSizeW = dense ? 16 : 18;
     }
+
+    final double buttonSize = dense ? 44 : 52;
 
     return Draggable<Gate>(
       // Draggable for Hadamard
       data: gate, // Data carried by the drag
-      feedback: Container(
-        // Visual feedback while dragging
-        width: QuantumCircuitPainter.gateSize,
-        height: QuantumCircuitPainter.gateSize,
-        color: gate.color.withOpacity(0.7), // Semi-transparent feedback
-        child: Center(
-            child: Text(gate.label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: fontSizeW,
-                    fontWeight: FontWeight.bold))),
+      feedback: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: buttonSize,
+          height: buttonSize,
+          decoration: BoxDecoration(
+            color: gate.color.withValues(alpha: 0.86),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+            boxShadow: [
+              BoxShadow(
+                color: gate.color.withValues(alpha: 0.34),
+                blurRadius: 18,
+                spreadRadius: 2,
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.34),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              gate.label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: fontSizeW,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
       ),
-      child: ElevatedButton(
-        // The original button appearance
+      childWhenDragging: Opacity(
+        opacity: 0.46,
+        child: _GatePaletteButton(
+          gate: gate,
+          buttonSize: buttonSize,
+          fontSize: fontSizeW,
+          onPressed: () => _setInteractionMode(SelectedGateType.none),
+        ),
+      ),
+      child: _GatePaletteButton(
+        gate: gate,
+        buttonSize: buttonSize,
+        fontSize: fontSizeW,
         onPressed: () => _setInteractionMode(
             SelectedGateType.none), // Tapping button resets mode
+      ),
+    );
+  }
+}
+
+class _GatePaletteButton extends StatelessWidget {
+  final Gate gate;
+  final double buttonSize;
+  final double fontSize;
+  final VoidCallback onPressed;
+
+  const _GatePaletteButton({
+    required this.gate,
+    required this.buttonSize,
+    required this.fontSize,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(13),
+        boxShadow: [
+          BoxShadow(
+            color: gate.color.withValues(alpha: 0.24),
+            blurRadius: 9,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          minimumSize: Size(
-              QuantumCircuitPainter.gateSize, QuantumCircuitPainter.gateSize),
+          minimumSize: Size.square(buttonSize),
+          fixedSize: Size.square(buttonSize),
           padding: EdgeInsets.zero,
+          elevation: 0,
           backgroundColor: gate.color,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(0.0),
+            borderRadius: BorderRadius.circular(13.0),
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.16),
+            ),
           ),
         ),
         child: Text(
           gate.label,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: fontSizeW, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold),
         ),
       ),
     );
+  }
+}
+
+class _DropReadyPill extends StatelessWidget {
+  const _DropReadyPill();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF66D9E8).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border:
+            Border.all(color: const Color(0xFF66D9E8).withValues(alpha: 0.5)),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        child: Text(
+          'Drop ready',
+          style: TextStyle(
+            color: Color(0xFF9FEAFF),
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyCircuitPrompt extends StatelessWidget {
+  final bool isDragging;
+
+  const _EmptyCircuitPrompt({required this.isDragging});
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Center(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isDragging
+                ? const Color(0xFF66D9E8).withValues(alpha: 0.10)
+                : const Color(0xFF111A2B).withValues(alpha: 0.78),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDragging
+                  ? const Color(0xFF66D9E8).withValues(alpha: 0.46)
+                  : const Color(0xFF31405F),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isDragging
+                    ? Icons.add_circle_outline
+                    : Icons.touch_app_outlined,
+                color: const Color(0xFF8FD4FF),
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isDragging ? 'Release on a slot' : 'Drag a gate here',
+                style: const TextStyle(
+                  color: Color(0xFFD6E3F8),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderActionShell extends StatelessWidget {
+  final Widget child;
+
+  const _HeaderActionShell({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.07),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      alignment: Alignment.center,
+      child: child,
+    );
+  }
+}
+
+class _CircuitGuidePainter extends CustomPainter {
+  final int numQubits;
+  final int columns;
+  final bool isDragging;
+  final Offset? dragOffset;
+
+  const _CircuitGuidePainter({
+    required this.numQubits,
+    required this.columns,
+    required this.isDragging,
+    required this.dragOffset,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint lanePaint = Paint()
+      ..color = const Color(0xFF18233A)
+      ..style = PaintingStyle.fill;
+    final Paint slotPaint = Paint()
+      ..color = const Color(0xFF8EA2C6).withValues(alpha: 0.14)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final Paint activeSlotPaint = Paint()
+      ..color = const Color(0xFF66D9E8).withValues(alpha: 0.35)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    final Paint activeLanePaint = Paint()
+      ..color = const Color(0xFF66D9E8).withValues(alpha: 0.08)
+      ..style = PaintingStyle.fill;
+
+    int? activeQubit;
+    int? activeColumn;
+    if (dragOffset != null) {
+      activeQubit = _qubitIndexForY(dragOffset!.dy);
+      activeColumn = _columnIndexForX(dragOffset!.dx);
+    }
+
+    for (int qubit = 0; qubit < numQubits; qubit++) {
+      final double centerY = QuantumCircuitPainter.qubitSpacing * qubit +
+          QuantumCircuitPainter.qubitSpacing / 2;
+      final Rect laneRect = Rect.fromLTRB(
+        0,
+        centerY - QuantumCircuitPainter.hitTolerance,
+        size.width,
+        centerY + QuantumCircuitPainter.hitTolerance,
+      );
+
+      if (qubit.isEven) {
+        canvas.drawRect(laneRect, lanePaint);
+      }
+
+      if (isDragging && activeQubit == qubit) {
+        canvas.drawRect(laneRect, activeLanePaint);
+      }
+
+      for (int column = 0; column < columns; column++) {
+        final double centerX = QuantumCircuitPainter.padding +
+            column * QuantumCircuitPainter.gateSpacing +
+            QuantumCircuitPainter.gateSpacing / 2;
+        final Rect slotRect = Rect.fromCenter(
+          center: Offset(centerX, centerY),
+          width: QuantumCircuitPainter.gateSize + 8,
+          height: QuantumCircuitPainter.gateSize + 8,
+        );
+        final RRect slotRRect =
+            RRect.fromRectAndRadius(slotRect, const Radius.circular(9));
+
+        canvas.drawRRect(
+          slotRRect,
+          isDragging && activeQubit == qubit && activeColumn == column
+              ? activeSlotPaint
+              : slotPaint,
+        );
+      }
+    }
+  }
+
+  int? _qubitIndexForY(double y) {
+    for (int qubit = 0; qubit < numQubits; qubit++) {
+      final double centerY = QuantumCircuitPainter.qubitSpacing * qubit +
+          QuantumCircuitPainter.qubitSpacing / 2;
+      if (y >= centerY - QuantumCircuitPainter.hitTolerance &&
+          y <= centerY + QuantumCircuitPainter.hitTolerance) {
+        return qubit;
+      }
+    }
+    return null;
+  }
+
+  int _columnIndexForX(double x) {
+    final double relativeX = x - QuantumCircuitPainter.padding;
+    return math.max(
+      0,
+      (relativeX / QuantumCircuitPainter.gateSpacing).floor(),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _CircuitGuidePainter oldDelegate) {
+    return oldDelegate.numQubits != numQubits ||
+        oldDelegate.columns != columns ||
+        oldDelegate.isDragging != isDragging ||
+        oldDelegate.dragOffset != dragOffset;
   }
 }
