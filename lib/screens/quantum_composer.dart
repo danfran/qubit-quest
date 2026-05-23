@@ -43,37 +43,45 @@ class _QuantumComposerState extends State<QuantumComposer> {
   static const Color qqInner = Color(0xFF030814);
   static const Color qqInner2 = Color(0xFF101A2D);
 
-  static const Color qqBorder = Color(0xFF344A73);
-  static const Color qqBorderSoft = Color(0xFF253755);
+  static const Color qqBorder = Color(0x66344A73);
+  static const Color qqBorderSoft = Color(0x3D344A73);
+  static const BorderSide qqComposerCardBorder =
+      BorderSide(color: qqBorder, width: 1);
+  static const BorderSide qqComposerInnerBorder =
+      BorderSide(color: qqBorderSoft, width: 1);
 
   static const Color qqCyan = Color(0xFF56CCF2);
   static const Color qqPurple = Color(0xFFB388FF);
   static const Color qqGreen = Color(0xFF7CFFB2);
   static const Color qqYellow = Color(0xFFFFD54F);
 
-  static const Color gateBlueTop = Color(0xFF5AA9FF);
-  static const Color gateBlueBottom = Color(0xFF0B4DDB);
+  static const Color gateBlueTop = Color(0xFF2F6FEA);
+  static const Color gateBlueMiddle = Color(0xFF2458C7);
+  static const Color gateBlueBottom = Color(0xFF173A8F);
 
-  static const Color gateCyanTop = Color(0xFF73ECFF);
-  static const Color gateCyanBottom = Color(0xFF0EA5D8);
+  static const Color gateCyanTop = Color(0xFF36B8D8);
+  static const Color gateCyanMiddle = Color(0xFF238EAA);
+  static const Color gateCyanBottom = Color(0xFF145B72);
 
-  static const Color gateRedTop = Color(0xFFFF625A);
-  static const Color gateRedBottom = Color(0xFFB91C1C);
+  static const Color gateRedTop = Color(0xFFE44747);
+  static const Color gateRedMiddle = Color(0xFFB83232);
+  static const Color gateRedBottom = Color(0xFF7F1F1F);
 
-  static const Color gatePurpleTop = Color(0xFFD36BFF);
-  static const Color gatePurpleBottom = Color(0xFF6421D8);
+  static const Color gatePurpleTop = Color(0xFF8E46E8);
+  static const Color gatePurpleMiddle = Color(0xFF6E32C7);
+  static const Color gatePurpleBottom = Color(0xFF451D8F);
 
-  static const Color gateGreenTop = Color(0xFF3EEB9B);
-  static const Color gateGreenBottom = Color(0xFF0F7A52);
-
-  static const Color checkTop = Color(0xFFC084FF);
-  static const Color checkBottom = Color(0xFF6D28FF);
+  static const Color gateGreenTop = Color(0xFF239D66);
+  static const Color gateGreenMiddle = Color(0xFF19764E);
+  static const Color gateGreenBottom = Color(0xFF104A32);
+  static const Color gateBorder = Color(0xFF31405F);
 
   static _GateVisual _gateVisualFor(Gate gate) {
     switch (gate.type) {
       case SelectedGateType.hadamard:
         return const _GateVisual(
           top: gateRedTop,
+          middle: gateRedMiddle,
           bottom: gateRedBottom,
         );
       case SelectedGateType.x:
@@ -83,12 +91,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
       case SelectedGateType.rx:
         return const _GateVisual(
           top: gateBlueTop,
+          middle: gateBlueMiddle,
           bottom: gateBlueBottom,
         );
       case SelectedGateType.y:
       case SelectedGateType.z:
         return const _GateVisual(
           top: gateCyanTop,
+          middle: gateCyanMiddle,
           bottom: gateCyanBottom,
         );
       case SelectedGateType.s:
@@ -96,16 +106,19 @@ class _QuantumComposerState extends State<QuantumComposer> {
       case SelectedGateType.rz:
         return const _GateVisual(
           top: gatePurpleTop,
+          middle: gatePurpleMiddle,
           bottom: gatePurpleBottom,
         );
       case SelectedGateType.ry:
         return const _GateVisual(
           top: gateGreenTop,
+          middle: gateGreenMiddle,
           bottom: gateGreenBottom,
         );
       default:
         return _GateVisual(
           top: gate.color,
+          middle: Color.lerp(gate.color, Colors.black, 0.14)!,
           bottom: Color.lerp(gate.color, Colors.black, 0.30)!,
         );
     }
@@ -1393,7 +1406,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
       decoration: BoxDecoration(
         color: qqCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: qqBorder),
+        border: Border.all(color: qqComposerCardBorder.color),
       ),
       child: Row(
         children: [
@@ -1478,8 +1491,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
         color: qqCard,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isDraggingGate ? qqCyan : qqBorder,
-          width: isDraggingGate ? 1.5 : 1,
+          color: isDraggingGate ? qqCyan : qqComposerCardBorder.color,
+          width: isDraggingGate ? 1.5 : qqComposerCardBorder.width,
         ),
         boxShadow: [
           BoxShadow(
@@ -1543,7 +1556,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                     isDraggingGate ? qqCyan.withValues(alpha: 0.16) : qqCard2,
                 borderRadius: BorderRadius.circular(9),
                 border: Border.all(
-                  color: isDraggingGate ? qqCyan : qqBorder,
+                  color: isDraggingGate ? qqCyan : qqComposerInnerBorder.color,
                 ),
               ),
               child: Icon(
@@ -1629,33 +1642,37 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }
 
   Widget _buildCheckResultButton({required bool compact}) {
-    final Color topColor = _levelSolved ? gateGreenTop : checkTop;
-    final Color bottomColor = _levelSolved ? gateGreenBottom : checkBottom;
-    final Color glowColor = _levelSolved ? gateGreenBottom : checkBottom;
+    const Color checkSurfaceTop = Color(0xFFA855F7);
+    const Color checkSurfaceMiddle = Color(0xFF8B4BE8);
+    const Color checkSurfaceBottom = Color(0xFF5B21B6);
+    const Color checkSurfaceBorder = Color(0xFF3B1B75);
 
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
           colors: [
-            topColor,
-            bottomColor,
+            checkSurfaceTop,
+            checkSurfaceMiddle,
+            checkSurfaceBottom,
           ],
+          stops: [0.0, 0.52, 1.0],
         ),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.30)),
+        border: Border.all(
+          color: checkSurfaceBorder.withValues(alpha: 0.70),
+        ),
         boxShadow: [
           BoxShadow(
-            color: glowColor.withValues(alpha: 0.58),
-            blurRadius: 26,
-            spreadRadius: 2,
-            offset: const Offset(0, 7),
+            color: checkSurfaceBottom.withValues(alpha: 0.40),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.30),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: const Color(0xFF240D4F).withValues(alpha: 0.38),
+            blurRadius: 0,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -1728,7 +1745,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
       decoration: BoxDecoration(
         color: qqInner,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: qqBorderSoft),
+        border: Border.all(color: qqComposerInnerBorder.color),
       ),
       child: Row(
         children: [
@@ -1768,8 +1785,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
         color: qqInner,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDraggingGate ? qqCyan : qqBorderSoft,
-          width: isDraggingGate ? 1.5 : 1,
+          color: isDraggingGate ? qqCyan : qqComposerInnerBorder.color,
+          width: isDraggingGate ? 1.5 : qqComposerInnerBorder.width,
         ),
         boxShadow: [
           BoxShadow(
@@ -1887,15 +1904,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: gateGreenBottom.withValues(alpha: 0.58),
-            blurRadius: 18,
-            spreadRadius: 1,
+            color: gateGreenBottom.withValues(alpha: 0.35),
+            blurRadius: 14,
             offset: const Offset(0, 5),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.32),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -1906,11 +1917,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
             end: Alignment.bottomCenter,
             colors: [
               gateGreenTop,
+              gateGreenMiddle,
               gateGreenBottom,
             ],
+            stops: const [0.0, 0.50, 1.0],
           ),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.34)),
+          border: Border.all(color: gateBorder.withValues(alpha: 0.65)),
         ),
         child: ElevatedButton(
           onPressed: () => _initDeletion(),
@@ -1921,28 +1934,12 @@ class _QuantumComposerState extends State<QuantumComposer> {
             elevation: 0,
             shadowColor: Colors.transparent,
             backgroundColor: Colors.transparent,
-            foregroundColor: Colors.white,
+            foregroundColor: Colors.white.withValues(alpha: 0.94),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14.0),
             ),
           ),
-          child: Stack(
-            children: [
-              Positioned(
-                left: 5,
-                right: 5,
-                top: 5,
-                child: Container(
-                  height: 1.5,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.30),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-              ),
-              Center(child: Icon(Icons.delete, size: dense ? 18 : 20)),
-            ],
-          ),
+          child: Center(child: Icon(Icons.delete, size: dense ? 18 : 20)),
         ),
       ),
     );
@@ -1954,7 +1951,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
       decoration: BoxDecoration(
         color: qqCard,
         borderRadius: BorderRadius.circular(dense ? 12 : 14),
-        border: Border.all(color: qqBorder),
+        border: Border.all(color: qqComposerCardBorder.color),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.16),
@@ -2039,7 +2036,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
                           Container(
                             height: dense ? 30 : 36,
                             width: 1,
-                            color: qqBorder,
+                            color: qqComposerInnerBorder.color,
                           ),
                           SizedBox(width: dense ? 5 : 8),
                           ..._availableGates.map((gateType) {
@@ -2071,7 +2068,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
       decoration: BoxDecoration(
         color: qqCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: qqBorder),
+        border: Border.all(color: qqComposerCardBorder.color),
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -2122,8 +2119,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
         color: qqCard,
         borderRadius: BorderRadius.circular(12.0),
         border: Border.all(
-          color: qqBorder,
-          width: 1,
+          color: qqComposerCardBorder.color,
+          width: qqComposerCardBorder.width,
         ),
       ),
       child: StateVectorDisplay(
@@ -2166,54 +2163,32 @@ class _QuantumComposerState extends State<QuantumComposer> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color.lerp(visual.top, Colors.white, 0.10)!,
                 visual.top,
+                visual.middle,
                 visual.bottom,
               ],
-              stops: const [0.0, 0.42, 1.0],
+              stops: const [0.0, 0.50, 1.0],
             ),
             borderRadius: gateRadius,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.38)),
+            border: Border.all(color: gateBorder.withValues(alpha: 0.65)),
             boxShadow: [
               BoxShadow(
-                color: visual.bottom.withValues(alpha: 0.62),
-                blurRadius: 20,
-                spreadRadius: 2,
-                offset: const Offset(0, 5),
-              ),
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.42),
+                color: visual.bottom.withValues(alpha: 0.35),
                 blurRadius: 14,
-                offset: const Offset(0, 8),
+                offset: const Offset(0, 5),
               ),
             ],
           ),
-          child: Stack(
-            children: [
-              Positioned(
-                left: 6,
-                right: 6,
-                top: 6,
-                child: Container(
-                  height: 1.5,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.36),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
+          child: Center(
+            child: Text(
+              gate.label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.94),
+                fontSize: fontSizeW,
+                fontWeight: FontWeight.bold,
               ),
-              Center(
-                child: Text(
-                  gate.label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: fontSizeW,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -2259,15 +2234,9 @@ class _GatePaletteButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: visual.bottom.withValues(alpha: 0.58),
-            blurRadius: 18,
-            spreadRadius: 1,
+            color: visual.bottom.withValues(alpha: 0.35),
+            blurRadius: 14,
             offset: const Offset(0, 5),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.32),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -2277,14 +2246,16 @@ class _GatePaletteButton extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color.lerp(visual.top, Colors.white, 0.08)!,
               visual.top,
+              visual.middle,
               visual.bottom,
             ],
-            stops: const [0.0, 0.45, 1.0],
+            stops: const [0.0, 0.50, 1.0],
           ),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.34)),
+          border: Border.all(
+            color: _QuantumComposerState.gateBorder.withValues(alpha: 0.65),
+          ),
         ),
         child: ElevatedButton(
           onPressed: onPressed,
@@ -2295,43 +2266,28 @@ class _GatePaletteButton extends StatelessWidget {
             elevation: 0,
             shadowColor: Colors.transparent,
             backgroundColor: Colors.transparent,
-            foregroundColor: Colors.white,
+            foregroundColor: Colors.white.withValues(alpha: 0.94),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14.0),
             ),
           ),
-          child: Stack(
-            children: [
-              Positioned(
-                left: 6,
-                right: 6,
-                top: 6,
-                child: Container(
-                  height: 1.5,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.28),
-                    borderRadius: BorderRadius.circular(99),
+          child: Center(
+            child: Text(
+              gate.label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.94),
+                fontSize: fontSize,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withValues(alpha: 0.28),
+                    offset: const Offset(0, 1),
+                    blurRadius: 2,
                   ),
-                ),
+                ],
               ),
-              Center(
-                child: Text(
-                  gate.label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: FontWeight.bold,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black.withValues(alpha: 0.28),
-                        offset: const Offset(0, 1),
-                        blurRadius: 2,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -2341,10 +2297,12 @@ class _GatePaletteButton extends StatelessWidget {
 
 class _GateVisual {
   final Color top;
+  final Color middle;
   final Color bottom;
 
   const _GateVisual({
     required this.top,
+    required this.middle,
     required this.bottom,
   });
 }
@@ -2398,7 +2356,7 @@ class _EmptyCircuitPrompt extends StatelessWidget {
             border: Border.all(
               color: isDragging
                   ? _QuantumComposerState.qqCyan.withValues(alpha: 0.46)
-                  : _QuantumComposerState.qqBorderSoft,
+                  : _QuantumComposerState.qqComposerInnerBorder.color,
             ),
           ),
           child: Row(
@@ -2441,7 +2399,8 @@ class _HeaderActionShell extends StatelessWidget {
       decoration: BoxDecoration(
         color: _QuantumComposerState.qqCard2,
         shape: BoxShape.circle,
-        border: Border.all(color: _QuantumComposerState.qqBorder),
+        border:
+            Border.all(color: _QuantumComposerState.qqComposerCardBorder.color),
       ),
       alignment: Alignment.center,
       child: child,
@@ -2465,22 +2424,21 @@ class _CircuitGuidePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final Paint lanePaint = Paint()
-      ..color = _QuantumComposerState.qqInner2
+      ..color = _QuantumComposerState.qqInner2.withValues(alpha: 0.28)
       ..style = PaintingStyle.fill;
     final Paint depthGuidePaint = Paint()
-      ..color = _QuantumComposerState.qqBorderSoft
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    final Paint slotPaint = Paint()
-      ..color = _QuantumComposerState.qqBorderSoft
+      ..color = _QuantumComposerState.qqCyan.withValues(alpha: 0.06)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     final Paint activeSlotPaint = Paint()
-      ..color = _QuantumComposerState.qqCyan.withValues(alpha: 0.32)
+      ..color = _QuantumComposerState.qqCyan.withValues(alpha: 0.55)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
-    final Paint activeLanePaint = Paint()
+    final Paint activeSlotFillPaint = Paint()
       ..color = _QuantumComposerState.qqCyan.withValues(alpha: 0.08)
+      ..style = PaintingStyle.fill;
+    final Paint activeLanePaint = Paint()
+      ..color = _QuantumComposerState.qqCyan.withValues(alpha: 0.06)
       ..style = PaintingStyle.fill;
 
     int? activeQubit;
@@ -2531,12 +2489,10 @@ class _CircuitGuidePainter extends CustomPainter {
         final RRect slotRRect =
             RRect.fromRectAndRadius(slotRect, const Radius.circular(7));
 
-        canvas.drawRRect(
-          slotRRect,
-          isDragging && activeQubit == qubit && activeColumn == column
-              ? activeSlotPaint
-              : slotPaint,
-        );
+        if (isDragging && activeQubit == qubit && activeColumn == column) {
+          canvas.drawRRect(slotRRect, activeSlotFillPaint);
+          canvas.drawRRect(slotRRect, activeSlotPaint);
+        }
       }
     }
   }
