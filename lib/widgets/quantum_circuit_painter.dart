@@ -27,22 +27,18 @@ class QuantumCircuitPainter extends CustomPainter {
   static const Color qubitLabelColor =
       Colors.white; // Color for qubit labels (q0, q1) (Black)
   // Add colors for other gate types as needed
-  static const Color gateBlueTop = Color(0xFF2F6FEA);
-  static const Color gateBlueMiddle = Color(0xFF2458C7);
+  static const Color gateBlueTop = Color(0xFF2A5FD7);
   static const Color gateBlueBottom = Color(0xFF173A8F);
-  static const Color gateCyanTop = Color(0xFF36B8D8);
-  static const Color gateCyanMiddle = Color(0xFF238EAA);
+  static const Color gateCyanTop = Color(0xFF2798B8);
   static const Color gateCyanBottom = Color(0xFF145B72);
-  static const Color gateRedTop = Color(0xFFE44747);
-  static const Color gateRedMiddle = Color(0xFFB83232);
+  static const Color gateRedTop = Color(0xFFC93A3A);
   static const Color gateRedBottom = Color(0xFF7F1F1F);
-  static const Color gatePurpleTop = Color(0xFF8E46E8);
-  static const Color gatePurpleMiddle = Color(0xFF6E32C7);
+  static const Color gatePurpleTop = Color(0xFF7A38D6);
   static const Color gatePurpleBottom = Color(0xFF451D8F);
-  static const Color gateGreenTop = Color(0xFF239D66);
-  static const Color gateGreenMiddle = Color(0xFF19764E);
+  static const Color gateGreenTop = Color(0xFF218455);
   static const Color gateGreenBottom = Color(0xFF104A32);
   static const Color gateBorder = Color(0xFF31405F);
+  static const double gateBorderWidth = 1.2;
   static const Color circuitLineBlue = Color(0xFF3B8CFF);
 
   final QuantumCircuit
@@ -60,31 +56,25 @@ class QuantumCircuitPainter extends CustomPainter {
   _CircuitGateVisual _visualForGate(Gate gate) {
     switch (gate.type) {
       case SelectedGateType.hadamard:
-        return const _CircuitGateVisual(
-            gateRedTop, gateRedMiddle, gateRedBottom);
+        return const _CircuitGateVisual(gateRedTop, gateRedBottom);
       case SelectedGateType.x:
       case SelectedGateType.cnot:
       case SelectedGateType.ccnot:
       case SelectedGateType.cz:
       case SelectedGateType.rx:
-        return const _CircuitGateVisual(
-            gateBlueTop, gateBlueMiddle, gateBlueBottom);
+        return const _CircuitGateVisual(gateBlueTop, gateBlueBottom);
       case SelectedGateType.y:
       case SelectedGateType.z:
-        return const _CircuitGateVisual(
-            gateCyanTop, gateCyanMiddle, gateCyanBottom);
+        return const _CircuitGateVisual(gateCyanTop, gateCyanBottom);
       case SelectedGateType.s:
       case SelectedGateType.t:
       case SelectedGateType.rz:
-        return const _CircuitGateVisual(
-            gatePurpleTop, gatePurpleMiddle, gatePurpleBottom);
+        return const _CircuitGateVisual(gatePurpleTop, gatePurpleBottom);
       case SelectedGateType.ry:
-        return const _CircuitGateVisual(
-            gateGreenTop, gateGreenMiddle, gateGreenBottom);
+        return const _CircuitGateVisual(gateGreenTop, gateGreenBottom);
       default:
         return _CircuitGateVisual(
           gate.color,
-          Color.lerp(gate.color, Colors.black, 0.14)!,
           Color.lerp(gate.color, Colors.black, 0.30)!,
         );
     }
@@ -96,27 +86,25 @@ class QuantumCircuitPainter extends CustomPainter {
     Gate gate,
   ) {
     final visual = _visualForGate(gate);
-    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(6));
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(10));
     final shadowPaint = Paint()
-      ..color = visual.bottom.withValues(alpha: 0.35)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14);
+      ..color = Colors.black.withValues(alpha: 0.45)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
     final fillPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
           visual.top,
-          visual.middle,
           visual.bottom,
         ],
-        stops: const [0.0, 0.50, 1.0],
       ).createShader(rect);
     final borderPaint = Paint()
-      ..color = gateBorder.withValues(alpha: 0.65)
+      ..color = gateBorder
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = gateBorderWidth;
 
-    canvas.drawRRect(rrect.shift(const Offset(0, 5)), shadowPaint);
+    canvas.drawRRect(rrect.shift(const Offset(0, 3)), shadowPaint);
     canvas.drawRRect(rrect, fillPaint);
     canvas.drawRRect(rrect, borderPaint);
   }
@@ -257,8 +245,7 @@ class QuantumCircuitPainter extends CustomPainter {
               // Draw target circle
               final targetPaint = Paint()
                 ..shader = RadialGradient(
-                  colors: [visual.top, visual.middle, visual.bottom],
-                  stops: const [0.0, 0.50, 1.0],
+                  colors: [visual.top, visual.bottom],
                 ).createShader(
                   Rect.fromCircle(
                     center: Offset(gateColumnCenterX, targetY),
@@ -266,10 +253,10 @@ class QuantumCircuitPainter extends CustomPainter {
                   ),
                 );
               final targetGlowPaint = Paint()
-                ..color = visual.bottom.withValues(alpha: 0.35)
-                ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14);
+                ..color = Colors.black.withValues(alpha: 0.45)
+                ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
               canvas.drawCircle(
-                Offset(gateColumnCenterX, targetY + 5),
+                Offset(gateColumnCenterX, targetY + 3),
                 targetRadius + 1,
                 targetGlowPaint,
               );
@@ -281,7 +268,7 @@ class QuantumCircuitPainter extends CustomPainter {
                 text: TextSpan(
                     text: '+',
                     style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.94),
+                        color: Colors.white.withValues(alpha: 0.95),
                         fontSize: 24)),
                 textDirection: TextDirection.ltr,
               );
@@ -348,8 +335,7 @@ class QuantumCircuitPainter extends CustomPainter {
             // Draw target circle
             final targetPaint = Paint()
               ..shader = RadialGradient(
-                colors: [visual.top, visual.middle, visual.bottom],
-                stops: const [0.0, 0.50, 1.0],
+                colors: [visual.top, visual.bottom],
               ).createShader(
                 Rect.fromCircle(
                   center: Offset(gateColumnCenterX, targetY),
@@ -357,10 +343,10 @@ class QuantumCircuitPainter extends CustomPainter {
                 ),
               ); // Use the static constant
             final targetGlowPaint = Paint()
-              ..color = visual.bottom.withValues(alpha: 0.35)
-              ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14);
+              ..color = Colors.black.withValues(alpha: 0.45)
+              ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
             canvas.drawCircle(
-              Offset(gateColumnCenterX, targetY + 5),
+              Offset(gateColumnCenterX, targetY + 3),
               targetRadius + 1,
               targetGlowPaint,
             );
@@ -372,7 +358,7 @@ class QuantumCircuitPainter extends CustomPainter {
               text: TextSpan(
                   text: '+',
                   style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.94),
+                      color: Colors.white.withValues(alpha: 0.95),
                       fontSize: 24)),
               textDirection: TextDirection.ltr,
             );
@@ -487,9 +473,10 @@ class QuantumCircuitPainter extends CustomPainter {
       text: TextSpan(
         text: gateText,
         style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.94),
+            color: Colors.white.withValues(alpha: 0.95),
             fontSize: gateTextSize,
-            fontWeight: FontWeight.bold),
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0),
       ),
       textAlign: TextAlign.center,
       textDirection: TextDirection.ltr, // Required for TextPainter
@@ -618,8 +605,7 @@ class QuantumCircuitPainter extends CustomPainter {
 
 class _CircuitGateVisual {
   final Color top;
-  final Color middle;
   final Color bottom;
 
-  const _CircuitGateVisual(this.top, this.middle, this.bottom);
+  const _CircuitGateVisual(this.top, this.bottom);
 }
