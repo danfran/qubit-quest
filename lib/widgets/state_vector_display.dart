@@ -35,9 +35,9 @@ class StateVectorDisplay extends StatefulWidget {
   final bool showToggleInSummary;
   final bool showSummarySubtitle;
   final bool dense;
-  final bool enableNonZeroOnlyFilter;
   final bool showVisibilityControl;
-  final bool? showAllStatesOverride;
+  final bool? nonZeroOnlyOverride;
+  final Widget? visibilityControlOverride;
 
   const StateVectorDisplay({
     super.key,
@@ -53,9 +53,9 @@ class StateVectorDisplay extends StatefulWidget {
     this.showToggleInSummary = false,
     this.showSummarySubtitle = true,
     this.dense = false,
-    this.enableNonZeroOnlyFilter = false,
     this.showVisibilityControl = true,
-    this.showAllStatesOverride,
+    this.nonZeroOnlyOverride,
+    this.visibilityControlOverride,
   });
 
   @override
@@ -63,7 +63,6 @@ class StateVectorDisplay extends StatefulWidget {
 }
 
 class _StateVectorDisplayState extends State<StateVectorDisplay> {
-  bool _showAllValues = false;
   bool _nonZeroOnly = false;
   static const double _amplitudeThreshold = 1e-9;
   static const double _probabilityThreshold = 1e-6;
@@ -180,19 +179,6 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
           _buildStaticStateHeader(hasTarget),
           const SizedBox(height: 2),
         ],
-        if (stateExpression != null && stateExpression.isNotEmpty)
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              widget.dense ? 4 : 6,
-              widget.dense ? 1 : 2,
-              widget.dense ? 4 : 6,
-              widget.dense ? 4 : 6,
-            ),
-            child: _StateExpressionLine(
-              expression: stateExpression,
-              dense: widget.dense,
-            ),
-          ),
         Expanded(
           child: Scrollbar(
             controller: _stateVectorVerticalScrollController,
@@ -211,6 +197,17 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (stateExpression != null &&
+                              stateExpression.isNotEmpty)
+                            Padding(
+                              padding: EdgeInsets.only(
+                                bottom: widget.dense ? 4 : 6,
+                              ),
+                              child: _StateExpressionLine(
+                                expression: stateExpression,
+                                dense: widget.dense,
+                              ),
+                            ),
                           _buildProbabilityList(vectorSize, hasTarget),
                         ],
                       ),
@@ -268,12 +265,10 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
         strongestIndex = index;
       }
 
-      final bool showAllValues = widget.showAllStatesOverride ?? _showAllValues;
-      final bool shouldShow = widget.enableNonZeroOnlyFilter
-          ? !_nonZeroOnly || currentProbability > _probabilityThreshold
-          : showAllValues ||
-              currentProbability > _probabilityThreshold ||
-              targetProbability > _probabilityThreshold;
+      final bool nonZeroOnly = widget.nonZeroOnlyOverride ?? _nonZeroOnly;
+      final bool shouldShow = !nonZeroOnly ||
+          currentProbability > _probabilityThreshold ||
+          targetProbability > _probabilityThreshold;
 
       if (shouldShow) {
         visibleIndexes.add(index);
@@ -296,8 +291,10 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
       dense: widget.dense,
       decorated: false,
       showChips: false,
-      toggle:
-          widget.showVisibilityControl ? _buildStateVisibilityControl() : null,
+      toggle: widget.visibilityControlOverride ??
+          (widget.showVisibilityControl
+              ? _buildStateVisibilityControl()
+              : null),
       chips: const [],
     );
   }
@@ -450,69 +447,40 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
   }
 
   Widget _buildStateVisibilityControl() {
-    if (widget.enableNonZeroOnlyFilter) {
-      return InkWell(
-        onTap: () {
-          setState(() => _nonZeroOnly = !_nonZeroOnly);
-          _resetStateScroll();
-        },
-        borderRadius: BorderRadius.circular(6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Transform.scale(
-              scale: widget.dense ? 0.58 : 0.70,
-              child: Checkbox(
-                value: _nonZeroOnly,
-                onChanged: (v) {
-                  setState(() => _nonZeroOnly = v ?? false);
-                  _resetStateScroll();
-                },
-                activeColor: _ResultPalette.qqCyan,
-                checkColor: Colors.black,
-                side: const BorderSide(color: Colors.white54, width: 1),
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.compact,
-              ),
+    return InkWell(
+      onTap: () {
+        setState(() => _nonZeroOnly = !_nonZeroOnly);
+        _resetStateScroll();
+      },
+      borderRadius: BorderRadius.circular(6),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Transform.scale(
+            scale: widget.dense ? 0.58 : 0.70,
+            child: Checkbox(
+              value: _nonZeroOnly,
+              onChanged: (v) {
+                setState(() => _nonZeroOnly = v ?? false);
+                _resetStateScroll();
+              },
+              activeColor: _ResultPalette.qqCyan,
+              checkColor: Colors.black,
+              side: const BorderSide(color: Colors.white54, width: 1),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
             ),
-            Text(
-              'Non-zero only',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: widget.dense ? 8.6 : 10,
-                fontWeight: FontWeight.w700,
-              ),
+          ),
+          Text(
+            'Non-zero only',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: widget.dense ? 8.6 : 10,
+              fontWeight: FontWeight.w700,
             ),
-          ],
-        ),
-      );
-    }
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Show all states',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: widget.dense ? 9.5 : 10,
           ),
-        ),
-        Transform.scale(
-          scale: widget.dense ? 0.48 : 0.62,
-          child: Switch(
-            value: _showAllValues,
-            onChanged: (v) {
-              setState(() => _showAllValues = v);
-              _resetStateScroll();
-            },
-            activeThumbColor: _ResultPalette.qqCyan,
-            inactiveThumbColor: Colors.grey,
-            inactiveTrackColor: _ResultPalette.qqInner2,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

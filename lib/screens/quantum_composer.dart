@@ -122,7 +122,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   bool _canScrollLeft = false;
   bool _canScrollRight = false;
-  bool _portraitShowAllStates = false;
+  bool _sharedNonZeroOnly = false;
 
   @override
   void initState() {
@@ -1086,9 +1086,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
             final Widget statePanel = _buildPortraitStateSection(short: short);
             final double contentTopPadding = short ? 3 : 5;
             final double contentBottomPadding = short ? 6 : (compact ? 8 : 10);
-            final double availableContentHeight = constraints.maxHeight -
-                contentTopPadding -
-                contentBottomPadding;
 
             return Padding(
               padding: EdgeInsets.fromLTRB(
@@ -1106,7 +1103,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
                             circuitCard: circuitCard,
                             statePanel: statePanel,
                             short: short,
-                            availableHeight: availableContentHeight,
                           )
                         : _buildLandscapeComposerLayout(
                             circuitCard: circuitCard,
@@ -1166,66 +1162,28 @@ class _QuantumComposerState extends State<QuantumComposer> {
     required Widget circuitCard,
     required Widget statePanel,
     required bool short,
-    required double availableHeight,
   }) {
-    final _PortraitLayoutSpec layout = _portraitLayoutSpec(
-      short: short,
-      availableHeight: availableHeight,
-      hasFeedback: _checkFeedbackTitle != null,
-    );
-
-    final List<Widget> sections = [
-      if (!runningAsQuantumComposer()) ...[
-        SizedBox(
-          height: layout.goalHeight,
-          child: _buildPortraitGoalSection(short: short),
-        ),
-        SizedBox(height: layout.primaryGap),
-      ],
-      SizedBox(
-        height: layout.circuitHeight,
-        child: circuitCard,
-      ),
-      SizedBox(height: layout.secondaryGap),
-      SizedBox(
-        height: layout.paletteHeight,
-        child: _buildGatePalette(compact: true, dense: true),
-      ),
-      SizedBox(height: layout.secondaryGap),
-      SizedBox(height: layout.measurementHeight, child: statePanel),
-      if (layout.checkAreaHeight > 0) SizedBox(height: layout.ctaGap),
-    ];
-
-    if (layout.needsScrollFallback) {
-      return LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ...sections,
-                  SizedBox(
-                    height: layout.checkAreaHeight,
-                    child: _buildPortraitCheckArea(compact: short),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    }
+    const double sectionGap = 8;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ...sections,
-        SizedBox(
-          height: layout.checkAreaHeight,
-          child: _buildPortraitCheckArea(compact: short),
+        if (!runningAsQuantumComposer()) ...[
+          _buildPortraitGoalSection(short: short),
+          const SizedBox(height: sectionGap),
+        ],
+        Flexible(
+          flex: runningAsQuantumComposer() ? 3 : 2,
+          child: circuitCard,
         ),
+        const SizedBox(height: sectionGap),
+        _buildGatePalette(compact: true, dense: true),
+        const SizedBox(height: sectionGap),
+        Expanded(child: statePanel),
+        if (!runningAsQuantumComposer()) ...[
+          const SizedBox(height: sectionGap),
+          _buildPortraitCheckArea(compact: short),
+        ],
       ],
     );
   }
@@ -1248,11 +1206,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          height: short ? 22 : 24,
-          child: _buildPortraitStateVisibilityControl(),
-        ),
-        SizedBox(height: short ? 3 : 4),
         Expanded(
           child: _buildStatePanel(
             summaryTitle: 'Current State',
@@ -1261,11 +1214,12 @@ class _QuantumComposerState extends State<QuantumComposer> {
             showToggleInSummary: true,
             showSummarySubtitle: false,
             showVisibilityControl: false,
-            showAllStates: _portraitShowAllStates,
+            nonZeroOnly: _sharedNonZeroOnly,
+            visibilityControl: _buildSharedStateFilterControl(),
             dense: true,
           ),
         ),
-        SizedBox(height: short ? 4 : 5),
+        SizedBox(height: short ? 6 : 8),
         Expanded(
           child: _buildStatePanel(
             stateVector: targetStateVector,
@@ -1276,7 +1230,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
             showToggleInSummary: true,
             showSummarySubtitle: false,
             showVisibilityControl: false,
-            showAllStates: _portraitShowAllStates,
+            nonZeroOnly: _sharedNonZeroOnly,
             dense: true,
           ),
         ),
@@ -1284,40 +1238,41 @@ class _QuantumComposerState extends State<QuantumComposer> {
     );
   }
 
-  Widget _buildPortraitStateVisibilityControl() {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: InkWell(
-        onTap: () {
-          setState(() => _portraitShowAllStates = !_portraitShowAllStates);
-        },
-        borderRadius: BorderRadius.circular(8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Show all states',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.72),
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
+  Widget _buildSharedStateFilterControl() {
+    return InkWell(
+      onTap: () {
+        setState(() => _sharedNonZeroOnly = !_sharedNonZeroOnly);
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Transform.scale(
+            scale: 0.52,
+            child: Checkbox(
+              value: _sharedNonZeroOnly,
+              onChanged: (value) {
+                setState(() => _sharedNonZeroOnly = value ?? false);
+              },
+              activeColor: qqCyan,
+              checkColor: Colors.black,
+              side: BorderSide(
+                color: Colors.white.withValues(alpha: 0.54),
+                width: 1,
               ),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
             ),
-            Transform.scale(
-              scale: 0.52,
-              child: Switch(
-                value: _portraitShowAllStates,
-                onChanged: (value) {
-                  setState(() => _portraitShowAllStates = value);
-                },
-                activeThumbColor: qqCyan,
-                inactiveThumbColor: Colors.grey,
-                inactiveTrackColor: qqInner2,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
+          ),
+          Text(
+            'Non-zero only',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.72),
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1387,12 +1342,17 @@ class _QuantumComposerState extends State<QuantumComposer> {
     required double gap,
     required bool short,
   }) {
+    final bool hasTargetState = targetStateVector != null;
     final Widget currentStatePanel = _buildStatePanel(
       summaryTitle: 'Current State',
       tone: StateVectorDisplayTone.current,
       showHeader: false,
       showToggleInSummary: true,
       showSummarySubtitle: false,
+      showVisibilityControl: !hasTargetState,
+      nonZeroOnly: hasTargetState ? _sharedNonZeroOnly : null,
+      visibilityControl:
+          hasTargetState ? _buildSharedStateFilterControl() : null,
       dense: true,
     );
     final Widget? targetStatePanel = targetStateVector == null
@@ -1405,6 +1365,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
             showHeader: false,
             showToggleInSummary: true,
             showSummarySubtitle: false,
+            showVisibilityControl: false,
+            nonZeroOnly: _sharedNonZeroOnly,
             dense: true,
           );
 
@@ -1424,92 +1386,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
           ),
         ],
       ],
-    );
-  }
-
-  _PortraitLayoutSpec _portraitLayoutSpec({
-    required bool short,
-    required double availableHeight,
-    required bool hasFeedback,
-  }) {
-    const double overflowBuffer = 4;
-    const double primaryGap = 8;
-    final double secondaryGap = short ? 3 : 4;
-    final double ctaGap = short ? 2 : 3;
-    final bool hasGoal = !runningAsQuantumComposer();
-    final double goalHeight = hasGoal
-        ? (availableHeight * 0.09)
-            .clamp(short ? 70.0 : 72.0, short ? 74.0 : 78.0)
-            .toDouble()
-        : 0;
-    final double paletteHeight = short ? 64 : 68;
-    final double checkAreaHeight = runningAsQuantumComposer()
-        ? 0
-        : hasFeedback
-            ? (short ? 62 : 70)
-            : (short ? 32 : 34);
-    final double totalGaps = (hasGoal ? primaryGap : 0) +
-        secondaryGap +
-        secondaryGap +
-        (checkAreaHeight > 0 ? ctaGap : 0);
-    final double stateSectionHeight = runningAsQuantumComposer()
-        ? (short ? 92 : 108)
-        : switch (_numQubits) {
-            1 => short ? 172 : 188,
-            2 => short ? 188 : 208,
-            _ => short ? 206 : 232,
-          };
-
-    final double painterMinimumHeight =
-        _numQubits * QuantumCircuitPainter.qubitSpacing +
-            QuantumCircuitPainter.padding * 2;
-    final double cardPaddingAllowance = short ? 12 : 16;
-    final double contentMinimumHeight =
-        painterMinimumHeight + cardPaddingAllowance;
-    final double circuitRatio = switch (_numQubits) {
-      1 => short ? 0.15 : 0.17,
-      2 => short ? 0.18 : 0.20,
-      _ => short ? 0.18 : 0.20,
-    };
-    final double ratioTarget = availableHeight * circuitRatio;
-    final double qubitFloor = switch (_numQubits) {
-      1 => short ? 82 : 94,
-      2 => short ? 112 : 128,
-      3 => short ? 136 : 156,
-      4 => short ? 160 : 184,
-      _ => short ? 184 : 210,
-    };
-    final double preferredCircuitHeight = math.max(ratioTarget, qubitFloor);
-    final double circuitCap = availableHeight * (short ? 0.27 : 0.30);
-    final double remainingForCircuit = availableHeight -
-        goalHeight -
-        stateSectionHeight -
-        paletteHeight -
-        checkAreaHeight -
-        totalGaps;
-    final double circuitHeight = math.max(
-      contentMinimumHeight,
-      math.min(
-          preferredCircuitHeight, math.min(circuitCap, remainingForCircuit)),
-    );
-    final double measurementHeight = stateSectionHeight;
-    final double totalHeight = goalHeight +
-        circuitHeight +
-        measurementHeight +
-        paletteHeight +
-        checkAreaHeight +
-        totalGaps;
-
-    return _PortraitLayoutSpec(
-      goalHeight: goalHeight,
-      circuitHeight: circuitHeight,
-      measurementHeight: measurementHeight,
-      paletteHeight: paletteHeight,
-      checkAreaHeight: checkAreaHeight,
-      primaryGap: primaryGap,
-      secondaryGap: secondaryGap,
-      ctaGap: ctaGap,
-      needsScrollFallback: totalHeight > availableHeight - overflowBuffer,
     );
   }
 
@@ -2193,110 +2069,123 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }
 
   Widget _buildGatePalette({required bool compact, required bool dense}) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(4, dense ? 4 : 8, 4, dense ? 4 : 9),
-      decoration: BoxDecoration(
-        color: qqCard,
-        borderRadius: BorderRadius.circular(dense ? 12 : 14),
-        border: Border.all(color: qqComposerCardBorder.color),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.16),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            height: dense ? 18 : 34,
-            child: Row(
-              children: [
-                Text(
-                  "Gates",
-                  style: TextStyle(
-                    fontSize: dense ? 11.5 : 14,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+    final Widget gateRow = Row(
+      children: [
+        _buildPaletteUtilityButton(
+          icon: Icons.chevron_left_rounded,
+          tooltip: 'Scroll gates left',
+          onPressed: _canScrollLeft ? _scrollLeft : null,
+          dense: dense,
+        ),
+        SizedBox(width: dense ? 0 : 1),
+        Expanded(
+          child: Scrollbar(
+            controller: _gatesScrollController,
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              controller: _gatesScrollController,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 1),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    ..._availableGates.map((gateType) {
+                      return Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: dense ? 1.0 : 2.0,
+                        ),
+                        child: _buildDraggableGateButton(
+                          gateType,
+                          dense: dense,
+                        ),
+                      );
+                    }),
+                  ],
                 ),
-                const Spacer(),
-                Tooltip(
-                  message: 'Delete gate mode',
-                  child: _HeaderActionShell(
-                    size: dense ? 18 : 34,
-                    subdued: true,
-                    child: IconButton(
-                      onPressed: _initDeletion,
-                      icon: const Icon(Icons.delete_outline),
-                      iconSize: dense ? 12 : 17,
-                      color: Colors.white.withValues(alpha: 0.72),
-                      padding: EdgeInsets.zero,
-                      constraints: BoxConstraints.tightFor(
-                        width: dense ? 18 : 34,
-                        height: dense ? 18 : 34,
-                      ),
-                      splashRadius: dense ? 10 : 18,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-          SizedBox(height: dense ? 0 : 3),
-          Expanded(
-            child: Row(
-              children: [
-                _buildPaletteUtilityButton(
-                  icon: Icons.chevron_left_rounded,
-                  tooltip: 'Scroll gates left',
-                  onPressed: _canScrollLeft ? _scrollLeft : null,
-                  dense: dense,
-                ),
-                SizedBox(width: dense ? 0 : 1),
-                Expanded(
-                  child: Scrollbar(
-                    controller: _gatesScrollController,
-                    thumbVisibility: true,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      controller: _gatesScrollController,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 1),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            ..._availableGates.map((gateType) {
-                              return Padding(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: dense ? 1.0 : 2.0),
-                                child: _buildDraggableGateButton(
-                                  gateType,
-                                  dense: dense,
-                                ),
-                              );
-                            }),
-                          ],
+        ),
+        SizedBox(width: dense ? 0 : 1),
+        _buildPaletteUtilityButton(
+          icon: Icons.chevron_right_rounded,
+          tooltip: 'Scroll gates right',
+          onPressed: _canScrollRight ? _scrollRight : null,
+          dense: dense,
+        ),
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool hasBoundedHeight = constraints.hasBoundedHeight;
+
+        return Container(
+          padding: EdgeInsets.fromLTRB(4, dense ? 4 : 8, 4, dense ? 4 : 9),
+          decoration: BoxDecoration(
+            color: qqCard,
+            borderRadius: BorderRadius.circular(dense ? 12 : 14),
+            border: Border.all(color: qqComposerCardBorder.color),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.16),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: dense ? 18 : 34,
+                child: Row(
+                  children: [
+                    Text(
+                      "Gates",
+                      style: TextStyle(
+                        fontSize: dense ? 11.5 : 14,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    Tooltip(
+                      message: 'Delete gate mode',
+                      child: _HeaderActionShell(
+                        size: dense ? 18 : 34,
+                        subdued: true,
+                        child: IconButton(
+                          onPressed: _initDeletion,
+                          icon: const Icon(Icons.delete_outline),
+                          iconSize: dense ? 12 : 17,
+                          color: Colors.white.withValues(alpha: 0.72),
+                          padding: EdgeInsets.zero,
+                          constraints: BoxConstraints.tightFor(
+                            width: dense ? 18 : 34,
+                            height: dense ? 18 : 34,
+                          ),
+                          splashRadius: dense ? 10 : 18,
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                SizedBox(width: dense ? 0 : 1),
-                _buildPaletteUtilityButton(
-                  icon: Icons.chevron_right_rounded,
-                  tooltip: 'Scroll gates right',
-                  onPressed: _canScrollRight ? _scrollRight : null,
-                  dense: dense,
-                ),
-              ],
-            ),
+              ),
+              SizedBox(height: dense ? 0 : 3),
+              if (hasBoundedHeight)
+                Flexible(
+                  fit: FlexFit.loose,
+                  child: gateRow,
+                )
+              else
+                gateRow,
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -2317,12 +2206,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
     bool showToggleInSummary = false,
     bool showSummarySubtitle = true,
     bool showVisibilityControl = true,
-    bool? showAllStates,
+    bool? nonZeroOnly,
+    Widget? visibilityControl,
     bool dense = false,
   }) {
-    final bool isComposerCurrentState =
-        runningAsQuantumComposer() && tone == StateVectorDisplayTone.current;
-
     return Container(
       padding: EdgeInsets.all(dense ? 4.0 : (secondary ? 5.0 : 7.0)),
       decoration: BoxDecoration(
@@ -2348,9 +2235,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
         showToggleInSummary: showToggleInSummary,
         showSummarySubtitle: showSummarySubtitle,
         showVisibilityControl: showVisibilityControl,
-        showAllStatesOverride: showAllStates,
+        nonZeroOnlyOverride: nonZeroOnly,
+        visibilityControlOverride: visibilityControl,
         dense: dense,
-        enableNonZeroOnlyFilter: isComposerCurrentState,
       ),
     );
   }
@@ -2466,30 +2353,6 @@ class _GatePaletteButton extends StatelessWidget {
       ),
     );
   }
-}
-
-class _PortraitLayoutSpec {
-  final double goalHeight;
-  final double circuitHeight;
-  final double measurementHeight;
-  final double paletteHeight;
-  final double checkAreaHeight;
-  final double primaryGap;
-  final double secondaryGap;
-  final double ctaGap;
-  final bool needsScrollFallback;
-
-  const _PortraitLayoutSpec({
-    required this.goalHeight,
-    required this.circuitHeight,
-    required this.measurementHeight,
-    required this.paletteHeight,
-    required this.checkAreaHeight,
-    required this.primaryGap,
-    required this.secondaryGap,
-    required this.ctaGap,
-    required this.needsScrollFallback,
-  });
 }
 
 class _DropReadyPill extends StatelessWidget {
