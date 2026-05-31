@@ -18,6 +18,8 @@ sealed class QQLevel {
   final String? conceptIntro; // shown BEFORE the puzzle
   final String? solutionExplanation; // shown AFTER success
   final List<String>? hints; // progressive hints revealed one at a time
+  final String? targetStateLabel; // display-only target notation
+  final String? targetStateExpression; // display-only target expression
 
   const QQLevel({
     this.title,
@@ -25,6 +27,8 @@ sealed class QQLevel {
     this.conceptIntro,
     this.solutionExplanation,
     this.hints,
+    this.targetStateLabel,
+    this.targetStateExpression,
   });
 }
 
@@ -45,6 +49,8 @@ class ComposerLevel extends QQLevel {
     super.conceptIntro,
     super.solutionExplanation,
     super.hints,
+    super.targetStateLabel,
+    super.targetStateExpression,
     required this.numQubits,
     required this.initialQubitsStateStr,
     required this.initialQubitsState,
@@ -61,6 +67,8 @@ class ComposerLevel extends QQLevel {
     String? conceptIntro,
     String? solutionExplanation,
     List<String>? hints,
+    String? targetStateLabel,
+    String? targetStateExpression,
     int?
         numQubits, // kept for backward compat with existing levels; derived from string if null
     required String initialQubitsStateString,
@@ -80,6 +88,8 @@ class ComposerLevel extends QQLevel {
       conceptIntro: conceptIntro,
       solutionExplanation: solutionExplanation,
       hints: hints,
+      targetStateLabel: targetStateLabel,
+      targetStateExpression: targetStateExpression,
       numQubits: resolvedNumQubits,
       initialQubitsStateStr: initialQubitsStateString,
       initialQubitsState: convertedInitialState,

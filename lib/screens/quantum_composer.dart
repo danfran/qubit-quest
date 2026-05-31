@@ -173,7 +173,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
   final ValueNotifier<double> _circuitWidthNotifier =
       ValueNotifier<double>(0.0);
 
-  late ScrollController _taskTextScrollController;
   late ScrollController _gatesScrollController;
 
   bool _canScrollLeft = false;
@@ -182,7 +181,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
   @override
   void initState() {
     super.initState();
-    _taskTextScrollController = ScrollController(); // Initialize the controller
     _gatesScrollController = ScrollController()
       ..addListener(_updateScrollButtonStates);
 
@@ -212,7 +210,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   @override
   void dispose() {
-    _taskTextScrollController.dispose(); // Dispose the controller
     _gatesScrollController.removeListener(_updateScrollButtonStates);
     _gatesScrollController.dispose(); // Dispose the controller
     super.dispose();
@@ -1136,9 +1133,12 @@ class _QuantumComposerState extends State<QuantumComposer> {
             final bool short = constraints.maxHeight < 560;
             final Widget circuitCard = _buildCircuitCard(
               compact: short,
-              showHeader: !compact,
+              showHeader: false,
             );
-            final Widget statePanel = _buildStatePanel(secondary: compact);
+            final Widget statePanel = _buildStatePanel(
+              targetStateVector:
+                  runningAsQuantumComposer() ? null : _targetStateVector(),
+            );
             final double contentTopPadding = short ? 3 : 5;
             final double contentBottomPadding = short ? 6 : (compact ? 8 : 10);
             final double availableContentHeight = constraints.maxHeight -
@@ -1163,27 +1163,11 @@ class _QuantumComposerState extends State<QuantumComposer> {
                             short: short,
                             availableHeight: availableContentHeight,
                           )
-                        : Row(
-                            children: [
-                              Expanded(flex: 68, child: circuitCard),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                flex: 32,
-                                child: Column(
-                                  children: [
-                                    _buildTaskDetailsPanel(compact: false),
-                                    const SizedBox(height: 10),
-                                    Expanded(child: statePanel),
-                                  ],
-                                ),
-                              ),
-                            ],
+                        : _buildLandscapeComposerLayout(
+                            circuitCard: circuitCard,
+                            short: short,
                           ),
                   ),
-                  if (!compact) ...[
-                    SizedBox(height: short ? 6 : 10),
-                    _buildGatePalette(compact: compact, dense: short),
-                  ],
                 ],
               ),
             );
@@ -1300,6 +1284,109 @@ class _QuantumComposerState extends State<QuantumComposer> {
     );
   }
 
+  Widget _buildLandscapeComposerLayout({
+    required Widget circuitCard,
+    required bool short,
+  }) {
+    final double gap = short ? 6 : 10;
+    final double goalHeight = short ? 58 : 68;
+    final double toolbarHeight = short ? 76 : 116;
+    final double actionHeight = _landscapeActionHeight(short: short);
+    final List<Complex>? targetStateVector =
+        runningAsQuantumComposer() ? null : _targetStateVector();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          flex: 68,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: goalHeight,
+                child: _buildGoalBanner(compact: short),
+              ),
+              SizedBox(height: gap),
+              Expanded(child: circuitCard),
+              SizedBox(height: gap),
+              SizedBox(
+                height: toolbarHeight,
+                child: _buildGatePalette(compact: false, dense: short),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(width: gap),
+        Expanded(
+          flex: 32,
+          child: _buildLandscapeResultColumn(
+            targetStateVector: targetStateVector,
+            actionHeight: actionHeight,
+            gap: gap,
+            short: short,
+          ),
+        ),
+      ],
+    );
+  }
+
+  double _landscapeActionHeight({required bool short}) {
+    if (runningAsQuantumComposer()) {
+      return 0;
+    }
+    if (_checkFeedbackTitle != null) {
+      return short ? 82 : 92;
+    }
+    return short ? 40 : 44;
+  }
+
+  Widget _buildLandscapeResultColumn({
+    required List<Complex>? targetStateVector,
+    required double actionHeight,
+    required double gap,
+    required bool short,
+  }) {
+    final Widget currentStatePanel = _buildStatePanel(
+      summaryTitle: 'Current State',
+      tone: StateVectorDisplayTone.current,
+      showHeader: false,
+      showToggleInSummary: true,
+      showSummarySubtitle: false,
+      dense: true,
+    );
+    final Widget? targetStatePanel = targetStateVector == null
+        ? null
+        : _buildStatePanel(
+            stateVector: targetStateVector,
+            summaryTitle: 'Target State',
+            stateExpression: widget.level.targetStateExpression,
+            tone: StateVectorDisplayTone.target,
+            showHeader: false,
+            showToggleInSummary: true,
+            showSummarySubtitle: false,
+            dense: true,
+          );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(child: currentStatePanel),
+        if (targetStatePanel != null) ...[
+          SizedBox(height: gap),
+          Expanded(child: targetStatePanel),
+        ],
+        if (actionHeight > 0) ...[
+          SizedBox(height: gap),
+          SizedBox(
+            height: actionHeight,
+            child: _buildCheckActionArea(compact: short),
+          ),
+        ],
+      ],
+    );
+  }
+
   _PortraitLayoutSpec _portraitLayoutSpec({
     required bool short,
     required double availableHeight,
@@ -1366,133 +1453,65 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }
 
   List<Widget> _buildAppBarActions(bool compact) {
-    if (compact) {
-      return [
-        _buildHeaderIconAction(
-          icon: Icons.school_outlined,
-          tooltip: 'Learn',
-          onPressed: _openQuantumFundamentals,
-        ),
-        const SizedBox(width: 6),
-        PopupMenuButton<String>(
-          tooltip: 'Composer actions',
-          color: qqCard,
-          offset: const Offset(0, 10),
-          onSelected: _selectComposerMenuAction,
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'matrix',
-              child: ListTile(
-                leading: Icon(Icons.grid_on, color: Colors.white),
-                title: Text('Operator Matrix'),
+    return [
+      _buildHeaderIconAction(
+        icon: Icons.school_outlined,
+        tooltip: 'Learn',
+        onPressed: _openQuantumFundamentals,
+      ),
+      SizedBox(width: compact ? 6 : 8),
+      PopupMenuButton<String>(
+        tooltip: 'Composer actions',
+        color: qqCard,
+        offset: const Offset(0, 10),
+        onSelected: _selectComposerMenuAction,
+        itemBuilder: (context) => [
+          const PopupMenuItem(
+            value: 'matrix',
+            child: ListTile(
+              leading: Icon(Icons.grid_on, color: Colors.white),
+              title: Text(
+                'Operator Matrix',
+                style: TextStyle(color: Colors.white),
               ),
             ),
-            const PopupMenuItem(
-              value: 'clear',
-              child: ListTile(
-                leading: Icon(Icons.cleaning_services, color: Colors.white),
-                title: Text('Clear'),
+          ),
+          const PopupMenuItem(
+            value: 'clear',
+            child: ListTile(
+              leading: Icon(Icons.cleaning_services, color: Colors.white),
+              title: Text(
+                'Clear',
+                style: TextStyle(color: Colors.white),
               ),
             ),
-            if (_hints.isNotEmpty && !runningAsQuantumComposer())
-              PopupMenuItem(
-                value: 'hint',
-                child: ListTile(
-                  leading: const Icon(
-                    Icons.lightbulb_outline,
-                    color: qqYellow,
-                  ),
-                  title: Text(_currentHintIndex < 0
+          ),
+          if (_hints.isNotEmpty && !runningAsQuantumComposer())
+            PopupMenuItem(
+              value: 'hint',
+              child: ListTile(
+                leading: const Icon(
+                  Icons.lightbulb_outline,
+                  color: qqYellow,
+                ),
+                title: Text(
+                  _currentHintIndex < 0
                       ? 'Hint'
-                      : 'Hint ${_currentHintIndex + 1}/${_hints.length}'),
+                      : 'Hint ${_currentHintIndex + 1}/${_hints.length}',
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
-          ],
-          child: _HeaderActionShell(
-            child: Icon(
-              Icons.settings_outlined,
-              size: 18,
-              color: Colors.white.withValues(alpha: 0.94),
             ),
-          ),
-        ),
-        const SizedBox(width: 10),
-      ];
-    }
-
-    return [
-      TextButton.icon(
-        onPressed: _openQuantumFundamentals,
-        icon: const Icon(Icons.school_outlined),
-        label: const Text('Learn'),
-        style: TextButton.styleFrom(
-          foregroundColor: Colors.white,
-          backgroundColor: qqPurple.withValues(alpha: 0.14),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(999),
-            side: BorderSide(
-              color: qqPurple.withValues(alpha: 0.22),
-            ),
+        ],
+        child: _HeaderActionShell(
+          child: Icon(
+            Icons.settings_outlined,
+            size: 18,
+            color: Colors.white.withValues(alpha: 0.94),
           ),
         ),
       ),
-      const SizedBox(width: 8),
-      TextButton.icon(
-        onPressed: _showOperatorMatrixDialog,
-        icon: const Icon(Icons.grid_on),
-        label: const Text('Operator Matrix'),
-        style: TextButton.styleFrom(
-          foregroundColor:
-              Colors.white, // White icon/text color for contrast on AppBar
-          backgroundColor: Colors.white.withValues(alpha: 0.06),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(999),
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.10)),
-          ),
-          // You might adjust padding if needed to fit
-          // padding: EdgeInsets.symmetric(horizontal: 8.0),
-        ),
-      ),
-      const SizedBox(width: 8),
-      TextButton.icon(
-        onPressed: _clearCircuit,
-        icon: const Icon(Icons.cleaning_services),
-        label: const Text('Clear'),
-        style: TextButton.styleFrom(
-          foregroundColor: Colors.white,
-          backgroundColor: Colors.white.withValues(alpha: 0.06),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(999),
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.10)),
-          ),
-        ),
-      ),
-      if (_hints.isNotEmpty && !runningAsQuantumComposer())
-        const SizedBox(width: 8),
-      if (_hints.isNotEmpty && !runningAsQuantumComposer())
-        TextButton.icon(
-          onPressed:
-              _currentHintIndex < _hints.length - 1 ? _showNextHint : null,
-          icon: const Icon(Icons.lightbulb_outline),
-          label: Text(_currentHintIndex < 0
-              ? 'Hint'
-              : 'Hint ${_currentHintIndex + 1}/${_hints.length}'),
-          style: TextButton.styleFrom(
-            foregroundColor: qqYellow,
-            backgroundColor: qqYellow.withValues(alpha: 0.10),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(999),
-              side: BorderSide(
-                color: qqYellow.withValues(alpha: 0.18),
-              ),
-            ),
-          ),
-        ),
-      const SizedBox(width: 12),
+      SizedBox(width: compact ? 10 : 12),
     ];
   }
 
@@ -1655,10 +1674,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
               compact: compact,
               isDraggingGate: isDraggingGate,
             ),
-            if (_checkFeedbackTitle != null) ...[
-              SizedBox(height: compact ? 6 : 8),
-              _buildCheckFeedbackBanner(compact: compact),
-            ],
             SizedBox(height: compact ? 5 : 7),
           ],
           Expanded(child: _buildCircuitDragTarget()),
@@ -1732,10 +1747,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
                 ],
               ),
             ),
-            if (!runningAsQuantumComposer()) ...[
-              SizedBox(width: compact ? 8 : 10),
-              _buildCheckResultButton(compact: compact),
-            ],
           ],
         ),
         SizedBox(height: compact ? 6 : 7),
@@ -1817,7 +1828,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
           _levelSolved ? Icons.check_circle_outline : Icons.play_arrow_rounded,
           size: compact ? 16 : 18,
         ),
-        label: Text(compact ? 'Check' : 'Check Result'),
+        label: const Text('Check Result'),
         style: ElevatedButton.styleFrom(
           elevation: 0,
           shadowColor: Colors.transparent,
@@ -1843,6 +1854,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }
 
   Widget _buildPortraitCheckArea({required bool compact}) {
+    return _buildCheckActionArea(compact: compact);
+  }
+
+  Widget _buildCheckActionArea({required bool compact}) {
     if (runningAsQuantumComposer()) {
       return const SizedBox.shrink();
     }
@@ -1851,14 +1866,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (_checkFeedbackTitle != null) ...[
-          _buildCheckFeedbackBanner(compact: compact),
-          SizedBox(height: compact ? 6 : 8),
-        ],
         SizedBox(
           height: compact ? 40 : 44,
-          child: _buildCheckResultButton(compact: false),
+          child: _buildCheckResultButton(compact: compact),
         ),
+        if (_checkFeedbackTitle != null) ...[
+          SizedBox(height: compact ? 6 : 8),
+          _buildCheckFeedbackBanner(compact: compact),
+        ],
       ],
     );
   }
@@ -2035,37 +2050,36 @@ class _QuantumComposerState extends State<QuantumComposer> {
     );
   }
 
-  Widget _buildDeleteGateButton({required bool dense}) {
-    final double buttonSize = dense ? 44 : 52;
-    const _GateVisual deleteVisual = _GateVisual(
-      top: gateGreenTop,
-      bottom: gateGreenBottom,
-    );
+  Widget _buildPaletteUtilityButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback? onPressed,
+    required bool dense,
+  }) {
+    final Color foreground = onPressed == null
+        ? Colors.white.withValues(alpha: 0.28)
+        : Colors.white.withValues(alpha: 0.78);
 
-    return DecoratedBox(
-      decoration: _flatGateButtonDecoration(deleteVisual),
-      child: ElevatedButton(
-        onPressed: () => _initDeletion(),
-        style: ElevatedButton.styleFrom(
-          minimumSize: Size.square(buttonSize),
-          fixedSize: Size.square(buttonSize),
-          padding: EdgeInsets.zero,
-          elevation: 0,
-          shadowColor: Colors.transparent,
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white.withValues(alpha: 0.95),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(gateButtonRadius),
-          ),
-        ),
-        child: Center(child: Icon(Icons.delete, size: dense ? 18 : 20)),
+    return IconButton(
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: BoxConstraints.tightFor(
+        width: dense ? 18 : 24,
+        height: dense ? 38 : 30,
       ),
+      iconSize: dense ? 14 : 16,
+      color: foreground.withValues(alpha: dense ? 0.74 : 1.0),
+      disabledColor: Colors.white.withValues(alpha: 0.28),
+      icon: Icon(icon),
+      onPressed: onPressed,
+      tooltip: tooltip,
+      splashRadius: dense ? 15 : 16,
     );
   }
 
   Widget _buildGatePalette({required bool compact, required bool dense}) {
     return Container(
-      padding: EdgeInsets.fromLTRB(10, dense ? 6 : 8, 10, dense ? 6 : 9),
+      padding: EdgeInsets.fromLTRB(4, dense ? 4 : 8, 4, dense ? 4 : 9),
       decoration: BoxDecoration(
         color: qqCard,
         borderRadius: BorderRadius.circular(dense ? 12 : 14),
@@ -2082,165 +2096,115 @@ class _QuantumComposerState extends State<QuantumComposer> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!dense)
-            Row(children: [
-              const Text(
-                "Gate Palette",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+          SizedBox(
+            height: dense ? 18 : 34,
+            child: Row(
+              children: [
+                Text(
+                  dense ? "Gates" : "Gate Palette",
+                  style: TextStyle(
+                    fontSize: dense ? 11.5 : 14,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: qqCyan.withValues(alpha: 0.7),
-                  shape: BoxShape.circle,
+                const Spacer(),
+                Tooltip(
+                  message: 'Delete gate mode',
+                  child: _HeaderActionShell(
+                    size: dense ? 18 : 34,
+                    subdued: true,
+                    child: IconButton(
+                      onPressed: _initDeletion,
+                      icon: const Icon(Icons.delete_outline),
+                      iconSize: dense ? 12 : 18,
+                      color: Colors.white.withValues(alpha: 0.94),
+                      padding: EdgeInsets.zero,
+                      constraints: BoxConstraints.tightFor(
+                        width: dense ? 18 : 34,
+                        height: dense ? 18 : 34,
+                      ),
+                      splashRadius: dense ? 10 : 18,
+                    ),
+                  ),
                 ),
-              ),
-              const Spacer(),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.arrow_left,
-                    color: _canScrollLeft ? Colors.white : Colors.grey),
-                onPressed: _canScrollLeft ? _scrollLeft : null,
-                tooltip: 'Scroll Left',
-              ),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                icon: Icon(Icons.arrow_right,
-                    color: _canScrollRight ? Colors.white : Colors.grey),
-                onPressed: _canScrollRight ? _scrollRight : null,
-                tooltip: 'Scroll Right',
-              ),
-            ]),
-          if (!dense) const SizedBox(height: 2),
-          Row(
-            children: [
-              if (dense) ...[
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints.tightFor(width: 32, height: 42),
-                  iconSize: 20,
-                  icon: Icon(Icons.arrow_left,
-                      color: _canScrollLeft ? Colors.white : Colors.grey),
-                  onPressed: _canScrollLeft ? _scrollLeft : null,
-                  tooltip: 'Scroll Left',
-                ),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints.tightFor(width: 32, height: 42),
-                  iconSize: 20,
-                  icon: Icon(Icons.arrow_right,
-                      color: _canScrollRight ? Colors.white : Colors.grey),
-                  onPressed: _canScrollRight ? _scrollRight : null,
-                  tooltip: 'Scroll Right',
-                ),
-                const SizedBox(width: 4),
               ],
-              Expanded(
-                child: Scrollbar(
-                  controller: _gatesScrollController,
-                  thumbVisibility: true,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
+            ),
+          ),
+          SizedBox(height: dense ? 0 : 3),
+          Expanded(
+            child: Row(
+              children: [
+                _buildPaletteUtilityButton(
+                  icon: Icons.chevron_left_rounded,
+                  tooltip: 'Scroll gates left',
+                  onPressed: _canScrollLeft ? _scrollLeft : null,
+                  dense: dense,
+                ),
+                SizedBox(width: dense ? 0 : 1),
+                Expanded(
+                  child: Scrollbar(
                     controller: _gatesScrollController,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 2),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          _buildDeleteGateButton(dense: dense),
-                          SizedBox(width: dense ? 5 : 8),
-                          Container(
-                            height: dense ? 30 : 36,
-                            width: 1,
-                            color: qqComposerInnerBorder.color,
-                          ),
-                          SizedBox(width: dense ? 5 : 8),
-                          ..._availableGates.map((gateType) {
-                            return Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: dense ? 2.5 : 4.0),
-                              child: _buildDraggableGateButton(
-                                gateType,
-                                dense: dense,
-                              ),
-                            );
-                          }),
-                        ],
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      controller: _gatesScrollController,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 1),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            ..._availableGates.map((gateType) {
+                              return Padding(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: dense ? 1.0 : 2.0),
+                                child: _buildDraggableGateButton(
+                                  gateType,
+                                  dense: dense,
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+                SizedBox(width: dense ? 0 : 1),
+                _buildPaletteUtilityButton(
+                  icon: Icons.chevron_right_rounded,
+                  tooltip: 'Scroll gates right',
+                  onPressed: _canScrollRight ? _scrollRight : null,
+                  dense: dense,
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTaskDetailsPanel({required bool compact}) {
-    return Container(
-      constraints: BoxConstraints(maxHeight: compact ? 170 : double.infinity),
-      decoration: BoxDecoration(
-        color: qqCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: qqComposerCardBorder.color),
-      ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          initiallyExpanded: !compact,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          iconColor: qqCyan,
-          collapsedIconColor: Colors.white.withValues(alpha: 0.48),
-          title: Text(
-            runningAsQuantumComposer() ? 'Composer notes' : 'Goal details',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          children: [
-            SizedBox(
-              height: compact ? 86 : 132,
-              child: Scrollbar(
-                controller: _taskTextScrollController,
-                thumbVisibility: true,
-                child: SingleChildScrollView(
-                  controller: _taskTextScrollController,
-                  child: LatexText(
-                    math: _taskDescription,
-                    textStyle: const TextStyle(
-                      color: Color(0xFFC3CEE2),
-                      fontSize: 14,
-                      height: 1.35,
-                    ),
-                    inlineMathHeight: 14,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  List<Complex> _targetStateVector() {
+    return _solutionVector.map((col) => col.first).toList();
   }
 
-  Widget _buildStatePanel({bool secondary = false}) {
+  Widget _buildStatePanel({
+    bool secondary = false,
+    List<Complex>? stateVector,
+    List<Complex>? targetStateVector,
+    String? title,
+    String? summaryTitle,
+    String? summarySubtitle,
+    String? stateExpression,
+    StateVectorDisplayTone tone = StateVectorDisplayTone.current,
+    bool showHeader = true,
+    bool showToggleInSummary = false,
+    bool showSummarySubtitle = true,
+    bool dense = false,
+  }) {
     return Container(
-      padding: EdgeInsets.all(secondary ? 5.0 : 7.0),
+      padding: EdgeInsets.all(dense ? 4.0 : (secondary ? 5.0 : 7.0)),
       decoration: BoxDecoration(
         color: secondary ? qqCard.withValues(alpha: 0.78) : qqCard,
         borderRadius: BorderRadius.circular(secondary ? 10.0 : 12.0),
@@ -2252,11 +2216,18 @@ class _QuantumComposerState extends State<QuantumComposer> {
         ),
       ),
       child: StateVectorDisplay(
-        stateVector: _circuit.currentState.stateVector,
+        stateVector: stateVector ?? _circuit.currentState.stateVector,
         numQubits: _numQubits,
-        targetStateVector: runningAsQuantumComposer()
-            ? null
-            : _solutionVector.map((col) => col.first).toList(),
+        targetStateVector: targetStateVector,
+        titleOverride: title,
+        summaryTitleOverride: summaryTitle,
+        summarySubtitleOverride: summarySubtitle,
+        stateExpression: stateExpression,
+        tone: tone,
+        showHeader: showHeader,
+        showToggleInSummary: showToggleInSummary,
+        showSummarySubtitle: showSummarySubtitle,
+        dense: dense,
       ),
     );
   }
@@ -2264,17 +2235,17 @@ class _QuantumComposerState extends State<QuantumComposer> {
   Widget _buildDraggableGateButton(Gate gate, {bool dense = false}) {
     double fontSizeW;
     if (gate.type == SelectedGateType.ccnot) {
-      fontSizeW = dense ? 12 : 14;
+      fontSizeW = dense ? 11 : 14;
     } else if ((gate.type == SelectedGateType.rx ||
             gate.type == SelectedGateType.ry ||
             gate.type == SelectedGateType.rz) &&
         gate.angle != null) {
-      fontSizeW = dense ? 9 : 10;
+      fontSizeW = dense ? 8.5 : 10;
     } else {
-      fontSizeW = dense ? 16 : 18;
+      fontSizeW = dense ? 14 : 18;
     }
 
-    final double buttonSize = dense ? 44 : 52;
+    final double buttonSize = dense ? 38 : 52;
     final _GateVisual visual = _gateVisualFor(gate);
 
     return Draggable<Gate>(
@@ -2485,19 +2456,30 @@ class _EmptyCircuitPrompt extends StatelessWidget {
 
 class _HeaderActionShell extends StatelessWidget {
   final Widget child;
+  final double size;
+  final bool subdued;
 
-  const _HeaderActionShell({required this.child});
+  const _HeaderActionShell({
+    required this.child,
+    this.size = 34,
+    this.subdued = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 34,
-      height: 34,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        color: _QuantumComposerState.qqCard2,
+        color: subdued
+            ? _QuantumComposerState.qqInner2.withValues(alpha: 0.54)
+            : _QuantumComposerState.qqCard2,
         shape: BoxShape.circle,
-        border:
-            Border.all(color: _QuantumComposerState.qqComposerCardBorder.color),
+        border: Border.all(
+          color: subdued
+              ? _QuantumComposerState.qqComposerInnerBorder.color
+              : _QuantumComposerState.qqComposerCardBorder.color,
+        ),
       ),
       alignment: Alignment.center,
       child: child,

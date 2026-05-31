@@ -16,6 +16,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Bit Flip',
     taskDescription:
         r"Your first quantum challenge! Apply a gate to transform \( |0\rangle \) to \( |1\rangle \).",
+    targetStateLabel: "|1⟩",
+    targetStateExpression: "|1⟩",
     conceptIntro:
         'Quantum gates are the elementary operations that transform qubit states. '
         'Just as classical computers have logic gates (AND, OR, NOT), quantum computers have '
@@ -47,6 +49,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Phase Flip',
     taskDescription:
         r"Let's change now only the phase of \( |1\rangle \) without flipping the bit. Transform \( |1\rangle \) to \( -|1\rangle \).",
+    targetStateLabel: "-|1⟩",
+    targetStateExpression: "-|1⟩",
     conceptIntro:
         'Not every quantum operation changes which basis state a qubit occupies. '
         'Some gates leave the bit value completely unchanged while introducing a phase factor '
@@ -78,6 +82,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Bit & Phase Flip',
     taskDescription:
         r"Let's change now the phase and flipping the bit from \( |1\rangle \) to \( |0\rangle \).",
+    targetStateLabel: "-i|0⟩",
+    targetStateExpression: "-i|0⟩",
     conceptIntro:
         'The three Pauli gates — X, Y, and Z — form a family of fundamental single-qubit operations. '
         'You have already met two of them: X is a pure bit flip, and Z is a pure phase flip. '
@@ -110,6 +116,8 @@ final List<QQLevel> allQQLevels = [
     title: 'The i-State',
     taskDescription:
         r"From \( |0\rangle \), reach \( |1\rangle \) with a phase of \( i \). This state is \( |i\rangle \).",
+    targetStateLabel: "|i⟩",
+    targetStateExpression: "|i⟩ = i|1⟩",
     conceptIntro: 'A quantum state can have any complex amplitude. '
         'The imaginary unit i appears naturally as a phase factor in quantum mechanics — '
         'states like i|1⟩ are physically distinct from |1⟩ because the phase matters '
@@ -175,6 +183,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Superposition',
     taskDescription:
         r"Create a superposition! Turn \( |0\rangle \) into \( |+\rangle \).",
+    targetStateLabel: "|+⟩",
+    targetStateExpression: "|+⟩ = (|0⟩ + |1⟩)/√2",
     conceptIntro: 'Superposition is a defining feature of quantum computing. '
         'Unlike a classical bit that is always exactly 0 or 1, a qubit can exist in a '
         'combination of both states at once — described by complex probability amplitudes. '
