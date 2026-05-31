@@ -35,6 +35,9 @@ class StateVectorDisplay extends StatefulWidget {
   final bool showToggleInSummary;
   final bool showSummarySubtitle;
   final bool dense;
+  final bool enableNonZeroOnlyFilter;
+  final bool showVisibilityControl;
+  final bool? showAllStatesOverride;
 
   const StateVectorDisplay({
     super.key,
@@ -50,6 +53,9 @@ class StateVectorDisplay extends StatefulWidget {
     this.showToggleInSummary = false,
     this.showSummarySubtitle = true,
     this.dense = false,
+    this.enableNonZeroOnlyFilter = false,
+    this.showVisibilityControl = true,
+    this.showAllStatesOverride,
   });
 
   @override
@@ -58,22 +64,56 @@ class StateVectorDisplay extends StatefulWidget {
 
 class _StateVectorDisplayState extends State<StateVectorDisplay> {
   bool _showAllValues = false;
+  bool _nonZeroOnly = false;
   static const double _amplitudeThreshold = 1e-9;
   static const double _probabilityThreshold = 1e-6;
   static const double _matchTolerance = 1e-6;
 
   late ScrollController _stateVectorVerticalScrollController;
+  late int _lastStateVectorSignature;
 
   @override
   void initState() {
     super.initState();
     _stateVectorVerticalScrollController = ScrollController();
+    _lastStateVectorSignature = _stateVectorSignature(widget.stateVector);
   }
 
   @override
   void dispose() {
     _stateVectorVerticalScrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant StateVectorDisplay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final int nextSignature = _stateVectorSignature(widget.stateVector);
+    if (widget.tone == StateVectorDisplayTone.current &&
+        nextSignature != _lastStateVectorSignature) {
+      _resetStateScroll();
+    }
+    _lastStateVectorSignature = nextSignature;
+  }
+
+  int _stateVectorSignature(List<Complex> vector) {
+    return Object.hashAll(
+      vector.map((value) {
+        return Object.hash(
+          (value.real.toDouble() / _matchTolerance).round(),
+          (value.imaginary.toDouble() / _matchTolerance).round(),
+        );
+      }),
+    );
+  }
+
+  void _resetStateScroll() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_stateVectorVerticalScrollController.hasClients) {
+        return;
+      }
+      _stateVectorVerticalScrollController.jumpTo(0);
+    });
   }
 
   String _toBinaryKet(int index, int numQubits) {
@@ -193,7 +233,7 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
           child: Text(
             widget.titleOverride ??
                 (hasTarget
-                    ? 'Measurement Result'
+                    ? 'Current State'
                     : widget.tone == StateVectorDisplayTone.target
                         ? 'Target State'
                         : 'Current Result'),
@@ -207,20 +247,7 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('All',
-                style: TextStyle(color: Colors.white70, fontSize: 10)),
-            Transform.scale(
-              scale: 0.62,
-              child: Switch(
-                value: _showAllValues,
-                onChanged: (v) => setState(() => _showAllValues = v),
-                activeThumbColor: _ResultPalette.qqCyan,
-                inactiveThumbColor: Colors.grey,
-                inactiveTrackColor: _ResultPalette.qqInner2,
-              ),
-            ),
-          ],
+          children: [_buildStateVisibilityControl()],
         ),
       ],
     );
@@ -241,9 +268,14 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
         strongestIndex = index;
       }
 
-      if (_showAllValues ||
-          currentProbability > _probabilityThreshold ||
-          targetProbability > _probabilityThreshold) {
+      final bool showAllValues = widget.showAllStatesOverride ?? _showAllValues;
+      final bool shouldShow = widget.enableNonZeroOnlyFilter
+          ? !_nonZeroOnly || currentProbability > _probabilityThreshold
+          : showAllValues ||
+              currentProbability > _probabilityThreshold ||
+              targetProbability > _probabilityThreshold;
+
+      if (shouldShow) {
         visibleIndexes.add(index);
       }
     }
@@ -264,7 +296,8 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
       dense: widget.dense,
       decorated: false,
       showChips: false,
-      toggle: _buildAllToggle(),
+      toggle:
+          widget.showVisibilityControl ? _buildStateVisibilityControl() : null,
       chips: const [],
     );
   }
@@ -283,8 +316,8 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
       }
     }
 
-    if (terms.isEmpty || terms.length > 4) {
-      return null;
+    if (terms.isEmpty) {
+      return '|ψ⟩ = 0';
     }
 
     return '|ψ⟩ = ${_formatStateExpression(terms)}';
@@ -416,19 +449,63 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
     );
   }
 
-  Widget _buildAllToggle() {
+  Widget _buildStateVisibilityControl() {
+    if (widget.enableNonZeroOnlyFilter) {
+      return InkWell(
+        onTap: () {
+          setState(() => _nonZeroOnly = !_nonZeroOnly);
+          _resetStateScroll();
+        },
+        borderRadius: BorderRadius.circular(6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Transform.scale(
+              scale: widget.dense ? 0.58 : 0.70,
+              child: Checkbox(
+                value: _nonZeroOnly,
+                onChanged: (v) {
+                  setState(() => _nonZeroOnly = v ?? false);
+                  _resetStateScroll();
+                },
+                activeColor: _ResultPalette.qqCyan,
+                checkColor: Colors.black,
+                side: const BorderSide(color: Colors.white54, width: 1),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+            Text(
+              'Non-zero only',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: widget.dense ? 8.6 : 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
-          'All',
-          style: TextStyle(color: Colors.white70, fontSize: 9.5),
+        Text(
+          'Show all states',
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: widget.dense ? 9.5 : 10,
+          ),
         ),
         Transform.scale(
-          scale: widget.dense ? 0.48 : 0.60,
+          scale: widget.dense ? 0.48 : 0.62,
           child: Switch(
             value: _showAllValues,
-            onChanged: (v) => setState(() => _showAllValues = v),
+            onChanged: (v) {
+              setState(() => _showAllValues = v);
+              _resetStateScroll();
+            },
             activeThumbColor: _ResultPalette.qqCyan,
             inactiveThumbColor: Colors.grey,
             inactiveTrackColor: _ResultPalette.qqInner2,
@@ -440,7 +517,7 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
   }
 }
 
-class _StateExpressionLine extends StatelessWidget {
+class _StateExpressionLine extends StatefulWidget {
   final String expression;
   final bool dense;
 
@@ -450,18 +527,52 @@ class _StateExpressionLine extends StatelessWidget {
   });
 
   @override
+  State<_StateExpressionLine> createState() => _StateExpressionLineState();
+}
+
+class _StateExpressionLineState extends State<_StateExpressionLine> {
+  late final ScrollController _horizontalScrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _horizontalScrollController = ScrollController();
+  }
+
+  @override
+  void didUpdateWidget(covariant _StateExpressionLine oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.expression != widget.expression) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_horizontalScrollController.hasClients) {
+          _horizontalScrollController.jumpTo(0);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _horizontalScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return RichText(
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      text: TextSpan(
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: dense ? 11 : 12.5,
-          fontWeight: FontWeight.w800,
-          height: 1.1,
+    return SingleChildScrollView(
+      controller: _horizontalScrollController,
+      scrollDirection: Axis.horizontal,
+      child: RichText(
+        softWrap: false,
+        text: TextSpan(
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: widget.dense ? 11 : 12.5,
+            fontWeight: FontWeight.w800,
+            height: 1.1,
+          ),
+          children: _highlightKetSpans(widget.expression),
         ),
-        children: _highlightKetSpans(expression),
       ),
     );
   }
@@ -475,10 +586,23 @@ class _StateExpressionLine extends StatelessWidget {
       if (match.start > cursor) {
         spans.add(TextSpan(text: value.substring(cursor, match.start)));
       }
+
+      final String ket = value.substring(match.start, match.end);
+      final String ketBody = ket.substring(1, ket.length - 1);
+      final bool isBasisKet = RegExp(r'^[01]+$').hasMatch(ketBody);
+      final bool shouldSeparateFromCoefficient =
+          match.start > 0 && !_isKetPrefixBoundary(value[match.start - 1]);
+
+      if (shouldSeparateFromCoefficient) {
+        spans.add(const TextSpan(text: ' '));
+      }
+
       spans.add(
         TextSpan(
-          text: value.substring(match.start, match.end),
-          style: const TextStyle(color: _ResultPalette.qqGreen),
+          text: ket,
+          style: isBasisKet
+              ? const TextStyle(color: _ResultPalette.qqGreen)
+              : null,
         ),
       );
       cursor = match.end;
@@ -489,6 +613,15 @@ class _StateExpressionLine extends StatelessWidget {
     }
 
     return spans;
+  }
+
+  bool _isKetPrefixBoundary(String char) {
+    return char == ' ' ||
+        char == '(' ||
+        char == '=' ||
+        char == '+' ||
+        char == '-' ||
+        char == '/';
   }
 }
 
@@ -617,6 +750,9 @@ class _ProbabilityRow extends StatelessWidget {
     final double clampedProbability = probability.clamp(0, 1).toDouble();
     final double? clampedTargetProbability =
         targetProbability?.clamp(0, 1).toDouble();
+    final double ketWidth = math.max(44, math.min(76, ket.length * 7.2 + 8));
+    const double percentWidth = 46;
+    const double matchIconWidth = 17;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
@@ -626,9 +762,12 @@ class _ProbabilityRow extends StatelessWidget {
           Row(
             children: [
               SizedBox(
-                width: 38,
+                width: ketWidth,
                 child: Text(
                   ket,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.visible,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -637,22 +776,20 @@ class _ProbabilityRow extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(5),
-                  child: LinearProgressIndicator(
-                    value: clampedProbability,
-                    minHeight: 5,
-                    backgroundColor: _ResultPalette.qqInner2,
-                    valueColor: AlwaysStoppedAnimation<Color>(color),
-                  ),
+                child: _ProbabilityBar(
+                  value: clampedProbability,
+                  minHeight: 5,
+                  color: color,
                 ),
               ),
               const SizedBox(width: 8),
               SizedBox(
-                width: 46,
+                width: percentWidth,
                 child: Text(
                   percentLabel,
                   textAlign: TextAlign.right,
+                  maxLines: 1,
+                  softWrap: false,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
@@ -660,14 +797,19 @@ class _ProbabilityRow extends StatelessWidget {
                   ),
                 ),
               ),
-              if (matched) ...[
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.check_circle,
-                  color: _ResultPalette.qqGreen,
-                  size: 13,
-                ),
-              ],
+              SizedBox(
+                width: matchIconWidth,
+                child: matched
+                    ? const Align(
+                        alignment: Alignment.centerRight,
+                        child: Icon(
+                          Icons.check_circle,
+                          color: _ResultPalette.qqGreen,
+                          size: 13,
+                        ),
+                      )
+                    : null,
+              ),
             ],
           ),
           if (clampedTargetProbability != null &&
@@ -675,41 +817,87 @@ class _ProbabilityRow extends StatelessWidget {
             const SizedBox(height: 2),
             Row(
               children: [
-                const SizedBox(
-                  width: 44,
+                SizedBox(
+                  width: ketWidth,
                   child: Text(
                     'Target',
-                    style: TextStyle(color: Colors.white54, fontSize: 10),
+                    maxLines: 1,
+                    softWrap: false,
+                    style: const TextStyle(color: Colors.white54, fontSize: 10),
                   ),
                 ),
                 Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(5),
-                    child: LinearProgressIndicator(
-                      value: clampedTargetProbability,
-                      minHeight: 3,
-                      backgroundColor: _ResultPalette.qqInner2,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        _ResultPalette.qqPurple,
-                      ),
-                    ),
+                  child: _ProbabilityBar(
+                    value: clampedTargetProbability,
+                    minHeight: 3,
+                    color: _ResultPalette.qqPurple,
                   ),
                 ),
                 const SizedBox(width: 8),
                 SizedBox(
-                  width: 46,
+                  width: percentWidth,
                   child: Text(
                     targetPercentLabel!,
                     textAlign: TextAlign.right,
+                    maxLines: 1,
+                    softWrap: false,
                     style: const TextStyle(color: Colors.white70, fontSize: 10),
                   ),
                 ),
-                const SizedBox(width: 17),
+                const SizedBox(width: matchIconWidth),
               ],
             ),
           ],
         ],
       ),
+    );
+  }
+}
+
+class _ProbabilityBar extends StatelessWidget {
+  final double value;
+  final double minHeight;
+  final Color color;
+
+  const _ProbabilityBar({
+    required this.value,
+    required this.minHeight,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double clampedValue = value.clamp(0, 1).toDouble();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double trackWidth = constraints.maxWidth;
+        final double rawFillWidth = trackWidth * clampedValue;
+        final double fillWidth = clampedValue <= 0
+            ? 0
+            : math.min(trackWidth, math.max(rawFillWidth, 4.0));
+
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(5),
+          child: SizedBox(
+            height: minHeight,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                const ColoredBox(color: _ResultPalette.qqInner2),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(
+                    width: fillWidth,
+                    height: minHeight,
+                    child: ColoredBox(color: color),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

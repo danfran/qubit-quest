@@ -11,6 +11,7 @@ import 'package:quantumquiz/screens/three_qubits_gate_target_qubits_selection_di
 import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
 import 'package:quantumquiz/screens/webview_page.dart';
 import 'package:quantumquiz/utils/complex_formatter.dart';
+import 'package:quantumquiz/widgets/gate_visual_style.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
@@ -55,76 +56,20 @@ class _QuantumComposerState extends State<QuantumComposer> {
   static const Color qqGreen = Color(0xFF7CFFB2);
   static const Color qqYellow = Color(0xFFFFD54F);
 
-  static const Color gateBlueTop = Color(0xFF2A5FD7);
-  static const Color gateBlueBottom = Color(0xFF173A8F);
+  static const Color gateBorder = QubitQuestGateStyle.border;
+  static const double gateButtonRadius = QubitQuestGateStyle.buttonRadius;
+  static const double gateButtonBorderWidth = QubitQuestGateStyle.borderWidth;
 
-  static const Color gateCyanTop = Color(0xFF2798B8);
-  static const Color gateCyanBottom = Color(0xFF145B72);
+  static GateGradientStyle _gateVisualFor(Gate gate) =>
+      QubitQuestGateStyle.forGate(gate);
 
-  static const Color gateRedTop = Color(0xFFC93A3A);
-  static const Color gateRedBottom = Color(0xFF7F1F1F);
-
-  static const Color gatePurpleTop = Color(0xFF7A38D6);
-  static const Color gatePurpleBottom = Color(0xFF451D8F);
-
-  static const Color gateGreenTop = Color(0xFF218455);
-  static const Color gateGreenBottom = Color(0xFF104A32);
-  static const Color gateBorder = Color(0xFF31405F);
-  static const double gateButtonRadius = 10;
-  static const double gateButtonBorderWidth = 1.2;
-
-  static _GateVisual _gateVisualFor(Gate gate) {
-    switch (gate.type) {
-      case SelectedGateType.hadamard:
-        return const _GateVisual(
-          top: gateRedTop,
-          bottom: gateRedBottom,
-        );
-      case SelectedGateType.x:
-      case SelectedGateType.cnot:
-      case SelectedGateType.ccnot:
-      case SelectedGateType.cz:
-      case SelectedGateType.rx:
-        return const _GateVisual(
-          top: gateBlueTop,
-          bottom: gateBlueBottom,
-        );
-      case SelectedGateType.y:
-      case SelectedGateType.z:
-        return const _GateVisual(
-          top: gateCyanTop,
-          bottom: gateCyanBottom,
-        );
-      case SelectedGateType.s:
-      case SelectedGateType.t:
-      case SelectedGateType.rz:
-        return const _GateVisual(
-          top: gatePurpleTop,
-          bottom: gatePurpleBottom,
-        );
-      case SelectedGateType.ry:
-        return const _GateVisual(
-          top: gateGreenTop,
-          bottom: gateGreenBottom,
-        );
-      default:
-        return _GateVisual(
-          top: gate.color,
-          bottom: Color.lerp(gate.color, Colors.black, 0.30)!,
-        );
-    }
-  }
-
-  static BoxDecoration _flatGateButtonDecoration(_GateVisual visual) {
+  static BoxDecoration _flatGateButtonDecoration(GateGradientStyle visual) {
     return BoxDecoration(
       borderRadius: BorderRadius.circular(gateButtonRadius),
       gradient: LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [
-          visual.top,
-          visual.bottom,
-        ],
+        colors: visual.colors,
       ),
       border: Border.all(
         color: gateBorder,
@@ -177,6 +122,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   bool _canScrollLeft = false;
   bool _canScrollRight = false;
+  bool _portraitShowAllStates = false;
 
   @override
   void initState() {
@@ -186,7 +132,9 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateScrollButtonStates();
-      if (widget.level.conceptIntro != null && !runningAsQuantumComposer()) {
+      if (runningAsQuantumComposer()) {
+        _showComposerIntro();
+      } else if (widget.level.conceptIntro != null) {
         _showConceptIntro(widget.level.conceptIntro!);
       }
     });
@@ -1135,10 +1083,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
               compact: short,
               showHeader: false,
             );
-            final Widget statePanel = _buildStatePanel(
-              targetStateVector:
-                  runningAsQuantumComposer() ? null : _targetStateVector(),
-            );
+            final Widget statePanel = _buildPortraitStateSection(short: short);
             final double contentTopPadding = short ? 3 : 5;
             final double contentBottomPadding = short ? 6 : (compact ? 8 : 10);
             final double availableContentHeight = constraints.maxHeight -
@@ -1230,23 +1175,25 @@ class _QuantumComposerState extends State<QuantumComposer> {
     );
 
     final List<Widget> sections = [
-      SizedBox(
-        height: layout.goalHeight,
-        child: _buildPortraitGoalSection(short: short),
-      ),
-      SizedBox(height: layout.primaryGap),
+      if (!runningAsQuantumComposer()) ...[
+        SizedBox(
+          height: layout.goalHeight,
+          child: _buildPortraitGoalSection(short: short),
+        ),
+        SizedBox(height: layout.primaryGap),
+      ],
       SizedBox(
         height: layout.circuitHeight,
         child: circuitCard,
       ),
       SizedBox(height: layout.secondaryGap),
-      SizedBox(height: layout.measurementHeight, child: statePanel),
-      SizedBox(height: layout.secondaryGap),
       SizedBox(
         height: layout.paletteHeight,
         child: _buildGatePalette(compact: true, dense: true),
       ),
-      SizedBox(height: layout.ctaGap),
+      SizedBox(height: layout.secondaryGap),
+      SizedBox(height: layout.measurementHeight, child: statePanel),
+      if (layout.checkAreaHeight > 0) SizedBox(height: layout.ctaGap),
     ];
 
     if (layout.needsScrollFallback) {
@@ -1275,7 +1222,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ...sections,
-        const Spacer(),
         SizedBox(
           height: layout.checkAreaHeight,
           child: _buildPortraitCheckArea(compact: short),
@@ -1284,16 +1230,108 @@ class _QuantumComposerState extends State<QuantumComposer> {
     );
   }
 
+  Widget _buildPortraitStateSection({required bool short}) {
+    final List<Complex>? targetStateVector =
+        runningAsQuantumComposer() ? null : _targetStateVector();
+
+    if (targetStateVector == null) {
+      return _buildStatePanel(
+        summaryTitle: 'Current State',
+        tone: StateVectorDisplayTone.current,
+        showHeader: false,
+        showToggleInSummary: true,
+        showSummarySubtitle: false,
+        dense: true,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: short ? 22 : 24,
+          child: _buildPortraitStateVisibilityControl(),
+        ),
+        SizedBox(height: short ? 3 : 4),
+        Expanded(
+          child: _buildStatePanel(
+            summaryTitle: 'Current State',
+            tone: StateVectorDisplayTone.current,
+            showHeader: false,
+            showToggleInSummary: true,
+            showSummarySubtitle: false,
+            showVisibilityControl: false,
+            showAllStates: _portraitShowAllStates,
+            dense: true,
+          ),
+        ),
+        SizedBox(height: short ? 4 : 5),
+        Expanded(
+          child: _buildStatePanel(
+            stateVector: targetStateVector,
+            summaryTitle: 'Target State',
+            stateExpression: widget.level.targetStateExpression,
+            tone: StateVectorDisplayTone.target,
+            showHeader: false,
+            showToggleInSummary: true,
+            showSummarySubtitle: false,
+            showVisibilityControl: false,
+            showAllStates: _portraitShowAllStates,
+            dense: true,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPortraitStateVisibilityControl() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: InkWell(
+        onTap: () {
+          setState(() => _portraitShowAllStates = !_portraitShowAllStates);
+        },
+        borderRadius: BorderRadius.circular(8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Show all states',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.72),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Transform.scale(
+              scale: 0.52,
+              child: Switch(
+                value: _portraitShowAllStates,
+                onChanged: (value) {
+                  setState(() => _portraitShowAllStates = value);
+                },
+                activeThumbColor: qqCyan,
+                inactiveThumbColor: Colors.grey,
+                inactiveTrackColor: qqInner2,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLandscapeComposerLayout({
     required Widget circuitCard,
     required bool short,
   }) {
     final double gap = short ? 6 : 10;
-    final double goalHeight = short ? 58 : 68;
     final double toolbarHeight = short ? 76 : 116;
     final double actionHeight = _landscapeActionHeight(short: short);
     final List<Complex>? targetStateVector =
         runningAsQuantumComposer() ? null : _targetStateVector();
+    final bool showGoal = !runningAsQuantumComposer();
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1303,11 +1341,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(
-                height: goalHeight,
-                child: _buildGoalBanner(compact: short),
-              ),
-              SizedBox(height: gap),
+              if (showGoal) ...[
+                SizedBox(
+                  height: short ? 58 : 68,
+                  child: _buildGoalBanner(compact: short),
+                ),
+                SizedBox(height: gap),
+              ],
               Expanded(child: circuitCard),
               SizedBox(height: gap),
               SizedBox(
@@ -1392,20 +1432,33 @@ class _QuantumComposerState extends State<QuantumComposer> {
     required double availableHeight,
     required bool hasFeedback,
   }) {
-    final double primaryGap = short ? 5 : 6;
-    final double secondaryGap = short ? 4 : 5;
-    final double ctaGap = short ? 4 : 5;
-    final double totalGaps = primaryGap + secondaryGap + secondaryGap + ctaGap;
-    final double goalHeight = (availableHeight * 0.12)
-        .clamp(short ? 72.0 : 76.0, short ? 82.0 : 92.0)
-        .toDouble();
-    final double measurementHeight = short ? 78 : 92;
-    final double paletteHeight = 72;
+    const double overflowBuffer = 4;
+    const double primaryGap = 8;
+    final double secondaryGap = short ? 3 : 4;
+    final double ctaGap = short ? 2 : 3;
+    final bool hasGoal = !runningAsQuantumComposer();
+    final double goalHeight = hasGoal
+        ? (availableHeight * 0.09)
+            .clamp(short ? 70.0 : 72.0, short ? 74.0 : 78.0)
+            .toDouble()
+        : 0;
+    final double paletteHeight = short ? 64 : 68;
     final double checkAreaHeight = runningAsQuantumComposer()
         ? 0
         : hasFeedback
-            ? (short ? 76 : 88)
-            : (short ? 40 : 44);
+            ? (short ? 62 : 70)
+            : (short ? 32 : 34);
+    final double totalGaps = (hasGoal ? primaryGap : 0) +
+        secondaryGap +
+        secondaryGap +
+        (checkAreaHeight > 0 ? ctaGap : 0);
+    final double stateSectionHeight = runningAsQuantumComposer()
+        ? (short ? 92 : 108)
+        : switch (_numQubits) {
+            1 => short ? 172 : 188,
+            2 => short ? 188 : 208,
+            _ => short ? 206 : 232,
+          };
 
     final double painterMinimumHeight =
         _numQubits * QuantumCircuitPainter.qubitSpacing +
@@ -1413,17 +1466,24 @@ class _QuantumComposerState extends State<QuantumComposer> {
     final double cardPaddingAllowance = short ? 12 : 16;
     final double contentMinimumHeight =
         painterMinimumHeight + cardPaddingAllowance;
-    final double ratioTarget = availableHeight * (short ? 0.40 : 0.43);
+    final double circuitRatio = switch (_numQubits) {
+      1 => short ? 0.15 : 0.17,
+      2 => short ? 0.18 : 0.20,
+      _ => short ? 0.18 : 0.20,
+    };
+    final double ratioTarget = availableHeight * circuitRatio;
     final double qubitFloor = switch (_numQubits) {
-      1 => short ? 132 : 156,
-      2 => short ? 168 : 196,
-      _ => short ? 208 : 248,
+      1 => short ? 82 : 94,
+      2 => short ? 112 : 128,
+      3 => short ? 136 : 156,
+      4 => short ? 160 : 184,
+      _ => short ? 184 : 210,
     };
     final double preferredCircuitHeight = math.max(ratioTarget, qubitFloor);
-    final double circuitCap = availableHeight * (short ? 0.45 : 0.46);
+    final double circuitCap = availableHeight * (short ? 0.27 : 0.30);
     final double remainingForCircuit = availableHeight -
         goalHeight -
-        measurementHeight -
+        stateSectionHeight -
         paletteHeight -
         checkAreaHeight -
         totalGaps;
@@ -1432,6 +1492,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
       math.min(
           preferredCircuitHeight, math.min(circuitCap, remainingForCircuit)),
     );
+    final double measurementHeight = stateSectionHeight;
     final double totalHeight = goalHeight +
         circuitHeight +
         measurementHeight +
@@ -1448,7 +1509,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
       primaryGap: primaryGap,
       secondaryGap: secondaryGap,
       ctaGap: ctaGap,
-      needsScrollFallback: totalHeight > availableHeight,
+      needsScrollFallback: totalHeight > availableHeight - overflowBuffer,
     );
   }
 
@@ -1627,6 +1688,43 @@ class _QuantumComposerState extends State<QuantumComposer> {
           ],
         ],
       ),
+    );
+  }
+
+  void _showComposerIntro() {
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: qqCard,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: qqComposerCardBorder,
+          ),
+          title: const Text(
+            'Composer',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          content: Text(
+            _taskDescription,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.82),
+              fontSize: 14,
+              height: 1.35,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Start composing'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1854,7 +1952,24 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }
 
   Widget _buildPortraitCheckArea({required bool compact}) {
-    return _buildCheckActionArea(compact: compact);
+    if (runningAsQuantumComposer()) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: compact ? 32 : 34,
+          child: _buildCheckResultButton(compact: true),
+        ),
+        if (_checkFeedbackTitle != null) ...[
+          SizedBox(height: compact ? 5 : 6),
+          _buildCheckFeedbackBanner(compact: compact),
+        ],
+      ],
+    );
   }
 
   Widget _buildCheckActionArea({required bool compact}) {
@@ -2065,10 +2180,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
       padding: EdgeInsets.zero,
       constraints: BoxConstraints.tightFor(
         width: dense ? 18 : 24,
-        height: dense ? 38 : 30,
+        height: dense ? 20 : 24,
       ),
-      iconSize: dense ? 14 : 16,
-      color: foreground.withValues(alpha: dense ? 0.74 : 1.0),
+      iconSize: dense ? 15 : 17,
+      color: foreground.withValues(alpha: dense ? 0.70 : 0.84),
       disabledColor: Colors.white.withValues(alpha: 0.28),
       icon: Icon(icon),
       onPressed: onPressed,
@@ -2101,7 +2216,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
             child: Row(
               children: [
                 Text(
-                  dense ? "Gates" : "Gate Palette",
+                  "Gates",
                   style: TextStyle(
                     fontSize: dense ? 11.5 : 14,
                     color: Colors.white,
@@ -2117,8 +2232,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
                     child: IconButton(
                       onPressed: _initDeletion,
                       icon: const Icon(Icons.delete_outline),
-                      iconSize: dense ? 12 : 18,
-                      color: Colors.white.withValues(alpha: 0.94),
+                      iconSize: dense ? 12 : 17,
+                      color: Colors.white.withValues(alpha: 0.72),
                       padding: EdgeInsets.zero,
                       constraints: BoxConstraints.tightFor(
                         width: dense ? 18 : 34,
@@ -2201,8 +2316,13 @@ class _QuantumComposerState extends State<QuantumComposer> {
     bool showHeader = true,
     bool showToggleInSummary = false,
     bool showSummarySubtitle = true,
+    bool showVisibilityControl = true,
+    bool? showAllStates,
     bool dense = false,
   }) {
+    final bool isComposerCurrentState =
+        runningAsQuantumComposer() && tone == StateVectorDisplayTone.current;
+
     return Container(
       padding: EdgeInsets.all(dense ? 4.0 : (secondary ? 5.0 : 7.0)),
       decoration: BoxDecoration(
@@ -2227,7 +2347,10 @@ class _QuantumComposerState extends State<QuantumComposer> {
         showHeader: showHeader,
         showToggleInSummary: showToggleInSummary,
         showSummarySubtitle: showSummarySubtitle,
+        showVisibilityControl: showVisibilityControl,
+        showAllStatesOverride: showAllStates,
         dense: dense,
+        enableNonZeroOnlyFilter: isComposerCurrentState,
       ),
     );
   }
@@ -2246,7 +2369,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     }
 
     final double buttonSize = dense ? 38 : 52;
-    final _GateVisual visual = _gateVisualFor(gate);
+    final GateGradientStyle visual = _gateVisualFor(gate);
 
     return Draggable<Gate>(
       // Draggable for Hadamard
@@ -2308,7 +2431,7 @@ class _GatePaletteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final _GateVisual visual = _QuantumComposerState._gateVisualFor(gate);
+    final GateGradientStyle visual = _QuantumComposerState._gateVisualFor(gate);
 
     return DecoratedBox(
       decoration: _QuantumComposerState._flatGateButtonDecoration(visual),
@@ -2343,16 +2466,6 @@ class _GatePaletteButton extends StatelessWidget {
       ),
     );
   }
-}
-
-class _GateVisual {
-  final Color top;
-  final Color bottom;
-
-  const _GateVisual({
-    required this.top,
-    required this.bottom,
-  });
 }
 
 class _PortraitLayoutSpec {

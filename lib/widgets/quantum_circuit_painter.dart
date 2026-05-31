@@ -5,6 +5,7 @@ import 'dart:math'; // For min/max
 import 'package:quantumquiz/models/placed_quantum_gate.dart'; // Import PlacedQuantumGate
 import 'package:quantumquiz/models/quantum_circuit.dart'; // Import QuantumCircuit
 import 'package:quantumquiz/models/selected_gate_type.dart'; // Import SelectedGateType
+import 'package:quantumquiz/widgets/gate_visual_style.dart';
 
 class QuantumCircuitPainter extends CustomPainter {
   // Layout constants
@@ -26,19 +27,8 @@ class QuantumCircuitPainter extends CustomPainter {
       Colors.white; // Define color for qubit lines (Black)
   static const Color qubitLabelColor =
       Colors.white; // Color for qubit labels (q0, q1) (Black)
-  // Add colors for other gate types as needed
-  static const Color gateBlueTop = Color(0xFF2A5FD7);
-  static const Color gateBlueBottom = Color(0xFF173A8F);
-  static const Color gateCyanTop = Color(0xFF2798B8);
-  static const Color gateCyanBottom = Color(0xFF145B72);
-  static const Color gateRedTop = Color(0xFFC93A3A);
-  static const Color gateRedBottom = Color(0xFF7F1F1F);
-  static const Color gatePurpleTop = Color(0xFF7A38D6);
-  static const Color gatePurpleBottom = Color(0xFF451D8F);
-  static const Color gateGreenTop = Color(0xFF218455);
-  static const Color gateGreenBottom = Color(0xFF104A32);
-  static const Color gateBorder = Color(0xFF31405F);
-  static const double gateBorderWidth = 1.2;
+  static const Color gateBorder = QubitQuestGateStyle.border;
+  static const double gateBorderWidth = QubitQuestGateStyle.borderWidth;
   static const Color circuitLineBlue = Color(0xFF3B8CFF);
 
   final QuantumCircuit
@@ -53,32 +43,8 @@ class QuantumCircuitPainter extends CustomPainter {
       this.circuit, this.widthNotifier, this.draggingOffset, this.draggingGate)
       : previewCircuit = QuantumCircuit(currentLevel: circuit.currentLevel);
 
-  _CircuitGateVisual _visualForGate(Gate gate) {
-    switch (gate.type) {
-      case SelectedGateType.hadamard:
-        return const _CircuitGateVisual(gateRedTop, gateRedBottom);
-      case SelectedGateType.x:
-      case SelectedGateType.cnot:
-      case SelectedGateType.ccnot:
-      case SelectedGateType.cz:
-      case SelectedGateType.rx:
-        return const _CircuitGateVisual(gateBlueTop, gateBlueBottom);
-      case SelectedGateType.y:
-      case SelectedGateType.z:
-        return const _CircuitGateVisual(gateCyanTop, gateCyanBottom);
-      case SelectedGateType.s:
-      case SelectedGateType.t:
-      case SelectedGateType.rz:
-        return const _CircuitGateVisual(gatePurpleTop, gatePurpleBottom);
-      case SelectedGateType.ry:
-        return const _CircuitGateVisual(gateGreenTop, gateGreenBottom);
-      default:
-        return _CircuitGateVisual(
-          gate.color,
-          Color.lerp(gate.color, Colors.black, 0.30)!,
-        );
-    }
-  }
+  GateGradientStyle _visualForGate(Gate gate) =>
+      QubitQuestGateStyle.forGate(gate);
 
   void _drawCircuitGateTile(
     Canvas canvas,
@@ -94,10 +60,7 @@ class QuantumCircuitPainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [
-          visual.top,
-          visual.bottom,
-        ],
+        colors: visual.colors,
       ).createShader(rect);
     final borderPaint = Paint()
       ..color = gateBorder
@@ -245,7 +208,7 @@ class QuantumCircuitPainter extends CustomPainter {
               // Draw target circle
               final targetPaint = Paint()
                 ..shader = RadialGradient(
-                  colors: [visual.top, visual.bottom],
+                  colors: visual.colors,
                 ).createShader(
                   Rect.fromCircle(
                     center: Offset(gateColumnCenterX, targetY),
@@ -335,7 +298,7 @@ class QuantumCircuitPainter extends CustomPainter {
             // Draw target circle
             final targetPaint = Paint()
               ..shader = RadialGradient(
-                colors: [visual.top, visual.bottom],
+                colors: visual.colors,
               ).createShader(
                 Rect.fromCircle(
                   center: Offset(gateColumnCenterX, targetY),
@@ -601,11 +564,4 @@ class QuantumCircuitPainter extends CustomPainter {
     // // debugPrint("shouldRepaint: false (no changes detected after deep comparison).");
     // return false;
   }
-}
-
-class _CircuitGateVisual {
-  final Color top;
-  final Color bottom;
-
-  const _CircuitGateVisual(this.top, this.bottom);
 }
