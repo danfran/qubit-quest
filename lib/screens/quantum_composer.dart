@@ -1165,27 +1165,56 @@ class _QuantumComposerState extends State<QuantumComposer> {
   }) {
     const double sectionGap = 8;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (!runningAsQuantumComposer()) ...[
-          _buildPortraitGoalSection(short: short),
-          const SizedBox(height: sectionGap),
-        ],
-        Flexible(
-          flex: runningAsQuantumComposer() ? 3 : 2,
-          child: circuitCard,
-        ),
-        const SizedBox(height: sectionGap),
-        _buildGatePalette(compact: true, dense: true),
-        const SizedBox(height: sectionGap),
-        Expanded(child: statePanel),
-        if (!runningAsQuantumComposer()) ...[
-          const SizedBox(height: sectionGap),
-          _buildPortraitCheckArea(compact: short),
-        ],
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool composer = runningAsQuantumComposer();
+        final Widget circuitSection = composer
+            ? SizedBox(
+                height: _composerPortraitCircuitHeight(
+                  constraints.maxHeight,
+                  short: short,
+                ),
+                child: circuitCard,
+              )
+            : Flexible(
+                flex: 2,
+                child: circuitCard,
+              );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (!composer) ...[
+              _buildPortraitGoalSection(short: short),
+              const SizedBox(height: sectionGap),
+            ],
+            circuitSection,
+            const SizedBox(height: sectionGap),
+            _buildGatePalette(compact: true, dense: true),
+            const SizedBox(height: sectionGap),
+            Expanded(child: statePanel),
+            if (!composer) ...[
+              const SizedBox(height: sectionGap),
+              _buildPortraitCheckArea(compact: short),
+            ],
+          ],
+        );
+      },
     );
+  }
+
+  double _composerPortraitCircuitHeight(
+    double availableHeight, {
+    required bool short,
+  }) {
+    final double qubitDrawingHeight =
+        _numQubits * QuantumCircuitPainter.qubitSpacing +
+            QuantumCircuitPainter.padding * 2;
+    final double cardChromeHeight = (short ? 6 : 9) + (short ? 6 : 10);
+    final double contentHeight = qubitDrawingHeight + cardChromeHeight;
+    final double maxCircuitHeight = availableHeight * 0.45;
+
+    return math.min(contentHeight, maxCircuitHeight);
   }
 
   Widget _buildPortraitStateSection({required bool short}) {

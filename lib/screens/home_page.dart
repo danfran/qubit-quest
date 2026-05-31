@@ -1,6 +1,5 @@
 // home_page.dart
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:in_app_review/in_app_review.dart';
@@ -18,19 +17,28 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/qq_level.dart';
 import '../models/qq_levels.dart';
 import '../models/qq_levels_category.dart';
+
 class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
   @override
-  _HomePageState createState() => _HomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
+  static const Color qqBlack = Color(0xFF00030A);
+  static const Color qqCard = Color(0xFF111827);
+  static const Color qqCard2 = Color(0xFF18233A);
+  static const Color qqBorder = Color(0x66344A73);
+  static const Color qqCyan = Color(0xFF56CCF2);
+
   // Placeholder for the maximum unlocked level.
   // In a real app, this would be loaded from user data (e.g., preferences, database).
   int _maxUnlockedLevel = 1; // Example: Levels 1 to 5 are unlocked initially
   bool _isLoadingLevels = true; // To show loading state
 
   late PackageInfo _packageInfo;
-  late List<MapEntry<String, String>> _aboutData; // Data for the about dialog
+  List<MapEntry<String, String>>? _aboutData; // Data for the about dialog
 
   final InAppReview _inAppReview = InAppReview.instance;
 
@@ -58,7 +66,8 @@ class _HomePageState extends State<HomePage> {
       MapEntry('App version', _packageInfo.version),
       MapEntry('Build number', _packageInfo.buildNumber),
       MapEntry('Build signature', _packageInfo.buildSignature),
-      MapEntry('Installer store', _packageInfo.installerStore ?? 'not available'),
+      MapEntry(
+          'Installer store', _packageInfo.installerStore ?? 'not available'),
       MapEntry('Contact', 'dfrancesconi12@gmail.com'),
     ];
   }
@@ -93,7 +102,8 @@ class _HomePageState extends State<HomePage> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF2D2E40), // Dark background for the dialog
+          backgroundColor:
+              const Color(0xFF2D2E40), // Dark background for the dialog
           title: const Text(
             'All Levels Completed!',
             style: TextStyle(color: Colors.white),
@@ -104,7 +114,8 @@ class _HomePageState extends State<HomePage> {
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Close', style: TextStyle(color: Colors.blueAccent)),
+              child: const Text('Close',
+                  style: TextStyle(color: Colors.blueAccent)),
               onPressed: () {
                 Navigator.of(context).pop(); // Close dialog
               },
@@ -128,32 +139,37 @@ class _HomePageState extends State<HomePage> {
       barrierDismissible: false, // user must tap button!
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF2D2E40), // Dark background for the dialog
+          backgroundColor:
+              const Color(0xFF2D2E40), // Dark background for the dialog
           title: const Text('About', style: TextStyle(color: Colors.white)),
           content: SizedBox(
             width: double.maxFinite, // Allows dialog to expand horizontally
             child: SingleChildScrollView(
               child: Column(
-                mainAxisSize: MainAxisSize.min, // Keep column compact vertically
+                mainAxisSize:
+                    MainAxisSize.min, // Keep column compact vertically
                 children: <Widget>[
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 4,
                       crossAxisSpacing: 4.0,
                       mainAxisSpacing: 4.0,
                       childAspectRatio: 4.0,
                     ),
-                    itemCount: _aboutData.length,
+                    itemCount: _aboutData!.length,
                     itemBuilder: (context, index) {
-                      final dataEntry = _aboutData[index];
+                      final dataEntry = _aboutData![index];
 
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6.0, vertical: 4.0),
                         alignment: Alignment.centerLeft,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF3B3C50), // Updated to match new theme
+                          color: const Color(
+                              0xFF3B3C50), // Updated to match new theme
                           borderRadius: BorderRadius.circular(4.0),
                         ),
                         child: RichText(
@@ -189,7 +205,8 @@ class _HomePageState extends State<HomePage> {
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Close', style: TextStyle(color: Colors.blueAccent)),
+              child: const Text('Close',
+                  style: TextStyle(color: Colors.blueAccent)),
               onPressed: () {
                 Navigator.of(context).pop();
               },
@@ -212,6 +229,7 @@ class _HomePageState extends State<HomePage> {
         );
       } catch (e) {
         debugPrint('Error opening store listing: $e');
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not open store page.')),
         );
@@ -223,69 +241,130 @@ class _HomePageState extends State<HomePage> {
     showDialog<int>(
       context: context,
       builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF2D2E40), // Updated to match new theme
-          title: const Text(
-            'Choose Number of Qubits',
-            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          content: SizedBox( // Use SizedBox to give GridView a bounded size
-            width: 390.0, // Calculated width: (5 buttons * 70 width/button) + (4 spaces * 10 spacing/space)
-            height: 60.0, // Height for one row of buttons (buttons are 46.67px tall, so 60px provides comfortable padding)
-            child: GridView.builder( // Changed to GridView.builder for horizontal layout
-              scrollDirection: Axis.horizontal, // Scroll horizontally
-              shrinkWrap: true, // Make GridView take only as much space as its children
-              physics: const NeverScrollableScrollPhysics(), // No scrolling needed if all fit
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 1, // One row
-                mainAxisSpacing: 10.0, // Horizontal spacing between buttons
-                mainAxisExtent: 70.0, // Explicitly set the width of each item to match level buttons
-                childAspectRatio: 1.5, // Matches the level buttons' width/height ratio (70/46.67)
-              ),
-              itemCount: 5,
-              itemBuilder: (context, index) {
-                final numQubits = index + 1;
-                return ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop(numQubits); // Pop dialog with selected number
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5D5FE6), // Updated to a vibrant blue
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    elevation: 5, // Add elevation for a lifted effect
-                    padding: EdgeInsets.zero, // Remove default padding for better text centering
-                    // minimumSize is not needed here as mainAxisExtent and childAspectRatio define size
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final double maxWidth = constraints.maxWidth.clamp(0, 460);
+
+              return ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: qqCard,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: qqBorder),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.34),
+                        blurRadius: 18,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
                   ),
-                  child: Text(
-                    '$numQubits',
-                    style: const TextStyle(
-                      fontSize: 24, // Consistent font size with levels
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Choose Number of Qubits',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          height: 1.12,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Open the sandbox with a circuit size.',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.66),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          for (int numQubits = 1; numQubits <= 5; numQubits++)
+                            _buildQubitChoiceButton(
+                              dialogContext,
+                              numQubits,
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
         );
       },
     ).then((selectedNumQubits) {
+      if (!mounted) return;
       if (selectedNumQubits != null) {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => QuantumComposer(
               levelId: -1,
-              level: getComposerAsLevel(selectedNumQubits), // No specific level provided
+              level: getComposerAsLevel(
+                  selectedNumQubits), // No specific level provided
               onLevelUnlocked: null,
             ),
           ),
         );
       }
     });
+  }
+
+  Widget _buildQubitChoiceButton(BuildContext dialogContext, int numQubits) {
+    return InkWell(
+      onTap: () => Navigator.of(dialogContext).pop(numQubits),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 72,
+        height: 58,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF4A8DFF),
+              Color(0xFF2F6FEA),
+              Color(0xFF1F4FC7),
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          border: Border.all(color: const Color(0x80344A73)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.28),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            '$numQubits',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              height: 1,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _openYoutubePlaylist(String playlistTextLink) async {
@@ -298,6 +377,43 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _selectUtilityMenuAction(String action) {
+    switch (action) {
+      case 'docs':
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const WebViewPage(
+              title: 'App Documentation',
+              url:
+                  'https://danfran.github.io/qubit-quest/app-documentation.html',
+            ),
+          ),
+        );
+        break;
+      case 'videos':
+        _openYoutubePlaylist(
+          'https://www.youtube.com/playlist?list=PL1UkEjMAb8Lq1Nivn894qBWTU938HKPM7',
+        );
+        break;
+      case 'rate':
+        _rateApp();
+        break;
+      case 'privacy':
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const WebViewPage(
+              title: 'Privacy Policy',
+              url: 'https://danfran.github.io/qubit-quest/privacy-policy.html',
+            ),
+          ),
+        );
+        break;
+      case 'about':
+        _showAboutDialog();
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoadingLevels) {
@@ -307,298 +423,391 @@ class _HomePageState extends State<HomePage> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1E2C), // Consistent dark background
+      backgroundColor: qqBlack,
       appBar: AppBar(
-        scrolledUnderElevation: 0.0, // Prevent elevation change on scroll
-        surfaceTintColor: Colors.transparent, // Prevent color tinting on scroll
+        scrolledUnderElevation: 0.0,
+        surfaceTintColor: Colors.transparent,
         title: SvgPicture.asset(
-          'assets/images/logo.svg', // Path to your white SVG
-          height: 36, // Adjust height as needed
+          'assets/images/logo.svg',
+          height: 34,
           colorFilter: const ColorFilter.mode(
             Colors.white,
             BlendMode.srcIn,
-          ), // Ensure it's white if not already in SVG, or to override
-        ),
-        backgroundColor: const Color(0xFF1E1E2C), // Dark app bar
-        centerTitle: true,
-      ),
-      body: Container(
-        // Use a gradient for the background to add visual depth
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E1E2C),
-        ),
-        child: SafeArea( // Ensures content avoids notches/cutouts
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
-            child: Row( // Changed from Column to Row for two-column layout
-              children: [
-                // Left side: Options list (30% width)
-                Expanded(
-                  flex: 3, // 30% of the available width
-                  child: Align(
-                    alignment: Alignment.topCenter, // This aligns the content to the top
-                    child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2D2E40),
-                      borderRadius: BorderRadius.circular(16.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.4),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      // Removed SingleChildScrollView to prevent scrolling
-                      child: SingleChildScrollView(child: Column(
-                        // Center main content vertically
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildOptionButton(context, "Start/Continue", Icons.play_arrow, () {
-                            if (_maxUnlockedLevel > numberOfLevels) {
-                              _showGameCompleteDialog();
-                              return;
-                            }
-                            _playLevelSequence(_maxUnlockedLevel, context);
-                          }),
-                          const SizedBox(height: 2), // Adjusted spacing
-                          _buildOptionButton(context, "App Documentation", Icons.book, () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const WebViewPage(
-                                  title: 'App Documentation',
-                                  url: 'https://danfran.github.io/qubit-quest/app-documentation.html',
-                                ),
-                              ),
-                            );
-                          }),
-                          const SizedBox(height: 2), // Adjusted spacing
-                          _buildOptionButton(context, "Solution Videos", Icons.video_library_rounded, () {
-                            _openYoutubePlaylist('https://www.youtube.com/playlist?list=PL1UkEjMAb8Lq1Nivn894qBWTU938HKPM7');
-                          }),
-                          const SizedBox(height: 2), // Adjusted spacing
-                          _buildOptionButton(context, "Rate Us", Icons.star, () {
-                            _rateApp();
-                          }),
-                          const SizedBox(height: 2), // Adjusted spacing
-                          _buildOptionButton(context, "Privacy Policy", Icons.security, () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const WebViewPage(
-                                  title: 'Privacy Policy',
-                                  url: 'https://danfran.github.io/qubit-quest/privacy-policy.html',
-                                ),
-                              ),
-                            );
-                          }),
-                          const SizedBox(height: 2), // Adjusted spacing
-                          _buildOptionButton(context, "About", Icons.info, () {
-                            _showAboutDialog();
-                          }),
-                        ],
-                      ),
-                    ),),
-                  ),
-                  ),
-                ),
-                const SizedBox(width: 24.0), // Increased space between the two columns
-
-                // Right side: Levels grid (70% width)
-                Expanded(
-                  flex: 7,
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.only(left:20.0, right:20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // The Hero Card
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16.0),
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF5D5FE6), Color(0xFF8843F2)], // Vibrant gradient
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF5D5FE6).withOpacity(0.4),
-                                blurRadius: 20,
-                                spreadRadius: 2,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Card(
-                            elevation: 0, // No elevation on the card itself
-                            color: Colors.transparent, // Make card transparent to show the container's gradient
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16.0),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                              child: RichText(
-                                textAlign: TextAlign.center,
-                                text: TextSpan(
-                                  style: const TextStyle(
-                                    fontSize: 20, // Increased font size for hero section
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.black,
-                                        offset: Offset(2, 2),
-                                        blurRadius: 3,
-                                      ),
-                                    ],
-                                  ),
-                                  children: <TextSpan>[
-                                    const TextSpan(text: 'Select a Level or use the '),
-                                    TextSpan(
-                                      text: 'Composer',
-                                      style: const TextStyle(
-                                        color: Color(0xFFF2F272), // A bright yellow
-                                        decoration: TextDecoration.none, // Explicitly remove underline
-                                      ),
-                                      recognizer: TapGestureRecognizer()
-                                        ..onTap = () {
-                                          _showQubitSelectionDialog();
-                                        },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20), // Spacing between the card and the grid
-                        for (var topic in groupedLevels)
-                          _buildTopicSection(topic.groupName, topic.from, topic.to),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ),
+        ),
+        backgroundColor: qqBlack,
+        centerTitle: true,
+        actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Menu',
+            color: qqCard,
+            surfaceTintColor: Colors.transparent,
+            icon: const Icon(Icons.menu_rounded, color: Colors.white),
+            onSelected: _selectUtilityMenuAction,
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'docs',
+                child: ListTile(
+                  leading: Icon(Icons.book_outlined, color: Colors.white),
+                  title: Text('Documentation',
+                      style: TextStyle(color: Colors.white)),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'videos',
+                child: ListTile(
+                  leading:
+                      Icon(Icons.video_library_outlined, color: Colors.white),
+                  title: Text('Solution Videos',
+                      style: TextStyle(color: Colors.white)),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'rate',
+                child: ListTile(
+                  leading: Icon(Icons.star_outline, color: Colors.white),
+                  title: Text('Rate Us', style: TextStyle(color: Colors.white)),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'privacy',
+                child: ListTile(
+                  leading:
+                      Icon(Icons.privacy_tip_outlined, color: Colors.white),
+                  title: Text('Privacy Policy',
+                      style: TextStyle(color: Colors.white)),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'about',
+                child: ListTile(
+                  leading: Icon(Icons.info_outline, color: Colors.white),
+                  title: Text('About', style: TextStyle(color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final bool compact = constraints.maxWidth < 720;
+            final double horizontalPadding = compact ? 12 : 28;
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                compact ? 10 : 18,
+                horizontalPadding,
+                24,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1180),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildPrimaryActionSection(compact: compact),
+                      SizedBox(height: compact ? 18 : 24),
+                      for (var topic in groupedLevels)
+                        _buildTopicSection(
+                          topic.groupName,
+                          topic.from,
+                          topic.to,
+                          compact: compact,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  // Helper method to build a topic section with a header and a grid of levels
-  Widget _buildTopicSection(String topic, int indexStart, int indexStop) {
+  Widget _buildPrimaryActionSection({required bool compact}) {
+    final Widget continueCard = _buildActionCard(
+      title: 'Continue Journey',
+      subtitle: _maxUnlockedLevel > numberOfLevels
+          ? 'Review your completed quantum path'
+          : 'Next: Level $_maxUnlockedLevel',
+      icon: Icons.play_arrow_rounded,
+      primary: true,
+      compact: compact,
+      onTap: () {
+        if (_maxUnlockedLevel > numberOfLevels) {
+          _showGameCompleteDialog();
+          return;
+        }
+        _playLevelSequence(_maxUnlockedLevel, context);
+      },
+    );
+    final Widget composerCard = _buildActionCard(
+      title: 'Sandbox Composer',
+      subtitle: 'Build and test your own quantum circuits',
+      icon: Icons.tune_rounded,
+      primary: false,
+      compact: compact,
+      onTap: _showQubitSelectionDialog,
+    );
+
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          continueCard,
+          const SizedBox(height: 10),
+          composerCard,
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(flex: 6, child: continueCard),
+        const SizedBox(width: 14),
+        Expanded(flex: 5, child: composerCard),
+      ],
+    );
+  }
+
+  Widget _buildActionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool primary,
+    required bool compact,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 14 : 18,
+          vertical: compact ? 13 : 16,
+        ),
+        decoration: BoxDecoration(
+          color: primary ? null : qqCard,
+          gradient: primary
+              ? const LinearGradient(
+                  colors: [
+                    Color(0xFFA855F7),
+                    Color(0xFF8B4BE8),
+                    Color(0xFF5B21B6),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: primary ? const Color(0xFF3B1B75) : qqBorder,
+            width: 1.1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.28),
+              blurRadius: 14,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: compact ? 36 : 42,
+              height: compact ? 36 : 42,
+              decoration: BoxDecoration(
+                color: primary
+                    ? Colors.white.withValues(alpha: 0.16)
+                    : qqCyan.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color:
+                      primary ? Colors.white.withValues(alpha: 0.20) : qqBorder,
+                ),
+              ),
+              child: Icon(
+                icon,
+                color: primary ? Colors.white : qqCyan,
+                size: compact ? 22 : 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: compact ? 16 : 19,
+                      fontWeight: FontWeight.w900,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color:
+                          Colors.white.withValues(alpha: primary ? 0.82 : 0.68),
+                      fontSize: compact ? 11 : 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.white.withValues(alpha: primary ? 0.92 : 0.60),
+              size: compact ? 24 : 28,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopicSection(
+    String topic,
+    int indexStart,
+    int indexStop, {
+    required bool compact,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          padding: EdgeInsets.only(
+            top: compact ? 12 : 16,
+            bottom: compact ? 8 : 10,
+          ),
           child: Text(
             topic,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+            style: TextStyle(
+              fontSize: compact ? 18 : 22,
+              fontWeight: FontWeight.w900,
               color: Colors.white,
+              height: 1.12,
             ),
           ),
         ),
         GridView.builder(
-          shrinkWrap: true, // Important to allow the grid to be in a scrollable view
-          physics: const NeverScrollableScrollPhysics(), // Prevents nested scrolling
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 70.0,
-            crossAxisSpacing: 10.0,
-            mainAxisSpacing: 10.0,
-            childAspectRatio: 1.5,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: compact ? 116.0 : 132.0,
+            crossAxisSpacing: compact ? 8.0 : 10.0,
+            mainAxisSpacing: compact ? 8.0 : 10.0,
+            childAspectRatio: compact ? 1.18 : 1.32,
           ),
           itemCount: indexStop - indexStart + 1,
           itemBuilder: (context, index) {
-            int currentIndex = indexStart + index;
-            int levelNumber = currentIndex + 1;
+            final int currentIndex = indexStart + index;
+            final int levelNumber = currentIndex + 1;
             final bool isUnlocked = levelNumber <= _maxUnlockedLevel;
 
             return Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8.0),
+                borderRadius: BorderRadius.circular(10.0),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(isUnlocked ? 0.3 : 0.2),
+                    color: Colors.black
+                        .withValues(alpha: isUnlocked ? 0.28 : 0.16),
                     spreadRadius: isUnlocked ? 1 : 0.5,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
                   ),
                 ],
                 gradient: isUnlocked
                     ? const LinearGradient(
-                  colors: [Color(0xFF5D5FE6), Color(0xFF8843F2)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-                    : null, // No gradient for locked levels
-                color: isUnlocked ? null : const Color(0xFF3B3C50),
+                        colors: [
+                          Color(0xFF4A8DFF),
+                          Color(0xFF2F6FEA),
+                          Color(0xFF1F4FC7),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      )
+                    : null,
+                color: isUnlocked ? null : qqCard2,
+                border: Border.all(
+                  color: isUnlocked ? const Color(0x80344A73) : qqBorder,
+                ),
               ),
               child: ElevatedButton(
                 onPressed: isUnlocked
                     ? () async {
-                  await _playLevelSequence(levelNumber, context);
-                }
-                    : null, // Disable button if level is locked
+                        await _playLevelSequence(levelNumber, context);
+                      }
+                    : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent, // Make button background transparent
-                  shadowColor: Colors.transparent, // No button shadow
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0),
+                    borderRadius: BorderRadius.circular(10.0),
                   ),
-                  elevation: 0, // No elevation
-                  padding: EdgeInsets.zero,
+                  elevation: 0,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                 ),
                 child: isUnlocked
-                    ? FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: SizedBox(
-                          width: 62,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '$levelNumber',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              if (allQQLevels[currentIndex].title != null)
-                                Text(
-                                  allQQLevels[currentIndex].title!,
-                                  style: const TextStyle(
-                                    fontSize: 8,
-                                    color: Colors.white70,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                            ],
+                    ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '$levelNumber',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: compact ? 21 : 23,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              height: 1,
+                            ),
                           ),
-                        ),
+                          if (allQQLevels[currentIndex].title != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              allQQLevels[currentIndex].title!,
+                              style: TextStyle(
+                                fontSize: compact ? 9.5 : 10.5,
+                                color: Colors.white.withValues(alpha: 0.78),
+                                fontWeight: FontWeight.w700,
+                                height: 1.08,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
                       )
                     : Icon(
                         Icons.lock,
-                        color: Colors.grey[600],
-                        size: 28,
+                        color: Colors.white.withValues(alpha: 0.24),
+                        size: 26,
                       ),
               ),
             );
           },
         ),
-        const SizedBox(height: 20), // Spacing between topics
+        SizedBox(height: compact ? 14 : 18),
       ],
     );
   }
@@ -637,7 +846,10 @@ class _HomePageState extends State<HomePage> {
   // Show category intro dialog once per category (tracked in SharedPreferences)
   Future<void> _showCategoryIntroIfNeeded(int levelNumber) async {
     final category = groupedLevels.cast<QQLevelsCategory?>().firstWhere(
-          (c) => c != null && (c.from + 1) == levelNumber && c.categoryIntro != null,
+          (c) =>
+              c != null &&
+              (c.from + 1) == levelNumber &&
+              c.categoryIntro != null,
           orElse: () => null,
         );
     if (category == null) return;
@@ -655,20 +867,25 @@ class _HomePageState extends State<HomePage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           category.groupName,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         content: Text(
           category.categoryIntro!,
-          style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.6),
+          style:
+              const TextStyle(color: Colors.white70, fontSize: 15, height: 1.6),
         ),
         actions: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF5D5FE6),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("Let's go →", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text("Let's go →",
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -683,7 +900,8 @@ class _HomePageState extends State<HomePage> {
       final levelData = getQQLevelById(currentLevelToPlay);
 
       if (levelData == null) {
-        debugPrint('HomePage: Error: Level $currentLevelToPlay data not found. Exiting chain.');
+        debugPrint(
+            'HomePage: Error: Level $currentLevelToPlay data not found. Exiting chain.');
         _showGameCompleteDialog();
         continueLevelChain = false;
         break;
@@ -691,9 +909,10 @@ class _HomePageState extends State<HomePage> {
 
       // Show category intro once if this is the first level of a category
       await _showCategoryIntroIfNeeded(currentLevelToPlay);
-      if (!mounted) break;
+      if (!context.mounted) break;
 
-      debugPrint('HomePage: Pushing screen for Level $currentLevelToPlay (${levelData.runtimeType})...');
+      debugPrint(
+          'HomePage: Pushing screen for Level $currentLevelToPlay (${levelData.runtimeType})...');
       final result = await Navigator.push<LevelCompletionAction>(
         context,
         MaterialPageRoute(
@@ -701,7 +920,8 @@ class _HomePageState extends State<HomePage> {
         ),
       );
 
-      debugPrint('HomePage: Returned from Level $currentLevelToPlay with result: $result');
+      debugPrint(
+          'HomePage: Returned from Level $currentLevelToPlay with result: $result');
 
       if (result == LevelCompletionAction.nextLevel) {
         currentLevelToPlay++;
@@ -713,29 +933,5 @@ class _HomePageState extends State<HomePage> {
         continueLevelChain = false;
       }
     }
-  }
-
-  // Helper method for building consistent option buttons
-  Widget _buildOptionButton(BuildContext context, String text, IconData icon, VoidCallback onPressed) {
-    return SizedBox(
-      width: double.infinity, // Make button fill available width
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF3B3C50), // A darker button color
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 6), // Adjusted padding
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-          elevation: 5,
-        ),
-        icon: Icon(icon, size: 24),
-        label: Text(
-          text,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
   }
 }
