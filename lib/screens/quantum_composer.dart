@@ -1220,6 +1220,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
   Widget _buildPortraitStateSection({required bool short}) {
     final List<Complex>? targetStateVector =
         runningAsQuantumComposer() ? null : _targetStateVector();
+    final String? targetExpression = _targetStateDisplayExpression();
 
     if (targetStateVector == null) {
       return _buildStatePanel(
@@ -1253,7 +1254,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
           child: _buildStatePanel(
             stateVector: targetStateVector,
             summaryTitle: 'Target State',
-            stateExpression: widget.level.targetStateExpression,
+            stateExpression: targetExpression,
             tone: StateVectorDisplayTone.target,
             showHeader: false,
             showToggleInSummary: true,
@@ -1265,6 +1266,21 @@ class _QuantumComposerState extends State<QuantumComposer> {
         ),
       ],
     );
+  }
+
+  String? _targetStateDisplayExpression() {
+    final String? expression = widget.level.targetStateExpression?.trim();
+    if (expression == null || expression.isEmpty) {
+      return null;
+    }
+    if (expression.contains('=')) {
+      return expression;
+    }
+
+    final String? label = widget.level.targetStateLabel?.trim();
+    final String leftSide = label == null || label.isEmpty ? '|ψ⟩' : label;
+
+    return '$leftSide = $expression';
   }
 
   Widget _buildSharedStateFilterControl() {
@@ -1372,6 +1388,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
     required bool short,
   }) {
     final bool hasTargetState = targetStateVector != null;
+    final String? targetExpression = _targetStateDisplayExpression();
     final Widget currentStatePanel = _buildStatePanel(
       summaryTitle: 'Current State',
       tone: StateVectorDisplayTone.current,
@@ -1389,7 +1406,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
         : _buildStatePanel(
             stateVector: targetStateVector,
             summaryTitle: 'Target State',
-            stateExpression: widget.level.targetStateExpression,
+            stateExpression: targetExpression,
             tone: StateVectorDisplayTone.target,
             showHeader: false,
             showToggleInSummary: true,

@@ -16,7 +16,6 @@ final List<QQLevel> allQQLevels = [
     title: 'Bit Flip',
     taskDescription:
         r"Your first quantum challenge! Apply a gate to transform \( |0\rangle \) to \( |1\rangle \).",
-    targetStateLabel: "|1⟩",
     targetStateExpression: "|1⟩",
     conceptIntro:
         'Quantum gates are the elementary operations that transform qubit states. '
@@ -150,6 +149,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Phase Sandwich',
     taskDescription:
         r"Starting from \( |0\rangle \), achieve \( -|0\rangle \).",
+    targetStateLabel: "-|0⟩",
+    targetStateExpression: "-|0⟩",
     conceptIntro:
         'Gates compose: applying multiple gates in sequence multiplies their matrices. '
         'Some operations cannot be applied directly to the current state — '
@@ -215,6 +216,8 @@ final List<QQLevel> allQQLevels = [
     title: 'T Gate Phase',
     taskDescription:
         r"You're at \( |0\rangle \). Apply gates to reach a state where the \( |1\rangle \) amplitude has a phase of \( e^{i\pi/4} \). This is \( (|0\rangle + e^{i\pi/4}|1\rangle)/\sqrt{2} \).",
+    targetStateLabel: "T|+⟩",
+    targetStateExpression: "T|+⟩ = (|0⟩ + e^{iπ/4}|1⟩)/√2",
     conceptIntro:
         'Phase gates rotate only the phase of the |1⟩ amplitude by a fixed angle, leaving |0⟩ unchanged. '
         'On their own, phase gates are invisible to a single measurement — |e^(iφ)|² = 1 regardless of φ. '
@@ -248,6 +251,8 @@ final List<QQLevel> allQQLevels = [
     title: 'S Gate — 90° Phase',
     taskDescription:
         r"Transform the initial state of the qubit from \( |0\rangle \) to the target state \( |+i\rangle = (|0\rangle + |i\rangle)/\sqrt{2} \).",
+    targetStateLabel: "|+i⟩",
+    targetStateExpression: "|+i⟩ = (|0⟩ + i|1⟩)/√2",
     conceptIntro:
         'The S gate is a phase gate that applies a 90° rotation to the |1⟩ amplitude: S|1⟩ = i|1⟩. '
         'Like all phase gates, S cannot create superposition on its own — '
@@ -279,6 +284,8 @@ final List<QQLevel> allQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'The Minus State',
     taskDescription: r"Transform \( |+\rangle \) to \( |-\rangle \).",
+    targetStateLabel: "|-⟩",
+    targetStateExpression: "|-⟩ = (|0⟩ - |1⟩)/√2",
     conceptIntro:
         'The |-⟩ state is (|0⟩−|1⟩)/√2 — a superposition where the |1⟩ amplitude carries a negative sign. '
         'Together with |+⟩, |+i⟩, and |−i⟩, it forms the four cardinal "compass points" '
@@ -311,6 +318,8 @@ final List<QQLevel> allQQLevels = [
     title: '2-Qubit Product State',
     taskDescription:
         r"From \( |00\rangle \), create the product state \( |+\rangle \otimes |1\rangle = (|01\rangle + |11\rangle)/\sqrt{2} \).",
+    targetStateLabel: "|+⟩⊗|1⟩",
+    targetStateExpression: "|+⟩⊗|1⟩ = (|01⟩ + |11⟩)/√2",
     conceptIntro: 'Two-qubit systems are described by tensor products. '
         'When no controlled gate connects them, each qubit can be operated independently. '
         'The full state vector has 2² = 4 entries: |00⟩, |01⟩, |10⟩, |11⟩. '
@@ -343,6 +352,8 @@ final List<QQLevel> allQQLevels = [
     title: 'The −i State',
     taskDescription:
         r"From \( |+\rangle \), achieve \( |-i\rangle = (|0\rangle - i|1\rangle)/\sqrt{2} \).",
+    targetStateLabel: "|-i⟩",
+    targetStateExpression: "|-i⟩ = (|0⟩ - i|1⟩)/√2",
     conceptIntro:
         'You have seen |+i⟩ = (|0⟩+i|1⟩)/√2 — now aim for its mirror: |-i⟩ = (|0⟩−i|1⟩)/√2. '
         'The four cardinal equatorial states |+⟩, |−⟩, |+i⟩, |−i⟩ each differ by a 90° phase step on |1⟩. '
@@ -377,6 +388,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Uncomputing a Phase State',
     taskDescription:
         r"You're at \( (|0\rangle - i|1\rangle)/\sqrt{2} \). Transform this state back to \( |1\rangle \).",
+    targetStateExpression: "|1⟩",
     conceptIntro:
         'Quantum circuits are reversible — every operation can be undone. '
         'The pre-inserted gates H→S→Z have already transformed |0⟩ into |-i⟩ = (|0⟩−i|1⟩)/√2. '
@@ -424,6 +436,8 @@ final List<QQLevel> allQQLevels = [
     title: 'T† — Inverse Phase Gate',
     taskDescription:
         r"From \( |0\rangle \), reach \( (|0\rangle + e^{-i\pi/4}|1\rangle)/\sqrt{2} \).",
+    targetStateLabel: "T†|+⟩",
+    targetStateExpression: "T†|+⟩ = (|0⟩ + e^{-iπ/4}|1⟩)/√2",
     conceptIntro:
         'T† (T-dagger, also written T⁻¹) is the inverse of the T gate. '
         'Where T rotates the |1⟩ phase by +π/4, T† rotates by −π/4. '
@@ -460,6 +474,7 @@ final List<QQLevel> allQQLevels = [
     title: 'CNOT Gate',
     taskDescription:
         r"From \( |10\rangle \), create a circuit where Qubit 1 will 'mirror' the state of Qubit 0. The final state should be \( |11\rangle \).",
+    targetStateExpression: "|11⟩",
     conceptIntro:
         'The CNOT (Controlled-NOT, CX) gate is the fundamental two-qubit gate. '
         'It has a "control" qubit and a "target" qubit: the target flips if and only if the control is |1⟩, '
@@ -494,6 +509,7 @@ final List<QQLevel> allQQLevels = [
     // 15
     title: 'CNOT: Swapping Control & Target',
     taskDescription: r"Transform \( |01\rangle \) to \( |11\rangle \).",
+    targetStateExpression: "|11⟩",
     conceptIntro:
         'CNOT is not symmetric — swapping the roles of the control and target qubit '
         'produces a completely different operation. '
@@ -528,6 +544,7 @@ final List<QQLevel> allQQLevels = [
     title: '3-Qubit CNOT',
     taskDescription:
         r"Explore 3 qubits! Transform \( |101\rangle \) to \( |100\rangle \).",
+    targetStateExpression: "|100⟩",
     conceptIntro:
         'CNOT can connect any two qubits in a multi-qubit register — they do not need to be adjacent. '
         'A 3-qubit system has a state vector with 2³=8 entries. '
@@ -560,6 +577,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Uncomputing with CNOT',
     taskDescription:
         r"From \( |11\rangle \), transform the state to \( |00\rangle \).",
+    targetStateExpression: "|00⟩",
     conceptIntro:
         'Reaching any two-qubit basis state from any other requires the right combination of gates '
         'applied in the correct order. '
@@ -595,6 +613,7 @@ final List<QQLevel> allQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'Toffoli Gate (CCX)',
     taskDescription: r"Turn \( |101\rangle \) into \( |111\rangle \).",
+    targetStateExpression: "|111⟩",
     conceptIntro:
         'The Toffoli gate (CCX, CCNOT) has two control qubits and one target. '
         'It flips the target only when BOTH controls are |1⟩ — making it a quantum AND gate. '
@@ -635,6 +654,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Toffoli: Choose Your Controls',
     taskDescription:
         r"From \( |011\rangle \), transform the state to \( |111\rangle \).",
+    targetStateExpression: "|111⟩",
     conceptIntro:
         'The Toffoli gate is flexible — any two qubits can be the controls and '
         'any distinct third qubit can be the target. '
@@ -677,6 +697,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Toffoli Self-Inverse',
     taskDescription:
         r"You are given a 3-qubit circuit already in the state \( |111\rangle \). Transform this state back to \( |110\rangle \).",
+    targetStateExpression: "|110⟩",
     conceptIntro:
         'Like X and CNOT, the Toffoli gate is its own inverse: CCX·CCX = I. '
         'Applying CCX twice in a row restores the original state, because flipping a bit twice returns it to its start. '
@@ -718,6 +739,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Toffoli as AND Gate',
     taskDescription:
         r"From \( |010\rangle \), transform the state to \( |111\rangle \).",
+    targetStateExpression: "|111⟩",
     conceptIntro:
         'The Toffoli gate computes a quantum AND: CCX(ctrl₁,ctrl₂→tgt) sets '
         'tgt ← tgt ⊕ (ctrl₁ AND ctrl₂). '
@@ -760,6 +782,8 @@ final List<QQLevel> allQQLevels = [
     title: 'First Bell State Φ⁺',
     taskDescription:
         r"Entangle two qubits! Create the Bell state \( |00\rangle + |11\rangle\).",
+    targetStateLabel: "|Φ⁺⟩",
+    targetStateExpression: "|Φ⁺⟩ = (|00⟩ + |11⟩)/√2",
     conceptIntro: 'Entanglement is the defining feature of quantum mechanics. '
         'The Bell state Φ⁺ = (|00⟩+|11⟩)/√2 cannot be written as (state of Q0)⊗(state of Q1). '
         'After creating it, measuring either qubit instantly determines the other — '
@@ -796,6 +820,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Bell State Ψ⁺',
     taskDescription:
         r"From \( |01\rangle \), create the Bell state \( |\Psi^+\rangle = (|01\rangle + |10\rangle)/\sqrt{2} \).",
+    targetStateLabel: "|Ψ⁺⟩",
+    targetStateExpression: "|Ψ⁺⟩ = (|01⟩ + |10⟩)/√2",
     conceptIntro:
         'There are four Bell states, each a maximally-entangled two-qubit state. '
         'Ψ⁺ = (|01⟩+|10⟩)/√2 is anti-correlated: measuring one qubit always gives the '
@@ -834,6 +860,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Disentangling a Bell State',
     taskDescription:
         r"Time for disentangling Bell State. Can you reverse the process to get back to \( |00\rangle \)?",
+    targetStateExpression: "|00⟩",
     conceptIntro:
         'Quantum circuits are reversible — every entangling operation can be undone. '
         'The pre-inserted circuit created the Bell state Φ⁺. '
@@ -880,6 +907,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Bell State Ψ⁻',
     taskDescription:
         r"From \( |10\rangle \), create the Bell state \( |\Psi^-\rangle = (|01\rangle - |10\rangle)/\sqrt{2} \).",
+    targetStateLabel: "|Ψ⁻⟩",
+    targetStateExpression: "|Ψ⁻⟩ = (|01⟩ - |10⟩)/√2",
     conceptIntro:
         'Ψ⁻ = (|01⟩−|10⟩)/√2 is the only Bell state antisymmetric under qubit swap '
         '(swapping the two qubits gives −Ψ⁻). It is known as the "singlet" state in physics. '
@@ -920,6 +949,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Bell State Φ⁻',
     taskDescription:
         r"From \( |00\rangle \), prepare the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle)/\sqrt{2} \). You need only one solution although it can have 2 solutions potenially, due to entanglement.",
+    targetStateLabel: "|Φ⁻⟩",
+    targetStateExpression: "|Φ⁻⟩ = (|00⟩ - |11⟩)/√2",
     conceptIntro:
         'The four Bell states — Φ⁺, Φ⁻, Ψ⁺, Ψ⁻ — form a complete orthonormal basis for '
         'two-qubit space. Any two-qubit state can be expanded in the Bell basis. '
@@ -958,6 +989,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Uncomputing Φ⁻',
     taskDescription:
         r"This circuit is pre-configured. Your task is to transform this state back to \( |00\rangle \).",
+    targetStateExpression: "|00⟩",
     conceptIntro:
         'The pre-inserted H→CNOT→Z sequence has created Φ⁻=(|00⟩−|11⟩)/√2. '
         'To reverse an entangled state, apply the inverse operations in reverse order. '
@@ -1009,6 +1041,7 @@ final List<QQLevel> allQQLevels = [
     title: 'SWAP via Three CNOTs',
     taskDescription:
         r"From \( |10\rangle \), swap the states of the two qubits to achieve \( |01\rangle \). This can be done using only CX gates.",
+    targetStateExpression: "|01⟩",
     conceptIntro:
         'A SWAP gate exchanges the states of two qubits: SWAP|ab⟩ = |ba⟩. '
         'There is no SWAP gate in your toolbar, but it can be constructed from gates you already know. '
@@ -1050,6 +1083,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Conditional Phase Flip',
     taskDescription:
         r"From \( |00\rangle \), flip the phase of \( |11\rangle \).",
+    targetStateLabel: "CZ|++⟩",
+    targetStateExpression: "CZ|++⟩ = (|00⟩ + |01⟩ + |10⟩ - |11⟩)/2",
     conceptIntro:
         'Flipping only the phase of |11⟩ while leaving all other basis states unchanged '
         'is called a Controlled-Z (CZ) operation. '
@@ -1092,6 +1127,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Bell Ψ⁺ from |00⟩',
     taskDescription:
         r"From \( |00\rangle \), create the Bell state \( |\Psi^+\rangle = (|01\rangle + |10\rangle)/\sqrt{2} \).",
+    targetStateLabel: "|Ψ⁺⟩",
+    targetStateExpression: "|Ψ⁺⟩ = (|01⟩ + |10⟩)/√2",
     conceptIntro:
         'All four Bell states can be prepared from |00⟩ by adjusting what you do '
         'before or after the standard entangling circuit. '
@@ -1132,6 +1169,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Bell Φ⁻ from |10⟩',
     taskDescription:
         r"From \( |10\rangle \), create the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle)/\sqrt{2} \).",
+    targetStateLabel: "|Φ⁻⟩",
+    targetStateExpression: "|Φ⁻⟩ = (|00⟩ - |11⟩)/√2",
     conceptIntro:
         'H|1⟩ = (|0⟩−|1⟩)/√2 = |−⟩ — when applied to a qubit that is already |1⟩, '
         'the Hadamard gate produces a superposition with a built-in minus sign. '
@@ -1173,6 +1212,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Complete the SWAP',
     taskDescription:
         r"This circuit is pre-configured with the first CNOT of a qubit swap. Complete the swap of qubits 0 and 1, so \( |01\rangle \) becomes \( |10\rangle \).",
+    targetStateExpression: "|10⟩",
     conceptIntro:
         'A SWAP gate exchanges the states of two qubits and can be built from CNOT gates alone '
         '(as you discovered in level 28). Here the first CNOT of the decomposition is already pre-inserted. '
@@ -1214,6 +1254,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Long-Range CNOT',
     taskDescription:
         r"From \( |001\rangle \), transform the state to \( |101\rangle \).",
+    targetStateExpression: "|101⟩",
     conceptIntro: 'In a 3-qubit register CNOT can connect any two qubits — '
         'they do not need to be adjacent. '
         'Here Q2=1 is the only available control. '
@@ -1250,6 +1291,7 @@ final List<QQLevel> allQQLevels = [
     title: 'CNOT Fan-Out',
     taskDescription:
         r"Transform \( |010\rangle \) to \( |111\rangle \). This requires a careful sequence of gates.",
+    targetStateExpression: "|111⟩",
     conceptIntro:
         'CNOT "fans out" (copies) a |1⟩ value from a control qubit into a |0⟩ target qubit. '
         'Note: this copying only works for classical basis states — '
@@ -1294,6 +1336,8 @@ final List<QQLevel> allQQLevels = [
     title: 'GHZ State Manipulation',
     taskDescription:
         r"This circuit is pre-configured to the GHZ state \( (|000\rangle + |111\rangle)/\sqrt{2} \). Transform this state to \( (|001\rangle + |110\rangle)/\sqrt{2} \).",
+    targetStateLabel: "X-target GHZ",
+    targetStateExpression: "(|001⟩ + |110⟩)/√2",
     conceptIntro:
         'The GHZ (Greenberger–Horne–Zeilinger) state (|000⟩+|111⟩)/√2 is '
         'maximally entangled across all three qubits. '
@@ -1350,6 +1394,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Uniform 2-Qubit Superposition',
     taskDescription:
         r"From \( |00\rangle \), create a uniform superposition of all possible 2-qubit states: \( (|00\rangle + |01\rangle + |10\rangle + |11\rangle)/2 \).",
+    targetStateLabel: "|++⟩",
+    targetStateExpression: "|++⟩ = (|00⟩ + |01⟩ + |10⟩ + |11⟩)/2",
     conceptIntro:
         'A uniform superposition over all 2ⁿ basis states gives each state equal amplitude '
         'and equal measurement probability 1/2ⁿ. '
@@ -1391,6 +1437,8 @@ final List<QQLevel> allQQLevels = [
     title: 'GHZ State with Phase',
     taskDescription:
         r"From \( |001\rangle \), transform the state to \( (|000\rangle - |111\rangle)/\sqrt{2} \).",
+    targetStateLabel: "GHZ⁻",
+    targetStateExpression: "GHZ⁻ = (|000⟩ - |111⟩)/√2",
     conceptIntro:
         'The GHZ state (|000⟩+|111⟩)/√2 is a maximally entangled 3-qubit state. '
         'Building it requires creating a single-qubit superposition and then spreading '
@@ -1451,6 +1499,8 @@ final List<QQLevel> allQQLevels = [
     title: 'CZ Gate — Controlled Phase',
     taskDescription:
         r"This is about Conditional Phase Shift (Shor's Principle Hint). From \( |00\rangle \), create a uniform superposition where the \( |11\rangle \) component has its phase flipped to \(-1\). The target state is \( (|00\rangle + |01\rangle + |10\rangle - |11\rangle)/2 \).",
+    targetStateLabel: "CZ|++⟩",
+    targetStateExpression: "CZ|++⟩ = (|00⟩ + |01⟩ + |10⟩ - |11⟩)/2",
     conceptIntro:
         'The Controlled-Z (CZ) gate applies a phase of −1 to |11⟩ and '
         'leaves all other basis states unchanged. '
@@ -1503,6 +1553,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Uncomputing CZ Entanglement',
     taskDescription:
         r"This circuit is pre-configured to an entangled state where the \( |11\rangle \) component has a negative phase. Your task is to transform this state back to \( |00\rangle \).",
+    targetStateExpression: "|00⟩",
     conceptIntro:
         'The pre-inserted H→H→CZ sequence has created the state (|00⟩+|01⟩+|10⟩−|11⟩)/2. '
         'To return to |00⟩, you must reverse the pre-inserted circuit. '
@@ -1557,6 +1608,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Rx Rotation Gate',
     taskDescription:
         r"Transform the initial state \( |0\rangle \) to the 'plus' state \( |+\rangle \). This can be achieved with a single rotation gate.",
+    targetStateLabel: "Rx(π/2)|0⟩",
+    targetStateExpression: "Rx(π/2)|0⟩ = (|0⟩ - i|1⟩)/√2",
     conceptIntro:
         'Rotation gates rotate a qubit around a Bloch sphere axis by a specific angle θ. '
         'Rx(θ) rotates around the X-axis: Rx(θ)|0⟩ = cos(θ/2)|0⟩ − i·sin(θ/2)|1⟩. '
@@ -1593,6 +1646,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Ry Rotation Gate',
     taskDescription:
         r"Rotate the initial state \( |0\rangle \) to a new state on the equatorial plane of the Bloch sphere. Try to find the correct rotation.",
+    targetStateLabel: "|+⟩",
+    targetStateExpression: "|+⟩ = (|0⟩ + |1⟩)/√2",
     conceptIntro: 'Ry(θ) rotates around the Y-axis of the Bloch sphere: '
         'Ry(θ)|0⟩ = cos(θ/2)|0⟩ + sin(θ/2)|1⟩. '
         'Unlike Rx, the Y-axis rotation keeps all amplitudes real — no imaginary phase on |1⟩. '
@@ -1625,6 +1680,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Rz — Phase Rotation',
     taskDescription:
         r"Apply a phase shift to the state \( |1\rangle \) to transform it to \( |i\rangle \). This requires an Rz gate.",
+    targetStateLabel: "e^{iπ/4}|1⟩",
+    targetStateExpression: "e^{iπ/4}|1⟩",
     conceptIntro:
         'Rz(θ) rotates around the Z-axis: Rz(θ)|0⟩ = e^(−iθ/2)|0⟩ and Rz(θ)|1⟩ = e^(iθ/2)|1⟩. '
         'Since |0⟩ and |1⟩ get opposite phases, Rz only creates a relative phase — '
@@ -1660,6 +1717,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Inverse Rotation',
     taskDescription:
         r"You start with a pre-configured superposition. Use a rotation gate to return to the \( |0\rangle \) state.",
+    targetStateExpression: "|0⟩",
     conceptIntro:
         'Every rotation gate has an inverse: Rx(−θ) = Rx(θ)†, Ry(−θ) = Ry(θ)†, Rz(−θ) = Rz(θ)†. '
         'Applying a rotation followed by its inverse cancels to the identity: R(θ)·R(−θ) = I. '
@@ -1699,6 +1757,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Composing Rx and Ry',
     taskDescription:
         r"Combine two different rotation gates to get a specific final state. The first rotation is given.",
+    targetStateLabel: "Complex equator state",
+    targetStateExpression: "((1+i)|0⟩ + (1-i)|1⟩)/2",
     conceptIntro:
         'Combining rotations around different axes creates states unreachable by either axis alone. '
         'The Bloch sphere shows why: a single axis can only reach a circle of states, '
@@ -1741,6 +1801,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Rz on an Entangled State',
     taskDescription:
         r"Use a rotation gate to apply a very specific phase shift on a multi-qubit state. The initial state is a superposition.",
+    targetStateLabel: "Phased Bell pair",
+    targetStateExpression: "(e^{-iπ/8}|00⟩ + e^{iπ/8}|11⟩)/√2",
     conceptIntro:
         'Rotation gates can be applied to individual qubits of an entangled state. '
         'Rz(θ) on Q0 of Φ⁺=(|00⟩+|11⟩)/√2 adds e^(−iθ/2) when Q0=0 '
@@ -1794,6 +1856,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Precise Bloch Sphere Navigation',
     taskDescription:
         r"Transform the initial state to a specific point on the Bloch sphere. This requires precise rotations.",
+    targetStateLabel: "Precise phase state",
+    targetStateExpression: "e^{-iπ/8}(|0⟩ + |1⟩)/√2",
     conceptIntro:
         'Any point on the Bloch sphere can be reached with at most two rotations around different axes — '
         'the Euler angle decomposition. '
