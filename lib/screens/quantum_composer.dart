@@ -467,13 +467,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
   void _runSimulation({bool manualCheck = false}) {
     debugPrint("Running simulation...");
 
-    if (!manualCheck && _checkFeedbackTitle != null && !_checkFeedbackSuccess) {
-      setState(() {
-        _checkFeedbackTitle = null;
-        _checkFeedbackMessage = null;
-      });
-    }
-
     // ** Call the void simulation method on the circuit **
     // This method executes the simulation and updates circuit.currentState internally.
     debugPrint(_circuit.toString());
@@ -489,11 +482,18 @@ class _QuantumComposerState extends State<QuantumComposer> {
     //
     // debugPrint("Calculated probabilities: $measurementProbabilities");
 
-    if (!runningAsQuantumComposer()) {
+    if (!runningAsQuantumComposer() && manualCheck) {
       // Format the final state vector for display
       // Access the state data via the finalState object obtained from circuit.currentState
       // simulationResult = "Final State Vector:\n${_circuit.initialState}"; // Assuming formatStateVector helper
       _checkLevelCompletion(manual: manualCheck);
+    } else if (!manualCheck && (_checkFeedbackTitle != null || _levelSolved)) {
+      setState(() {
+        _levelSolved = false;
+        _checkFeedbackTitle = null;
+        _checkFeedbackMessage = null;
+        _checkFeedbackSuccess = false;
+      });
     }
     debugPrint("Simulation finished.");
   }

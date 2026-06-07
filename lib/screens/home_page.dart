@@ -13,6 +13,7 @@ import 'package:quantumquiz/screens/webview_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 
 import '../models/qq_level.dart';
 import '../models/qq_levels.dart';
@@ -129,89 +130,36 @@ class _HomePageState extends State<HomePage> {
   void _showAboutDialog() {
     // Ensure data is ready before showing the dialog
     if (!mounted || _aboutData == null) {
-      // You might want to show a loading indicator or handle this case
       debugPrint('About data not yet loaded.');
+      _showUtilityFallbackMessage('About information is still loading.');
       return;
     }
 
     showDialog<void>(
       context: context,
-      barrierDismissible: false, // user must tap button!
+      barrierDismissible: true,
       builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor:
-              const Color(0xFF2D2E40), // Dark background for the dialog
-          title: const Text('About', style: TextStyle(color: Colors.white)),
-          content: SizedBox(
-            width: double.maxFinite, // Allows dialog to expand horizontally
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize:
-                    MainAxisSize.min, // Keep column compact vertically
-                children: <Widget>[
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4,
-                      crossAxisSpacing: 4.0,
-                      mainAxisSpacing: 4.0,
-                      childAspectRatio: 4.0,
-                    ),
-                    itemCount: _aboutData!.length,
-                    itemBuilder: (context, index) {
-                      final dataEntry = _aboutData![index];
-
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6.0, vertical: 4.0),
-                        alignment: Alignment.centerLeft,
-                        decoration: BoxDecoration(
-                          color: const Color(
-                              0xFF3B3C50), // Updated to match new theme
-                          borderRadius: BorderRadius.circular(4.0),
-                        ),
-                        child: RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: '${dataEntry.key}: ',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              TextSpan(
-                                text: dataEntry.value,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.normal,
-                                ),
-                              ),
-                            ],
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Close',
-                  style: TextStyle(color: Colors.blueAccent)),
+        return QubitQuestDialog(
+          title: 'About Qubit Quest',
+          maxWidth: 560,
+          actions: [
+            QubitQuestDialogButton.secondary(
+              label: 'Close',
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
           ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final dataEntry in _aboutData!) ...[
+                _AboutInfoRow(label: dataEntry.key, value: dataEntry.value),
+                if (dataEntry != _aboutData!.last) const SizedBox(height: 8),
+              ],
+            ],
+          ),
         );
       },
     );
@@ -219,22 +167,55 @@ class _HomePageState extends State<HomePage> {
 
   // NEW: Method to handle rating the app
   Future<void> _rateApp() async {
-    if (await _inAppReview.isAvailable()) {
-      await _inAppReview.requestReview();
-    } else {
+    final String packageName =
+        _aboutData == null ? 'com.qubitquest' : _packageInfo.packageName;
+
+    try {
+      if (await _inAppReview.isAvailable()) {
+        await _inAppReview.requestReview();
+        return;
+      }
+
       try {
         await _inAppReview.openStoreListing(
-          appStoreId: 'com.qubitquest',
+          appStoreId: null,
           microsoftStoreId: null,
         );
-      } catch (e) {
-        debugPrint('Error opening store listing: $e');
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open store page.')),
+        return;
+      } catch (error) {
+        debugPrint('In-app review store listing failed: $error');
+      }
+
+      final bool openedStore = await _openPlayStoreListing(packageName);
+      if (!openedStore) {
+        _showUtilityFallbackMessage(
+          'Rating will be available after Qubit Quest is listed in the store.',
         );
       }
+    } catch (error) {
+      debugPrint('Rate Us failed: $error');
+      _showUtilityFallbackMessage(
+        'Rating will be available after Qubit Quest is listed in the store.',
+      );
     }
+  }
+
+  Future<bool> _openPlayStoreListing(String packageName) async {
+    final Uri marketUri = Uri.parse('market://details?id=$packageName');
+    if (await canLaunchUrl(marketUri) &&
+        await launchUrl(marketUri, mode: LaunchMode.externalApplication)) {
+      return true;
+    }
+
+    final Uri webUri = Uri.parse(
+      'https://play.google.com/store/apps/details?id=$packageName',
+    );
+    if (await canLaunchUrl(webUri) &&
+        await launchUrl(webUri, mode: LaunchMode.externalApplication)) {
+      return true;
+    }
+
+    return false;
   }
 
   void _showQubitSelectionDialog() {
@@ -367,14 +348,25 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _openYoutubePlaylist(String playlistTextLink) async {
+  Future<void> _openYoutubePlaylist(String playlistTextLink) async {
     final uri = Uri.parse(
       playlistTextLink,
     );
 
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      throw 'Could not launch YouTube';
+      _showUtilityFallbackMessage('Could not open solution videos.');
     }
+  }
+
+  void _showUtilityFallbackMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: qqCard2,
+      ),
+    );
   }
 
   void _selectUtilityMenuAction(String action) {
@@ -933,5 +925,53 @@ class _HomePageState extends State<HomePage> {
         continueLevelChain = false;
       }
     }
+  }
+}
+
+class _AboutInfoRow extends StatelessWidget {
+  const _AboutInfoRow({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: QubitQuestDialog.innerColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: QubitQuestDialog.borderSoftColor),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                color: QubitQuestDialog.mutedText,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 3),
+            SelectableText(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                height: 1.25,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
