@@ -1,5 +1,8 @@
-import 'package:flutter_tex/flutter_tex.dart';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter_tex/flutter_tex.dart';
+import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 
 class OperatorMatrixDialog extends StatefulWidget {
   const OperatorMatrixDialog({
@@ -16,7 +19,6 @@ class OperatorMatrixDialog extends StatefulWidget {
 }
 
 class _OperatorMatrixDialogState extends State<OperatorMatrixDialog> {
-
   late ScrollController _matrixScrollController;
 
   @override
@@ -31,13 +33,13 @@ class _OperatorMatrixDialogState extends State<OperatorMatrixDialog> {
 
   @override
   void dispose() {
-    _matrixScrollController.dispose(); // Dispose the controller
+    _matrixScrollController.dispose();
     super.dispose();
   }
 
   void _updateMatrixPosition() {
-    debugPrint('CALLED: _updateMatrixPosition');
-    if (_matrixScrollController.hasClients && _matrixScrollController.position.maxScrollExtent > 0) {
+    if (_matrixScrollController.hasClients &&
+        _matrixScrollController.position.maxScrollExtent > 0) {
       final position = _matrixScrollController.position.maxScrollExtent / 2;
       _matrixScrollController.animateTo(
         position,
@@ -49,73 +51,135 @@ class _OperatorMatrixDialogState extends State<OperatorMatrixDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: Colors.grey[800],
-      title: const Text(
-        'Overall Operator Matrix',
-        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-        textAlign: TextAlign.center,
-      ),
-      // Make content fill available space and be scrollable
-      contentPadding: EdgeInsets.zero, // Remove default padding
-      content: Container(
-        // Use MediaQuery to take up a large percentage of screen size
-        width: MediaQuery.of(context).size.width * 0.9, // 90% of screen width
-        height: MediaQuery.of(context).size.height * 0.9, // 90% of screen height
-        padding: const EdgeInsets.all(16.0), // Add internal padding for the content
-        child: SingleChildScrollView( // Vertical scroll for the TeXView content
-          scrollDirection: Axis.vertical,
-          child: LayoutBuilder( // Use LayoutBuilder to get the available width
-            builder: (context, constraints) {
-              double adaptiveFontSize = MediaQuery.of(context).size.width * 0.013;
-              double adaptiveWidth = constraints.maxWidth;
-              if (widget._numQubits == 5) {
-                adaptiveWidth = MediaQuery.of(context).size.width * 3;
-                adaptiveFontSize = MediaQuery.of(context).size.width * 0.009;
-              } else if (widget._numQubits == 4) {
-                adaptiveWidth = MediaQuery.of(context).size.width * 2;
-                adaptiveFontSize = MediaQuery.of(context).size.width * 0.01;
-              } else if (widget._numQubits == 3) {
-                adaptiveWidth = MediaQuery.of(context).size.width * 1.7;
-                adaptiveFontSize = MediaQuery.of(context).size.width * 0.011;
-              }
+    final Size screenSize = MediaQuery.sizeOf(context);
 
-              return Scrollbar(
-                controller: _matrixScrollController,
-                thumbVisibility: true,
-                child: SingleChildScrollView( // Horizontal scroll for the TeXView content
-                  scrollDirection: Axis.horizontal,
-                  controller: _matrixScrollController,
-                  child: SizedBox( // Explicitly provide a fixed width to TeXView
-                    width: adaptiveWidth,
-                    child: TeXView(
-                      child: TeXViewDocument(
-                        '\\(\n${widget.teXMatrix}\n\\)',
-                      ),
-                      style: TeXViewStyle( // Styling for the TeXView content
-                        backgroundColor: Colors.grey[800], // Explicitly set background to match dialog content
-                        contentColor: Colors.white, // Text color white
-                        fontStyle: TeXViewFontStyle(fontSize: adaptiveFontSize.round()), // Slightly larger font for visibility
-                        textAlign: TeXViewTextAlign.center, // <<< ADDED THIS LINE TO CENTER THE MATRIX
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final double maxWidth = math.min(constraints.maxWidth, 760);
+          final double maxHeight = math.min(
+            constraints.maxHeight,
+            screenSize.height * 0.82,
+          );
+          final double matrixMaxHeight = math.max(220, maxHeight - 112);
+          final double availableMatrixWidth = math.max(280, maxWidth - 32);
+          final double matrixWidth =
+              availableMatrixWidth * _matrixWidthMultiplier();
+
+          return ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: maxWidth,
+              maxHeight: maxHeight,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: QubitQuestDialog.panelColor,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: QubitQuestDialog.borderColor),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.36),
+                    blurRadius: 24,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Overall Operator Matrix',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      height: 1.12,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Flexible(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxHeight: matrixMaxHeight),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: QubitQuestDialog.innerColor,
+                          borderRadius: BorderRadius.circular(12),
+                          border:
+                              Border.all(color: QubitQuestDialog.borderColor),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Scrollbar(
+                            controller: _matrixScrollController,
+                            thumbVisibility: true,
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              controller: _matrixScrollController,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.vertical,
+                                child: SizedBox(
+                                  width: matrixWidth,
+                                  child: TeXView(
+                                    child: TeXViewDocument(
+                                      '\\(\n${widget.teXMatrix}\n\\)',
+                                    ),
+                                    style: TeXViewStyle(
+                                      backgroundColor:
+                                          QubitQuestDialog.innerColor,
+                                      contentColor: Colors.white,
+                                      fontStyle: TeXViewFontStyle(
+                                        fontSize: _matrixFontSize(),
+                                      ),
+                                      textAlign: TeXViewTextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
-        ),
+                  const SizedBox(height: 14),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: QubitQuestDialogButton.primary(
+                      label: 'Close',
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
-      // actionsPadding: EdgeInsets.only(left:16.0, right: 16.0, bottom: 4.0, top: 0),
-      buttonPadding: EdgeInsets.zero, // <<< NEW: This helps reduce space between buttons
-      actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: const Text('Close', style: TextStyle(color: Colors.blueAccent)),
-        ),
-      ],
     );
+  }
+
+  double _matrixWidthMultiplier() {
+    return switch (widget._numQubits) {
+      5 => 3.0,
+      4 => 2.2,
+      3 => 1.7,
+      _ => 1.0,
+    };
+  }
+
+  int _matrixFontSize() {
+    return switch (widget._numQubits) {
+      5 => 10,
+      4 => 11,
+      3 => 12,
+      _ => 14,
+    };
   }
 }

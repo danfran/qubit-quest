@@ -2528,7 +2528,7 @@ class _CircuitGuidePainter extends CustomPainter {
       ..color = _QuantumComposerState.qqInner2.withValues(alpha: 0.28)
       ..style = PaintingStyle.fill;
     final Paint depthGuidePaint = Paint()
-      ..color = _QuantumComposerState.qqCyan.withValues(alpha: 0.06)
+      ..color = _QuantumComposerState.qqCyan.withValues(alpha: 0.025)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     final Paint activeSlotPaint = Paint()
@@ -2549,15 +2549,17 @@ class _CircuitGuidePainter extends CustomPainter {
       activeColumn = _columnIndexForX(dragOffset!.dx);
     }
 
-    for (int column = 0; column < columns; column++) {
-      final double centerX = QuantumCircuitPainter.padding +
-          column * QuantumCircuitPainter.gateSpacing +
-          QuantumCircuitPainter.gateSpacing / 2;
-      canvas.drawLine(
-        Offset(centerX, 0),
-        Offset(centerX, size.height),
-        depthGuidePaint,
-      );
+    if (isDragging) {
+      for (int column = 0; column < columns; column++) {
+        final double centerX = QuantumCircuitPainter.padding +
+            column * QuantumCircuitPainter.gateSpacing +
+            QuantumCircuitPainter.gateSpacing / 2;
+        canvas.drawLine(
+          Offset(centerX, 0),
+          Offset(centerX, size.height),
+          depthGuidePaint,
+        );
+      }
     }
 
     for (int qubit = 0; qubit < numQubits; qubit++) {

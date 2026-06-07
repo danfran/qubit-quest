@@ -1,12 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'dart:math' as math;
 
-// Defines the two modes for angle input
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
+
 enum AngleInputMode { numerical, fractional }
 
 class RotationGateDialog extends StatefulWidget {
-
   const RotationGateDialog({super.key});
 
   @override
@@ -14,7 +14,7 @@ class RotationGateDialog extends StatefulWidget {
 }
 
 class _RotationGateDialogState extends State<RotationGateDialog> {
-  AngleInputMode _inputMode = AngleInputMode.fractional; // Default to fractional (Pi mode)
+  AngleInputMode _inputMode = AngleInputMode.fractional;
   final TextEditingController _numericalController = TextEditingController();
   final TextEditingController _numeratorController = TextEditingController();
   final TextEditingController _denominatorController = TextEditingController();
@@ -24,16 +24,13 @@ class _RotationGateDialogState extends State<RotationGateDialog> {
   @override
   void initState() {
     super.initState();
-    // Set initial default values
     _numeratorController.text = '1';
     _denominatorController.text = '1';
 
-    // Start listening to update angle on text change
     _numericalController.addListener(_updateAngle);
     _numeratorController.addListener(_updateAngle);
     _denominatorController.addListener(_updateAngle);
 
-    // Calculate initial angle
     _updateAngle();
   }
 
@@ -52,14 +49,14 @@ class _RotationGateDialogState extends State<RotationGateDialog> {
   void _updateAngle() {
     setState(() {
       if (_inputMode == AngleInputMode.numerical) {
-        double? value = double.tryParse(_numericalController.text);
+        final double? value = double.tryParse(_numericalController.text);
         _calculatedAngle = value ?? 0.0;
       } else {
-        // Fractional (Pi) mode
-        double numerator = double.tryParse(_numeratorController.text) ?? 0.0;
-        double denominator = double.tryParse(_denominatorController.text) ?? 1.0;
+        final double numerator =
+            double.tryParse(_numeratorController.text) ?? 0.0;
+        final double denominator =
+            double.tryParse(_denominatorController.text) ?? 1.0;
 
-        // Prevent division by zero, default to 1
         if (denominator == 0) {
           _calculatedAngle = 0.0;
         } else {
@@ -75,9 +72,7 @@ class _RotationGateDialogState extends State<RotationGateDialog> {
     });
   }
 
-  // Helper function to create the correct input formatters based on the field
   List<TextInputFormatter> _getFormatters(bool allowNegative) {
-    // Allows digits, decimal points, and optionally the minus sign
     final String regex = allowNegative ? r'^-?\d*\.?\d*' : r'^\d*\.?\d*';
     return [
       FilteringTextInputFormatter.allow(RegExp(regex)),
@@ -86,93 +81,102 @@ class _RotationGateDialogState extends State<RotationGateDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Set Rotation Angle', style: TextStyle(color: Colors.white),),
-      backgroundColor: Colors.grey[800], // Dark background for the dialog
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            // --- Radio Buttons for Mode Selection ---
-            _buildModeSelection(),
-            const SizedBox(height: 20),
-
-            // --- Input Field based on Mode ---
-            _inputMode == AngleInputMode.numerical
-                ? _buildNumericalInput()
-                : _buildFractionalInput(),
-
-          ],
-        ),
-      ),
+    return QubitQuestDialog(
+      title: 'Set Rotation Angle',
+      maxWidth: 500,
       actions: [
-        TextButton(
+        QubitQuestDialogButton.secondary(
+          label: 'Cancel',
           onPressed: () {
             Navigator.of(context).pop();
           },
-          child: const Text('Cancel', style: TextStyle(color: Colors.white)),
         ),
-        ElevatedButton(
+        QubitQuestDialogButton.primary(
+          label: 'Apply',
           onPressed: _validateAndSubmit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blueAccent[700],
-            foregroundColor: Colors.white,
-          ),
-          child: const Text('Apply'),
         ),
       ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          _buildModeSelection(),
+          const SizedBox(height: 16),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 140),
+            child: _inputMode == AngleInputMode.numerical
+                ? _buildNumericalInput()
+                : _buildFractionalInput(),
+          ),
+          const SizedBox(height: 14),
+          _AnglePreview(angle: _calculatedAngle),
+        ],
+      ),
     );
   }
 
   Widget _buildModeSelection() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _buildRadioTile(
-          title: 'Fractional (π)',
-          mode: AngleInputMode.fractional,
-        ),
-        _buildRadioTile(
-          title: 'Numerical (rad)',
-          mode: AngleInputMode.numerical,
-        ),
-      ],
+    return Container(
+      decoration: BoxDecoration(
+        color: QubitQuestDialog.innerColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: QubitQuestDialog.borderSoftColor),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        children: [
+          _buildModeButton(
+            title: 'Fractional (π)',
+            mode: AngleInputMode.fractional,
+          ),
+          _buildModeButton(
+            title: 'Numerical (rad)',
+            mode: AngleInputMode.numerical,
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildRadioTile({required String title, required AngleInputMode mode}) {
+  Widget _buildModeButton({
+    required String title,
+    required AngleInputMode mode,
+  }) {
+    final bool selected = _inputMode == mode;
+
     return Expanded(
       child: InkWell(
         onTap: () {
           setState(() {
             _inputMode = mode;
-            _updateAngle(); // Recalculate based on the newly selected mode's values
+            _updateAngle();
           });
         },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
-          child: Row(
-            children: [
-              Radio<AngleInputMode>(
-                value: mode,
-                groupValue: _inputMode,
-                onChanged: (AngleInputMode? newValue) {
-                  setState(() {
-                    _inputMode = newValue!;
-                    _updateAngle();
-                  });
-                },
-                fillColor: MaterialStateProperty.all(Colors.blueAccent),
-              ),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+        borderRadius: BorderRadius.circular(9),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected
+                ? QubitQuestDialog.purple.withValues(alpha: 0.24)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(
+              color: selected
+                  ? QubitQuestDialog.purple.withValues(alpha: 0.62)
+                  : Colors.transparent,
+            ),
+          ),
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: selected ? Colors.white : const Color(0xFFB9C6DD),
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
       ),
@@ -181,45 +185,76 @@ class _RotationGateDialogState extends State<RotationGateDialog> {
 
   Widget _buildNumericalInput() {
     return TextField(
+      key: const ValueKey('numerical-angle-input'),
       controller: _numericalController,
-      keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
-      inputFormatters: _getFormatters(true), // Allow negative sign for full numerical input
-      style: const TextStyle(color: Colors.white),
-      decoration: _inputDecoration().copyWith(hintText: 'Enter angle in radians'),
+      keyboardType: const TextInputType.numberWithOptions(
+        signed: true,
+        decimal: true,
+      ),
+      inputFormatters: _getFormatters(true),
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w800,
+      ),
+      cursorColor: QubitQuestDialog.cyan,
+      decoration: _inputDecoration(hintText: 'Enter angle in radians'),
     );
   }
 
   Widget _buildFractionalInput() {
     return Row(
+      key: const ValueKey('fractional-angle-input'),
       children: [
         Expanded(
           child: TextField(
             controller: _numeratorController,
-            keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
-            inputFormatters: _getFormatters(true), // Numerator can be negative
-            style: const TextStyle(color: Colors.white),
-            decoration: _inputDecoration().copyWith(hintText: 'Numerator'),
+            keyboardType: const TextInputType.numberWithOptions(
+              signed: true,
+              decimal: true,
+            ),
+            inputFormatters: _getFormatters(true),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+            cursorColor: QubitQuestDialog.cyan,
+            decoration: _inputDecoration(hintText: 'Numerator'),
           ),
         ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 10),
           child: Text(
             '/',
-            style: TextStyle(color: Colors.white, fontSize: 24),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
         Expanded(
           child: TextField(
             controller: _denominatorController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: _getFormatters(false), // Denominator must be non-negative
-            style: const TextStyle(color: Colors.white),
-            decoration: _inputDecoration().copyWith(hintText: 'Denominator'),
+            inputFormatters: _getFormatters(false),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+            cursorColor: QubitQuestDialog.cyan,
+            decoration: _inputDecoration(hintText: 'Denominator'),
           ),
         ),
         const Padding(
           padding: EdgeInsets.only(left: 10),
-          child: Text('π', style: TextStyle(color: Colors.white, fontSize: 24)),
+          child: Text(
+            'π',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ),
       ],
     );
@@ -228,12 +263,54 @@ class _RotationGateDialogState extends State<RotationGateDialog> {
   InputDecoration _inputDecoration({String? hintText}) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: TextStyle(color: Colors.grey.withOpacity(0.5)),
+      hintStyle: const TextStyle(
+        color: QubitQuestDialog.mutedText,
+        fontWeight: FontWeight.w700,
+      ),
       filled: true,
-      fillColor: const Color(0xFF2D2E40),
+      fillColor: QubitQuestDialog.innerColor,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: QubitQuestDialog.borderSoftColor),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: QubitQuestDialog.cyan.withValues(alpha: 0.72),
+        ),
+      ),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: QubitQuestDialog.borderSoftColor),
+      ),
+    );
+  }
+}
+
+class _AnglePreview extends StatelessWidget {
+  const _AnglePreview({required this.angle});
+
+  final double angle;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: QubitQuestDialog.cardColor.withValues(alpha: 0.74),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: QubitQuestDialog.borderSoftColor),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        child: Text(
+          'Angle: ${angle.toStringAsFixed(4)} rad',
+          style: const TextStyle(
+            color: Color(0xFFD6E3F8),
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ),
     );
   }
