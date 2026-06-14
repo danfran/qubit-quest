@@ -177,8 +177,8 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> {
     final prototypeChapters = [
       if (widget.prototypeLevelNumber != null)
         DiscoveryPrototypeChapter(
-          title: 'Chapter 4 Prototype',
-          subtitle: 'Try Conditional Phase Flip',
+          title: 'Chapter 4',
+          subtitle: 'Start Interference',
           levelNumber: widget.prototypeLevelNumber!,
         ),
       ...widget.prototypeChapters,

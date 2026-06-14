@@ -10,7 +10,7 @@ import 'package:quantumquiz/models/qq_level.dart';
 Complex get negOne => Complex(-1.0, 0.0); // -1
 Complex get negI => Complex(0.0, -1.0); // -i
 
-final List<QQLevel> allQQLevels = [
+final List<QQLevel> _authoredQQLevels = [
   // X
   ComposerLevel.fromBinaryString(
     title: 'Bit Flip',
@@ -2656,13 +2656,13 @@ final List<QQLevel> allQQLevels = [
     mysteryTitle: 'Can you determine which state received the mark?',
     mysteryText:
         'The probability bars may look unchanged after a phase mark. The clue is the sign attached to exactly one basis state.',
-    discoveryTitle: 'Invisible Difference',
+    discoveryTitle: 'Invisible Mark',
     discoveryText:
-        'The marked state has the same probability as the others, but its amplitude has the opposite sign. Measurement alone would hide that difference.',
+        'The marked state has the same probability as the others, but its amplitude has the opposite sign. Measurement alone would hide the mark.',
     keyInsight:
-        'Two states can look identical when measured but carry different phase information.',
+        'A solution can be marked in phase while measurement probabilities stay unchanged.',
     whyItMatters:
-        'Quantum algorithms rely on information that is not directly visible. The phase mark becomes useful only when a later interference step responds to it.',
+        'Quantum algorithms can store useful labels in phase before interference turns those labels into visible probability changes.',
     nextMystery:
         'What have we actually built when we can mark any desired solution?',
     hints: [
@@ -3292,7 +3292,818 @@ final List<QQLevel> allQQLevels = [
       [Complex.one()],
     ],
   ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'The Third State',
+    taskDescription:
+        r'Must a qubit always be 0 or 1? Create a state that is neither \( |0\rangle \) nor \( |1\rangle \).',
+    targetStateLabel: '|+⟩',
+    targetStateExpression: '(|0⟩ + |1⟩)/√2',
+    mysteryTitle: 'Must a qubit always be 0 or 1?',
+    mysteryText:
+        'You have changed qubits between 0 and 1, and you have seen hidden phase. Now try making a state that does not look like either classical option.',
+    discoveryTitle: 'The Third State',
+    discoveryText:
+        'The qubit is no longer just |0⟩ or just |1⟩. It has become a balanced combination of both possibilities.',
+    keyInsight: 'A qubit can exist in a combination of possibilities.',
+    whyItMatters:
+        'Quantum computing becomes powerful because qubits are not restricted to classical states.',
+    nextMystery: 'What happens if we measure this strange state?',
+    hints: [
+      'There is only one gate available.',
+      'Use the gate and watch the probability bars split evenly.',
+    ],
+    solutionExplanation:
+        'The circuit creates |+⟩, a state with both |0⟩ and |1⟩ present at the same time.',
+    numQubits: 1,
+    initialQubitsStateString: '0',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Fifty Fifty',
+    taskDescription:
+        r'What outcome will appear when we measure a superposition? Create a state with equal probability of \( |0\rangle \) and \( |1\rangle \).',
+    targetStateLabel: '|-⟩',
+    targetStateExpression: '(|0⟩ - |1⟩)/√2',
+    mysteryTitle: 'What outcome will appear when we measure a superposition?',
+    mysteryText:
+        'A qubit can hold more than one possibility before measurement. Make a state where neither outcome has all the probability.',
+    discoveryTitle: 'Two Possibilities',
+    discoveryText:
+        'The state now gives |0⟩ half the time and |1⟩ half the time. Superposition creates multiple possible outcomes.',
+    keyInsight: 'Superposition creates multiple possible outcomes.',
+    whyItMatters:
+        'Quantum algorithms begin by creating many possibilities at once, then shaping which possibilities survive.',
+    nextMystery: 'Can two different superpositions exist?',
+    hints: [
+      'Start from |1⟩ and use the only available gate.',
+      'The goal is equal probabilities, not a single certain outcome.',
+    ],
+    solutionExplanation:
+        'The circuit turns |1⟩ into a balanced state. Measurement can now produce either |0⟩ or |1⟩.',
+    numQubits: 1,
+    initialQubitsStateString: '1',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Plus And Minus',
+    taskDescription:
+        r'Can two states have the same probabilities but still be different? Create \( |-\rangle \) from \( |+\rangle \).',
+    targetStateLabel: '|-⟩',
+    targetStateExpression: '(|0⟩ - |1⟩)/√2',
+    mysteryTitle:
+        'Can two states have the same probabilities but still be different?',
+    mysteryText:
+        'Two superpositions can show the same 50/50 probabilities. Try changing the hidden difference between them.',
+    discoveryTitle: 'Plus And Minus',
+    discoveryText:
+        '|+⟩ and |−⟩ look identical if you only inspect measurement probabilities, but they are not the same state.',
+    keyInsight:
+        'Two superpositions can look identical when measured but behave differently later.',
+    whyItMatters: 'This hidden difference is phase.',
+    nextMystery: 'If they look the same, how can we tell them apart?',
+    hints: [
+      'The probabilities should stay 50/50.',
+      'Use the gate that changes a hidden sign.',
+    ],
+    solutionExplanation:
+        'Z changes |+⟩ into |−⟩. The probability bars stay balanced, but the state changes.',
+    numQubits: 1,
+    initialQubitsStateStr: '|+⟩',
+    initialQubitsState: [
+      Complex(math.sqrt1_2, 0),
+      Complex(math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Hidden Difference Revisited',
+    taskDescription:
+        r'How can two identical-looking states behave differently? Convert \( |-\rangle \) into a measurable difference.',
+    targetStateExpression: '|1⟩',
+    mysteryTitle: 'How can two identical-looking states behave differently?',
+    mysteryText:
+        'The hidden sign in |−⟩ does not show up as a probability difference yet. Use another operation to make that difference visible.',
+    discoveryTitle: 'Not The Same',
+    discoveryText:
+        'The hidden difference became measurable. A state that looked like a balanced coin can still carry information about what will happen next.',
+    keyInsight: 'Phase changes future behavior.',
+    whyItMatters: 'Interference depends on these hidden differences.',
+    nextMystery: 'Can hidden phase change probabilities?',
+    hints: [
+      'Use the operation that changes how the balanced state is viewed.',
+      'The target should become certain |1⟩.',
+    ],
+    solutionExplanation:
+        'The circuit converts |−⟩ into |1⟩, turning a hidden difference into a visible measurement result.',
+    numQubits: 1,
+    initialQubitsStateStr: '|−⟩',
+    initialQubitsState: [
+      Complex(math.sqrt1_2, 0),
+      Complex(-math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'What Is Superposition?',
+    taskDescription:
+        r'What have we actually discovered? Transform \( |1\rangle \) into the balanced \( |+\rangle \) state.',
+    targetStateLabel: '|+⟩',
+    targetStateExpression: '(|0⟩ + |1⟩)/√2',
+    mysteryTitle: 'What have we actually discovered?',
+    mysteryText:
+        'You have seen a qubit hold more than one possibility and seen hidden differences between balanced states. Build the final balanced state from |1⟩.',
+    discoveryTitle: 'Superposition',
+    discoveryText:
+        'The qubit ended in a combination of possibilities instead of one classical state. This is superposition.',
+    keyInsight:
+        'A qubit can exist in a combination of possibilities, not just one classical state.',
+    whyItMatters:
+        'Superposition is the foundation of quantum algorithms. It gives later interference something to shape.',
+    nextMystery:
+        'Can hidden phase make some possibilities stronger than others?',
+    hints: [
+      'First make a balanced state.',
+      'If the hidden sign is wrong, use the sign-changing gate.',
+    ],
+    solutionExplanation:
+        'The circuit first creates a balanced state, then fixes the hidden sign so the target is |+⟩.',
+    numQubits: 1,
+    initialQubitsStateString: '1',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Together',
+    taskDescription:
+        r'Can two qubits be prepared together? Transform \( |00\rangle \) into \( |11\rangle \).',
+    targetStateExpression: '|11⟩',
+    mysteryTitle: 'Can two qubits be prepared together?',
+    mysteryText:
+        'So far, one qubit has carried the story. Now there are two. Can you prepare a state that describes both qubits at once?',
+    discoveryTitle: 'Two Qubits',
+    discoveryText:
+        'The state now describes a pair of qubits together. A quantum system can contain more than one qubit.',
+    keyInsight: 'A quantum system can contain multiple qubits.',
+    whyItMatters: 'Real quantum algorithms use many qubits at once.',
+    nextMystery: 'Can two qubits become connected?',
+    hints: [
+      'Both qubits need to change from 0 to 1.',
+      'Use one X on each qubit.',
+    ],
+    solutionExplanation:
+        'Each X flips one qubit, preparing the combined two-qubit state |11⟩.',
+    numQubits: 2,
+    initialQubitsStateString: '00',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Connected',
+    taskDescription:
+        r'Can changing one qubit affect another? Use the controlled operation to transform \( |01\rangle \) into \( |11\rangle \).',
+    targetStateExpression: '|11⟩',
+    mysteryTitle: 'Can changing one qubit affect another?',
+    mysteryText:
+        'One qubit can act like a condition for another. Try a controlled operation and watch how the pair changes together.',
+    discoveryTitle: 'Correlation',
+    discoveryText:
+        'The target changed because the control was in the right state. The two qubits are no longer just separate actions on separate lines.',
+    keyInsight: 'The state of one qubit can influence another.',
+    whyItMatters: 'Correlation is the first step toward entanglement.',
+    nextMystery: 'Is correlation the same as entanglement?',
+    hints: [
+      'One qubit is already set to 1.',
+      'Use CX so the set qubit controls the other qubit.',
+    ],
+    solutionExplanation:
+        'CX flips the other qubit only because the control is |1⟩. This creates a controlled relationship between the qubits.',
+    numQubits: 2,
+    initialQubitsStateString: '01',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'The Bell State',
+    taskDescription:
+        r'Can two qubits become one quantum system? Transform \( |00\rangle \) into Bell State \( \Phi^+ \).',
+    targetStateLabel: '|Φ+⟩',
+    targetStateExpression: '(|00⟩ + |11⟩)/√2',
+    mysteryTitle: 'Can two qubits become one quantum system?',
+    mysteryText:
+        'A superposition can hold more than one possibility. A controlled operation can connect qubits. What happens when those ideas meet?',
+    discoveryTitle: 'Bell State',
+    discoveryText:
+        'The result is not two independent qubits. The state belongs to the pair as a whole.',
+    keyInsight: 'The two qubits can no longer be described independently.',
+    whyItMatters:
+        'Entanglement is one of the defining features of quantum computing.',
+    nextMystery: 'What makes entanglement different from ordinary correlation?',
+    hints: [
+      'First create a split possibility on q0.',
+      'Then connect q1 to q0 with CX.',
+    ],
+    solutionExplanation:
+        'The circuit creates a state where the pair is either |00⟩ or |11⟩ together. That shared state is the Bell state Φ+.',
+    numQubits: 2,
+    initialQubitsStateString: '00',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'More Than Correlation',
+    taskDescription:
+        r'Why is entanglement special? Create a Bell state from \( |10\rangle \).',
+    targetStateLabel: '|Ψ+⟩',
+    targetStateExpression: '(|01⟩ + |10⟩)/√2',
+    mysteryTitle: 'Why is entanglement special?',
+    mysteryText:
+        'Ordinary correlation says two values match. Entanglement is deeper: the whole pair has a state that cannot be assigned to each qubit separately.',
+    discoveryTitle: 'One Quantum System',
+    discoveryText:
+        'The pair is now described as one shared quantum state. Looking for a separate state of each qubit is no longer enough.',
+    keyInsight: 'Entangled qubits form a single quantum state.',
+    whyItMatters:
+        'Quantum communication and quantum algorithms rely on entanglement.',
+    nextMystery: 'Can entanglement survive if we look at only one qubit?',
+    hints: [
+      'Start by splitting the first qubit into two possibilities.',
+      'Then use CX to connect the second qubit to those possibilities.',
+    ],
+    solutionExplanation:
+        'The circuit creates a Bell state with a hidden sign difference. The state belongs to the two-qubit system, not to either qubit alone.',
+    numQubits: 2,
+    initialQubitsStateString: '10',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'What Is Entanglement?',
+    taskDescription:
+        r'What have we actually discovered? Prepare the entangled state \( (|00\rangle - |11\rangle)/\sqrt{2} \).',
+    targetStateLabel: '|Φ-⟩',
+    targetStateExpression: '(|00⟩ - |11⟩)/√2',
+    mysteryTitle: 'What have we actually discovered?',
+    mysteryText:
+        'You have seen two qubits act as one shared system. Prepare one more entangled state and focus on what cannot be described separately.',
+    discoveryTitle: 'Entanglement',
+    discoveryText:
+        'The final state is a property of the pair. It cannot be explained as one independent state for q0 and another independent state for q1.',
+    keyInsight:
+        'Some quantum states cannot be broken into separate qubit descriptions.',
+    whyItMatters:
+        'Entanglement enables quantum communication, teleportation, and many quantum algorithms.',
+    nextMystery:
+        'If qubits can become one system, how does information move through that system?',
+    hints: [
+      'Begin with q1 set to 1.',
+      'Create a split possibility on q0, then connect the qubits with CX.',
+    ],
+    solutionExplanation:
+        'The circuit prepares an entangled pair where the possibilities |01⟩ and |10⟩ belong to the whole system.',
+    numQubits: 2,
+    initialQubitsStateString: '01',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'The Control Qubit',
+    taskDescription:
+        r'Can one qubit decide what happens to another? Use CX to transform \( |01\rangle \) into \( |11\rangle \).',
+    targetStateExpression: '|11⟩',
+    mysteryTitle: 'Can one qubit decide what happens to another?',
+    mysteryText:
+        'A two-qubit circuit can contain a decision: one qubit can determine whether another qubit changes.',
+    discoveryTitle: 'Control',
+    discoveryText:
+        'The target changed only because the control was active. The operation was not just on one wire; it depended on information in another qubit.',
+    keyInsight: 'One qubit can conditionally influence another.',
+    whyItMatters: 'Quantum algorithms rely heavily on controlled operations.',
+    nextMystery: 'Can information travel between qubits?',
+    hints: [
+      'The active qubit should control the other one.',
+      'Use CX so the second qubit changes only when the control is active.',
+    ],
+    solutionExplanation:
+        'CX used the active qubit as a condition and flipped the other qubit, producing |11⟩.',
+    numQubits: 2,
+    initialQubitsStateString: '01',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Conditional Action',
+    taskDescription:
+        r'Can the same gate behave differently depending on the input? Use CX on \( |00\rangle \).',
+    targetStateExpression: 'CX|00⟩ = |00⟩',
+    mysteryTitle:
+        'Can the same gate behave differently depending on the input?',
+    mysteryText:
+        'A controlled operation does not always visibly change the bits. Its effect depends on the information already present.',
+    discoveryTitle: 'Conditional Action',
+    discoveryText:
+        'The controlled operation was applied, but the target did not flip because the control was inactive.',
+    keyInsight:
+        'The effect of a gate can depend on the state of another qubit.',
+    whyItMatters: 'Conditional logic is fundamental to quantum circuits.',
+    nextMystery: 'Can information move from one qubit to another?',
+    hints: [
+      'There is only one gate available.',
+      'Use CX and notice that the state can stay the same for a meaningful reason.',
+    ],
+    solutionExplanation:
+        'CX checks the control. When the control is 0, the target is left alone.',
+    numQubits: 2,
+    initialQubitsStateString: '00',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.one()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+      [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+      [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+      [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Information Transfer',
+    taskDescription:
+        r'Can information be transferred between qubits? Create information on one qubit, then propagate it to the other.',
+    targetStateExpression: '|11⟩',
+    mysteryTitle: 'Can information be transferred between qubits?',
+    mysteryText:
+        'A circuit can create information on one qubit and then let that information affect another qubit.',
+    discoveryTitle: 'Information Transfer',
+    discoveryText:
+        'The first change made one qubit active. The controlled step propagated that information across the two-qubit system.',
+    keyInsight: 'Information can be propagated through a quantum circuit.',
+    whyItMatters: 'Large algorithms coordinate information across many qubits.',
+    nextMystery: 'Can information move in both directions?',
+    hints: [
+      'First create an active control.',
+      'Then use CX to pass that information to the other qubit.',
+    ],
+    solutionExplanation:
+        'X creates the active qubit. CX then uses that information to flip the other qubit, producing |11⟩.',
+    numQubits: 2,
+    initialQubitsStateString: '00',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Swap Places',
+    taskDescription:
+        r'Can two qubits exchange their information? Swap \( |10\rangle \) into \( |01\rangle \) using only CX.',
+    targetStateExpression: '|01⟩',
+    mysteryTitle: 'Can two qubits exchange their information?',
+    mysteryText:
+        'If information can move one way, can a circuit redirect both qubits so their information changes places?',
+    discoveryTitle: 'Swap',
+    discoveryText:
+        'Three controlled steps exchanged the qubits. The information did not vanish; it was routed through the circuit.',
+    keyInsight: 'Information can be redirected between qubits.',
+    whyItMatters:
+        'Real quantum hardware often requires routing information between qubits.',
+    nextMystery: 'What happens when many qubits share information?',
+    hints: [
+      'A full exchange needs controlled actions in both directions.',
+      'Use three CX gates: one direction, the other direction, then the first direction again.',
+    ],
+    solutionExplanation:
+        'The three-CX pattern performs a SWAP operation, exchanging the information carried by the two qubits.',
+    numQubits: 2,
+    initialQubitsStateString: '10',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()],
+      [Complex.zero()],
+      [Complex.zero()],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+      [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+      [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+      [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Information Flow',
+    taskDescription:
+        r'What have we actually learned? Create information, then route it across the two-qubit system.',
+    targetStateExpression: '|10⟩',
+    mysteryTitle: 'What have we actually learned?',
+    mysteryText:
+        'Controlled operations can move, redirect, and reshape information. Build a small circuit where information is created, then routed.',
+    discoveryTitle: 'Information Flow',
+    discoveryText:
+        'The circuit did more than place gates in a row. It directed information through interactions between qubits.',
+    keyInsight:
+        'Quantum circuits direct information through interactions between qubits.',
+    whyItMatters:
+        'Entanglement, GHZ states, phase kickback, and quantum algorithms all depend on information flow.',
+    nextMystery: 'Can three qubits become one shared quantum system?',
+    hints: [
+      'First create information on one qubit.',
+      'Then use the three-CX routing pattern to move it through the system.',
+    ],
+    solutionExplanation:
+        'X creates the information, and the three-CX routing pattern moves it across the two-qubit system.',
+    numQubits: 2,
+    initialQubitsStateString: '00',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+      [Complex.zero()],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+      [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+      [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+      [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Three Qubits',
+    taskDescription:
+        r'What changes when we add a third qubit? Prepare the three-qubit state \( |111\rangle \).',
+    targetStateExpression: '|111⟩',
+    mysteryTitle: 'What changes when we add a third qubit?',
+    mysteryText:
+        'A third qubit widens the system. Start simply: prepare a clear three-qubit pattern and notice that the circuit now describes the whole register.',
+    discoveryTitle: 'Three Qubits',
+    discoveryText:
+        'The system now contains more than a pair. Each qubit contributes to the shared state that the circuit transforms.',
+    keyInsight: 'Quantum systems can contain many interacting qubits.',
+    whyItMatters: 'Useful quantum algorithms require many qubits.',
+    nextMystery: 'Can three qubits become connected?',
+    hints: [
+      'Each inactive qubit needs the same simple change.',
+      'Use X on all three wires.',
+    ],
+    solutionExplanation:
+        'Each X gate flips one qubit, preparing the three-qubit state |111⟩.',
+    numQubits: 3,
+    initialQubitsStateString: '000',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Shared Information',
+    taskDescription:
+        r'Can information flow across an entire system? Create one active qubit, then spread it to reach \( |111\rangle \).',
+    targetStateExpression: '|111⟩',
+    mysteryTitle: 'Can information flow across an entire system?',
+    mysteryText:
+        'Information does not have to stay local. A controlled step can pass it along, then another can extend it across the register.',
+    discoveryTitle: 'Shared Information',
+    discoveryText:
+        'One active qubit became a source for the rest of the system. Controlled operations spread that information across multiple qubits.',
+    keyInsight: 'Information can spread through multiple qubits.',
+    whyItMatters: 'Large quantum states emerge from connected interactions.',
+    nextMystery: 'Can all three qubits share the same state?',
+    hints: [
+      'First create one active control.',
+      'Use CX twice so the active information reaches the other two qubits.',
+    ],
+    solutionExplanation:
+        'X creates the first active qubit, then two CX gates propagate that information through the three-qubit system.',
+    numQubits: 3,
+    initialQubitsStateString: '000',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'All Together',
+    taskDescription:
+        r'Can three qubits become one shared system? Prepare \( (|000\rangle + |111\rangle)/\sqrt{2} \).',
+    targetStateLabel: '|GHZ+⟩',
+    targetStateExpression: '(|000⟩ + |111⟩)/√2',
+    mysteryTitle: 'Can three qubits become one shared system?',
+    mysteryText:
+        'A Bell pair showed two qubits acting as one. Now ask whether a whole three-qubit register can share one quantum state.',
+    discoveryTitle: 'All Together',
+    discoveryText:
+        'The final state is not one qubit plus another plus another. The possibilities belong to the full three-qubit system.',
+    keyInsight: 'The entire system now behaves as one quantum state.',
+    whyItMatters: 'This is the first example of large-scale entanglement.',
+    nextMystery: 'Is this just a bigger Bell State?',
+    hints: [
+      'Start by creating a split possibility on one qubit.',
+      'Use controlled operations to connect that split to the other two qubits.',
+    ],
+    solutionExplanation:
+        'The first qubit enters a superposition, then CX gates connect the other qubits so the whole register shares |000⟩ and |111⟩.',
+    numQubits: 3,
+    initialQubitsStateString: '000',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Beyond Bell States',
+    taskDescription:
+        r'How is a GHZ state different from a Bell State? Prepare \( (|000\rangle + |111\rangle)/\sqrt{2} \).',
+    targetStateLabel: '|GHZ+⟩',
+    targetStateExpression: '(|000⟩ + |111⟩)/√2',
+    mysteryTitle: 'How is a GHZ state different from a Bell State?',
+    mysteryText:
+        'A Bell state connects a pair. A GHZ state asks you to think wider: the shared state can involve an entire system.',
+    discoveryTitle: 'GHZ State',
+    discoveryText:
+        'This is not just pairwise correlation copied one more time. The three-qubit register is described as one shared quantum state.',
+    keyInsight: 'Entanglement can involve an entire system, not just a pair.',
+    whyItMatters: 'Real quantum algorithms manipulate large entangled systems.',
+    nextMystery: 'What happens if hidden phase enters a shared state?',
+    hints: [
+      'Create a superposition first.',
+      'Then use control to make the other two qubits share the same alternatives.',
+    ],
+    solutionExplanation:
+        'A superposition on one qubit is spread through two CX gates, producing the three-qubit GHZ state.',
+    numQubits: 3,
+    initialQubitsStateString: '000',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'One System, Three Qubits',
+    taskDescription:
+        r'What have we actually discovered? Prepare \( (|000\rangle - |111\rangle)/\sqrt{2} \).',
+    targetStateLabel: '|GHZ-⟩',
+    targetStateExpression: '(|000⟩ - |111⟩)/√2',
+    mysteryTitle: 'What have we actually discovered?',
+    mysteryText:
+        'One final shared state includes hidden phase. Prepare it and focus on the whole register rather than any individual qubit.',
+    discoveryTitle: 'One System, Three Qubits',
+    discoveryText:
+        'The three qubits form a single state. Even the phase belongs to the shared system, not to one isolated wire.',
+    keyInsight: 'Multiple qubits can form a single shared quantum state.',
+    whyItMatters:
+        'Phase kickback, quantum algorithms, and large-scale quantum computation rely on thinking about systems rather than individual qubits.',
+    nextMystery:
+        'Can information be stored in phase and spread across a quantum system?',
+    hints: [
+      'Use the same shared-state idea as before.',
+      'The minus sign can be introduced before the information is shared.',
+    ],
+    solutionExplanation:
+        'A phase-marked superposition is spread across the register, creating a GHZ-style state with a relative minus sign.',
+    numQubits: 3,
+    initialQubitsStateString: '000',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
 ];
+
+ComposerLevel _chapter4InterferenceFinale() {
+  return ComposerLevel.fromBinaryString(
+    title: 'What Is Interference?',
+    taskDescription:
+        r'What have we actually discovered? Use hidden phase and a basis change to transform \( |0\rangle \) into \( |1\rangle \).',
+    targetStateExpression: '|1⟩',
+    mysteryTitle: 'What have we actually discovered?',
+    mysteryText:
+        'A hidden phase can seem invisible until the circuit gives paths a way to combine. Build one final circuit where that hidden difference becomes a visible outcome.',
+    discoveryTitle: 'Interference',
+    discoveryText:
+        'The circuit changed phase first, then used a basis change to make that phase affect measurement. This is interference: amplitudes combining so some outcomes grow and others shrink.',
+    keyInsight:
+        'Interference turns hidden phase differences into visible probability changes.',
+    whyItMatters:
+        'Quantum algorithms use interference to reveal useful hidden structure.',
+    nextMystery: 'Can two qubits become one quantum system?',
+    hints: [
+      'Create two paths first.',
+      'Flip the phase of one path, then combine the paths again.',
+    ],
+    solutionExplanation:
+        'H creates two paths, Z changes the relative phase, and the final H makes that hidden phase visible as |1⟩.',
+    numQubits: 1,
+    initialQubitsStateString: '0',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  );
+}
+
+final List<QQLevel> allQQLevels = _consolidatedQQLevels();
+
+List<QQLevel> _consolidatedQQLevels() {
+  final chapter1Information = _authoredQQLevels.sublist(73, 78);
+  final chapter2HiddenChange = _authoredQQLevels.sublist(78, 83);
+  final chapter3Superposition = _authoredQQLevels.sublist(83, 88);
+  final chapter4Interference = [
+    ..._authoredQQLevels.sublist(54, 58),
+    _chapter4InterferenceFinale(),
+  ];
+  final chapter5Entanglement = _authoredQQLevels.sublist(88, 93);
+  final chapter6InformationFlow = _authoredQQLevels.sublist(93, 98);
+  final chapter7GhzStates = _authoredQQLevels.sublist(98, 103);
+  final chapter8PhaseKickback = _authoredQQLevels.sublist(58, 63);
+  final chapter9OracleThinking = _authoredQQLevels.sublist(63, 68);
+  final chapter10AmplitudeAmplification = _authoredQQLevels.sublist(68, 73);
+  final legacyChallenges = _authoredQQLevels.sublist(0, 54);
+
+  return [
+    ...chapter1Information,
+    ...chapter2HiddenChange,
+    ...chapter3Superposition,
+    ...chapter4Interference,
+    ...chapter5Entanglement,
+    ...chapter6InformationFlow,
+    ...chapter7GhzStates,
+    ...chapter8PhaseKickback,
+    ...chapter9OracleThinking,
+    ...chapter10AmplitudeAmplification,
+    ...legacyChallenges,
+  ];
+}
 
 int numberOfLevels = allQQLevels.length;
 
@@ -3332,153 +4143,80 @@ ComposerLevel getComposerAsLevel(int numQubits) {
 
 final List<QQLevelsCategory> groupedLevels = [
   QQLevelsCategory(
-    groupName: 'Basic Gate Operations',
+    groupName: 'Chapter 1 - Information',
     from: 0,
     to: 4,
     categoryIntro:
-        'Quantum gates are reversible operations that transform qubit states. '
-        'Unlike classical logic gates, every quantum gate has an inverse — '
-        'applying the same gate twice returns to the original state.',
-  ),
-  QQLevelsCategory(
-    groupName: 'Superposition and Phase Gates',
-    from: 5,
-    to: 12,
-    categoryIntro:
-        'The Hadamard gate puts a qubit in superposition — existing as both |0⟩ and |1⟩ '
-        'simultaneously until measured. Phase gates (S, T) rotate the |1⟩ amplitude on the '
-        'complex unit circle, changing the "angle" of the state without affecting measurement probabilities.',
-  ),
-  QQLevelsCategory(
-    groupName: 'Controlled Gates',
-    from: 13,
-    to: 20,
-    categoryIntro:
-        'Controlled gates apply an operation to a target qubit only when a control qubit is |1⟩. '
-        'The CNOT (Controlled-NOT) is the most important two-qubit gate and is universal '
-        'for quantum computing when combined with single-qubit gates.',
-  ),
-  QQLevelsCategory(
-    groupName: 'Entanglement & Disentanglement',
-    from: 21,
-    to: 26,
-    categoryIntro:
-        'Entanglement is a uniquely quantum correlation where the state of two qubits '
-        'cannot be described independently. Bell states are the simplest maximally-entangled states. '
-        'Measuring one qubit of an entangled pair instantly determines the other.',
-  ),
-  QQLevelsCategory(
-    groupName: 'Advanced 2-Qubit Puzzles',
-    from: 27,
-    to: 31,
-    categoryIntro: 'These puzzles combine multiple two-qubit operations. '
-        'Pay attention to which qubit is the control and which is the target — '
-        'the order matters.',
-  ),
-  QQLevelsCategory(
-    groupName: 'Toffoli Gate Logic',
-    from: 32,
-    to: 34,
-    categoryIntro:
-        'The Toffoli gate (CCX) has two control qubits: it flips the target only when BOTH '
-        'controls are |1⟩. This makes it a quantum AND gate and means it can simulate '
-        'any classical reversible computation.',
-  ),
-  QQLevelsCategory(
-    groupName: 'Advanced Entanglement and Algorithms',
-    from: 35,
-    to: 38,
-    categoryIntro:
-        'These levels build circuits that are stepping stones to real quantum algorithms. '
-        'The GHZ state, conditional phase shifts, and multi-qubit entanglement all appear '
-        'in Shor\'s algorithm, Grover\'s search, and quantum teleportation.',
-  ),
-  QQLevelsCategory(
-    groupName: 'Rotation Gates',
-    from: 39,
-    to: 45,
-    categoryIntro:
-        'Rx, Ry, and Rz rotate a qubit by an angle on the Bloch sphere around each axis. '
-        'Any single-qubit gate can be expressed as a combination of rotations. '
-        'These gates are essential for variational quantum algorithms.',
-  ),
-  QQLevelsCategory(
-    groupName: 'Concept Checks',
-    from: 46,
-    to: 47,
-    categoryIntro:
-        'Quick questions to consolidate the key ideas you have encountered. '
-        'No circuits — just concepts.',
-  ),
-  QQLevelsCategory(
-    groupName: 'Measurement Labs',
-    from: 48,
-    to: 49,
-    categoryIntro:
-        'Quantum measurement is probabilistic. Press Measure repeatedly and watch '
-        'the outcome distribution converge — this is the Born rule in action.',
-  ),
-  QQLevelsCategory(
-    groupName: 'Fill the Gate',
-    from: 50,
-    to: 51,
-    categoryIntro:
-        'A circuit is shown with one gate missing. Choose the correct gate to complete it. '
-        'This tests your ability to reason about gate effects without building from scratch.',
-  ),
-  QQLevelsCategory(
-    groupName: 'Circuit Reading',
-    from: 52,
-    to: 53,
-    categoryIntro: 'Read a pre-built circuit and identify its output state. '
-        'Being able to analyse circuits is as important as building them.',
-  ),
-  QQLevelsCategory(
-    groupName: 'Chapter 1 - Information',
-    from: 73,
-    to: 77,
-    categoryIntro:
-        'Begin with the first mystery: what is a qubit? This prototype chapter treats gates as tools for investigating information, not as vocabulary to memorize.',
+        'Begin with the first mystery: what is a qubit? This chapter treats gates as tools for investigating information, not as vocabulary to memorize.',
   ),
   QQLevelsCategory(
     groupName: 'Chapter 2 - Hidden Change',
-    from: 78,
-    to: 82,
+    from: 5,
+    to: 9,
     categoryIntro:
-        'Not every quantum change shows up in measurement right away. This prototype chapter follows the first hidden trail from invisible changes to phase.',
+        'Not every quantum change shows up in measurement right away. This chapter follows the first hidden trail from invisible changes to phase.',
+  ),
+  QQLevelsCategory(
+    groupName: 'Chapter 3 - Superposition',
+    from: 10,
+    to: 14,
+    categoryIntro:
+        'A qubit is not limited to ordinary 0-or-1 behavior. This chapter lets players discover states that hold multiple possibilities at once.',
   ),
   QQLevelsCategory(
     groupName: 'Chapter 4 - Interference',
-    from: 54,
-    to: 57,
+    from: 15,
+    to: 19,
     categoryIntro:
-        'Phase can feel invisible because measurement probabilities do not always change right away. '
-        'This prototype chapter follows the trail from hidden phase to basis changes, cancellation, '
-        'and the interference patterns that power quantum algorithms.',
+        'Phase can feel invisible because measurement probabilities do not always change right away. This chapter follows the trail from hidden phase to interference.',
+  ),
+  QQLevelsCategory(
+    groupName: 'Chapter 5 - Entanglement',
+    from: 20,
+    to: 24,
+    categoryIntro:
+        'Two qubits can be more than two independent objects. This chapter introduces correlation, Bell states, and the first true multi-qubit quantum phenomenon.',
+  ),
+  QQLevelsCategory(
+    groupName: 'Chapter 6 - Information Flow',
+    from: 25,
+    to: 29,
+    categoryIntro:
+        'Controlled operations let information influence, transfer, and route through a quantum system. This chapter prepares players for larger shared states.',
+  ),
+  QQLevelsCategory(
+    groupName: 'Chapter 7 - GHZ States',
+    from: 30,
+    to: 34,
+    categoryIntro:
+        'Entanglement is not limited to pairs. This chapter widens the player\'s view from two-qubit connections to a shared three-qubit quantum system.',
   ),
   QQLevelsCategory(
     groupName: 'Chapter 8 - Phase Kickback',
-    from: 58,
-    to: 62,
+    from: 35,
+    to: 39,
     categoryIntro:
-        'Phase kickback is the hidden mechanism that lets controlled operations write information into phase. '
-        'This prototype chapter follows how information can move through a circuit without obvious bit flips, '
-        'then become visible again through interference.',
+        'Phase kickback is the hidden mechanism that lets controlled operations write information into phase, then reveal it through interference.',
   ),
   QQLevelsCategory(
     groupName: 'Chapter 9 - Oracle Thinking',
-    from: 63,
-    to: 67,
+    from: 40,
+    to: 44,
     categoryIntro:
-        'An oracle does not search for an answer directly. It marks the desired solution in phase, '
-        'creating the hidden label that interference can later amplify.',
+        'An oracle does not search for an answer directly. It marks the desired solution in phase, creating the hidden label that interference can later amplify.',
   ),
   QQLevelsCategory(
     groupName: 'Chapter 10 - Amplitude Amplification',
-    from: 68,
-    to: 72,
+    from: 45,
+    to: 49,
     categoryIntro:
-        'Amplitude amplification turns an oracle phase mark into a higher chance of measuring the marked answer. '
-        'This prototype chapter builds the first Mini Grover intuition: mark, then amplify.',
+        'Amplitude amplification turns an oracle phase mark into a higher chance of measuring the marked answer. This chapter builds the first Mini Grover intuition: mark, then amplify.',
+  ),
+  QQLevelsCategory(
+    groupName: 'Legacy Challenges',
+    from: 50,
+    to: 103,
+    categoryIntro:
+        'Optional earlier Qubit Quest challenges preserved for practice and reference. These levels are playable but are not part of the main discovery campaign.',
   ),
 ];

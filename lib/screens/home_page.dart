@@ -48,11 +48,40 @@ class _HomePageState extends State<HomePage> {
     'Phase Information',
     'Phase',
   };
+  static const Set<String> _chapter3DiscoveryTitles = {
+    'The Third State',
+    'Two Possibilities',
+    'Plus And Minus',
+    'Not The Same',
+    'Superposition',
+  };
   static const Set<String> _chapter4DiscoveryTitles = {
     'Phase Is Hidden',
     'Phase Becomes Bit',
     'Bit Becomes Phase',
+    'Interference',
     'Destructive Interference',
+  };
+  static const Set<String> _chapter5DiscoveryTitles = {
+    'Two Qubits',
+    'Correlation',
+    'Bell State',
+    'One Quantum System',
+    'Entanglement',
+  };
+  static const Set<String> _chapter6DiscoveryTitles = {
+    'Control',
+    'Conditional Action',
+    'Information Transfer',
+    'Swap',
+    'Information Flow',
+  };
+  static const Set<String> _chapter7DiscoveryTitles = {
+    'Three Qubits',
+    'Shared Information',
+    'All Together',
+    'GHZ State',
+    'One System, Three Qubits',
   };
   static const Set<String> _chapter8DiscoveryTitles = {
     'Hidden Information',
@@ -65,7 +94,7 @@ class _HomePageState extends State<HomePage> {
     'A Special State',
     'Hidden Mark',
     'Oracle',
-    'Invisible Difference',
+    'Invisible Mark',
     'Phase Marking',
   };
   static const Set<String> _chapter10DiscoveryTitles = {
@@ -75,6 +104,8 @@ class _HomePageState extends State<HomePage> {
     'Mini Grover',
     'Search Through Interference',
   };
+  static const int _mainCampaignLevelCount = 50;
+  static const String _campaignProgressKey = 'maxUnlockedCampaignLevel';
 
   // Placeholder for the maximum unlocked level.
   // In a real app, this would be loaded from user data (e.g., preferences, database).
@@ -120,7 +151,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadMaxUnlockedLevel() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _maxUnlockedLevel = prefs.getInt('maxUnlockedLevel') ?? 1;
+      _maxUnlockedLevel = prefs.getInt(_campaignProgressKey) ?? 1;
       _isLoadingLevels = false; // Loading complete
     });
     debugPrint('Loaded max unlocked level: $_maxUnlockedLevel');
@@ -131,7 +162,7 @@ class _HomePageState extends State<HomePage> {
     if (completedLevelNumber >= _maxUnlockedLevel) {
       final newMaxLevel = completedLevelNumber;
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('maxUnlockedLevel', newMaxLevel);
+      await prefs.setInt(_campaignProgressKey, newMaxLevel);
       setState(() {
         _maxUnlockedLevel = newMaxLevel;
       });
@@ -149,11 +180,11 @@ class _HomePageState extends State<HomePage> {
           backgroundColor:
               const Color(0xFF2D2E40), // Dark background for the dialog
           title: const Text(
-            'All Levels Completed!',
+            'Campaign Completed!',
             style: TextStyle(color: Colors.white),
           ),
           content: const Text(
-            'Congratulations! You\'ve mastered all the quantum puzzles.',
+            'You completed the Qubit Quest discovery campaign. Legacy Challenges remain available for extra practice.',
             style: TextStyle(color: Colors.white70),
           ),
           actions: <Widget>[
@@ -433,7 +464,11 @@ class _HomePageState extends State<HomePage> {
       case 'discoveries':
         final chapter1LevelNumber = _firstChapter1InformationLevelNumber();
         final chapter2LevelNumber = _firstChapter2HiddenChangeLevelNumber();
+        final chapter3LevelNumber = _firstChapter3SuperpositionLevelNumber();
         final chapter4LevelNumber = _firstChapter4InterferenceLevelNumber();
+        final chapter5LevelNumber = _firstChapter5EntanglementLevelNumber();
+        final chapter6LevelNumber = _firstChapter6InformationFlowLevelNumber();
+        final chapter7LevelNumber = _firstChapter7GhzStatesLevelNumber();
         final chapter8LevelNumber = _firstChapter8PhaseKickbackLevelNumber();
         final chapter9LevelNumber = _firstChapter9OracleThinkingLevelNumber();
         final chapter10LevelNumber =
@@ -444,37 +479,61 @@ class _HomePageState extends State<HomePage> {
               prototypeChapters: [
                 if (chapter1LevelNumber != null)
                   DiscoveryPrototypeChapter(
-                    title: 'Chapter 1 Prototype',
+                    title: 'Chapter 1',
                     subtitle: 'Start Information',
                     levelNumber: chapter1LevelNumber,
                   ),
                 if (chapter2LevelNumber != null)
                   DiscoveryPrototypeChapter(
-                    title: 'Chapter 2 Prototype',
+                    title: 'Chapter 2',
                     subtitle: 'Start Hidden Change',
                     levelNumber: chapter2LevelNumber,
                   ),
+                if (chapter3LevelNumber != null)
+                  DiscoveryPrototypeChapter(
+                    title: 'Chapter 3',
+                    subtitle: 'Start Superposition',
+                    levelNumber: chapter3LevelNumber,
+                  ),
                 if (chapter4LevelNumber != null)
                   DiscoveryPrototypeChapter(
-                    title: 'Chapter 4 Prototype',
+                    title: 'Chapter 4',
                     subtitle: 'Start Interference',
                     levelNumber: chapter4LevelNumber,
                   ),
+                if (chapter5LevelNumber != null)
+                  DiscoveryPrototypeChapter(
+                    title: 'Chapter 5',
+                    subtitle: 'Start Entanglement',
+                    levelNumber: chapter5LevelNumber,
+                  ),
+                if (chapter6LevelNumber != null)
+                  DiscoveryPrototypeChapter(
+                    title: 'Chapter 6',
+                    subtitle: 'Start Information Flow',
+                    levelNumber: chapter6LevelNumber,
+                  ),
+                if (chapter7LevelNumber != null)
+                  DiscoveryPrototypeChapter(
+                    title: 'Chapter 7',
+                    subtitle: 'Start GHZ States',
+                    levelNumber: chapter7LevelNumber,
+                  ),
                 if (chapter8LevelNumber != null)
                   DiscoveryPrototypeChapter(
-                    title: 'Chapter 8 Prototype',
+                    title: 'Chapter 8',
                     subtitle: 'Start Phase Kickback',
                     levelNumber: chapter8LevelNumber,
                   ),
                 if (chapter9LevelNumber != null)
                   DiscoveryPrototypeChapter(
-                    title: 'Chapter 9 Prototype',
+                    title: 'Chapter 9',
                     subtitle: 'Start Oracle Thinking',
                     levelNumber: chapter9LevelNumber,
                   ),
                 if (chapter10LevelNumber != null)
                   DiscoveryPrototypeChapter(
-                    title: 'Chapter 10 Prototype',
+                    title: 'Chapter 10',
                     subtitle: 'Start Mini Grover',
                     levelNumber: chapter10LevelNumber,
                   ),
@@ -506,42 +565,70 @@ class _HomePageState extends State<HomePage> {
 
   bool _isChapter4InterferenceLevel(QQLevel level) {
     final discoveryTitle = level.discoveryTitle?.trim();
-    return _isLevelNumberInRange(level, 55, 58) &&
+    return _isLevelNumberInRange(level, 16, 20) &&
         discoveryTitle != null &&
         _chapter4DiscoveryTitles.contains(discoveryTitle);
   }
 
   bool _isChapter1InformationLevel(QQLevel level) {
     final discoveryTitle = level.discoveryTitle?.trim();
-    return _isLevelNumberInRange(level, 74, 78) &&
+    return _isLevelNumberInRange(level, 1, 5) &&
         discoveryTitle != null &&
         _chapter1DiscoveryTitles.contains(discoveryTitle);
   }
 
   bool _isChapter2HiddenChangeLevel(QQLevel level) {
     final discoveryTitle = level.discoveryTitle?.trim();
-    return _isLevelNumberInRange(level, 79, 83) &&
+    return _isLevelNumberInRange(level, 6, 10) &&
         discoveryTitle != null &&
         _chapter2DiscoveryTitles.contains(discoveryTitle);
   }
 
+  bool _isChapter3SuperpositionLevel(QQLevel level) {
+    final discoveryTitle = level.discoveryTitle?.trim();
+    return _isLevelNumberInRange(level, 11, 15) &&
+        discoveryTitle != null &&
+        _chapter3DiscoveryTitles.contains(discoveryTitle);
+  }
+
+  bool _isChapter5EntanglementLevel(QQLevel level) {
+    final discoveryTitle = level.discoveryTitle?.trim();
+    return _isLevelNumberInRange(level, 21, 25) &&
+        discoveryTitle != null &&
+        _chapter5DiscoveryTitles.contains(discoveryTitle);
+  }
+
+  bool _isChapter6InformationFlowLevel(QQLevel level) {
+    final discoveryTitle = level.discoveryTitle?.trim();
+    return _isLevelNumberInRange(level, 26, 30) &&
+        discoveryTitle != null &&
+        _chapter6DiscoveryTitles.contains(discoveryTitle);
+  }
+
+  bool _isChapter7GhzStatesLevel(QQLevel level) {
+    final discoveryTitle = level.discoveryTitle?.trim();
+    return _isLevelNumberInRange(level, 31, 35) &&
+        discoveryTitle != null &&
+        _chapter7DiscoveryTitles.contains(discoveryTitle);
+  }
+
   bool _isChapter8PhaseKickbackLevel(QQLevel level) {
     final discoveryTitle = level.discoveryTitle?.trim();
-    return _isLevelNumberInRange(level, 59, 63) &&
+    return _isLevelNumberInRange(level, 36, 40) &&
         discoveryTitle != null &&
         _chapter8DiscoveryTitles.contains(discoveryTitle);
   }
 
   bool _isChapter9OracleThinkingLevel(QQLevel level) {
     final discoveryTitle = level.discoveryTitle?.trim();
-    return _isLevelNumberInRange(level, 64, 68) &&
+    return _isLevelNumberInRange(level, 41, 45) &&
         discoveryTitle != null &&
         _chapter9DiscoveryTitles.contains(discoveryTitle);
   }
 
   bool _isChapter10AmplitudeAmplificationLevel(QQLevel level) {
     final discoveryTitle = level.discoveryTitle?.trim();
-    return _isLevelNumberInRange(level, 69, 73) &&
+    return _isLevelNumberInRange(level, 46, 50) &&
         discoveryTitle != null &&
         _chapter10DiscoveryTitles.contains(discoveryTitle);
   }
@@ -552,13 +639,9 @@ class _HomePageState extends State<HomePage> {
     return index >= 0 && levelNumber >= firstLevel && levelNumber <= lastLevel;
   }
 
-  bool _isPrototypeChapterLevel(QQLevel level) {
-    return _isChapter1InformationLevel(level) ||
-        _isChapter2HiddenChangeLevel(level) ||
-        _isChapter4InterferenceLevel(level) ||
-        _isChapter8PhaseKickbackLevel(level) ||
-        _isChapter9OracleThinkingLevel(level) ||
-        _isChapter10AmplitudeAmplificationLevel(level);
+  bool _isLegacyChallengeLevel(QQLevel level) {
+    final index = allQQLevels.indexOf(level);
+    return index >= _mainCampaignLevelCount;
   }
 
   int? _firstChapter1InformationLevelNumber() {
@@ -571,8 +654,28 @@ class _HomePageState extends State<HomePage> {
     return index < 0 ? null : index + 1;
   }
 
+  int? _firstChapter3SuperpositionLevelNumber() {
+    final index = allQQLevels.indexWhere(_isChapter3SuperpositionLevel);
+    return index < 0 ? null : index + 1;
+  }
+
   int? _firstChapter4InterferenceLevelNumber() {
     final index = allQQLevels.indexWhere(_isChapter4InterferenceLevel);
+    return index < 0 ? null : index + 1;
+  }
+
+  int? _firstChapter5EntanglementLevelNumber() {
+    final index = allQQLevels.indexWhere(_isChapter5EntanglementLevel);
+    return index < 0 ? null : index + 1;
+  }
+
+  int? _firstChapter6InformationFlowLevelNumber() {
+    final index = allQQLevels.indexWhere(_isChapter6InformationFlowLevel);
+    return index < 0 ? null : index + 1;
+  }
+
+  int? _firstChapter7GhzStatesLevelNumber() {
+    final index = allQQLevels.indexWhere(_isChapter7GhzStatesLevel);
     return index < 0 ? null : index + 1;
   }
 
@@ -719,14 +822,14 @@ class _HomePageState extends State<HomePage> {
   Widget _buildPrimaryActionSection({required bool compact}) {
     final Widget continueCard = _buildActionCard(
       title: 'Continue Journey',
-      subtitle: _maxUnlockedLevel > numberOfLevels
+      subtitle: _maxUnlockedLevel > _mainCampaignLevelCount
           ? 'Review your completed quantum path'
           : 'Next: Level $_maxUnlockedLevel',
       icon: Icons.play_arrow_rounded,
       primary: true,
       compact: compact,
       onTap: () {
-        if (_maxUnlockedLevel > numberOfLevels) {
+        if (_maxUnlockedLevel > _mainCampaignLevelCount) {
           _showGameCompleteDialog();
           return;
         }
@@ -907,9 +1010,9 @@ class _HomePageState extends State<HomePage> {
             final int currentIndex = indexStart + index;
             final int levelNumber = currentIndex + 1;
             final QQLevel level = allQQLevels[currentIndex];
-            final bool isPrototypeLevel = _isPrototypeChapterLevel(level);
+            final bool isLegacyChallenge = _isLegacyChallengeLevel(level);
             final bool isUnlocked =
-                isPrototypeLevel || levelNumber <= _maxUnlockedLevel;
+                isLegacyChallenge || levelNumber <= _maxUnlockedLevel;
 
             return Container(
               decoration: BoxDecoration(
@@ -1005,7 +1108,7 @@ class _HomePageState extends State<HomePage> {
   // Route to the correct screen based on level type
   Widget _screenForLevel(QQLevel level, int levelId) {
     final unlockCallback =
-        _isPrototypeChapterLevel(level) ? null : _updateMaxUnlockedLevel;
+        _isLegacyChallengeLevel(level) ? null : _updateMaxUnlockedLevel;
 
     return switch (level) {
       ComposerLevel l => QuantumComposer(
@@ -1125,6 +1228,25 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       }
+    } else if (_isChapter3SuperpositionLevel(level)) {
+      final prefs = await SharedPreferences.getInstance();
+      const seenKey =
+          'chapter_intro_seen_chapter_3_superposition_vertical_slice';
+      if (prefs.getBool(seenKey) != true) {
+        await prefs.setBool(seenKey, true);
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => const ChapterIntroScreen(
+              title: 'Chapter 3 - Superposition',
+              text:
+                  'A qubit does not have to be only 0 or only 1. In this chapter, investigate states that hold multiple possibilities at once.',
+              buttonLabel: 'Start Mystery',
+            ),
+          ),
+        );
+      }
     } else if (_isChapter4InterferenceLevel(level)) {
       final prefs = await SharedPreferences.getInstance();
       const seenKey =
@@ -1139,6 +1261,62 @@ class _HomePageState extends State<HomePage> {
               title: 'Chapter 4 - Interference',
               text:
                   'Some quantum changes hide in phase until a circuit makes them interfere. In this chapter, experiment with how amplitudes can reinforce or cancel each other.',
+              buttonLabel: 'Start Mystery',
+            ),
+          ),
+        );
+      }
+    } else if (_isChapter5EntanglementLevel(level)) {
+      final prefs = await SharedPreferences.getInstance();
+      const seenKey =
+          'chapter_intro_seen_chapter_5_entanglement_vertical_slice';
+      if (prefs.getBool(seenKey) != true) {
+        await prefs.setBool(seenKey, true);
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => const ChapterIntroScreen(
+              title: 'Chapter 5 - Entanglement',
+              text:
+                  'Two qubits are not always just two independent qubits. In this chapter, investigate when a pair becomes one shared quantum system.',
+              buttonLabel: 'Start Mystery',
+            ),
+          ),
+        );
+      }
+    } else if (_isChapter6InformationFlowLevel(level)) {
+      final prefs = await SharedPreferences.getInstance();
+      const seenKey =
+          'chapter_intro_seen_chapter_6_information_flow_vertical_slice';
+      if (prefs.getBool(seenKey) != true) {
+        await prefs.setBool(seenKey, true);
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => const ChapterIntroScreen(
+              title: 'Chapter 6 - Information Flow',
+              text:
+                  'Qubits do not always act alone. In this chapter, investigate how controlled interactions move and route information through a quantum system.',
+              buttonLabel: 'Start Mystery',
+            ),
+          ),
+        );
+      }
+    } else if (_isChapter7GhzStatesLevel(level)) {
+      final prefs = await SharedPreferences.getInstance();
+      const seenKey = 'chapter_intro_seen_chapter_7_ghz_states_vertical_slice';
+      if (prefs.getBool(seenKey) != true) {
+        await prefs.setBool(seenKey, true);
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => const ChapterIntroScreen(
+              title: 'Chapter 7 - GHZ States',
+              text:
+                  'Entanglement is not limited to a pair. In this chapter, widen your view from connected qubits to a shared three-qubit quantum system.',
               buttonLabel: 'Start Mystery',
             ),
           ),
@@ -1287,7 +1465,12 @@ class _HomePageState extends State<HomePage> {
       }
 
       if (result == LevelCompletionAction.nextLevel) {
-        currentLevelToPlay++;
+        if (currentLevelToPlay == _mainCampaignLevelCount) {
+          _showGameCompleteDialog();
+          continueLevelChain = false;
+        } else {
+          currentLevelToPlay++;
+        }
       } else if (result == LevelCompletionAction.levelSelect) {
         continueLevelChain = false;
       } else if (result == LevelCompletionAction.reviewSolution) {
