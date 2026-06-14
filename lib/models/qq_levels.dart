@@ -2167,6 +2167,777 @@ final List<QQLevel> allQQLevels = [
     solutionExplanation: 'H creates superposition on Q0 giving (|00⟩+|10⟩)/√2. '
         'CNOT(0→1) then flips Q1 when Q0=1, producing (|00⟩+|11⟩)/√2 — the Bell state Φ⁺.',
   ),
+
+  ComposerLevel(
+    title: 'Phase Is Hidden',
+    taskDescription:
+        r'Can something change without changing what we measure? Transform \( |+\rangle \) into \( |-\rangle \).',
+    targetStateLabel: '|-⟩',
+    targetStateExpression: '|-⟩ = (|0⟩ - |1⟩)/√2',
+    mysteryTitle: 'Can something change without changing what we measure?',
+    mysteryText:
+        'The probabilities of |+⟩ and |-⟩ look identical: half |0⟩ and half |1⟩. If measurement gives the same odds, did anything meaningful change?',
+    discoveryTitle: 'Phase Is Hidden',
+    discoveryText:
+        'The Z gate changed the sign of the |1⟩ amplitude. The measurement probabilities stayed the same, but the quantum state changed.',
+    keyInsight: 'Phase information is real information.',
+    whyItMatters:
+        'Quantum algorithms often manipulate phase long before probabilities change. The useful information can be hidden in signs and angles until another operation reveals it.',
+    nextMystery:
+        'If phase can hide from measurement, can we make it show up as a bit we can see?',
+    hints: [
+      'The two states have the same probabilities. Look for a gate that changes a sign, not a bit value.',
+      'Z leaves |0⟩ unchanged and gives |1⟩ a minus sign.',
+    ],
+    solutionExplanation:
+        'Z(|0⟩ + |1⟩)/√2 = (|0⟩ - |1⟩)/√2. The probabilities are still 50/50, but the phase changed.',
+    numQubits: 1,
+    initialQubitsStateStr: '|+⟩',
+    initialQubitsState: [
+      Complex(math.sqrt1_2, 0),
+      Complex(math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'HZH = X',
+    taskDescription:
+        r'Can a phase flip become a bit flip? Starting from \( |0\rangle \), reach \( |1\rangle \) using only H and Z.',
+    targetStateExpression: '|1⟩',
+    mysteryTitle: 'Can a phase flip become a bit flip?',
+    mysteryText:
+        'Z only changes phase, so it should not flip |0⟩ into |1⟩ directly. But what if you change the basis before and after the phase flip?',
+    discoveryTitle: 'Phase Becomes Bit',
+    discoveryText:
+        'The first H moved the state into the phase-sensitive |+⟩/|-⟩ basis. Z changed the hidden phase, and the final H converted that phase difference into the visible state |1⟩.',
+    keyInsight: 'HZH behaves exactly like X.',
+    whyItMatters:
+        'This mechanism appears throughout quantum algorithms: store information in phase, change basis, then make the answer measurable.',
+    nextMystery:
+        'If phase can become a bit, can a bit flip become a phase flip?',
+    hints: [
+      'Use H to move from the computational basis into the plus/minus basis.',
+      'Try placing Z between two H gates.',
+    ],
+    solutionExplanation:
+        'H maps |0⟩ to |+⟩. Z maps |+⟩ to |-⟩. H maps |-⟩ to |1⟩, so HZH acts like X.',
+    numQubits: 1,
+    initialQubitsStateString: '0',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'HXH = Z',
+    taskDescription:
+        r'Can a bit flip become a phase flip? Starting from \( |+\rangle \), reach \( |-\rangle \) using only H and X.',
+    targetStateLabel: '|-⟩',
+    targetStateExpression: '|-⟩ = (|0⟩ - |1⟩)/√2',
+    mysteryTitle: 'Can a bit flip become a phase flip?',
+    mysteryText:
+        'X is a bit flip in the normal |0⟩/|1⟩ basis. But in a different basis, the same operation can change phase instead.',
+    discoveryTitle: 'Bit Becomes Phase',
+    discoveryText:
+        'The Hadamard gates changed the basis around X. In that basis, the bit flip produced the same effect as a phase flip on the original state.',
+    keyInsight: 'HXH behaves exactly like Z.',
+    whyItMatters:
+        'Quantum computation depends on basis transformations. The same physical gate can play different roles depending on how the circuit surrounds it.',
+    nextMystery:
+        'If signs can be moved around, can two paths cancel so completely that an outcome becomes impossible?',
+    hints: [
+      'Use H to change basis before applying X.',
+      'Mirror the previous pattern: H, then X, then H.',
+    ],
+    solutionExplanation:
+        'H maps |+⟩ to |0⟩. X maps |0⟩ to |1⟩. H maps |1⟩ to |-⟩, so HXH acts like Z.',
+    numQubits: 1,
+    initialQubitsStateStr: '|+⟩',
+    initialQubitsState: [
+      Complex(math.sqrt1_2, 0),
+      Complex(math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.x),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Make Zero Impossible',
+    taskDescription:
+        r'Can you completely eliminate one outcome? Create a circuit where \( P(|0\rangle)=0 \).',
+    targetStateExpression: '|1⟩',
+    mysteryTitle: 'Can you completely eliminate one outcome?',
+    mysteryText:
+        'A qubit can have multiple possible paths to an outcome. Can you arrange the signs so the |0⟩ paths cancel each other out?',
+    discoveryTitle: 'Destructive Interference',
+    discoveryText:
+        'The circuit made the |0⟩ amplitudes cancel while the |1⟩ amplitudes reinforced. An outcome disappeared because amplitudes add with signs.',
+    keyInsight: 'Interference can remove outcomes entirely.',
+    whyItMatters:
+        'Grover\'s algorithm amplifies some outcomes and suppresses others using interference. Quantum speedups come from steering amplitudes, not from trying every answer separately.',
+    nextMystery:
+        'Can an oracle mark the right answer in phase, then let interference make that answer stand out?',
+    hints: [
+      'Start by changing the sign between the |0⟩ and |1⟩ amplitudes.',
+      'After creating |-⟩, use H to turn cancellation into a visible |1⟩ outcome.',
+    ],
+    solutionExplanation:
+        'Z changes |+⟩ into |-⟩. H then maps |-⟩ to |1⟩, so the |0⟩ outcome has probability 0.',
+    numQubits: 1,
+    initialQubitsStateStr: '|+⟩',
+    initialQubitsState: [
+      Complex(math.sqrt1_2, 0),
+      Complex(math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Something Changed',
+    taskDescription:
+        r'Can a circuit change information without changing the measured bit? Apply one controlled operation to \( |1\rangle|-\rangle \).',
+    targetStateExpression: '-|1⟩|−⟩',
+    mysteryTitle:
+        'Can a circuit change information without changing the measured bit?',
+    mysteryText:
+        'The measured bits can look exactly the same before and after a circuit. Try the controlled operation and watch for information that measurement probabilities alone do not reveal.',
+    discoveryTitle: 'Hidden Information',
+    discoveryText:
+        'The target bit still behaves like |−⟩ and the control still measures as 1. Yet the state gained a phase. Something changed, even though the visible bit values did not.',
+    keyInsight: 'Not all quantum information is visible through measurement.',
+    whyItMatters:
+        'Quantum algorithms can move information into signs and phases before anything changes in the measurement probabilities. If you only watch measured bits, you miss most of the computation.',
+    nextMystery:
+        'What kind of state can carry this hidden information without visibly changing?',
+    hints: [
+      'Use the controlled gate with the first qubit as control and the second qubit as target.',
+      'The target is |−⟩, so flipping it can create a phase instead of an obvious bit change.',
+    ],
+    solutionExplanation:
+        'CNOT with control q0 and target q1 maps |1⟩|−⟩ to -|1⟩|−⟩. The measured bit values are unchanged, but the phase changed.',
+    numQubits: 2,
+    initialQubitsStateStr: '|1⟩|−⟩',
+    initialQubitsState: [
+      Complex.zero(),
+      Complex(math.sqrt1_2, 0),
+      Complex.zero(),
+      Complex(-math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex(-math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'The Hidden Passenger',
+    taskDescription:
+        r'Where did the information go? Turn the target from \( |+\rangle \) into the phase-sensitive \( |-\rangle \).',
+    targetStateExpression: '|1⟩|−⟩',
+    mysteryTitle: 'Where did the information go?',
+    mysteryText:
+        'The second qubit can hide information in phase. Prepare it as |−⟩ while the first qubit remains |1⟩.',
+    discoveryTitle: 'Phase Carrier',
+    discoveryText:
+        '|−⟩ has the same 50/50 measurement probabilities as |+⟩, but its minus sign makes it respond differently to controlled operations.',
+    keyInsight: 'Phase can carry information.',
+    whyItMatters:
+        'Phase-sensitive states let a circuit store information without needing a visible bit flip. They are the hidden passengers that make kickback possible.',
+    nextMystery:
+        'If the target carries phase, can a controlled gate send that phase back to the control?',
+    hints: [
+      'Only the target qubit needs to change.',
+      'Z changes |+⟩ into |−⟩ without changing the target measurement probabilities.',
+    ],
+    solutionExplanation:
+        'Applying Z to q1 changes |+⟩ into |−⟩. The target probabilities stay 50/50, but the phase is now different.',
+    numQubits: 2,
+    initialQubitsStateStr: '|1⟩|+⟩',
+    initialQubitsState: [
+      Complex.zero(),
+      Complex(math.sqrt1_2, 0),
+      Complex.zero(),
+      Complex(math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'First Kickback',
+    taskDescription:
+        r'How did the control affect something it never touched? Use one controlled operation on \( |+\rangle|-\rangle \).',
+    targetStateExpression: '|−⟩|−⟩',
+    mysteryTitle: 'How did the control affect something it never touched?',
+    mysteryText:
+        'The target qubit is set up as |−⟩. Use a controlled operation and look carefully at which qubit changes phase.',
+    discoveryTitle: 'Phase Kickback',
+    discoveryText:
+        'The CNOT acted on the target, but because the target was |−⟩, the phase kicked back onto the control. The control changed from |+⟩ to |−⟩.',
+    keyInsight: 'Controlled operations can modify phase.',
+    whyItMatters:
+        'Phase kickback is one of the core mechanisms behind quantum algorithms. It lets a circuit write information into phase without directly flipping the qubit that will later reveal the answer.',
+    nextMystery:
+        'Can this hidden communication happen without changing any visible bit value?',
+    hints: [
+      'Use the first qubit as the control and the second qubit as the target.',
+      'The target stays |−⟩, but the control can gain a phase.',
+    ],
+    solutionExplanation:
+        'CNOT maps |+⟩|−⟩ to |−⟩|−⟩. The target was flipped conditionally, but the visible change appears as phase on the control.',
+    numQubits: 2,
+    initialQubitsStateStr: '|+⟩|−⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(-0.5, 0),
+      Complex(-0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex(0.5, 0)],
+      [Complex(-0.5, 0)],
+      [Complex(-0.5, 0)],
+      [Complex(0.5, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Information Without Flips',
+    taskDescription:
+        r'Can information be transferred without changing any visible bit value? Use one controlled phase operation on \( |+\rangle|1\rangle \).',
+    targetStateExpression: '|−⟩|1⟩',
+    mysteryTitle:
+        'Can information be transferred without changing any visible bit value?',
+    mysteryText:
+        'The second qubit is fixed at |1⟩. Use a controlled phase operation and watch the first qubit: no bit flip is needed for information to move.',
+    discoveryTitle: 'Hidden Communication',
+    discoveryText:
+        'CZ did not flip either bit. It only changed the sign of the |11⟩ path, which turned the control from |+⟩ into |−⟩.',
+    keyInsight: 'Quantum circuits often manipulate phase instead of bits.',
+    whyItMatters:
+        'Many quantum subroutines communicate by marking phases. The measured bit values may stand still while the useful information moves through the circuit.',
+    nextMystery:
+        'How do phase, interference, and kickback combine into the language of algorithms?',
+    hints: [
+      'Use the controlled phase gate.',
+      'The second qubit remains |1⟩; the first qubit receives the phase change.',
+    ],
+    solutionExplanation:
+        'CZ maps (|01⟩ + |11⟩)/√2 to (|01⟩ - |11⟩)/√2, which is |−⟩|1⟩. No bit values were flipped.',
+    numQubits: 2,
+    initialQubitsStateStr: '|+⟩|1⟩',
+    initialQubitsState: [
+      Complex.zero(),
+      Complex(math.sqrt1_2, 0),
+      Complex.zero(),
+      Complex(math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cz),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'The Quantum Secret',
+    taskDescription:
+        r'What have we really learned? Kick phase back onto the control, then reveal it as \( |1\rangle \).',
+    targetStateExpression: '|1⟩|−⟩',
+    mysteryTitle: 'What have we really learned?',
+    mysteryText:
+        'A controlled operation can write information into phase. Interference can later turn that phase into a measured outcome. Combine both ideas.',
+    discoveryTitle: 'The Language of Quantum Algorithms',
+    discoveryText:
+        'The CNOT kicked phase back from the |−⟩ target onto the control. The final H converted that phase into the visible outcome |1⟩.',
+    keyInsight:
+        'Quantum algorithms frequently store information in phase and later reveal it through interference.',
+    whyItMatters:
+        'Grover, Phase Estimation, Shor, and QAOA all rely on this principle: mark information in phase, then use interference to make the useful answers observable.',
+    nextMystery:
+        'Next, an oracle can mark an answer in phase so interference can amplify it.',
+    hints: [
+      'First kick phase back with a controlled operation.',
+      'Then use H on the control qubit to reveal the kicked phase as |1⟩.',
+    ],
+    solutionExplanation:
+        'CNOT changes |+⟩|−⟩ into |−⟩|−⟩. H on the control maps |−⟩ to |1⟩, revealing the phase as a measurable bit.',
+    numQubits: 2,
+    initialQubitsStateStr: '|+⟩|−⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(-0.5, 0),
+      Complex(-0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'The Special State',
+    taskDescription:
+        r'Can one state be treated differently from all the others? Apply the phase-marking operation to \( |++\rangle \).',
+    targetStateExpression: 'O|++⟩ = (|00⟩ + |01⟩ + |10⟩ - |11⟩)/2',
+    mysteryTitle: 'Can one state be treated differently from all the others?',
+    mysteryText:
+        'A superposition contains several possible states at once. Try one controlled phase operation and look for the single basis state that receives special treatment.',
+    discoveryTitle: 'A Special State',
+    discoveryText:
+        'Only the |11⟩ part changed sign. The circuit did not choose an answer yet, but it did distinguish one state from the rest.',
+    keyInsight: 'Quantum circuits can distinguish one state from many.',
+    whyItMatters:
+        'Search algorithms begin by identifying which state matters. Before an answer can be amplified, it must be treated differently from the other possibilities.',
+    nextMystery:
+        'Can that special treatment happen without measuring the state?',
+    hints: [
+      'Use the controlled phase gate.',
+      'CZ changes the sign only when both qubits are |1⟩.',
+    ],
+    solutionExplanation:
+        'CZ leaves |00⟩, |01⟩, and |10⟩ unchanged, but adds a minus sign to |11⟩. That single sign change is the beginning of oracle thinking.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cz),
+    ],
+    solutionFinalVector: [
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(-0.5, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Mark Without Measuring',
+    taskDescription:
+        r'Can we mark a state without observing it? Mark \( |1\rangle \) inside \( |+\rangle \) using phase.',
+    targetStateLabel: '|−⟩',
+    targetStateExpression: '|−⟩ = (|0⟩ - |1⟩)/√2',
+    mysteryTitle: 'Can we mark a state without observing it?',
+    mysteryText:
+        'A measurement would collapse the state. Instead, try changing only the sign attached to one outcome.',
+    discoveryTitle: 'Hidden Mark',
+    discoveryText:
+        'The probabilities stayed 50/50, but |1⟩ received a minus sign. The mark is real even though measurement probabilities do not reveal it yet.',
+    keyInsight:
+        'A phase mark does not immediately change measurement outcomes.',
+    whyItMatters:
+        'Quantum algorithms often hide information in phase first. Interference later turns that hidden mark into something measurable.',
+    nextMystery:
+        'If a single qubit can be marked, can you build a two-qubit oracle that marks a chosen solution?',
+    hints: [
+      'Use the phase flip gate.',
+      'Z marks the |1⟩ component of |+⟩ with a minus sign.',
+    ],
+    solutionExplanation:
+        'Z maps |+⟩ to |−⟩. It marks the |1⟩ component with a phase while leaving the measurement probabilities unchanged.',
+    numQubits: 1,
+    initialQubitsStateStr: '|+⟩',
+    initialQubitsState: [
+      Complex(math.sqrt1_2, 0),
+      Complex(math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Build An Oracle',
+    taskDescription:
+        r'Can you create the marking yourself? Build a circuit that marks \( |10\rangle \) inside \( |++\rangle \).',
+    targetStateExpression: 'O|++⟩ = (|00⟩ + |01⟩ - |10⟩ + |11⟩)/2',
+    mysteryTitle: 'Can you create the marking yourself?',
+    mysteryText:
+        'CZ naturally marks |11⟩. To mark a different solution, temporarily move the desired state into the place CZ can see.',
+    discoveryTitle: 'Oracle',
+    discoveryText:
+        'The X gates changed which state the controlled phase gate recognized. Together, they made an oracle that marks |10⟩.',
+    keyInsight: 'An oracle marks a solution rather than revealing it.',
+    whyItMatters:
+        'The oracle is the first step of Grover\'s algorithm. It does not find the answer by itself; it labels the answer in phase.',
+    nextMystery:
+        'If marks can be hidden in phase, can you tell which state was marked?',
+    hints: [
+      'Use X to temporarily turn |10⟩ into |11⟩.',
+      'Apply CZ, then undo the temporary X.',
+    ],
+    solutionExplanation:
+        'X on q0 maps the desired |10⟩ state to |11⟩. CZ marks it, then X on q0 restores the original labels, leaving only |10⟩ with a minus sign.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.cz),
+    ],
+    solutionFinalVector: [
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(-0.5, 0)],
+      [Complex(0.5, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Which State Was Marked?',
+    taskDescription:
+        r'Can you determine which state received the mark? Build a circuit that marks \( |01\rangle \) inside \( |++\rangle \).',
+    targetStateExpression: 'O|++⟩ = (|00⟩ - |01⟩ + |10⟩ + |11⟩)/2',
+    mysteryTitle: 'Can you determine which state received the mark?',
+    mysteryText:
+        'The probability bars may look unchanged after a phase mark. The clue is the sign attached to exactly one basis state.',
+    discoveryTitle: 'Invisible Difference',
+    discoveryText:
+        'The marked state has the same probability as the others, but its amplitude has the opposite sign. Measurement alone would hide that difference.',
+    keyInsight:
+        'Two states can look identical when measured but carry different phase information.',
+    whyItMatters:
+        'Quantum algorithms rely on information that is not directly visible. The phase mark becomes useful only when a later interference step responds to it.',
+    nextMystery:
+        'What have we actually built when we can mark any desired solution?',
+    hints: [
+      'Move |01⟩ into the |11⟩ position before applying CZ.',
+      'Undo the move after the mark is applied.',
+    ],
+    solutionExplanation:
+        'X on q1 maps |01⟩ to |11⟩. CZ marks that temporary |11⟩ state, then X on q1 restores the basis labels, leaving |01⟩ marked.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.cz),
+    ],
+    solutionFinalVector: [
+      [Complex(0.5, 0)],
+      [Complex(-0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Preparing For Grover',
+    taskDescription:
+        r'What have we actually built? Build a phase oracle that marks \( |00\rangle \) inside \( |++\rangle \).',
+    targetStateExpression: 'O|++⟩ = (-|00⟩ + |01⟩ + |10⟩ + |11⟩)/2',
+    mysteryTitle: 'What have we actually built?',
+    mysteryText:
+        'You can now choose which solution receives the hidden sign. Mark |00⟩ and think about what a later interference step could do with that mark.',
+    discoveryTitle: 'Phase Marking',
+    discoveryText:
+        'You built an oracle: a circuit that leaves every state alone except the chosen solution, which receives a phase mark.',
+    keyInsight: 'The oracle creates a hidden label on the desired solution.',
+    whyItMatters:
+        'Grover\'s algorithm will use interference to amplify this marked state. The oracle does not find the solution; it gives interference something to work with.',
+    nextMystery:
+        'If a solution is marked, can we make it more likely to appear?',
+    hints: [
+      'CZ marks |11⟩, so first move |00⟩ into |11⟩.',
+      'Use X on both qubits before CZ, then undo both X gates.',
+    ],
+    solutionExplanation:
+        'X on both qubits maps |00⟩ to |11⟩. CZ applies the phase mark, and the final X gates restore the labels, leaving |00⟩ marked.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.cz),
+    ],
+    solutionFinalVector: [
+      [Complex(-0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'The Mark Is Still Hidden',
+    taskDescription:
+        r'If the solution is marked, why can’t we see it yet? Mark \( |11\rangle \) inside \( |++\rangle \).',
+    targetStateExpression: 'O|++⟩ = (|00⟩ + |01⟩ + |10⟩ - |11⟩)/2',
+    mysteryTitle: 'If the solution is marked, why can’t we see it yet?',
+    mysteryText:
+        'The oracle can mark a solution with a minus sign. But if all probabilities stay equal, the marked answer is still hidden from measurement.',
+    discoveryTitle: 'Marked But Hidden',
+    discoveryText:
+        'The oracle marked |11⟩ with phase, but the probability of each state stayed 25%. Marking alone is not the same as finding.',
+    keyInsight: 'An oracle marks the solution, but it does not amplify it.',
+    whyItMatters:
+        'Grover needs both marking and amplification. The oracle creates the hidden sign; a later interference step makes that sign useful.',
+    nextMystery: 'Can interference make the hidden mark visible?',
+    hints: [
+      'Use the controlled phase gate.',
+      'CZ marks |11⟩ by changing only its sign.',
+    ],
+    solutionExplanation:
+        'CZ applies a -1 phase to |11⟩ while leaving the other basis states unchanged. The probabilities remain equal.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cz),
+    ],
+    solutionFinalVector: [
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(-0.5, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Interference Reveals the Mark',
+    taskDescription:
+        r'Can interference make the hidden mark visible? Convert \( |-\rangle \) into a measurable \( |1\rangle \).',
+    targetStateExpression: '|1⟩',
+    mysteryTitle: 'Can interference make the hidden mark visible?',
+    mysteryText:
+        'The minus sign in |−⟩ is a hidden phase mark. Use interference to turn that phase difference into a bit you can measure.',
+    discoveryTitle: 'Mark Becomes Probability',
+    discoveryText:
+        'The H gate made the positive and negative paths interfere. The hidden phase became the visible state |1⟩.',
+    keyInsight:
+        'Interference can convert phase information into measurement probability.',
+    whyItMatters:
+        'This is the basic mechanism behind amplitude amplification: phase information becomes probability through interference.',
+    nextMystery: 'Can one marked state become more likely than all the others?',
+    hints: [
+      'Use the basis-changing gate.',
+      'H maps |−⟩ to |1⟩.',
+    ],
+    solutionExplanation:
+        'H converts |−⟩ = (|0⟩ - |1⟩)/√2 into |1⟩. The phase mark becomes measurement probability.',
+    numQubits: 1,
+    initialQubitsStateStr: '|−⟩',
+    initialQubitsState: [
+      Complex(math.sqrt1_2, 0),
+      Complex(-math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Amplify One State',
+    taskDescription:
+        r'Can one marked state become more likely than the others? Mark \( |11\rangle \), then amplify it.',
+    targetStateExpression: '|11⟩',
+    mysteryTitle: 'Can one marked state become more likely than the others?',
+    mysteryText:
+        'Start with every state equally likely. Mark |11⟩ in phase, then use the amplification pattern to make the marked state stand out.',
+    discoveryTitle: 'Amplitude Amplification',
+    discoveryText:
+        'The marked state became the dominant outcome. The circuit used reflections and interference to move amplitude toward the marked answer.',
+    keyInsight:
+        'A marked state can be amplified by reflecting/interfering amplitudes.',
+    whyItMatters:
+        'Grover’s algorithm uses this idea to make the correct answer appear more often instead of checking every possibility one by one.',
+    nextMystery: 'Can we search by marking, then amplifying?',
+    hints: [
+      'First mark |11⟩ with CZ.',
+      'Then use the diffuser pattern: H on both, X on both, CZ, X on both, H on both.',
+    ],
+    solutionExplanation:
+        'CZ marks |11⟩. The diffuser H,H,X,X,CZ,X,X,H,H reflects amplitudes so the marked |11⟩ state is amplified.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cz),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.x),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(-1, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Mini Grover',
+    taskDescription:
+        r'Can we search by marking, then amplifying? Mark \( |10\rangle \), then amplify it.',
+    targetStateExpression: '|10⟩',
+    mysteryTitle: 'Can we search by marking, then amplifying?',
+    mysteryText:
+        'This is a tiny Grover search: prepare all answers, mark the desired one, then amplify the mark.',
+    discoveryTitle: 'Mini Grover',
+    discoveryText:
+        'The circuit did not inspect each answer separately. It marked |10⟩, then interference pushed probability into that marked state.',
+    keyInsight: 'Grover search is mark, then amplify.',
+    whyItMatters:
+        'This is the first complete quantum algorithm intuition in Qubit Quest 2.0: superposition, oracle mark, then amplitude amplification.',
+    nextMystery: 'What did the algorithm actually do?',
+    hints: [
+      'Use X on q0 to make CZ mark |10⟩, then undo that X.',
+      'After the oracle, apply the diffuser pattern: H,H,X,X,CZ,X,X,H,H.',
+    ],
+    solutionExplanation:
+        'The X,CZ,X oracle marks |10⟩. The diffuser then converts the hidden phase mark into high probability on |10⟩.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.cz),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(-1, 0)],
+      [Complex.zero()],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Why Search Can Be Faster',
+    taskDescription:
+        r'What did the algorithm actually do? Mark \( |00\rangle \), then amplify it.',
+    targetStateExpression: '|00⟩',
+    mysteryTitle: 'What did the algorithm actually do?',
+    mysteryText:
+        'Connect the full chain: start with all answers, mark the desired one in phase, then use interference to reshape the probabilities.',
+    discoveryTitle: 'Search Through Interference',
+    discoveryText:
+        'The oracle marked |00⟩ invisibly. The amplification step used interference to concentrate probability on that marked state.',
+    keyInsight:
+        'Quantum search does not check every answer one by one. It reshapes amplitudes so the answer becomes more likely.',
+    whyItMatters:
+        'This is why Grover’s algorithm can provide a quadratic speedup: it turns a hidden phase label into an increased chance of measuring the answer.',
+    nextMystery:
+        'If we can tune amplitudes for search, can we tune quantum circuits for optimization?',
+    hints: [
+      'Use X on both qubits to make CZ mark |00⟩, then undo both X gates.',
+      'After the oracle, apply the diffuser pattern: H,H,X,X,CZ,X,X,H,H.',
+    ],
+    solutionExplanation:
+        'The X,X,CZ,X,X oracle marks |00⟩. The diffuser turns that phase mark into amplitude concentrated on |00⟩.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.cz),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex(-1, 0)],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+    ],
+  ),
 ];
 
 int numberOfLevels = allQQLevels.length;
@@ -2307,5 +3078,39 @@ final List<QQLevelsCategory> groupedLevels = [
     to: 53,
     categoryIntro: 'Read a pre-built circuit and identify its output state. '
         'Being able to analyse circuits is as important as building them.',
+  ),
+  QQLevelsCategory(
+    groupName: 'Chapter 4 - Interference',
+    from: 54,
+    to: 57,
+    categoryIntro:
+        'Phase can feel invisible because measurement probabilities do not always change right away. '
+        'This prototype chapter follows the trail from hidden phase to basis changes, cancellation, '
+        'and the interference patterns that power quantum algorithms.',
+  ),
+  QQLevelsCategory(
+    groupName: 'Chapter 8 - Phase Kickback',
+    from: 58,
+    to: 62,
+    categoryIntro:
+        'Phase kickback is the hidden mechanism that lets controlled operations write information into phase. '
+        'This prototype chapter follows how information can move through a circuit without obvious bit flips, '
+        'then become visible again through interference.',
+  ),
+  QQLevelsCategory(
+    groupName: 'Chapter 9 - Oracle Thinking',
+    from: 63,
+    to: 67,
+    categoryIntro:
+        'An oracle does not search for an answer directly. It marks the desired solution in phase, '
+        'creating the hidden label that interference can later amplify.',
+  ),
+  QQLevelsCategory(
+    groupName: 'Chapter 10 - Amplitude Amplification',
+    from: 68,
+    to: 72,
+    categoryIntro:
+        'Amplitude amplification turns an oracle phase mark into a higher chance of measuring the marked answer. '
+        'This prototype chapter builds the first Mini Grover intuition: mark, then amplify.',
   ),
 ];

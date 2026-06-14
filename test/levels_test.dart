@@ -8,6 +8,7 @@ import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
+import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 
 void main() {
   _testBody(int levelNumber, Function(QuantumCircuit) body) {
@@ -358,11 +359,11 @@ void main() {
     final s = math.sqrt1_2;
 
     // ── Structural sanity ───────────────────────────────────────────────────
-    test('total level count is 54', () {
-      expect(numberOfLevels, equals(54));
+    test('total level count is 73', () {
+      expect(numberOfLevels, equals(73));
     });
 
-    test('levels 47–54 have the expected types', () {
+    test('levels 47–73 have the expected types', () {
       expect(getQQLevelById(47), isA<McqLevel>());
       expect(getQQLevelById(48), isA<McqLevel>());
       expect(getQQLevelById(49), isA<MeasurementLabLevel>());
@@ -371,6 +372,49 @@ void main() {
       expect(getQQLevelById(52), isA<FillTheGateLevel>());
       expect(getQQLevelById(53), isA<CircuitReadingLevel>());
       expect(getQQLevelById(54), isA<CircuitReadingLevel>());
+      expect(getQQLevelById(55), isA<ComposerLevel>());
+      expect(getQQLevelById(56), isA<ComposerLevel>());
+      expect(getQQLevelById(57), isA<ComposerLevel>());
+      expect(getQQLevelById(58), isA<ComposerLevel>());
+      expect(getQQLevelById(59), isA<ComposerLevel>());
+      expect(getQQLevelById(60), isA<ComposerLevel>());
+      expect(getQQLevelById(61), isA<ComposerLevel>());
+      expect(getQQLevelById(62), isA<ComposerLevel>());
+      expect(getQQLevelById(63), isA<ComposerLevel>());
+      expect(getQQLevelById(64), isA<ComposerLevel>());
+      expect(getQQLevelById(65), isA<ComposerLevel>());
+      expect(getQQLevelById(66), isA<ComposerLevel>());
+      expect(getQQLevelById(67), isA<ComposerLevel>());
+      expect(getQQLevelById(68), isA<ComposerLevel>());
+      expect(getQQLevelById(69), isA<ComposerLevel>());
+      expect(getQQLevelById(70), isA<ComposerLevel>());
+      expect(getQQLevelById(71), isA<ComposerLevel>());
+      expect(getQQLevelById(72), isA<ComposerLevel>());
+      expect(getQQLevelById(73), isA<ComposerLevel>());
+    });
+
+    test('initial qubit labels preserve authored ket tokens', () {
+      expect(
+        QuantumCircuitPainter.initialQubitLabelsFor(
+          initialQubitsStateStr: '|1⟩|−⟩',
+          numQubits: 2,
+        ),
+        equals(['|1⟩', '|−⟩']),
+      );
+      expect(
+        QuantumCircuitPainter.initialQubitLabelsFor(
+          initialQubitsStateStr: '|+⟩',
+          numQubits: 1,
+        ),
+        equals(['|+⟩']),
+      );
+      expect(
+        QuantumCircuitPainter.initialQubitLabelsFor(
+          initialQubitsStateStr: '10',
+          numQubits: 2,
+        ),
+        equals(['|1⟩', '|0⟩']),
+      );
     });
 
     // ── MCQ ─────────────────────────────────────────────────────────────────
@@ -611,6 +655,27 @@ void main() {
       throw StateError('ComposerLevel with title "$title" not found');
     }
 
+    void insertTwoQubitDiffuser(QuantumCircuit circuit, int startPosition) {
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), startPosition, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), startPosition, 1);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), startPosition + 1, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), startPosition + 1, 1);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cz), startPosition + 2, 1, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), startPosition + 3, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), startPosition + 3, 1);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), startPosition + 4, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), startPosition + 4, 1);
+    }
+
     test('finalState validation remains the default', () {
       final level = ComposerLevel.fromBinaryString(
         title: 'Default final-state validation',
@@ -703,16 +768,214 @@ void main() {
 
       expect(level.validateCircuit(simulate(level)), isFalse);
     });
+
+    test('Chapter 8 level 59 validates the hidden phase CNOT', () {
+      final level = findComposerLevelByTitle('Something Changed');
+      final circuit = simulate(level);
+
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 8 level 60 validates preparing the phase carrier', () {
+      final level = findComposerLevelByTitle('The Hidden Passenger');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 0, 1);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 8 level 61 validates first kickback', () {
+      final level = findComposerLevelByTitle('First Kickback');
+      final circuit = simulate(level);
+
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 8 level 62 validates hidden communication with CZ', () {
+      final level = findComposerLevelByTitle('Information Without Flips');
+      final circuit = simulate(level);
+
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cz), 0, 1, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 8 level 63 validates kickback then reveal', () {
+      final level = findComposerLevelByTitle('The Quantum Secret');
+      final circuit = simulate(level);
+
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 1, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 9 level 64 validates marking the special state', () {
+      final level = findComposerLevelByTitle('The Special State');
+      final circuit = simulate(level);
+
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cz), 0, 1, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 9 level 65 validates marking without measuring', () {
+      final level = findComposerLevelByTitle('Mark Without Measuring');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 0, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 9 level 66 validates building a |10> oracle', () {
+      final level = findComposerLevelByTitle('Build An Oracle');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cz), 1, 1, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 2, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 9 level 67 validates identifying a |01> mark', () {
+      final level = findComposerLevelByTitle('Which State Was Marked?');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 1);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cz), 1, 1, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 2, 1);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 9 level 68 validates preparing for Grover', () {
+      final level = findComposerLevelByTitle('Preparing For Grover');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 1);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cz), 1, 1, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 2, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 2, 1);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 10 level 69 validates hidden mark only', () {
+      final level = findComposerLevelByTitle('The Mark Is Still Hidden');
+      final circuit = simulate(level);
+
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cz), 0, 1, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 10 level 70 validates interference revealing the mark', () {
+      final level = findComposerLevelByTitle('Interference Reveals the Mark');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 10 level 71 validates amplifying |11>', () {
+      final level = findComposerLevelByTitle('Amplify One State');
+      final circuit = simulate(level);
+
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cz), 0, 1, 0);
+      insertTwoQubitDiffuser(circuit, 1);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 10 level 72 validates mini Grover for |10>', () {
+      final level = findComposerLevelByTitle('Mini Grover');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cz), 1, 1, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 2, 0);
+      insertTwoQubitDiffuser(circuit, 3);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 10 level 73 validates mini Grover for |00>', () {
+      final level = findComposerLevelByTitle('Why Search Can Be Faster');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 1);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cz), 1, 1, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 2, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 2, 1);
+      insertTwoQubitDiffuser(circuit, 3);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
   });
 
   // ── Titles ─────────────────────────────────────────────────────────────────
-  // All 54 levels must have a non-null, non-empty title so the grid can
+  // All levels must have a non-null, non-empty title so the grid can
   // display it. Tests here cover: (1) exhaustive null/empty check, and
   // (2) one exact-string spot-check per category group to guard against
   // accidental renames or copy-paste errors.
   group('Titles', () {
     // ── Exhaustive: every level must have a title ──────────────────────────
-    test('all 54 levels have a non-null, non-empty title', () {
+    test('all 73 levels have a non-null, non-empty title', () {
       for (int id = 1; id <= numberOfLevels; id++) {
         final level = getQQLevelById(id)!;
         expect(level.title, isNotNull,
@@ -808,6 +1071,74 @@ void main() {
     });
     test('level 54 — "Read: Bell State"', () {
       expect(getQQLevelById(54)!.title, equals('Read: Bell State'));
+    });
+
+    // Chapter 4 - Interference vertical slice (levels 55–58)
+    test('level 55 — "Phase Is Hidden"', () {
+      expect(getQQLevelById(55)!.title, equals('Phase Is Hidden'));
+    });
+    test('level 56 — "HZH = X"', () {
+      expect(getQQLevelById(56)!.title, equals('HZH = X'));
+    });
+    test('level 57 — "HXH = Z"', () {
+      expect(getQQLevelById(57)!.title, equals('HXH = Z'));
+    });
+    test('level 58 — "Make Zero Impossible"', () {
+      expect(getQQLevelById(58)!.title, equals('Make Zero Impossible'));
+    });
+
+    // Chapter 8 - Phase Kickback vertical slice (levels 59–63)
+    test('level 59 — "Something Changed"', () {
+      expect(getQQLevelById(59)!.title, equals('Something Changed'));
+    });
+    test('level 60 — "The Hidden Passenger"', () {
+      expect(getQQLevelById(60)!.title, equals('The Hidden Passenger'));
+    });
+    test('level 61 — "First Kickback"', () {
+      expect(getQQLevelById(61)!.title, equals('First Kickback'));
+    });
+    test('level 62 — "Information Without Flips"', () {
+      expect(getQQLevelById(62)!.title, equals('Information Without Flips'));
+    });
+    test('level 63 — "The Quantum Secret"', () {
+      expect(getQQLevelById(63)!.title, equals('The Quantum Secret'));
+    });
+
+    // Chapter 9 - Oracle Thinking vertical slice (levels 64–68)
+    test('level 64 — "The Special State"', () {
+      expect(getQQLevelById(64)!.title, equals('The Special State'));
+    });
+    test('level 65 — "Mark Without Measuring"', () {
+      expect(getQQLevelById(65)!.title, equals('Mark Without Measuring'));
+    });
+    test('level 66 — "Build An Oracle"', () {
+      expect(getQQLevelById(66)!.title, equals('Build An Oracle'));
+    });
+    test('level 67 — "Which State Was Marked?"', () {
+      expect(getQQLevelById(67)!.title, equals('Which State Was Marked?'));
+    });
+    test('level 68 — "Preparing For Grover"', () {
+      expect(getQQLevelById(68)!.title, equals('Preparing For Grover'));
+    });
+
+    // Chapter 10 - Amplitude Amplification vertical slice (levels 69–73)
+    test('level 69 — "The Mark Is Still Hidden"', () {
+      expect(getQQLevelById(69)!.title, equals('The Mark Is Still Hidden'));
+    });
+    test('level 70 — "Interference Reveals the Mark"', () {
+      expect(
+        getQQLevelById(70)!.title,
+        equals('Interference Reveals the Mark'),
+      );
+    });
+    test('level 71 — "Amplify One State"', () {
+      expect(getQQLevelById(71)!.title, equals('Amplify One State'));
+    });
+    test('level 72 — "Mini Grover"', () {
+      expect(getQQLevelById(72)!.title, equals('Mini Grover'));
+    });
+    test('level 73 — "Why Search Can Be Faster"', () {
+      expect(getQQLevelById(73)!.title, equals('Why Search Can Be Faster'));
     });
   });
 }

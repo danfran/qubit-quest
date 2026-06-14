@@ -20,6 +20,13 @@ sealed class QQLevel {
   final List<String>? hints; // progressive hints revealed one at a time
   final String? targetStateLabel; // display-only target notation
   final String? targetStateExpression; // display-only target expression
+  final String? mysteryTitle;
+  final String? mysteryText;
+  final String? discoveryTitle;
+  final String? discoveryText;
+  final String? keyInsight;
+  final String? whyItMatters;
+  final String? nextMystery;
 
   const QQLevel({
     this.title,
@@ -29,7 +36,27 @@ sealed class QQLevel {
     this.hints,
     this.targetStateLabel,
     this.targetStateExpression,
+    this.mysteryTitle,
+    this.mysteryText,
+    this.discoveryTitle,
+    this.discoveryText,
+    this.keyInsight,
+    this.whyItMatters,
+    this.nextMystery,
   });
+
+  bool get hasMystery =>
+      (mysteryTitle?.trim().isNotEmpty ?? false) ||
+      (mysteryText?.trim().isNotEmpty ?? false);
+
+  bool get hasDiscovery =>
+      (discoveryTitle?.trim().isNotEmpty ?? false) ||
+      (discoveryText?.trim().isNotEmpty ?? false) ||
+      (keyInsight?.trim().isNotEmpty ?? false);
+
+  bool get hasWhyItMatters =>
+      (whyItMatters?.trim().isNotEmpty ?? false) ||
+      (nextMystery?.trim().isNotEmpty ?? false);
 }
 
 // ── Circuit Composer (all existing levels) ────────────────────────────────────
@@ -51,6 +78,13 @@ class ComposerLevel extends QQLevel {
     super.hints,
     super.targetStateLabel,
     super.targetStateExpression,
+    super.mysteryTitle,
+    super.mysteryText,
+    super.discoveryTitle,
+    super.discoveryText,
+    super.keyInsight,
+    super.whyItMatters,
+    super.nextMystery,
     required this.numQubits,
     required this.initialQubitsStateStr,
     required this.initialQubitsState,
@@ -69,6 +103,13 @@ class ComposerLevel extends QQLevel {
     List<String>? hints,
     String? targetStateLabel,
     String? targetStateExpression,
+    String? mysteryTitle,
+    String? mysteryText,
+    String? discoveryTitle,
+    String? discoveryText,
+    String? keyInsight,
+    String? whyItMatters,
+    String? nextMystery,
     int?
         numQubits, // kept for backward compat with existing levels; derived from string if null
     required String initialQubitsStateString,
@@ -90,6 +131,13 @@ class ComposerLevel extends QQLevel {
       hints: hints,
       targetStateLabel: targetStateLabel,
       targetStateExpression: targetStateExpression,
+      mysteryTitle: mysteryTitle,
+      mysteryText: mysteryText,
+      discoveryTitle: discoveryTitle,
+      discoveryText: discoveryText,
+      keyInsight: keyInsight,
+      whyItMatters: whyItMatters,
+      nextMystery: nextMystery,
       numQubits: resolvedNumQubits,
       initialQubitsStateStr: initialQubitsStateString,
       initialQubitsState: convertedInitialState,
@@ -174,6 +222,13 @@ class FillTheGateLevel extends QQLevel {
     super.conceptIntro,
     super.solutionExplanation,
     super.hints,
+    super.mysteryTitle,
+    super.mysteryText,
+    super.discoveryTitle,
+    super.discoveryText,
+    super.keyInsight,
+    super.whyItMatters,
+    super.nextMystery,
     required this.numQubits,
     required this.initialQubitsStateString,
     required this.preBuiltGates,
@@ -214,6 +269,13 @@ class CircuitReadingLevel extends QQLevel {
     super.conceptIntro,
     super.solutionExplanation,
     super.hints,
+    super.mysteryTitle,
+    super.mysteryText,
+    super.discoveryTitle,
+    super.discoveryText,
+    super.keyInsight,
+    super.whyItMatters,
+    super.nextMystery,
     required this.numQubits,
     required this.initialQubitsStateString,
     required this.circuit,
@@ -243,6 +305,13 @@ class McqLevel extends QQLevel {
     super.conceptIntro,
     super.solutionExplanation,
     super.hints,
+    super.mysteryTitle,
+    super.mysteryText,
+    super.discoveryTitle,
+    super.discoveryText,
+    super.keyInsight,
+    super.whyItMatters,
+    super.nextMystery,
     required this.options,
     required this.correctOptionIndex,
   });
@@ -262,6 +331,13 @@ class MeasurementLabLevel extends QQLevel {
     super.conceptIntro,
     super.solutionExplanation,
     super.hints,
+    super.mysteryTitle,
+    super.mysteryText,
+    super.discoveryTitle,
+    super.discoveryText,
+    super.keyInsight,
+    super.whyItMatters,
+    super.nextMystery,
     required this.numQubits,
     required this.initialQubitsStateString,
     this.preBuiltCircuit,

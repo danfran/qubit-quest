@@ -77,6 +77,38 @@ class QuantumCircuitPainter extends CustomPainter {
     return qubitIndex * qubitSpacing + qubitSpacing / 2;
   }
 
+  @visibleForTesting
+  static List<String> initialQubitLabelsFor({
+    required String initialQubitsStateStr,
+    required int numQubits,
+  }) {
+    final String label = initialQubitsStateStr.trim();
+    final List<String> ketTokens = RegExp(r'\|[^|⟩]+⟩')
+        .allMatches(label)
+        .map((match) => match.group(0)!)
+        .toList();
+
+    if (ketTokens.length == numQubits) {
+      return ketTokens;
+    }
+
+    if (RegExp(r'^[01]+$').hasMatch(label) && label.length == numQubits) {
+      return label.split('').map((bit) => '|$bit⟩').toList();
+    }
+
+    return List<String>.generate(
+      numQubits,
+      (index) => '|q$index⟩',
+    );
+  }
+
+  List<String> _initialQubitLabels() {
+    return initialQubitLabelsFor(
+      initialQubitsStateStr: circuit.currentLevel.initialQubitsStateStr,
+      numQubits: circuit.currentLevel.numQubits,
+    );
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     debugPrint("Painting circuit. Canvas size: $size"); // Debug canvas size
@@ -102,12 +134,14 @@ class QuantumCircuitPainter extends CustomPainter {
       ..maskFilter = const MaskFilter.blur(
           BlurStyle.normal, 8.0); // Blur radius for shadow
 
+    final List<String> initialQubitLabels = _initialQubitLabels();
+
     // Draw qubit lines and labels
     for (int i = 0; i < circuit.currentLevel.numQubits; i++) {
       // Calculate the vertical center Y for this qubit line
       final double lineY = getQubitCenterY(i);
-      final qubitState = circuit.currentLevel
-          .initialQubitsStateStr[circuit.currentLevel.numQubits - i - 1];
+      final qubitState =
+          initialQubitLabels[circuit.currentLevel.numQubits - i - 1];
       debugPrint(
           "  Painter: Drawing Qubit $i line and hit area at Y: $lineY. Hit range: ${lineY - hitTolerance} to ${lineY + hitTolerance}"); // Debug calculated drawing Y
 
@@ -133,7 +167,7 @@ class QuantumCircuitPainter extends CustomPainter {
       // Draw the qubit label (q0, q1, etc.)
       final textPainter = TextPainter(
         text: TextSpan(
-          text: '|$qubitState>', // Label text (e.g., "q0", "q1")
+          text: qubitState, // Label text (e.g., "|0⟩", "|−⟩")
           style: TextStyle(
             color: qubitLabelColor, // Use the static constant for label color
             fontSize: 14, // Adjust font size as needed

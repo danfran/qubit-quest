@@ -9,6 +9,8 @@ import 'package:quantumquiz/screens/mcq_screen.dart';
 import 'package:quantumquiz/screens/measurement_lab_screen.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
+import 'package:quantumquiz/models/discovery_progress.dart';
+import 'package:quantumquiz/screens/learning_flow_widgets.dart';
 import 'package:quantumquiz/screens/webview_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -32,6 +34,33 @@ class _HomePageState extends State<HomePage> {
   static const Color qqCard2 = Color(0xFF18233A);
   static const Color qqBorder = Color(0x66344A73);
   static const Color qqCyan = Color(0xFF56CCF2);
+  static const Set<String> _chapter4DiscoveryTitles = {
+    'Phase Is Hidden',
+    'Phase Becomes Bit',
+    'Bit Becomes Phase',
+    'Destructive Interference',
+  };
+  static const Set<String> _chapter8DiscoveryTitles = {
+    'Hidden Information',
+    'Phase Carrier',
+    'Phase Kickback',
+    'Hidden Communication',
+    'The Language of Quantum Algorithms',
+  };
+  static const Set<String> _chapter9DiscoveryTitles = {
+    'A Special State',
+    'Hidden Mark',
+    'Oracle',
+    'Invisible Difference',
+    'Phase Marking',
+  };
+  static const Set<String> _chapter10DiscoveryTitles = {
+    'Marked But Hidden',
+    'Mark Becomes Probability',
+    'Amplitude Amplification',
+    'Mini Grover',
+    'Search Through Interference',
+  };
 
   // Placeholder for the maximum unlocked level.
   // In a real app, this would be loaded from user data (e.g., preferences, database).
@@ -387,6 +416,42 @@ class _HomePageState extends State<HomePage> {
           'https://www.youtube.com/playlist?list=PL1UkEjMAb8Lq1Nivn894qBWTU938HKPM7',
         );
         break;
+      case 'discoveries':
+        final chapter4LevelNumber = _firstChapter4InterferenceLevelNumber();
+        final chapter8LevelNumber = _firstChapter8PhaseKickbackLevelNumber();
+        final chapter9LevelNumber = _firstChapter9OracleThinkingLevelNumber();
+        final chapter10LevelNumber =
+            _firstChapter10AmplitudeAmplificationLevelNumber();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => DiscoveriesScreen(
+              prototypeLevelNumber: chapter4LevelNumber,
+              prototypeChapters: [
+                if (chapter8LevelNumber != null)
+                  DiscoveryPrototypeChapter(
+                    title: 'Chapter 8 Prototype',
+                    subtitle: 'Start Phase Kickback',
+                    levelNumber: chapter8LevelNumber,
+                  ),
+                if (chapter9LevelNumber != null)
+                  DiscoveryPrototypeChapter(
+                    title: 'Chapter 9 Prototype',
+                    subtitle: 'Start Oracle Thinking',
+                    levelNumber: chapter9LevelNumber,
+                  ),
+                if (chapter10LevelNumber != null)
+                  DiscoveryPrototypeChapter(
+                    title: 'Chapter 10 Prototype',
+                    subtitle: 'Start Mini Grover',
+                    levelNumber: chapter10LevelNumber,
+                  ),
+              ],
+              onStartPrototypeLevel: (levelNumber) =>
+                  _playLevelSequence(levelNumber, this.context),
+            ),
+          ),
+        );
+        break;
       case 'rate':
         _rateApp();
         break;
@@ -404,6 +469,58 @@ class _HomePageState extends State<HomePage> {
         _showAboutDialog();
         break;
     }
+  }
+
+  bool _isChapter4InterferenceLevel(QQLevel level) {
+    final discoveryTitle = level.discoveryTitle?.trim();
+    return discoveryTitle != null &&
+        _chapter4DiscoveryTitles.contains(discoveryTitle);
+  }
+
+  bool _isChapter8PhaseKickbackLevel(QQLevel level) {
+    final discoveryTitle = level.discoveryTitle?.trim();
+    return discoveryTitle != null &&
+        _chapter8DiscoveryTitles.contains(discoveryTitle);
+  }
+
+  bool _isChapter9OracleThinkingLevel(QQLevel level) {
+    final discoveryTitle = level.discoveryTitle?.trim();
+    return discoveryTitle != null &&
+        _chapter9DiscoveryTitles.contains(discoveryTitle);
+  }
+
+  bool _isChapter10AmplitudeAmplificationLevel(QQLevel level) {
+    final discoveryTitle = level.discoveryTitle?.trim();
+    return discoveryTitle != null &&
+        _chapter10DiscoveryTitles.contains(discoveryTitle);
+  }
+
+  bool _isPrototypeChapterLevel(QQLevel level) {
+    return _isChapter4InterferenceLevel(level) ||
+        _isChapter8PhaseKickbackLevel(level) ||
+        _isChapter9OracleThinkingLevel(level) ||
+        _isChapter10AmplitudeAmplificationLevel(level);
+  }
+
+  int? _firstChapter4InterferenceLevelNumber() {
+    final index = allQQLevels.indexWhere(_isChapter4InterferenceLevel);
+    return index < 0 ? null : index + 1;
+  }
+
+  int? _firstChapter8PhaseKickbackLevelNumber() {
+    final index = allQQLevels.indexWhere(_isChapter8PhaseKickbackLevel);
+    return index < 0 ? null : index + 1;
+  }
+
+  int? _firstChapter9OracleThinkingLevelNumber() {
+    final index = allQQLevels.indexWhere(_isChapter9OracleThinkingLevel);
+    return index < 0 ? null : index + 1;
+  }
+
+  int? _firstChapter10AmplitudeAmplificationLevelNumber() {
+    final index =
+        allQQLevels.indexWhere(_isChapter10AmplitudeAmplificationLevel);
+    return index < 0 ? null : index + 1;
   }
 
   @override
@@ -451,6 +568,15 @@ class _HomePageState extends State<HomePage> {
                   leading:
                       Icon(Icons.video_library_outlined, color: Colors.white),
                   title: Text('Solution Videos',
+                      style: TextStyle(color: Colors.white)),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'discoveries',
+                child: ListTile(
+                  leading:
+                      Icon(Icons.emoji_events_outlined, color: Colors.white),
+                  title: Text('Discoveries',
                       style: TextStyle(color: Colors.white)),
                 ),
               ),
@@ -711,7 +837,10 @@ class _HomePageState extends State<HomePage> {
           itemBuilder: (context, index) {
             final int currentIndex = indexStart + index;
             final int levelNumber = currentIndex + 1;
-            final bool isUnlocked = levelNumber <= _maxUnlockedLevel;
+            final QQLevel level = allQQLevels[currentIndex];
+            final bool isPrototypeLevel = _isPrototypeChapterLevel(level);
+            final bool isUnlocked =
+                isPrototypeLevel || levelNumber <= _maxUnlockedLevel;
 
             return Container(
               decoration: BoxDecoration(
@@ -773,10 +902,10 @@ class _HomePageState extends State<HomePage> {
                               height: 1,
                             ),
                           ),
-                          if (allQQLevels[currentIndex].title != null) ...[
+                          if (level.title != null) ...[
                             const SizedBox(height: 4),
                             Text(
-                              allQQLevels[currentIndex].title!,
+                              level.title!,
                               style: TextStyle(
                                 fontSize: compact ? 9.5 : 10.5,
                                 color: Colors.white.withValues(alpha: 0.78),
@@ -806,31 +935,34 @@ class _HomePageState extends State<HomePage> {
 
   // Route to the correct screen based on level type
   Widget _screenForLevel(QQLevel level, int levelId) {
+    final unlockCallback =
+        _isPrototypeChapterLevel(level) ? null : _updateMaxUnlockedLevel;
+
     return switch (level) {
       ComposerLevel l => QuantumComposer(
           levelId: levelId,
           level: l,
-          onLevelUnlocked: _updateMaxUnlockedLevel,
+          onLevelUnlocked: unlockCallback,
         ),
       FillTheGateLevel l => FillTheGateScreen(
           levelId: levelId,
           level: l,
-          onLevelUnlocked: _updateMaxUnlockedLevel,
+          onLevelUnlocked: unlockCallback,
         ),
       CircuitReadingLevel l => CircuitReadingScreen(
           levelId: levelId,
           level: l,
-          onLevelUnlocked: _updateMaxUnlockedLevel,
+          onLevelUnlocked: unlockCallback,
         ),
       McqLevel l => McqScreen(
           levelId: levelId,
           level: l,
-          onLevelUnlocked: _updateMaxUnlockedLevel,
+          onLevelUnlocked: unlockCallback,
         ),
       MeasurementLabLevel l => MeasurementLabScreen(
           levelId: levelId,
           level: l,
-          onLevelUnlocked: _updateMaxUnlockedLevel,
+          onLevelUnlocked: unlockCallback,
         ),
     };
   }
@@ -884,6 +1016,131 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _showLearningIntroIfNeeded(QQLevel level) async {
+    if (!mounted) return;
+
+    if (_isChapter4InterferenceLevel(level)) {
+      final prefs = await SharedPreferences.getInstance();
+      const seenKey =
+          'chapter_intro_seen_chapter_4_interference_vertical_slice';
+      if (prefs.getBool(seenKey) != true) {
+        await prefs.setBool(seenKey, true);
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => const ChapterIntroScreen(
+              title: 'Chapter 4 - Interference',
+              text:
+                  'Some quantum changes hide in phase until a circuit makes them interfere. In this chapter, experiment with how amplitudes can reinforce or cancel each other.',
+              buttonLabel: 'Start Mystery',
+            ),
+          ),
+        );
+      }
+    } else if (_isChapter8PhaseKickbackLevel(level)) {
+      final prefs = await SharedPreferences.getInstance();
+      const seenKey =
+          'chapter_intro_seen_chapter_8_phase_kickback_vertical_slice';
+      if (prefs.getBool(seenKey) != true) {
+        await prefs.setBool(seenKey, true);
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => const ChapterIntroScreen(
+              title: 'Chapter 8 - Phase Kickback',
+              text:
+                  'Information does not always travel as a visible bit flip. In this chapter, look for how controlled operations can write information into phase, then reveal it through interference.',
+              buttonLabel: 'Start Mystery',
+            ),
+          ),
+        );
+      }
+    } else if (_isChapter9OracleThinkingLevel(level)) {
+      final prefs = await SharedPreferences.getInstance();
+      const seenKey =
+          'chapter_intro_seen_chapter_9_oracle_thinking_vertical_slice';
+      if (prefs.getBool(seenKey) != true) {
+        await prefs.setBool(seenKey, true);
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => const ChapterIntroScreen(
+              title: 'Chapter 9 - Oracle Thinking',
+              text:
+                  'A quantum oracle does not find the answer for you. It marks the desired solution in phase, creating a hidden label that interference can use later.',
+              buttonLabel: 'Start Mystery',
+            ),
+          ),
+        );
+      }
+    } else if (_isChapter10AmplitudeAmplificationLevel(level)) {
+      final prefs = await SharedPreferences.getInstance();
+      const seenKey =
+          'chapter_intro_seen_chapter_10_amplitude_amplification_vertical_slice';
+      if (prefs.getBool(seenKey) != true) {
+        await prefs.setBool(seenKey, true);
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => const ChapterIntroScreen(
+              title: 'Chapter 10 - Amplitude Amplification',
+              text:
+                  'The oracle only marks the solution invisibly. In this chapter, use interference to turn that hidden mark into a higher chance of measuring the answer.',
+              buttonLabel: 'Start Mystery',
+            ),
+          ),
+        );
+      }
+    }
+
+    if (!mounted || !level.hasMystery) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => MysteryPanel(level: level),
+      ),
+    );
+  }
+
+  Future<void> _showDiscoveryFlowIfNeeded(QQLevel level) async {
+    if (!mounted || !level.hasDiscovery) return;
+
+    final String? discoveryTitle = level.discoveryTitle?.trim();
+    if (discoveryTitle != null && discoveryTitle.isNotEmpty) {
+      await DiscoveryProgress.unlock(discoveryTitle);
+    }
+
+    if (!mounted) return;
+    final action = await showDialog<DiscoveryDialogAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => DiscoveryDialog(level: level),
+    );
+
+    if (!mounted ||
+        action != DiscoveryDialogAction.whyItMatters ||
+        !level.hasWhyItMatters) {
+      return;
+    }
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => WhyItMattersScreen(level: level),
+      ),
+    );
+  }
+
+  bool _isCompletedLevelResult(LevelCompletionAction? result) {
+    return result == LevelCompletionAction.nextLevel ||
+        result == LevelCompletionAction.levelSelect ||
+        result == LevelCompletionAction.reviewSolution;
+  }
+
   Future<void> _playLevelSequence(int levelNumber, BuildContext context) async {
     int currentLevelToPlay = levelNumber;
     bool continueLevelChain = true;
@@ -903,6 +1160,9 @@ class _HomePageState extends State<HomePage> {
       await _showCategoryIntroIfNeeded(currentLevelToPlay);
       if (!context.mounted) break;
 
+      await _showLearningIntroIfNeeded(levelData);
+      if (!context.mounted) break;
+
       debugPrint(
           'HomePage: Pushing screen for Level $currentLevelToPlay (${levelData.runtimeType})...');
       final result = await Navigator.push<LevelCompletionAction>(
@@ -914,6 +1174,11 @@ class _HomePageState extends State<HomePage> {
 
       debugPrint(
           'HomePage: Returned from Level $currentLevelToPlay with result: $result');
+
+      if (_isCompletedLevelResult(result)) {
+        await _showDiscoveryFlowIfNeeded(levelData);
+        if (!context.mounted) break;
+      }
 
       if (result == LevelCompletionAction.nextLevel) {
         currentLevelToPlay++;
