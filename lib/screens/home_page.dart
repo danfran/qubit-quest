@@ -34,6 +34,20 @@ class _HomePageState extends State<HomePage> {
   static const Color qqCard2 = Color(0xFF18233A);
   static const Color qqBorder = Color(0x66344A73);
   static const Color qqCyan = Color(0xFF56CCF2);
+  static const Set<String> _chapter1DiscoveryTitles = {
+    'Information',
+    'Reversibility',
+    'Equivalent Results',
+    'State Transformations',
+    'The Quantum Bit',
+  };
+  static const Set<String> _chapter2DiscoveryTitles = {
+    'Hidden Change',
+    'Invisible Difference',
+    'Relative Phase',
+    'Phase Information',
+    'Phase',
+  };
   static const Set<String> _chapter4DiscoveryTitles = {
     'Phase Is Hidden',
     'Phase Becomes Bit',
@@ -417,6 +431,8 @@ class _HomePageState extends State<HomePage> {
         );
         break;
       case 'discoveries':
+        final chapter1LevelNumber = _firstChapter1InformationLevelNumber();
+        final chapter2LevelNumber = _firstChapter2HiddenChangeLevelNumber();
         final chapter4LevelNumber = _firstChapter4InterferenceLevelNumber();
         final chapter8LevelNumber = _firstChapter8PhaseKickbackLevelNumber();
         final chapter9LevelNumber = _firstChapter9OracleThinkingLevelNumber();
@@ -425,8 +441,25 @@ class _HomePageState extends State<HomePage> {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => DiscoveriesScreen(
-              prototypeLevelNumber: chapter4LevelNumber,
               prototypeChapters: [
+                if (chapter1LevelNumber != null)
+                  DiscoveryPrototypeChapter(
+                    title: 'Chapter 1 Prototype',
+                    subtitle: 'Start Information',
+                    levelNumber: chapter1LevelNumber,
+                  ),
+                if (chapter2LevelNumber != null)
+                  DiscoveryPrototypeChapter(
+                    title: 'Chapter 2 Prototype',
+                    subtitle: 'Start Hidden Change',
+                    levelNumber: chapter2LevelNumber,
+                  ),
+                if (chapter4LevelNumber != null)
+                  DiscoveryPrototypeChapter(
+                    title: 'Chapter 4 Prototype',
+                    subtitle: 'Start Interference',
+                    levelNumber: chapter4LevelNumber,
+                  ),
                 if (chapter8LevelNumber != null)
                   DiscoveryPrototypeChapter(
                     title: 'Chapter 8 Prototype',
@@ -473,33 +506,69 @@ class _HomePageState extends State<HomePage> {
 
   bool _isChapter4InterferenceLevel(QQLevel level) {
     final discoveryTitle = level.discoveryTitle?.trim();
-    return discoveryTitle != null &&
+    return _isLevelNumberInRange(level, 55, 58) &&
+        discoveryTitle != null &&
         _chapter4DiscoveryTitles.contains(discoveryTitle);
+  }
+
+  bool _isChapter1InformationLevel(QQLevel level) {
+    final discoveryTitle = level.discoveryTitle?.trim();
+    return _isLevelNumberInRange(level, 74, 78) &&
+        discoveryTitle != null &&
+        _chapter1DiscoveryTitles.contains(discoveryTitle);
+  }
+
+  bool _isChapter2HiddenChangeLevel(QQLevel level) {
+    final discoveryTitle = level.discoveryTitle?.trim();
+    return _isLevelNumberInRange(level, 79, 83) &&
+        discoveryTitle != null &&
+        _chapter2DiscoveryTitles.contains(discoveryTitle);
   }
 
   bool _isChapter8PhaseKickbackLevel(QQLevel level) {
     final discoveryTitle = level.discoveryTitle?.trim();
-    return discoveryTitle != null &&
+    return _isLevelNumberInRange(level, 59, 63) &&
+        discoveryTitle != null &&
         _chapter8DiscoveryTitles.contains(discoveryTitle);
   }
 
   bool _isChapter9OracleThinkingLevel(QQLevel level) {
     final discoveryTitle = level.discoveryTitle?.trim();
-    return discoveryTitle != null &&
+    return _isLevelNumberInRange(level, 64, 68) &&
+        discoveryTitle != null &&
         _chapter9DiscoveryTitles.contains(discoveryTitle);
   }
 
   bool _isChapter10AmplitudeAmplificationLevel(QQLevel level) {
     final discoveryTitle = level.discoveryTitle?.trim();
-    return discoveryTitle != null &&
+    return _isLevelNumberInRange(level, 69, 73) &&
+        discoveryTitle != null &&
         _chapter10DiscoveryTitles.contains(discoveryTitle);
   }
 
+  bool _isLevelNumberInRange(QQLevel level, int firstLevel, int lastLevel) {
+    final index = allQQLevels.indexOf(level);
+    final levelNumber = index + 1;
+    return index >= 0 && levelNumber >= firstLevel && levelNumber <= lastLevel;
+  }
+
   bool _isPrototypeChapterLevel(QQLevel level) {
-    return _isChapter4InterferenceLevel(level) ||
+    return _isChapter1InformationLevel(level) ||
+        _isChapter2HiddenChangeLevel(level) ||
+        _isChapter4InterferenceLevel(level) ||
         _isChapter8PhaseKickbackLevel(level) ||
         _isChapter9OracleThinkingLevel(level) ||
         _isChapter10AmplitudeAmplificationLevel(level);
+  }
+
+  int? _firstChapter1InformationLevelNumber() {
+    final index = allQQLevels.indexWhere(_isChapter1InformationLevel);
+    return index < 0 ? null : index + 1;
+  }
+
+  int? _firstChapter2HiddenChangeLevelNumber() {
+    final index = allQQLevels.indexWhere(_isChapter2HiddenChangeLevel);
+    return index < 0 ? null : index + 1;
   }
 
   int? _firstChapter4InterferenceLevelNumber() {
@@ -1019,7 +1088,44 @@ class _HomePageState extends State<HomePage> {
   Future<void> _showLearningIntroIfNeeded(QQLevel level) async {
     if (!mounted) return;
 
-    if (_isChapter4InterferenceLevel(level)) {
+    if (_isChapter1InformationLevel(level)) {
+      final prefs = await SharedPreferences.getInstance();
+      const seenKey = 'chapter_intro_seen_chapter_1_information_vertical_slice';
+      if (prefs.getBool(seenKey) != true) {
+        await prefs.setBool(seenKey, true);
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => const ChapterIntroScreen(
+              title: 'Chapter 1 - Information',
+              text:
+                  'Begin with the first mystery: what is a qubit? Investigate how quantum circuits store, change, and restore information.',
+              buttonLabel: 'Start Mystery',
+            ),
+          ),
+        );
+      }
+    } else if (_isChapter2HiddenChangeLevel(level)) {
+      final prefs = await SharedPreferences.getInstance();
+      const seenKey =
+          'chapter_intro_seen_chapter_2_hidden_change_vertical_slice';
+      if (prefs.getBool(seenKey) != true) {
+        await prefs.setBool(seenKey, true);
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => const ChapterIntroScreen(
+              title: 'Chapter 2 - Hidden Change',
+              text:
+                  'Not every quantum change shows up in measurement right away. In this chapter, investigate changes that feel invisible until a later operation reveals them.',
+              buttonLabel: 'Start Mystery',
+            ),
+          ),
+        );
+      }
+    } else if (_isChapter4InterferenceLevel(level)) {
       final prefs = await SharedPreferences.getInstance();
       const seenKey =
           'chapter_intro_seen_chapter_4_interference_vertical_slice';

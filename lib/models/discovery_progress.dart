@@ -4,9 +4,17 @@ class DiscoveryProgress {
   static const String storageKey = 'unlockedDiscoveries';
 
   static const List<String> discoveryOrder = [
+    'Information',
     'Reversibility',
-    'Superposition',
+    'Equivalent Results',
+    'State Transformations',
+    'The Quantum Bit',
+    'Hidden Change',
+    'Invisible Difference',
+    'Relative Phase',
+    'Phase Information',
     'Phase',
+    'Superposition',
     'Phase Is Hidden',
     'Phase Becomes Bit',
     'Bit Becomes Phase',
@@ -22,7 +30,6 @@ class DiscoveryProgress {
     'Hidden Mark',
     'Oracle Thinking',
     'Oracle',
-    'Invisible Difference',
     'Phase Marking',
     'Marked But Hidden',
     'Mark Becomes Probability',

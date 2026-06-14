@@ -359,11 +359,11 @@ void main() {
     final s = math.sqrt1_2;
 
     // ── Structural sanity ───────────────────────────────────────────────────
-    test('total level count is 73', () {
-      expect(numberOfLevels, equals(73));
+    test('total level count is 83', () {
+      expect(numberOfLevels, equals(83));
     });
 
-    test('levels 47–73 have the expected types', () {
+    test('levels 47–83 have the expected types', () {
       expect(getQQLevelById(47), isA<McqLevel>());
       expect(getQQLevelById(48), isA<McqLevel>());
       expect(getQQLevelById(49), isA<MeasurementLabLevel>());
@@ -391,6 +391,16 @@ void main() {
       expect(getQQLevelById(71), isA<ComposerLevel>());
       expect(getQQLevelById(72), isA<ComposerLevel>());
       expect(getQQLevelById(73), isA<ComposerLevel>());
+      expect(getQQLevelById(74), isA<ComposerLevel>());
+      expect(getQQLevelById(75), isA<ComposerLevel>());
+      expect(getQQLevelById(76), isA<ComposerLevel>());
+      expect(getQQLevelById(77), isA<ComposerLevel>());
+      expect(getQQLevelById(78), isA<ComposerLevel>());
+      expect(getQQLevelById(79), isA<ComposerLevel>());
+      expect(getQQLevelById(80), isA<ComposerLevel>());
+      expect(getQQLevelById(81), isA<ComposerLevel>());
+      expect(getQQLevelById(82), isA<ComposerLevel>());
+      expect(getQQLevelById(83), isA<ComposerLevel>());
     });
 
     test('initial qubit labels preserve authored ket tokens', () {
@@ -966,6 +976,128 @@ void main() {
 
       expect(level.validateCircuit(circuit), isTrue);
     });
+
+    test('Chapter 1 level 74 validates the first qubit flip', () {
+      final level = findComposerLevelByTitle('The First Qubit');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 1 level 75 validates undoing the pre-built change', () {
+      final level = findComposerLevelByTitle('Undo The Change');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 1, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 1 level 76 validates an equivalent longer path', () {
+      final level = findComposerLevelByTitle('Different Paths');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 1, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 2, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 1 level 77 validates transforming |00> to |11>', () {
+      final level = findComposerLevelByTitle('Information Patterns');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 1);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 1 level 78 validates the finale pattern change', () {
+      final level = findComposerLevelByTitle('What Have We Learned?');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 1);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 2 level 79 requires the hidden Z operation', () {
+      final level = findComposerLevelByTitle('Nothing Happened?');
+      final emptyCircuit = simulate(level);
+      expect(level.validateCircuit(emptyCircuit), isFalse);
+
+      final circuit = simulate(level);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 0, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 2 level 80 validates the invisible difference', () {
+      final level = findComposerLevelByTitle('The Invisible Difference');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 0, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 2 level 81 validates the minus sign', () {
+      final level = findComposerLevelByTitle('The Minus Sign');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 0, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 2 level 82 validates hidden information', () {
+      final level = findComposerLevelByTitle('Hidden Information');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 0, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 2 level 83 validates revealing phase', () {
+      final level = findComposerLevelByTitle('What Did We Actually Discover?');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 0, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 1, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
   });
 
   // ── Titles ─────────────────────────────────────────────────────────────────
@@ -975,7 +1107,7 @@ void main() {
   // accidental renames or copy-paste errors.
   group('Titles', () {
     // ── Exhaustive: every level must have a title ──────────────────────────
-    test('all 73 levels have a non-null, non-empty title', () {
+    test('all 83 levels have a non-null, non-empty title', () {
       for (int id = 1; id <= numberOfLevels; id++) {
         final level = getQQLevelById(id)!;
         expect(level.title, isNotNull,
@@ -1139,6 +1271,43 @@ void main() {
     });
     test('level 73 — "Why Search Can Be Faster"', () {
       expect(getQQLevelById(73)!.title, equals('Why Search Can Be Faster'));
+    });
+
+    // Chapter 1 - Information vertical slice (levels 74–78)
+    test('level 74 — "The First Qubit"', () {
+      expect(getQQLevelById(74)!.title, equals('The First Qubit'));
+    });
+    test('level 75 — "Undo The Change"', () {
+      expect(getQQLevelById(75)!.title, equals('Undo The Change'));
+    });
+    test('level 76 — "Different Paths"', () {
+      expect(getQQLevelById(76)!.title, equals('Different Paths'));
+    });
+    test('level 77 — "Information Patterns"', () {
+      expect(getQQLevelById(77)!.title, equals('Information Patterns'));
+    });
+    test('level 78 — "What Have We Learned?"', () {
+      expect(getQQLevelById(78)!.title, equals('What Have We Learned?'));
+    });
+
+    // Chapter 2 - Hidden Change vertical slice (levels 79–83)
+    test('level 79 — "Nothing Happened?"', () {
+      expect(getQQLevelById(79)!.title, equals('Nothing Happened?'));
+    });
+    test('level 80 — "The Invisible Difference"', () {
+      expect(getQQLevelById(80)!.title, equals('The Invisible Difference'));
+    });
+    test('level 81 — "The Minus Sign"', () {
+      expect(getQQLevelById(81)!.title, equals('The Minus Sign'));
+    });
+    test('level 82 — "Hidden Information"', () {
+      expect(getQQLevelById(82)!.title, equals('Hidden Information'));
+    });
+    test('level 83 — "What Did We Actually Discover?"', () {
+      expect(
+        getQQLevelById(83)!.title,
+        equals('What Did We Actually Discover?'),
+      );
     });
   });
 }
