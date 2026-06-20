@@ -4,6 +4,7 @@ import 'package:advance_math/advance_math.dart' show Complex;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
+import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
@@ -475,6 +476,20 @@ void main() {
       expect(
           DiscoveryProgress.discoveryOrder, contains('Invisible Difference'));
       expect(DiscoveryProgress.discoveryOrder, contains('Invisible Mark'));
+    });
+
+    test('Quantum Notebook v1 entries unlock from discovery titles', () {
+      expect(notebookEntriesByDiscoveryTitle['Invisible Difference']?.title,
+          equals('Invisible Difference'));
+      expect(notebookEntriesByDiscoveryTitle['Relative Phase']?.title,
+          equals('The Minus Sign'));
+      expect(notebookEntriesByDiscoveryTitle['Phase Information']?.title,
+          equals('Hidden Information'));
+
+      for (final entry in notebookEntries) {
+        expect(
+            DiscoveryProgress.discoveryOrder, contains(entry.discoveryTitle));
+      }
     });
 
     test('initial qubit labels preserve authored ket tokens', () {

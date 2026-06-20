@@ -19,7 +19,6 @@ import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 
 import '../models/qq_level.dart';
 import '../models/qq_levels.dart';
-import '../models/qq_levels_category.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -445,17 +444,6 @@ class _HomePageState extends State<HomePage> {
 
   void _selectUtilityMenuAction(String action) {
     switch (action) {
-      case 'docs':
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const WebViewPage(
-              title: 'App Documentation',
-              url:
-                  'https://danfran.github.io/qubit-quest/app-documentation.html',
-            ),
-          ),
-        );
-        break;
       case 'videos':
         _openYoutubePlaylist(
           'https://www.youtube.com/playlist?list=PL1UkEjMAb8Lq1Nivn894qBWTU938HKPM7',
@@ -727,14 +715,6 @@ class _HomePageState extends State<HomePage> {
             onSelected: _selectUtilityMenuAction,
             itemBuilder: (context) => const [
               PopupMenuItem(
-                value: 'docs',
-                child: ListTile(
-                  leading: Icon(Icons.book_outlined, color: Colors.white),
-                  title: Text('Documentation',
-                      style: TextStyle(color: Colors.white)),
-                ),
-              ),
-              PopupMenuItem(
                 value: 'videos',
                 child: ListTile(
                   leading:
@@ -747,8 +727,8 @@ class _HomePageState extends State<HomePage> {
                 value: 'discoveries',
                 child: ListTile(
                   leading:
-                      Icon(Icons.emoji_events_outlined, color: Colors.white),
-                  title: Text('Discoveries',
+                      Icon(Icons.auto_stories_outlined, color: Colors.white),
+                  title: Text('Quantum Notebook',
                       style: TextStyle(color: Colors.white)),
                 ),
               ),
@@ -1139,55 +1119,6 @@ class _HomePageState extends State<HomePage> {
     };
   }
 
-  // Show category intro dialog once per category (tracked in SharedPreferences)
-  Future<void> _showCategoryIntroIfNeeded(int levelNumber) async {
-    final category = groupedLevels.cast<QQLevelsCategory?>().firstWhere(
-          (c) =>
-              c != null &&
-              (c.from + 1) == levelNumber &&
-              c.categoryIntro != null,
-          orElse: () => null,
-        );
-    if (category == null) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    final seenKey = 'intro_seen_${category.groupName}';
-    if (prefs.getBool(seenKey) == true) return;
-    await prefs.setBool(seenKey, true);
-
-    if (!mounted) return;
-    await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF2D2E40),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          category.groupName,
-          style:
-              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          category.categoryIntro!,
-          style:
-              const TextStyle(color: Colors.white70, fontSize: 15, height: 1.6),
-        ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF5D5FE6),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("Let's go →",
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _showLearningIntroIfNeeded(QQLevel level) async {
     if (!mounted) return;
 
@@ -1399,23 +1330,10 @@ class _HomePageState extends State<HomePage> {
     }
 
     if (!mounted) return;
-    final action = await showDialog<DiscoveryDialogAction>(
+    await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (context) => DiscoveryDialog(level: level),
-    );
-
-    if (!mounted ||
-        action != DiscoveryDialogAction.whyItMatters ||
-        !level.hasWhyItMatters) {
-      return;
-    }
-
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (context) => WhyItMattersScreen(level: level),
-      ),
     );
   }
 
@@ -1439,10 +1357,6 @@ class _HomePageState extends State<HomePage> {
         continueLevelChain = false;
         break;
       }
-
-      // Show category intro once if this is the first level of a category
-      await _showCategoryIntroIfNeeded(currentLevelToPlay);
-      if (!context.mounted) break;
 
       await _showLearningIntroIfNeeded(levelData);
       if (!context.mounted) break;

@@ -3,13 +3,15 @@ import 'dart:math' as math;
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:quantumquiz/models/discovery_progress.dart';
+import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
+import 'package:quantumquiz/screens/learning_flow_widgets.dart';
 import 'package:quantumquiz/screens/operator_matrix_dialog.dart';
 import 'package:quantumquiz/screens/rotation_gate_dialog.dart';
 import 'package:quantumquiz/screens/three_qubits_gate_target_qubits_selection_dialog.dart';
 import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
-import 'package:quantumquiz/screens/webview_page.dart';
 import 'package:quantumquiz/utils/complex_formatter.dart';
 import 'package:quantumquiz/widgets/gate_visual_style.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
@@ -521,55 +523,22 @@ class _QuantumComposerState extends State<QuantumComposer> {
     // Only check if not already completed to avoid re-triggering
     bool match = widget.level.validateCircuit(_circuit);
     if (match) {
-      _levelSolved = true;
-      _setCheckFeedback(
-        success: true,
-        title: 'Solved',
-        message: 'Nice work. Your circuit reaches the target.',
-      );
+      setState(() {
+        _levelSolved = true;
+        _checkFeedbackTitle = null;
+        _checkFeedbackMessage = null;
+        _checkFeedbackSuccess = false;
+      });
 
       _isShowingCompletionDialog = true;
       await Future.delayed(const Duration(milliseconds: 420));
       if (!mounted) return;
 
-      final dialogResult =
-          await _showLevelCompleteDialog(); // Trigger success actions
+      widget.onLevelUnlocked?.call(widget.levelId + 1);
       _isShowingCompletionDialog = false;
       if (!mounted) return;
 
-      if (dialogResult != null) {
-        final LevelCompletionAction action = dialogResult['action'];
-        final bool shouldUnlock = dialogResult['shouldUnlock'];
-
-        // Perform unlock if indicated by the dialog
-        if (shouldUnlock) {
-          widget.onLevelUnlocked?.call(widget.levelId + 1);
-        }
-
-        // Now, based on the user's choice in the dialog, pop the QuantumComposerScreen itself.
-        // This will complete the 'await Navigator.push' call back in HomePage.
-        if (action == LevelCompletionAction.nextLevel ||
-            action == LevelCompletionAction.levelSelect) {
-          // If user chose to go to next level or level select, pop this composer screen
-          // and pass the action back to HomePage.
-          Navigator.of(context).pop(action);
-        } else if (action == LevelCompletionAction.reviewSolution) {
-          // If user chose to review, pop the composer screen and return to HomePage.
-          // HomePage will then simply be visible again.
-          debugPrint(
-              "Review solution selected. Staying on QuantumComposerScreen.");
-        } else {
-          // Default case: dialog might have been dismissed without a specific action
-          // (e.g., tapping outside if barrierDismissible was true, or system back button on dialog).
-          // In this case, also pop the composer screen, returning 'none'.
-          Navigator.of(context).pop(LevelCompletionAction.none);
-        }
-      } else {
-        // Default case: dialog might have been dismissed without a specific action
-        // (e.g., tapping outside if barrierDismissible was true, or system back button on dialog).
-        // In this case, also pop the composer screen, returning 'none'.
-        Navigator.of(context).pop(LevelCompletionAction.none);
-      }
+      Navigator.of(context).pop(LevelCompletionAction.nextLevel);
     } else {
       _levelSolved = false;
       if (manual) {
@@ -586,226 +555,6 @@ class _QuantumComposerState extends State<QuantumComposer> {
         });
       }
     }
-  }
-
-  Future<Map<String, dynamic>?> _showLevelCompleteDialog() {
-    return showDialog<Map<String, dynamic>>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        final double maxHeight = MediaQuery.of(context).size.height - 80;
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          insetPadding:
-              const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: qqCard,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: qqBorder),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.36),
-                  blurRadius: 24,
-                  offset: const Offset(0, 14),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: maxHeight),
-              child: Column(
-                // mainAxisSize: max — lets Expanded children work correctly
-                children: [
-                  // ── Fixed header ──────────────────────────────────────────
-                  Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF66BB6A).withValues(alpha: 0.14),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color:
-                              const Color(0xFF66BB6A).withValues(alpha: 0.54)),
-                    ),
-                    child: const Icon(Icons.check_circle,
-                        color: Color(0xFF81C784), size: 36),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Level Complete!',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                        color: Colors.white),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Your circuit reaches the target.',
-                    style: TextStyle(
-                      color: Color(0xFFB9C6DD),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Divider(color: Colors.white24, height: 1),
-                  const SizedBox(height: 10),
-
-                  // ── Flexible two-column body ──────────────────────────────
-                  // Expanded gives the Row all remaining height between header and footer.
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Left 35% — fixed congratulations (vertically centred)
-                        Expanded(
-                          flex: 35,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.emoji_events,
-                                  color: Colors.amber, size: 36),
-                              SizedBox(height: 10),
-                              Text(
-                                'Congratulations!\nYou\'ve successfully solved the puzzle.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.white70,
-                                    height: 1.4),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Vertical divider
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12),
-                          child:
-                              VerticalDivider(color: Colors.white24, width: 1),
-                        ),
-
-                        // Right 65% — solution fills all available height
-                        Expanded(
-                          flex: 65,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'SOLUTION',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                  color: Colors.blueAccent,
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Expanded(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: qqInner,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Scrollbar(
-                                    child: SingleChildScrollView(
-                                      padding: const EdgeInsets.all(10),
-                                      child: Text(
-                                        widget.level.solutionExplanation ?? '',
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.white70,
-                                          height: 1.5,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ── Fixed footer ──────────────────────────────────────────
-                  const SizedBox(height: 12),
-                  const Divider(color: Colors.white24, height: 1),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: () => Navigator.of(context).pop({
-                          'action': LevelCompletionAction.nextLevel,
-                          'shouldUnlock': true,
-                        }),
-                        icon: const Icon(Icons.arrow_forward, size: 16),
-                        label: const Text('Next Level'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: qqPurple,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 11),
-                          textStyle:
-                              const TextStyle(fontWeight: FontWeight.w800),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                        ),
-                      ),
-                      ElevatedButton.icon(
-                        onPressed: () => Navigator.of(context).pop({
-                          'action': LevelCompletionAction.levelSelect,
-                          'shouldUnlock': true,
-                        }),
-                        icon: const Icon(Icons.grid_view, size: 16),
-                        label: const Text('Level Select'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: qqCard2,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            side: BorderSide(
-                                color: Colors.white.withValues(alpha: 0.12)),
-                          ),
-                        ),
-                      ),
-                      ElevatedButton.icon(
-                        onPressed: () => Navigator.of(context).pop({
-                          'action': LevelCompletionAction.reviewSolution,
-                          'shouldUnlock': true,
-                        }),
-                        icon: const Icon(Icons.menu_book, size: 16),
-                        label: const Text('Review'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: qqCard2,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            side: BorderSide(
-                                color: Colors.white.withValues(alpha: 0.12)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
   }
 
   void _showConceptIntro(String intro) {
@@ -868,14 +617,22 @@ class _QuantumComposerState extends State<QuantumComposer> {
     _circuitWidthNotifier.value = 0; // Reset width notifier
   }
 
-  void _openQuantumFundamentals() {
+  Future<void> _openQuantumNotebook() async {
+    final discoveryTitle = widget.level.discoveryTitle?.trim();
+    final entry = discoveryTitle == null
+        ? null
+        : notebookEntriesByDiscoveryTitle[discoveryTitle];
+    final unlocked = await DiscoveryProgress.loadUnlocked();
+    if (!mounted) return;
+
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const WebViewPage(
-          title: 'Quantum Fundamentals',
-          url:
-              'https://danfran.github.io/qubit-quest/quantum-fundamentals.html',
-        ),
+        builder: (context) {
+          if (entry != null && unlocked.contains(entry.discoveryTitle)) {
+            return NotebookEntryScreen(entry: entry);
+          }
+          return const DiscoveriesScreen();
+        },
       ),
     );
   }
@@ -885,8 +642,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
       case 'matrix':
         _showOperatorMatrixDialog();
         break;
-      case 'fundamentals':
-        _openQuantumFundamentals();
+      case 'notebook':
+        _openQuantumNotebook();
         break;
       case 'clear':
         _clearCircuit();
@@ -1439,8 +1196,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
     return [
       _buildHeaderIconAction(
         icon: Icons.school_outlined,
-        tooltip: 'Learn',
-        onPressed: _openQuantumFundamentals,
+        tooltip: 'Quantum Notebook',
+        onPressed: _openQuantumNotebook,
       ),
       SizedBox(width: compact ? 6 : 8),
       PopupMenuButton<String>(

@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
+import 'package:quantumquiz/models/notebook_entries.dart';
+import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
-
-enum DiscoveryDialogAction {
-  continueFlow,
-  whyItMatters,
-}
 
 class ChapterIntroScreen extends StatelessWidget {
   const ChapterIntroScreen({
@@ -74,63 +71,48 @@ class DiscoveryDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final discoveryTitle = level.discoveryTitle?.trim();
+    final notebookEntry = discoveryTitle == null
+        ? null
+        : notebookEntriesByDiscoveryTitle[discoveryTitle];
+
     return QubitQuestDialog(
-      title: level.discoveryTitle ?? 'Discovery',
+      title: '✓ Level Complete',
       maxWidth: 560,
       actions: [
-        QubitQuestDialogButton.secondary(
-          label: 'Continue',
+        QubitQuestDialogButton.primary(
+          label: 'Next Level',
           onPressed: () {
-            Navigator.of(context).pop(DiscoveryDialogAction.continueFlow);
+            Navigator.of(context).pop();
           },
         ),
-        if (level.hasWhyItMatters)
-          QubitQuestDialogButton.primary(
-            label: 'Why It Matters',
-            onPressed: () {
-              Navigator.of(context).pop(DiscoveryDialogAction.whyItMatters);
-            },
-          ),
       ],
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if ((level.discoveryTitle ?? '').trim().isNotEmpty) ...[
+            Text(
+              level.discoveryTitle!,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                height: 1.14,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           if ((level.discoveryText ?? '').trim().isNotEmpty)
             _LearningText(level.discoveryText!),
           if ((level.keyInsight ?? '').trim().isNotEmpty) ...[
             const SizedBox(height: 12),
             _InsightBox(text: level.keyInsight!),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class WhyItMattersScreen extends StatelessWidget {
-  const WhyItMattersScreen({
-    super.key,
-    required this.level,
-  });
-
-  final QQLevel level;
-
-  @override
-  Widget build(BuildContext context) {
-    return _LearningScaffold(
-      child: _LearningCard(
-        title: 'Why It Matters',
-        body: level.whyItMatters ?? '',
-        icon: Icons.lightbulb_outline,
-        footer: (level.nextMystery ?? '').trim().isEmpty
-            ? null
-            : _NextMysteryBox(text: level.nextMystery!),
-        actions: [
-          QubitQuestDialogButton.primary(
-            label: 'Next Level',
-            onPressed: () => Navigator.of(context).pop(),
-          ),
+          if (notebookEntry != null) ...[
+            const SizedBox(height: 12),
+            _NotebookUpdatedBox(title: notebookEntry.title),
+          ],
         ],
       ),
     );
@@ -191,7 +173,7 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> {
         surfaceTintColor: Colors.transparent,
         foregroundColor: Colors.white,
         title: const Text(
-          'Discoveries',
+          'Quantum Notebook',
           style: TextStyle(fontWeight: FontWeight.w900),
         ),
       ),
@@ -218,16 +200,361 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> {
                     ],
                     const SizedBox(height: 14),
                   ],
-                  for (final title in DiscoveryProgress.discoveryOrder) ...[
-                    _DiscoveryTile(
-                      title: title,
-                      unlocked: _unlocked.contains(title),
+                  for (final chapter in _notebookChapters()) ...[
+                    _NotebookChapterHeader(
+                      title: chapter.title,
+                      unlockedCount: chapter.entries
+                          .where((entry) =>
+                              _unlocked.contains(entry.discoveryTitle))
+                          .length,
+                      totalCount: chapter.entries.length,
                     ),
-                    if (title != DiscoveryProgress.discoveryOrder.last)
+                    const SizedBox(height: 10),
+                    for (final entry in chapter.entries) ...[
+                      _NotebookEntryTile(
+                        entry: entry,
+                        unlocked: _unlocked.contains(entry.discoveryTitle),
+                        onTap: () {
+                          Navigator.of(context).push<void>(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  NotebookEntryScreen(entry: entry),
+                            ),
+                          );
+                        },
+                      ),
                       const SizedBox(height: 10),
+                    ],
+                    const SizedBox(height: 12),
                   ],
                 ],
               ),
+      ),
+    );
+  }
+
+  List<_NotebookChapterGroup> _notebookChapters() {
+    final Map<String, List<NotebookEntry>> grouped = {};
+    for (final entry in notebookEntries) {
+      grouped.putIfAbsent(entry.chapterTitle, () => []).add(entry);
+    }
+
+    return grouped.entries
+        .map(
+          (entry) => _NotebookChapterGroup(
+            title: entry.key,
+            entries: entry.value,
+          ),
+        )
+        .toList()
+      ..sort(
+        (a, b) => a.entries.first.chapterIndex
+            .compareTo(b.entries.first.chapterIndex),
+      );
+  }
+}
+
+class _NotebookChapterGroup {
+  const _NotebookChapterGroup({
+    required this.title,
+    required this.entries,
+  });
+
+  final String title;
+  final List<NotebookEntry> entries;
+}
+
+class NotebookEntryScreen extends StatelessWidget {
+  const NotebookEntryScreen({
+    super.key,
+    required this.entry,
+  });
+
+  final NotebookEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF00030A),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF00030A),
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        title: const Text(
+          'Quantum Notebook',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            Text(
+              entry.chapterTitle,
+              style: const TextStyle(
+                color: QubitQuestDialog.mutedText,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              entry.title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 26,
+                height: 1.08,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              entry.summary,
+              style: const TextStyle(
+                color: Color(0xFFD6E3F8),
+                fontSize: 15,
+                height: 1.4,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 18),
+            _NotebookSectionCard(section: entry.intuition),
+            if (entry.whatChanged != null) ...[
+              const SizedBox(height: 12),
+              _NotebookSectionCard(section: entry.whatChanged!),
+            ],
+            if (entry.quantumView != null) ...[
+              const SizedBox(height: 12),
+              _NotebookSectionCard(section: entry.quantumView!),
+            ],
+            if (entry.advancedNotes != null) ...[
+              const SizedBox(height: 12),
+              _AdvancedNotebookSection(section: entry.advancedNotes!),
+            ],
+            if (entry.relatedDiscoveryTitles.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _RelatedDiscoveries(titles: entry.relatedDiscoveryTitles),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NotebookSectionCard extends StatelessWidget {
+  const _NotebookSectionCard({required this.section});
+
+  final NotebookSection section;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: QubitQuestDialog.cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: QubitQuestDialog.borderSoftColor),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              section.title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              section.body,
+              style: const TextStyle(
+                color: Color(0xFFD6E3F8),
+                fontSize: 14,
+                height: 1.42,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (section.examples.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              for (final example in section.examples) ...[
+                _NotebookExampleBlock(example: example),
+                if (example != section.examples.last) const SizedBox(height: 8),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NotebookExampleBlock extends StatelessWidget {
+  const _NotebookExampleBlock({required this.example});
+
+  final NotebookExample example;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: QubitQuestDialog.innerColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: QubitQuestDialog.borderSoftColor),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              example.label,
+              style: const TextStyle(
+                color: QubitQuestDialog.mutedText,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              example.notation,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                height: 1.35,
+                fontWeight: FontWeight.w800,
+                fontFamily: 'monospace',
+              ),
+            ),
+            if ((example.explanation ?? '').trim().isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                example.explanation!,
+                style: const TextStyle(
+                  color: Color(0xFFD6E3F8),
+                  fontSize: 13,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AdvancedNotebookSection extends StatelessWidget {
+  const _AdvancedNotebookSection({required this.section});
+
+  final NotebookSection section;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: QubitQuestDialog.innerColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: QubitQuestDialog.borderSoftColor),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: false,
+          iconColor: QubitQuestDialog.cyan,
+          collapsedIconColor: QubitQuestDialog.mutedText,
+          title: Text(
+            section.title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                section.body,
+                style: const TextStyle(
+                  color: Color(0xFFD6E3F8),
+                  fontSize: 14,
+                  height: 1.42,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RelatedDiscoveries extends StatelessWidget {
+  const _RelatedDiscoveries({required this.titles});
+
+  final List<String> titles;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: QubitQuestDialog.innerColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: QubitQuestDialog.borderSoftColor),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Related Discoveries',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final title in titles)
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: QubitQuestDialog.cardColor,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: QubitQuestDialog.borderSoftColor,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          color: Color(0xFFD6E3F8),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -353,14 +680,12 @@ class _LearningCard extends StatelessWidget {
     required this.body,
     required this.icon,
     required this.actions,
-    this.footer,
   });
 
   final String title;
   final String body;
   final IconData icon;
   final List<Widget> actions;
-  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -412,10 +737,6 @@ class _LearningCard extends StatelessWidget {
             if (body.trim().isNotEmpty) ...[
               const SizedBox(height: 16),
               _LearningText(body),
-            ],
-            if (footer != null) ...[
-              const SizedBox(height: 14),
-              footer!,
             ],
             const SizedBox(height: 18),
             Wrap(
@@ -481,10 +802,10 @@ class _InsightBox extends StatelessWidget {
   }
 }
 
-class _NextMysteryBox extends StatelessWidget {
-  const _NextMysteryBox({required this.text});
+class _NotebookUpdatedBox extends StatelessWidget {
+  const _NotebookUpdatedBox({required this.title});
 
-  final String text;
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -496,26 +817,50 @@ class _NextMysteryBox extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           children: [
-            const Text(
-              'Next Mystery',
-              style: TextStyle(
-                color: QubitQuestDialog.mutedText,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFD54F).withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                  color: const Color(0xFFFFD54F).withValues(alpha: 0.38),
+                ),
+              ),
+              child: const Icon(
+                Icons.star_rounded,
+                color: Color(0xFFFFD54F),
+                size: 18,
               ),
             ),
-            const SizedBox(height: 5),
-            Text(
-              text,
-              style: const TextStyle(
-                color: Color(0xFFD6E3F8),
-                fontSize: 14,
-                height: 1.35,
-                fontWeight: FontWeight.w700,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'New Discovery',
+                    style: TextStyle(
+                      color: Color(0xFFFFD54F),
+                      fontSize: 12,
+                      height: 1.15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$title added to Quantum Notebook',
+                    style: const TextStyle(
+                      color: Color(0xFFD6E3F8),
+                      fontSize: 13,
+                      height: 1.25,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -525,54 +870,138 @@ class _NextMysteryBox extends StatelessWidget {
   }
 }
 
-class _DiscoveryTile extends StatelessWidget {
-  const _DiscoveryTile({
+class _NotebookChapterHeader extends StatelessWidget {
+  const _NotebookChapterHeader({
     required this.title,
-    required this.unlocked,
+    required this.unlockedCount,
+    required this.totalCount,
   });
 
   final String title;
-  final bool unlocked;
+  final int unlockedCount;
+  final int totalCount;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color:
-            unlocked ? QubitQuestDialog.cardColor : QubitQuestDialog.innerColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: unlocked
-              ? QubitQuestDialog.cyan.withValues(alpha: 0.38)
-              : QubitQuestDialog.borderSoftColor,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        child: Row(
-          children: [
-            Text(
-              unlocked ? '✓' : '□',
-              style: TextStyle(
-                color: unlocked
-                    ? QubitQuestDialog.cyan
-                    : QubitQuestDialog.mutedText,
-                fontSize: 19,
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
                 fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
+          ),
+          const SizedBox(width: 10),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: QubitQuestDialog.innerColor,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: QubitQuestDialog.borderSoftColor),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               child: Text(
-                title,
-                style: TextStyle(
-                  color: unlocked ? Colors.white : QubitQuestDialog.mutedText,
-                  fontSize: 15,
+                '$unlockedCount / $totalCount discovered',
+                style: const TextStyle(
+                  color: QubitQuestDialog.mutedText,
+                  fontSize: 12,
                   fontWeight: FontWeight.w900,
                 ),
               ),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotebookEntryTile extends StatelessWidget {
+  const _NotebookEntryTile({
+    required this.entry,
+    required this.unlocked,
+    required this.onTap,
+  });
+
+  final NotebookEntry entry;
+  final bool unlocked;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: unlocked ? onTap : null,
+      borderRadius: BorderRadius.circular(12),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: unlocked
+              ? QubitQuestDialog.cardColor
+              : QubitQuestDialog.innerColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: unlocked
+                ? QubitQuestDialog.cyan.withValues(alpha: 0.38)
+                : QubitQuestDialog.borderSoftColor,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          child: Row(
+            children: [
+              Icon(
+                unlocked
+                    ? Icons.menu_book_outlined
+                    : Icons.lock_outline_rounded,
+                color: unlocked
+                    ? QubitQuestDialog.cyan
+                    : QubitQuestDialog.mutedText,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      unlocked ? entry.title : 'Undiscovered',
+                      style: TextStyle(
+                        color: unlocked
+                            ? Colors.white
+                            : QubitQuestDialog.mutedText,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      unlocked
+                          ? entry.summary
+                          : 'Complete this discovery to unlock its notebook entry.',
+                      style: TextStyle(
+                        color: unlocked
+                            ? const Color(0xFFD6E3F8)
+                            : QubitQuestDialog.mutedText,
+                        fontSize: 13,
+                        height: 1.25,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (unlocked)
+                const Icon(
+                  Icons.chevron_right,
+                  color: QubitQuestDialog.mutedText,
+                ),
+            ],
+          ),
         ),
       ),
     );

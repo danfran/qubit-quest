@@ -2946,14 +2946,14 @@ final List<QQLevel> _authoredQQLevels = [
     targetStateExpression: '|1⟩',
     mysteryTitle: 'Can a quantum bit store information?',
     mysteryText:
-        'A qubit is the smallest unit of quantum information. Begin by seeing whether one qubit can hold a different state.',
+        'Start with the simplest possible quantum register: one qubit showing |0⟩. Can a gate make it carry a different value?',
     discoveryTitle: 'Information',
     discoveryText:
-        'The qubit started in |0⟩ and ended in |1⟩. A qubit can carry information because it can be in different states.',
-    keyInsight: 'A qubit can represent different states.',
+        'The X gate changed |0⟩ into |1⟩. The qubit is not just a label on a wire; it is a state a circuit can transform.',
+    keyInsight: 'A qubit can store a state that a circuit changes.',
     whyItMatters:
-        'Quantum algorithms begin with qubits that carry information. Every later mystery starts from this basic idea.',
-    nextMystery: 'Can information be changed and restored?',
+        'Every later puzzle starts from this move: prepare information, transform it, then inspect what changed.',
+    nextMystery: 'Can a quantum change be undone?',
     hints: [
       'There is only one gate available.',
       'Use X to flip |0⟩ into |1⟩.',
@@ -2978,14 +2978,14 @@ final List<QQLevel> _authoredQQLevels = [
     targetStateExpression: '|0⟩',
     mysteryTitle: 'Can a change be reversed?',
     mysteryText:
-        'The circuit already changed |0⟩ into |1⟩. Try to undo that change instead of starting over.',
+        'The circuit has already flipped the qubit. Instead of erasing the circuit, try to use another operation to retrace the change.',
     discoveryTitle: 'Reversibility',
     discoveryText:
-        'Applying X again restored the original state. The same operation that changed the qubit can also undo the change.',
-    keyInsight: 'Quantum operations can be reversible.',
+        'A second X brought the qubit back to |0⟩. The first gate did not destroy the original information; its effect could be reversed.',
+    keyInsight: 'Quantum gates act like reversible transformations.',
     whyItMatters:
-        'Reversibility is a fundamental property of quantum circuits. Quantum computation is built from operations that preserve information.',
-    nextMystery: 'Can different paths lead to the same result?',
+        'Quantum circuits are built from operations that preserve enough structure to be undone or combined with other operations.',
+    nextMystery: 'Can extra moves cancel out?',
     hints: [
       'The first X has already been placed.',
       'X followed by X returns the qubit to its starting state.',
@@ -3011,24 +3011,24 @@ final List<QQLevel> _authoredQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'Different Paths',
     taskDescription:
-        r'Can two different circuits produce the same result? Reach \( |1\rangle \) from \( |0\rangle \).',
+        r'Can extra moves cancel out? Reach \( |1\rangle \) from \( |0\rangle \) after adding more than one gate.',
     targetStateExpression: '|1⟩',
-    mysteryTitle: 'Can two different circuits produce the same result?',
+    mysteryTitle: 'Can extra moves cancel out?',
     mysteryText:
-        'One X reaches |1⟩. But because X can undo itself, longer paths can sometimes land on the same final state.',
+        'A circuit is not judged by how many gates it contains. Try making a longer route where part of the route erases itself.',
     discoveryTitle: 'Equivalent Results',
     discoveryText:
-        'Different gate sequences can end at the same state. What matters is the transformation the whole circuit performs.',
-    keyInsight: 'Different circuits can produce the same outcome.',
+        'Three X gates still ended at |1⟩ because two of them canceled as a pair. The whole circuit matters more than any single step.',
+    keyInsight: 'A circuit has an overall effect, and some steps can cancel.',
     whyItMatters:
-        'Quantum programmers think about transformations, not just individual gates. Many circuits can describe the same final result.',
-    nextMystery: 'Can information move through several states step by step?',
+        'Later puzzles use the same idea with less obvious gates: build a useful transformation by combining pieces that may undo, redirect, or reveal each other.',
+    nextMystery: 'Can one circuit transform a whole pattern?',
     hints: [
-      'Try one X, then think about what happens if you add two more X gates.',
-      'An odd number of X gates leaves |0⟩ as |1⟩.',
+      'Build a route with more gates than the direct answer needs.',
+      'Two neighboring X gates cancel; the remaining X sets the final state.',
     ],
     solutionExplanation:
-        'X reaches |1⟩ directly. X then X then X also reaches |1⟩ because the middle pair cancels. Different paths can be equivalent.',
+        'X then X then X reaches |1⟩ because one pair of flips cancels. The circuit is longer, but its net effect is still a single flip.',
     numQubits: 1,
     initialQubitsStateString: '0',
     availableGates: [
@@ -3047,14 +3047,14 @@ final List<QQLevel> _authoredQQLevels = [
     targetStateExpression: '|11⟩',
     mysteryTitle: 'Can information move through multiple states?',
     mysteryText:
-        'A circuit can transform more than one qubit. Change the information pattern one step at a time.',
+        'One qubit can change, but useful registers contain patterns. Can you transform both parts of the pattern without treating them as one big switch?',
     discoveryTitle: 'State Transformations',
     discoveryText:
-        'Each X changed one part of the information pattern. Together, the circuit transformed |00⟩ into |11⟩.',
-    keyInsight: 'Quantum circuits transform information step by step.',
+        'Each wire carried one piece of the pattern. Changing both pieces transformed the register from |00⟩ into |11⟩.',
+    keyInsight: 'Multi-qubit states are information patterns.',
     whyItMatters:
-        'Larger algorithms are built from simple transformations. Understanding small state changes prepares you for richer quantum behavior.',
-    nextMystery: 'What is a qubit really?',
+        'Quantum algorithms work on registers, not isolated symbols. Even simple gates can reshape a complete pattern.',
+    nextMystery: 'What is the thing being transformed?',
     hints: [
       'Each qubit needs to change from 0 to 1.',
       'Use one X on each qubit.',
@@ -3081,14 +3081,14 @@ final List<QQLevel> _authoredQQLevels = [
     targetStateExpression: '|10⟩',
     mysteryTitle: 'What is a qubit really?',
     mysteryText:
-        'A qubit is not just a symbol on the screen. It is a unit of information that a circuit can transform.',
+        'You have flipped, undone, canceled, and changed patterns. Use one final pattern change to name what the circuit has been acting on.',
     discoveryTitle: 'The Quantum Bit',
     discoveryText:
-        'You changed the stored information from |01⟩ to |10⟩. Qubits are the basic pieces that quantum circuits transform.',
-    keyInsight: 'A qubit is the basic unit of quantum information.',
+        'The circuit changed |01⟩ into |10⟩ by transforming each qubit. A qubit is the basic piece of information inside the register.',
+    keyInsight: 'Qubits are the transformable units of quantum information.',
     whyItMatters:
-        'Everything that follows in Qubit Quest is built on qubits. Later chapters add new ways for qubits to store, hide, and reveal information.',
-    nextMystery: 'Can something change without changing what we see?',
+        'Everything next asks a sharper question: if a qubit can change, will measurement always show that change?',
+    nextMystery: 'Can a circuit change something we cannot see yet?',
     hints: [
       'Both qubits need to change.',
       'Use X on each qubit to swap the pattern from |01⟩ to |10⟩.',
@@ -3116,21 +3116,21 @@ final List<QQLevel> _authoredQQLevels = [
     mysteryTitle:
         'Can a quantum state change without changing its measurement?',
     mysteryText:
-        'A normal change usually leaves a visible trace. Try a quantum operation where the measurement looks exactly the same afterward.',
+        'So far, every useful change moved a visible 0 or 1. Try a gate whose action is real, even though this starting state still measures the same way.',
     discoveryTitle: 'Hidden Change',
     discoveryText:
-        'Z acted on the qubit, but the measurement still says |0⟩ with certainty. The circuit changed as an operation even though the visible outcome did not.',
+        'Z was applied, but |0⟩ still measured as |0⟩. The surprise is that a gate can be part of the circuit even when this particular input hides its effect.',
     keyInsight:
-        'Some quantum operations do not immediately affect measurement outcomes.',
+        'A gate can have a real action without changing every visible outcome.',
     whyItMatters:
-        'Quantum information can exist beyond visible measurement results. Later, hidden changes like this can become important.',
-    nextMystery: 'Did anything actually change?',
+        'This separates “nothing visible happened” from “nothing happened.” Quantum puzzles often depend on that difference.',
+    nextMystery: 'Where can an invisible effect leave a trace?',
     hints: [
       'There is only one gate available.',
-      'Use Z and compare the state probabilities before and after.',
+      'Use Z and notice that this input hides the gate in the measured result.',
     ],
     solutionExplanation:
-        'Z leaves |0⟩ measuring as |0⟩. This is the first clue that quantum changes are not always visible in probabilities.',
+        'Z leaves |0⟩ unchanged for this input. The operation is still part of the circuit; this state simply does not expose its sign-changing side.',
     numQubits: 1,
     initialQubitsStateString: '0',
     availableGates: [
@@ -3155,21 +3155,21 @@ final List<QQLevel> _authoredQQLevels = [
     mysteryTitle:
         'How can two states look identical but behave differently later?',
     mysteryText:
-        'The state starts as something that always measures 1. Can you change it while keeping that same measurement result?',
+        'Now try the same gate on |1⟩. The measured bit will not flip, but watch the state expression for a trace that was missing before.',
     discoveryTitle: 'Invisible Difference',
     discoveryText:
-        'The qubit still measures as |1⟩ every time, but a hidden sign changed. The state is different even though the probability bar looks the same.',
+        'The bit value stayed 1, but the state picked up a minus sign. Measurement of this single basis state hides the sign; the state display reveals it.',
     keyInsight:
-        'Two states can appear the same when measured but still be different.',
+        'Quantum state descriptions can contain signs that measurement probabilities ignore.',
     whyItMatters:
-        'Quantum algorithms often rely on information that cannot be seen directly. Measurement probabilities are not the whole story.',
-    nextMystery: 'Why does a minus sign matter?',
+        'This is the first visible trace of phase. By itself it is quiet, but in a state with multiple pieces a sign can change what happens next.',
+    nextMystery: 'What happens when only one piece gets the sign?',
     hints: [
-      'Look for the gate that changes a sign without flipping |1⟩ into |0⟩.',
-      'Z changes |1⟩ by adding a minus sign.',
+      'Use the same gate as before, but start from the state where its sign effect appears.',
+      'Z does not flip |1⟩ into |0⟩; it attaches a minus sign to |1⟩.',
     ],
     solutionExplanation:
-        'Z changes |1⟩ into -|1⟩. Measurement still gives |1⟩, but the hidden sign is now different.',
+        'Z changes |1⟩ into -|1⟩. The measured bit stays fixed, while the state expression exposes the sign.',
     numQubits: 1,
     initialQubitsStateString: '1',
     availableGates: [
@@ -3189,20 +3189,20 @@ final List<QQLevel> _authoredQQLevels = [
     targetStateExpression: '(|0⟩ - |1⟩)/√2',
     mysteryTitle: 'Why does a minus sign matter?',
     mysteryText:
-        'Two balanced states can have the same measurement odds. The difference is hidden in how the pieces are signed.',
+        'A balanced state has two pieces. If only one piece receives the minus sign, the odds still look balanced, but the relationship between the pieces changes.',
     discoveryTitle: 'Relative Phase',
     discoveryText:
-        'The qubit still has equal chances of |0⟩ and |1⟩, but the sign between those pieces changed. That hidden sign changes how the state behaves later.',
-    keyInsight: 'A minus sign can change how a quantum state behaves.',
+        'The state still gives equal chances of |0⟩ and |1⟩, but the sign between the two pieces changed. That relationship is relative phase.',
+    keyInsight: 'Relative phase is a sign relationship inside a state.',
     whyItMatters:
-        'Phase is one of the most important resources in quantum computing because it changes how states combine later.',
-    nextMystery: 'Can information be stored in phase?',
+        'Relative phase is where the hidden sign becomes useful: later gates can make different relationships produce different outcomes.',
+    nextMystery: 'Can phase act like memory?',
     hints: [
       'You are already balanced between |0⟩ and |1⟩.',
-      'Use Z to change only the sign of the |1⟩ part.',
+      'Use Z to change the relationship between the two pieces.',
     ],
     solutionExplanation:
-        'Z changes |+⟩ into |−⟩. The probabilities stay balanced, but the relative sign changes.',
+        'Z changes |+⟩ into |−⟩ by giving only the |1⟩ part a minus sign. The important change is the relationship between the two amplitudes.',
     numQubits: 1,
     initialQubitsStateStr: '|+⟩',
     initialQubitsState: [
@@ -3226,20 +3226,21 @@ final List<QQLevel> _authoredQQLevels = [
     targetStateExpression: '(|0⟩ + |1⟩)/√2',
     mysteryTitle: 'Can information be stored in phase?',
     mysteryText:
-        'The difference between these states is not which outcomes are possible. It is the hidden sign between the outcomes.',
+        'The possible outcomes are unchanged. The puzzle is whether changing only the relationship between them can still count as changing information.',
     discoveryTitle: 'Phase Information',
     discoveryText:
-        'The circuit changed the phase pattern while the measurement odds stayed balanced. That phase pattern is information the circuit can use.',
-    keyInsight: 'Quantum information is not limited to bit values.',
+        'Z changed |−⟩ back into |+⟩. Nothing about the 50/50 odds changed, but the phase relationship did.',
+    keyInsight:
+        'Quantum information can live in relationships, not only values.',
     whyItMatters:
-        'Future chapters will use phase to mark solutions and guide algorithms before anything looks different in measurement.',
-    nextMystery: 'What was changing all along?',
+        'Future algorithms mark and guide answers by changing relationships first, then making those changes visible later.',
+    nextMystery: 'Can a hidden relationship become a visible result?',
     hints: [
-      'The target has the same 50/50 measurement odds as the start.',
-      'Use the sign-changing gate again to restore the hidden sign.',
+      'The target restores the plus relationship between the two pieces.',
+      'Use the same gate again; phase changes can be reversible too.',
     ],
     solutionExplanation:
-        'Z changes |−⟩ back into |+⟩. The visible probabilities remain 50/50, but the phase information changes.',
+        'Z changes |−⟩ back into |+⟩. The outcome options stay the same, but the phase relationship is restored.',
     numQubits: 1,
     initialQubitsStateStr: '|−⟩',
     initialQubitsState: [
@@ -3262,21 +3263,20 @@ final List<QQLevel> _authoredQQLevels = [
     targetStateExpression: '|1⟩',
     mysteryTitle: 'What was changing all along?',
     mysteryText:
-        'A hidden change can sit inside a state without changing its measurement odds. Use a second operation to make that hidden difference visible.',
+        'You have changed values, signs, and relationships. Now build the reveal: make phase affect the measured bit.',
     discoveryTitle: 'Phase',
     discoveryText:
-        'The first operation created a hidden phase difference. The final operation turned that difference into a visible measurement outcome.',
-    keyInsight:
-        'Quantum states can differ through phase even when measurement looks identical.',
+        'Z created the phase relationship, then H changed how the state was read. The hidden phase became the visible outcome |1⟩.',
+    keyInsight: 'Phase is hidden until another operation makes it observable.',
     whyItMatters:
-        'Phase drives interference, phase kickback, Grover, and QAOA. Many quantum algorithms begin by changing what cannot be seen right away.',
+        'This is the bridge into the next chapters: quantum circuits can store useful structure in phase, then reveal it through later transformations.',
     nextMystery: 'Can a qubit be more than 0 or 1?',
     hints: [
-      'First create the hidden sign.',
-      'Then use H to turn the hidden phase difference into a visible bit value.',
+      'First create the phase relationship with Z.',
+      'Then use H to read that relationship as a definite bit value.',
     ],
     solutionExplanation:
-        'Z changes |+⟩ into |−⟩. H then maps |−⟩ to |1⟩, revealing the hidden phase as a measurement outcome.',
+        'Z changes |+⟩ into |−⟩. H then maps |−⟩ to |1⟩, turning phase into a visible result.',
     numQubits: 1,
     initialQubitsStateStr: '|+⟩',
     initialQubitsState: [
