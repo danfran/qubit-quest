@@ -50,8 +50,8 @@ class _HomePageState extends State<HomePage> {
   static const Set<String> _chapter3DiscoveryTitles = {
     'The Third State',
     'Two Possibilities',
-    'Plus And Minus',
-    'Not The Same',
+    'Precise Superposition',
+    'Prepared Possibilities',
     'Superposition',
   };
   static const Set<String> _chapter4DiscoveryTitles = {

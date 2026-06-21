@@ -426,8 +426,8 @@ void main() {
           'Phase',
           'The Third State',
           'Two Possibilities',
-          'Plus And Minus',
-          'Not The Same',
+          'Precise Superposition',
+          'Prepared Possibilities',
           'Superposition',
           'Phase Is Hidden',
           'Phase Becomes Bit',
@@ -1226,23 +1226,25 @@ void main() {
       expect(level.validateCircuit(circuit), isTrue);
     });
 
-    test('Chapter 3 level 86 validates plus and minus', () {
-      final level = findComposerLevelByTitle('Plus And Minus');
+    test('Chapter 3 level 86 validates precise superposition', () {
+      final level = findComposerLevelByTitle('Precise, Not Random');
       final circuit = simulate(level);
 
       circuit.insertSinglePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.z), 0, 0);
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
       circuit.runSimulation();
 
       expect(level.validateCircuit(circuit), isTrue);
     });
 
-    test('Chapter 3 level 87 validates revisiting the hidden difference', () {
-      final level = findComposerLevelByTitle('Hidden Difference Revisited');
+    test('Chapter 3 level 87 validates building the balance', () {
+      final level = findComposerLevelByTitle('Build The Balance');
       final circuit = simulate(level);
 
       circuit.insertSinglePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 1, 0);
       circuit.runSimulation();
 
       expect(level.validateCircuit(circuit), isTrue);
@@ -1253,9 +1255,9 @@ void main() {
       final circuit = simulate(level);
 
       circuit.insertSinglePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+          Gate.fromIdentifier(SelectedGateType.x), 0, 1);
       circuit.insertSinglePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.z), 1, 0);
+          Gate.fromIdentifier(SelectedGateType.hadamard), 1, 1);
       circuit.runSimulation();
 
       expect(level.validateCircuit(circuit), isTrue);

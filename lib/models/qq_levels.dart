@@ -3337,17 +3337,17 @@ final List<QQLevel> _authoredQQLevels = [
         'A qubit can hold more than one possibility before measurement. Make a state where neither outcome has all the probability.',
     discoveryTitle: 'Two Possibilities',
     discoveryText:
-        'The state now gives |0⟩ half the time and |1⟩ half the time. Superposition creates multiple possible outcomes.',
-    keyInsight: 'Superposition creates multiple possible outcomes.',
+        'The state now gives |0⟩ half the time and |1⟩ half the time. The outcome is uncertain, but the probabilities are precise.',
+    keyInsight: 'A superposition can create precise measurement odds.',
     whyItMatters:
-        'Quantum algorithms begin by creating many possibilities at once, then shaping which possibilities survive.',
-    nextMystery: 'Can two different superpositions exist?',
+        'Quantum algorithms use exact probability patterns, not vague randomness.',
+    nextMystery: 'If measurement is uncertain, is the state just random?',
     hints: [
       'Start from |1⟩ and use the only available gate.',
       'The goal is equal probabilities, not a single certain outcome.',
     ],
     solutionExplanation:
-        'The circuit turns |1⟩ into a balanced state. Measurement can now produce either |0⟩ or |1⟩.',
+        'The circuit turns |1⟩ into a balanced state. Measurement can now produce either |0⟩ or |1⟩ with equal probability.',
     numQubits: 1,
     initialQubitsStateString: '1',
     availableGates: [
@@ -3360,28 +3360,26 @@ final List<QQLevel> _authoredQQLevels = [
   ),
 
   ComposerLevel(
-    title: 'Plus And Minus',
+    title: 'Precise, Not Random',
     taskDescription:
-        r'Can two states have the same probabilities but still be different? Create \( |-\rangle \) from \( |+\rangle \).',
-    targetStateLabel: '|-⟩',
-    targetStateExpression: '(|0⟩ - |1⟩)/√2',
-    mysteryTitle:
-        'Can two states have the same probabilities but still be different?',
+        r'If measurement is uncertain, is the state just random? Turn \( |+\rangle \) back into \( |0\rangle \).',
+    targetStateExpression: '|0⟩',
+    mysteryTitle: 'If measurement is uncertain, is the state just random?',
     mysteryText:
-        'Two superpositions can show the same 50/50 probabilities. Try changing the hidden difference between them.',
-    discoveryTitle: 'Plus And Minus',
+        'A balanced state can look like a coin toss when measured. Test whether it is still a precise state that a gate can control.',
+    discoveryTitle: 'Precise Superposition',
     discoveryText:
-        '|+⟩ and |−⟩ look identical if you only inspect measurement probabilities, but they are not the same state.',
-    keyInsight:
-        'Two superpositions can look identical when measured but behave differently later.',
-    whyItMatters: 'This hidden difference is phase.',
-    nextMystery: 'If they look the same, how can we tell them apart?',
+        'The balanced state returned cleanly to |0⟩. Superposition is not uncontrolled randomness; it is a precise state.',
+    keyInsight: 'A superposition can be reversed by the right operation.',
+    whyItMatters:
+        'This makes superposition useful in circuits: gates can create it, transform it, and turn it back into certainty.',
+    nextMystery: 'Can we prepare a balanced state on purpose?',
     hints: [
-      'The probabilities should stay 50/50.',
-      'Use the gate that changes a hidden sign.',
+      'Use the gate that created |+⟩ from |0⟩.',
+      'The same operation can also turn |+⟩ back into |0⟩.',
     ],
     solutionExplanation:
-        'Z changes |+⟩ into |−⟩. The probability bars stay balanced, but the state changes.',
+        'H turns |+⟩ back into |0⟩. The state had uncertain measurement outcomes, but it was still exactly controllable.',
     numQubits: 1,
     initialQubitsStateStr: '|+⟩',
     initialQubitsState: [
@@ -3390,83 +3388,81 @@ final List<QQLevel> _authoredQQLevels = [
     ],
     availableGates: [
       Gate.fromIdentifier(SelectedGateType.hadamard),
-      Gate.fromIdentifier(SelectedGateType.z),
     ],
     solutionFinalVector: [
-      [Complex(math.sqrt1_2, 0)],
-      [Complex(-math.sqrt1_2, 0)],
+      [Complex.one()],
+      [Complex.zero()],
     ],
   ),
 
-  ComposerLevel(
-    title: 'Hidden Difference Revisited',
+  ComposerLevel.fromBinaryString(
+    title: 'Build The Balance',
     taskDescription:
-        r'How can two identical-looking states behave differently? Convert \( |-\rangle \) into a measurable difference.',
-    targetStateExpression: '|1⟩',
-    mysteryTitle: 'How can two identical-looking states behave differently?',
+        r'Can we prepare uncertainty on purpose? Transform \( |1\rangle \) into the balanced \( |+\rangle \) state.',
+    targetStateLabel: '|+⟩',
+    targetStateExpression: '(|0⟩ + |1⟩)/√2',
+    mysteryTitle: 'Can we prepare uncertainty on purpose?',
     mysteryText:
-        'The hidden sign in |−⟩ does not show up as a probability difference yet. Use another operation to make that difference visible.',
-    discoveryTitle: 'Not The Same',
+        'Superposition is not something that only happens by accident. Set up the input, then create the balanced state deliberately.',
+    discoveryTitle: 'Prepared Possibilities',
     discoveryText:
-        'The hidden difference became measurable. A state that looked like a balanced coin can still carry information about what will happen next.',
-    keyInsight: 'Phase changes future behavior.',
-    whyItMatters: 'Interference depends on these hidden differences.',
-    nextMystery: 'Can hidden phase change probabilities?',
+        'You first prepared the right starting value, then created the balanced state. Superposition can be built intentionally.',
+    keyInsight: 'Superposition can be prepared as part of a planned circuit.',
+    whyItMatters:
+        'Useful quantum circuits prepare the state they need before using it.',
+    nextMystery: 'Can a superposition be only one step in a larger plan?',
     hints: [
-      'Use the operation that changes how the balanced state is viewed.',
-      'The target should become certain |1⟩.',
+      'Using H immediately from |1⟩ gives the wrong balanced state.',
+      'First flip |1⟩ to |0⟩, then create |+⟩.',
     ],
     solutionExplanation:
-        'The circuit converts |−⟩ into |1⟩, turning a hidden difference into a visible measurement result.',
+        'X changes |1⟩ to |0⟩. H then creates |+⟩, the balanced superposition with equal |0⟩ and |1⟩ parts.',
     numQubits: 1,
-    initialQubitsStateStr: '|−⟩',
-    initialQubitsState: [
-      Complex(math.sqrt1_2, 0),
-      Complex(-math.sqrt1_2, 0),
-    ],
+    initialQubitsStateString: '1',
     availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
       Gate.fromIdentifier(SelectedGateType.hadamard),
-      Gate.fromIdentifier(SelectedGateType.z),
     ],
     solutionFinalVector: [
-      [Complex.zero()],
-      [Complex.one()],
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(math.sqrt1_2, 0)],
     ],
   ),
 
   ComposerLevel.fromBinaryString(
     title: 'What Is Superposition?',
     taskDescription:
-        r'What have we actually discovered? Transform \( |1\rangle \) into the balanced \( |+\rangle \) state.',
-    targetStateLabel: '|+⟩',
-    targetStateExpression: '(|0⟩ + |1⟩)/√2',
-    mysteryTitle: 'What have we actually discovered?',
+        r'Can superposition be placed on one qubit inside a larger register? Transform \( |10\rangle \) into \( |+0\rangle \).',
+    targetStateLabel: '|+0⟩',
+    targetStateExpression: '(|00⟩ + |10⟩)/√2',
+    mysteryTitle: 'Can only one qubit become superposed?',
     mysteryText:
-        'You have seen a qubit hold more than one possibility and seen hidden differences between balanced states. Build the final balanced state from |1⟩.',
+        'A register can contain more than one qubit. Prepare the register, then place superposition only where it is needed.',
     discoveryTitle: 'Superposition',
     discoveryText:
-        'The qubit ended in a combination of possibilities instead of one classical state. This is superposition.',
+        'Only one qubit became superposed while the other stayed definite. Superposition can be placed precisely inside a larger register.',
     keyInsight:
-        'A qubit can exist in a combination of possibilities, not just one classical state.',
+        'Superposition is a controllable resource; it does not have to affect every qubit.',
     whyItMatters:
-        'Superposition is the foundation of quantum algorithms. It gives later interference something to shape.',
-    nextMystery:
-        'Can hidden phase make some possibilities stronger than others?',
+        'Larger quantum circuits prepare specific qubits in superposition while keeping other qubits fixed for the next step.',
+    nextMystery: 'Can prepared possibilities change what we measure next?',
     hints: [
-      'First make a balanced state.',
-      'If the hidden sign is wrong, use the sign-changing gate.',
+      'The second qubit should stay 0 in the final state.',
+      'First change |10⟩ to |00⟩, then apply H only to the first qubit.',
     ],
     solutionExplanation:
-        'The circuit first creates a balanced state, then fixes the hidden sign so the target is |+⟩.',
-    numQubits: 1,
-    initialQubitsStateString: '1',
+        'X changes the first ket position from 1 to 0, giving |00⟩. H on that same position then creates |+0⟩ = (|00⟩ + |10⟩)/√2 while the other qubit stays |0⟩.',
+    numQubits: 2,
+    initialQubitsStateString: '10',
     availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
       Gate.fromIdentifier(SelectedGateType.hadamard),
-      Gate.fromIdentifier(SelectedGateType.z),
     ],
     solutionFinalVector: [
       [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
       [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
     ],
   ),
 
