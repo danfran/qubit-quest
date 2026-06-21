@@ -156,16 +156,6 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final prototypeChapters = [
-      if (widget.prototypeLevelNumber != null)
-        DiscoveryPrototypeChapter(
-          title: 'Chapter 4',
-          subtitle: 'Start Interference',
-          levelNumber: widget.prototypeLevelNumber!,
-        ),
-      ...widget.prototypeChapters,
-    ];
-
     return Scaffold(
       backgroundColor: const Color(0xFF00030A),
       appBar: AppBar(
@@ -183,23 +173,6 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> {
             : ListView(
                 padding: const EdgeInsets.all(18),
                 children: [
-                  if (widget.onStartPrototypeLevel != null &&
-                      prototypeChapters.isNotEmpty) ...[
-                    for (final chapter in prototypeChapters) ...[
-                      _PrototypeChapterCard(
-                        title: chapter.title,
-                        subtitle: chapter.subtitle,
-                        onPressed: () async {
-                          Navigator.of(context).pop();
-                          await widget.onStartPrototypeLevel!(
-                            chapter.levelNumber,
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                    ],
-                    const SizedBox(height: 14),
-                  ],
                   for (final chapter in _notebookChapters()) ...[
                     _NotebookChapterHeader(
                       title: chapter.title,
@@ -264,7 +237,7 @@ class _NotebookChapterGroup {
   final List<NotebookEntry> entries;
 }
 
-class NotebookEntryScreen extends StatelessWidget {
+class NotebookEntryScreen extends StatefulWidget {
   const NotebookEntryScreen({
     super.key,
     required this.entry,
@@ -273,7 +246,61 @@ class NotebookEntryScreen extends StatelessWidget {
   final NotebookEntry entry;
 
   @override
+  State<NotebookEntryScreen> createState() => _NotebookEntryScreenState();
+}
+
+class _NotebookEntryScreenState extends State<NotebookEntryScreen> {
+  Set<String> _unlocked = const {};
+  bool _loadingUnlocks = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnlocks();
+  }
+
+  Future<void> _loadUnlocks() async {
+    final unlocked = await DiscoveryProgress.loadUnlocked();
+    if (!mounted) return;
+    setState(() {
+      _unlocked = unlocked;
+      _loadingUnlocks = false;
+    });
+  }
+
+  NotebookEntry? get _nextEntry {
+    if (_loadingUnlocks) return null;
+
+    final currentIndex = notebookEntries.indexWhere(
+      (entry) => entry.discoveryTitle == widget.entry.discoveryTitle,
+    );
+    if (currentIndex < 0 || currentIndex + 1 >= notebookEntries.length) {
+      return null;
+    }
+
+    final candidate = notebookEntries[currentIndex + 1];
+    return _unlocked.contains(candidate.discoveryTitle) ? candidate : null;
+  }
+
+  NotebookEntry? get _previousEntry {
+    if (_loadingUnlocks) return null;
+
+    final currentIndex = notebookEntries.indexWhere(
+      (entry) => entry.discoveryTitle == widget.entry.discoveryTitle,
+    );
+    if (currentIndex <= 0) {
+      return null;
+    }
+
+    final candidate = notebookEntries[currentIndex - 1];
+    return _unlocked.contains(candidate.discoveryTitle) ? candidate : null;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final previousEntry = _previousEntry;
+    final nextEntry = _nextEntry;
+
     return Scaffold(
       backgroundColor: const Color(0xFF00030A),
       appBar: AppBar(
@@ -290,7 +317,7 @@ class NotebookEntryScreen extends StatelessWidget {
           padding: const EdgeInsets.all(18),
           children: [
             Text(
-              entry.chapterTitle,
+              widget.entry.chapterTitle,
               style: const TextStyle(
                 color: QubitQuestDialog.mutedText,
                 fontSize: 12,
@@ -299,7 +326,7 @@ class NotebookEntryScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              entry.title,
+              widget.entry.title,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 26,
@@ -309,7 +336,7 @@ class NotebookEntryScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              entry.summary,
+              widget.entry.summary,
               style: const TextStyle(
                 color: Color(0xFFD6E3F8),
                 fontSize: 15,
@@ -318,26 +345,111 @@ class NotebookEntryScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 18),
-            _NotebookSectionCard(section: entry.intuition),
-            if (entry.whatChanged != null) ...[
+            _NotebookSectionCard(section: widget.entry.intuition),
+            if (widget.entry.whatChanged != null) ...[
               const SizedBox(height: 12),
-              _NotebookSectionCard(section: entry.whatChanged!),
+              _NotebookSectionCard(section: widget.entry.whatChanged!),
             ],
-            if (entry.quantumView != null) ...[
+            if (widget.entry.quantumView != null) ...[
               const SizedBox(height: 12),
-              _NotebookSectionCard(section: entry.quantumView!),
+              _NotebookSectionCard(section: widget.entry.quantumView!),
             ],
-            if (entry.advancedNotes != null) ...[
+            if (widget.entry.advancedNotes != null) ...[
               const SizedBox(height: 12),
-              _AdvancedNotebookSection(section: entry.advancedNotes!),
+              _AdvancedNotebookSection(section: widget.entry.advancedNotes!),
             ],
-            if (entry.relatedDiscoveryTitles.isNotEmpty) ...[
+            if (widget.entry.relatedDiscoveryTitles.isNotEmpty) ...[
               const SizedBox(height: 12),
-              _RelatedDiscoveries(titles: entry.relatedDiscoveryTitles),
+              _RelatedDiscoveries(titles: widget.entry.relatedDiscoveryTitles),
+            ],
+            if (previousEntry != null || nextEntry != null) ...[
+              const SizedBox(height: 14),
+              _NotebookEntryNavigationRow(
+                previousEntry: previousEntry,
+                nextEntry: nextEntry,
+              ),
             ],
           ],
         ),
       ),
+    );
+  }
+}
+
+class _NotebookEntryNavigationRow extends StatelessWidget {
+  const _NotebookEntryNavigationRow({
+    required this.previousEntry,
+    required this.nextEntry,
+  });
+
+  final NotebookEntry? previousEntry;
+  final NotebookEntry? nextEntry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      runAlignment: WrapAlignment.spaceBetween,
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        if (previousEntry != null)
+          _NotebookEntryNavigationLink(
+            entry: previousEntry!,
+            label: 'Previous: ${previousEntry!.title}',
+            icon: Icons.chevron_left_rounded,
+          )
+        else
+          const SizedBox.shrink(),
+        if (nextEntry != null)
+          _NotebookEntryNavigationLink(
+            entry: nextEntry!,
+            label: 'Next: ${nextEntry!.title}',
+            icon: Icons.chevron_right_rounded,
+          ),
+      ],
+    );
+  }
+}
+
+class _NotebookEntryNavigationLink extends StatelessWidget {
+  const _NotebookEntryNavigationLink({
+    required this.entry,
+    required this.label,
+    required this.icon,
+  });
+
+  final NotebookEntry entry;
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      style: TextButton.styleFrom(
+        foregroundColor: Colors.white,
+        backgroundColor: QubitQuestDialog.cyan.withValues(alpha: 0.10),
+        side: BorderSide(
+          color: QubitQuestDialog.cyan.withValues(alpha: 0.32),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        textStyle: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      onPressed: () {
+        Navigator.of(context).pushReplacement<void, void>(
+          MaterialPageRoute(
+            builder: (context) => NotebookEntryScreen(entry: entry),
+          ),
+        );
+      },
+      icon: Icon(icon, size: 16),
+      label: Text(label),
     );
   }
 }
@@ -570,84 +682,6 @@ class DiscoveryPrototypeChapter {
   final String title;
   final String subtitle;
   final int levelNumber;
-}
-
-class _PrototypeChapterCard extends StatelessWidget {
-  const _PrototypeChapterCard({
-    required this.title,
-    required this.subtitle,
-    required this.onPressed,
-  });
-
-  final String title;
-  final String subtitle;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: QubitQuestDialog.cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: QubitQuestDialog.purple.withValues(alpha: 0.42),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: QubitQuestDialog.purple.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: QubitQuestDialog.borderColor),
-              ),
-              child: const Icon(
-                Icons.science_outlined,
-                color: QubitQuestDialog.purple,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: Color(0xFFD6E3F8),
-                      fontSize: 13,
-                      height: 1.2,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            QubitQuestDialogButton.primary(
-              label: 'Start',
-              onPressed: onPressed,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _LearningScaffold extends StatelessWidget {

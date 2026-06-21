@@ -38,7 +38,8 @@ class QuantumComposer extends StatefulWidget {
   State<QuantumComposer> createState() => _QuantumComposerState();
 }
 
-class _QuantumComposerState extends State<QuantumComposer> {
+class _QuantumComposerState extends State<QuantumComposer>
+    with SingleTickerProviderStateMixin {
   // Qubit Quest composer visual system tokens. Use these exact colours for composer surfaces.
   static const Color qqBlack = Color(0xFF00030A);
   static const Color qqCard = Color(0xFF111827);
@@ -121,6 +122,8 @@ class _QuantumComposerState extends State<QuantumComposer> {
       ValueNotifier<double>(0.0);
 
   late ScrollController _gatesScrollController;
+  late AnimationController _notebookPulseController;
+  late Animation<double> _notebookPulseScale;
 
   bool _canScrollLeft = false;
   bool _canScrollRight = false;
@@ -131,6 +134,19 @@ class _QuantumComposerState extends State<QuantumComposer> {
     super.initState();
     _gatesScrollController = ScrollController()
       ..addListener(_updateScrollButtonStates);
+    _notebookPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 360),
+    );
+    _notebookPulseScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.12), weight: 45),
+      TweenSequenceItem(tween: Tween(begin: 1.12, end: 1.0), weight: 55),
+    ]).animate(
+      CurvedAnimation(
+        parent: _notebookPulseController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateScrollButtonStates();
@@ -162,6 +178,7 @@ class _QuantumComposerState extends State<QuantumComposer> {
   void dispose() {
     _gatesScrollController.removeListener(_updateScrollButtonStates);
     _gatesScrollController.dispose(); // Dispose the controller
+    _notebookPulseController.dispose();
     super.dispose();
   }
 
@@ -523,12 +540,19 @@ class _QuantumComposerState extends State<QuantumComposer> {
     // Only check if not already completed to avoid re-triggering
     bool match = widget.level.validateCircuit(_circuit);
     if (match) {
+      final discoveryTitle = widget.level.discoveryTitle?.trim();
+      final unlocksNotebookEntry = discoveryTitle != null &&
+          notebookEntriesByDiscoveryTitle.containsKey(discoveryTitle);
+
       setState(() {
         _levelSolved = true;
         _checkFeedbackTitle = null;
         _checkFeedbackMessage = null;
         _checkFeedbackSuccess = false;
       });
+      if (unlocksNotebookEntry) {
+        _playNotebookUnlockPulse();
+      }
 
       _isShowingCompletionDialog = true;
       await Future.delayed(const Duration(milliseconds: 420));
@@ -555,6 +579,14 @@ class _QuantumComposerState extends State<QuantumComposer> {
         });
       }
     }
+  }
+
+  void _playNotebookUnlockPulse() {
+    if (!mounted) return;
+    _notebookPulseController
+      ..stop()
+      ..reset()
+      ..forward();
   }
 
   void _showConceptIntro(String intro) {
@@ -1194,83 +1226,136 @@ class _QuantumComposerState extends State<QuantumComposer> {
 
   List<Widget> _buildAppBarActions(bool compact) {
     return [
-      _buildHeaderIconAction(
-        icon: Icons.school_outlined,
-        tooltip: 'Quantum Notebook',
-        onPressed: _openQuantumNotebook,
-      ),
+      _buildNotebookHeaderAction(compact: compact),
       SizedBox(width: compact ? 6 : 8),
-      PopupMenuButton<String>(
-        tooltip: 'Composer actions',
-        color: qqCard,
-        offset: const Offset(0, 10),
-        onSelected: _selectComposerMenuAction,
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: 'matrix',
-            child: ListTile(
-              leading: Icon(Icons.grid_on, color: Colors.white),
-              title: Text(
-                'Operator Matrix',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'clear',
-            child: ListTile(
-              leading: Icon(Icons.cleaning_services, color: Colors.white),
-              title: Text(
-                'Clear',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ),
-          if (_hints.isNotEmpty && !runningAsQuantumComposer())
-            PopupMenuItem(
-              value: 'hint',
-              child: ListTile(
-                leading: const Icon(
-                  Icons.lightbulb_outline,
-                  color: qqYellow,
-                ),
-                title: Text(
-                  _currentHintIndex < 0
-                      ? 'Hint'
-                      : 'Hint ${_currentHintIndex + 1}/${_hints.length}',
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
-        ],
-        child: _HeaderActionShell(
-          child: Icon(
-            Icons.settings_outlined,
-            size: 18,
-            color: Colors.white.withValues(alpha: 0.94),
-          ),
-        ),
-      ),
+      _buildMenuHeaderAction(compact: compact),
       SizedBox(width: compact ? 10 : 12),
     ];
   }
 
-  Widget _buildHeaderIconAction({
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback onPressed,
-  }) {
-    return Tooltip(
-      message: tooltip,
+  Widget _buildMenuHeaderAction({required bool compact}) {
+    final menuButton = PopupMenuButton<String>(
+      tooltip: 'Menu',
+      color: qqCard,
+      offset: const Offset(0, 10),
+      onSelected: _selectComposerMenuAction,
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'matrix',
+          child: ListTile(
+            leading: Icon(Icons.grid_on, color: Colors.white),
+            title: Text(
+              'Operator Matrix',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'clear',
+          child: ListTile(
+            leading: Icon(Icons.cleaning_services, color: Colors.white),
+            title: Text(
+              'Clear',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
+        if (_hints.isNotEmpty && !runningAsQuantumComposer())
+          PopupMenuItem(
+            value: 'hint',
+            child: ListTile(
+              leading: const Icon(
+                Icons.lightbulb_outline,
+                color: qqYellow,
+              ),
+              title: Text(
+                _currentHintIndex < 0
+                    ? 'Hint'
+                    : 'Hint ${_currentHintIndex + 1}/${_hints.length}',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+      ],
       child: _HeaderActionShell(
-        child: IconButton(
-          onPressed: onPressed,
-          icon: Icon(icon),
-          iconSize: 18,
+        size: compact ? 34 : 32,
+        child: Icon(
+          Icons.settings_outlined,
+          size: compact ? 18 : 17,
           color: Colors.white.withValues(alpha: 0.94),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints.tightFor(width: 34, height: 34),
-          splashRadius: 18,
+        ),
+      ),
+    );
+
+    if (compact) return menuButton;
+
+    return SizedBox(
+      width: 54,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          menuButton,
+          const SizedBox(height: 2),
+          Text(
+            'Menu',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.78),
+              fontSize: 9,
+              height: 1,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotebookHeaderAction({required bool compact}) {
+    return Tooltip(
+      message: 'Quantum Notebook',
+      child: ScaleTransition(
+        scale: _notebookPulseScale,
+        child: InkWell(
+          onTap: _openQuantumNotebook,
+          borderRadius: BorderRadius.circular(16),
+          child: compact
+              ? _HeaderActionShell(
+                  child: Icon(
+                    Icons.school_outlined,
+                    size: 18,
+                    color: Colors.white.withValues(alpha: 0.94),
+                  ),
+                )
+              : SizedBox(
+                  width: 54,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _HeaderActionShell(
+                        size: 32,
+                        child: Icon(
+                          Icons.school_outlined,
+                          size: 17,
+                          color: Colors.white.withValues(alpha: 0.94),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Notebook',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.78),
+                          fontSize: 9,
+                          height: 1,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
         ),
       ),
     );
