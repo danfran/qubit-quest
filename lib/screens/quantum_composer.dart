@@ -128,6 +128,7 @@ class _QuantumComposerState extends State<QuantumComposer>
   bool _canScrollLeft = false;
   bool _canScrollRight = false;
   bool _sharedNonZeroOnly = false;
+  bool _hasUnopenedNotebookEntries = false;
 
   @override
   void initState() {
@@ -150,6 +151,7 @@ class _QuantumComposerState extends State<QuantumComposer>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateScrollButtonStates();
+      _loadNotebookAttentionState();
       if (runningAsQuantumComposer()) {
         _showComposerIntro();
       } else if (widget.level.conceptIntro != null) {
@@ -589,6 +591,19 @@ class _QuantumComposerState extends State<QuantumComposer>
       ..forward();
   }
 
+  Future<void> _loadNotebookAttentionState() async {
+    final hasUnopened = await DiscoveryProgress.hasUnopenedNotebookEntries(
+      notebookEntriesByDiscoveryTitle.keys,
+    );
+    if (!mounted) return;
+    setState(() {
+      _hasUnopenedNotebookEntries = hasUnopened;
+    });
+    if (hasUnopened) {
+      _playNotebookUnlockPulse();
+    }
+  }
+
   void _showConceptIntro(String intro) {
     showDialog(
       context: context,
@@ -656,6 +671,10 @@ class _QuantumComposerState extends State<QuantumComposer>
         : notebookEntriesByDiscoveryTitle[discoveryTitle];
     final unlocked = await DiscoveryProgress.loadUnlocked();
     if (!mounted) return;
+
+    setState(() {
+      _hasUnopenedNotebookEntries = false;
+    });
 
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -1321,11 +1340,14 @@ class _QuantumComposerState extends State<QuantumComposer>
           onTap: _openQuantumNotebook,
           borderRadius: BorderRadius.circular(16),
           child: compact
-              ? _HeaderActionShell(
-                  child: Icon(
-                    Icons.school_outlined,
-                    size: 18,
-                    color: Colors.white.withValues(alpha: 0.94),
+              ? _NotebookAttentionBadge(
+                  visible: _hasUnopenedNotebookEntries,
+                  child: _HeaderActionShell(
+                    child: Icon(
+                      Icons.school_outlined,
+                      size: 18,
+                      color: Colors.white.withValues(alpha: 0.94),
+                    ),
                   ),
                 )
               : SizedBox(
@@ -1333,12 +1355,15 @@ class _QuantumComposerState extends State<QuantumComposer>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _HeaderActionShell(
-                        size: 32,
-                        child: Icon(
-                          Icons.school_outlined,
-                          size: 17,
-                          color: Colors.white.withValues(alpha: 0.94),
+                      _NotebookAttentionBadge(
+                        visible: _hasUnopenedNotebookEntries,
+                        child: _HeaderActionShell(
+                          size: 32,
+                          child: Icon(
+                            Icons.school_outlined,
+                            size: 17,
+                            color: Colors.white.withValues(alpha: 0.94),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -2347,6 +2372,43 @@ class _HeaderActionShell extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: child,
+    );
+  }
+}
+
+class _NotebookAttentionBadge extends StatelessWidget {
+  const _NotebookAttentionBadge({
+    required this.visible,
+    required this.child,
+  });
+
+  final bool visible;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        child,
+        if (visible)
+          Positioned(
+            top: -1,
+            right: -1,
+            child: Container(
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(
+                color: _QuantumComposerState.qqYellow,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: _QuantumComposerState.qqBlack,
+                  width: 1.5,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

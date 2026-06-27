@@ -11,6 +11,7 @@ import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   _testBody(int levelNumber, Function(QuantumCircuit) body) {
@@ -432,8 +433,8 @@ void main() {
           'Phase Is Hidden',
           'Phase Becomes Bit',
           'Bit Becomes Phase',
-          'Interference',
           'Destructive Interference',
+          'Interference',
           'Two Qubits',
           'Correlation',
           'Bell State',
@@ -490,6 +491,29 @@ void main() {
         expect(
             DiscoveryProgress.discoveryOrder, contains(entry.discoveryTitle));
       }
+    });
+
+    test('Quantum Notebook opened state tracks unread notebook entries',
+        () async {
+      SharedPreferences.setMockInitialValues({});
+
+      await DiscoveryProgress.unlock('Information');
+
+      expect(
+        await DiscoveryProgress.hasUnopenedNotebookEntries(
+          notebookEntriesByDiscoveryTitle.keys,
+        ),
+        isTrue,
+      );
+
+      await DiscoveryProgress.markNotebookEntryOpened('Information');
+
+      expect(
+        await DiscoveryProgress.hasUnopenedNotebookEntries(
+          notebookEntriesByDiscoveryTitle.keys,
+        ),
+        isFalse,
+      );
     });
 
     test('initial qubit labels preserve authored ket tokens', () {
@@ -869,14 +893,23 @@ void main() {
       expect(level.validateCircuit(simulate(level)), isFalse);
     });
 
+    test('Chapter 4 level 19 validates destructive interference', () {
+      final level = findComposerLevelByTitle('Make Zero Impossible');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 1, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 2, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
     test('Chapter 4 level 20 validates the interference finale', () {
       final level = findComposerLevelByTitle('What Is Interference?');
       final circuit = simulate(level);
 
-      circuit.insertSinglePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-      circuit.insertSinglePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.z), 1, 0);
       circuit.insertSinglePlacedGateAt(
           Gate.fromIdentifier(SelectedGateType.hadamard), 2, 0);
       circuit.runSimulation();
@@ -1281,7 +1314,7 @@ void main() {
       final circuit = simulate(level);
 
       circuit.insertDoublePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
+          Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 1);
       circuit.runSimulation();
 
       expect(level.validateCircuit(circuit), isTrue);

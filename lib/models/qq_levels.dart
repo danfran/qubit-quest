@@ -2176,13 +2176,13 @@ final List<QQLevel> _authoredQQLevels = [
     targetStateExpression: '|-⟩ = (|0⟩ - |1⟩)/√2',
     mysteryTitle: 'Can something change without changing what we measure?',
     mysteryText:
-        'The probabilities of |+⟩ and |-⟩ look identical: half |0⟩ and half |1⟩. If measurement gives the same odds, did anything meaningful change?',
+        'You have seen this kind of hidden change before. Make the same 50/50 state carry the opposite phase so the next puzzles can reveal it.',
     discoveryTitle: 'Phase Is Hidden',
     discoveryText:
-        'The Z gate changed the sign of the |1⟩ amplitude. The measurement probabilities stayed the same, but the quantum state changed.',
-    keyInsight: 'Phase information is real information.',
+        'The Z gate changed |+⟩ into |−⟩. Nothing visible happened to the measurement odds yet, but the state is now ready to behave differently.',
+    keyInsight: 'Hidden phase becomes useful when another gate reveals it.',
     whyItMatters:
-        'Quantum algorithms often manipulate phase long before probabilities change. The useful information can be hidden in signs and angles until another operation reveals it.',
+        'This is the bridge into interference: first phase changes quietly, then later gates make its effects visible.',
     nextMystery:
         'If phase can hide from measurement, can we make it show up as a bit we can see?',
     hints: [
@@ -2216,10 +2216,10 @@ final List<QQLevel> _authoredQQLevels = [
         'Z only changes phase, so it should not flip |0⟩ into |1⟩ directly. But what if you change the basis before and after the phase flip?',
     discoveryTitle: 'Phase Becomes Bit',
     discoveryText:
-        'The first H moved the state into the phase-sensitive |+⟩/|-⟩ basis. Z changed the hidden phase, and the final H converted that phase difference into the visible state |1⟩.',
+        'The first H created two paths. Z changed their phase relationship, and the final H converted that hidden difference into the visible state |1⟩.',
     keyInsight: 'HZH behaves exactly like X.',
     whyItMatters:
-        'This mechanism appears throughout quantum algorithms: store information in phase, change basis, then make the answer measurable.',
+        'This is the payoff for hidden phase: a basis change can turn it into something measurement can see.',
     nextMystery:
         'If phase can become a bit, can a bit flip become a phase flip?',
     hints: [
@@ -2251,10 +2251,10 @@ final List<QQLevel> _authoredQQLevels = [
         'X is a bit flip in the normal |0⟩/|1⟩ basis. But in a different basis, the same operation can change phase instead.',
     discoveryTitle: 'Bit Becomes Phase',
     discoveryText:
-        'The Hadamard gates changed the basis around X. In that basis, the bit flip produced the same effect as a phase flip on the original state.',
+        'The Hadamard gates changed the perspective around X. In that perspective, a bit flip produced the same final effect as a phase flip.',
     keyInsight: 'HXH behaves exactly like Z.',
     whyItMatters:
-        'Quantum computation depends on basis transformations. The same physical gate can play different roles depending on how the circuit surrounds it.',
+        'Interference depends on perspective. Basis changes decide whether a hidden phase stays hidden or becomes visible.',
     nextMystery:
         'If signs can be moved around, can two paths cancel so completely that an outcome becomes impossible?',
     hints: [
@@ -2282,39 +2282,47 @@ final List<QQLevel> _authoredQQLevels = [
   ComposerLevel(
     title: 'Make Zero Impossible',
     taskDescription:
-        r'Can you completely eliminate one outcome? Create a circuit where \( P(|0\rangle)=0 \).',
+        r'The first H is already placed. Complete the circuit so \( P(|0\rangle)=0 \).',
     targetStateExpression: '|1⟩',
     mysteryTitle: 'Can you completely eliminate one outcome?',
     mysteryText:
-        'A qubit can have multiple possible paths to an outcome. Can you arrange the signs so the |0⟩ paths cancel each other out?',
+        'The pre-built H has created two possible paths. Can you arrange them so the |0⟩ outcome cancels away completely?',
     discoveryTitle: 'Destructive Interference',
     discoveryText:
-        'The circuit made the |0⟩ amplitudes cancel while the |1⟩ amplitudes reinforced. An outcome disappeared because amplitudes add with signs.',
-    keyInsight: 'Interference can remove outcomes entirely.',
+        'The completed circuit made the |0⟩ paths cancel and the |1⟩ paths reinforce. The result is P(|0⟩) = 0: an outcome disappeared.',
+    keyInsight: 'Destructive interference can make an outcome impossible.',
     whyItMatters:
-        'Grover\'s algorithm amplifies some outcomes and suppresses others using interference. Quantum speedups come from steering amplitudes, not from trying every answer separately.',
+        'Quantum algorithms use this kind of cancellation to suppress wrong answers and make useful outcomes stand out.',
     nextMystery:
-        'Can an oracle mark the right answer in phase, then let interference make that answer stand out?',
+        'What is the general rule behind this cancellation and reinforcement?',
     hints: [
-      'Start by changing the sign between the |0⟩ and |1⟩ amplitudes.',
+      'The pre-built H already created |+⟩. First change it into |−⟩.',
       'After creating |-⟩, use H to turn cancellation into a visible |1⟩ outcome.',
     ],
     solutionExplanation:
-        'Z changes |+⟩ into |-⟩. H then maps |-⟩ to |1⟩, so the |0⟩ outcome has probability 0.',
+        'The pre-built H creates |+⟩. Z changes |+⟩ into |−⟩. H maps |−⟩ to |1⟩, so P(|0⟩)=0.',
     numQubits: 1,
-    initialQubitsStateStr: '|+⟩',
+    initialQubitsStateStr: '0',
     initialQubitsState: [
-      Complex(math.sqrt1_2, 0),
-      Complex(math.sqrt1_2, 0),
+      Complex.one(),
+      Complex.zero(),
     ],
     availableGates: [
-      Gate.fromIdentifier(SelectedGateType.hadamard),
       Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
     ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.one()],
     ],
+    preInsertedGates: (QuantumCircuit circuit) {
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+        isDeletable: false,
+      );
+    },
   ),
 
   ComposerLevel(
@@ -3502,27 +3510,26 @@ final List<QQLevel> _authoredQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'Connected',
     taskDescription:
-        r'Can changing one qubit affect another? Use the controlled operation to transform \( |01\rangle \) into \( |11\rangle \).',
+        r'Can changing one qubit affect another? Use the controlled operation to transform \( |10\rangle \) into \( |11\rangle \).',
     targetStateExpression: '|11⟩',
     mysteryTitle: 'Can changing one qubit affect another?',
     mysteryText:
-        'One qubit can act like a condition for another. Try a controlled operation and watch how the pair changes together.',
+        'One qubit is already active. Can it act as a condition that changes the other qubit?',
     discoveryTitle: 'Correlation',
     discoveryText:
-        'The target changed because the control was in the right state. The two qubits are no longer just separate actions on separate lines.',
+        'The second qubit changed only because the first qubit was set to 1. CNOT made one qubit control whether another qubit flipped.',
     keyInsight: 'The state of one qubit can influence another.',
     whyItMatters: 'Correlation is the first step toward entanglement.',
     nextMystery: 'Is correlation the same as entanglement?',
     hints: [
-      'One qubit is already set to 1.',
-      'Use CX so the set qubit controls the other qubit.',
+      'Use the qubit that is already 1 as the control.',
+      'CNOT flips the target only when the control is 1.',
     ],
     solutionExplanation:
-        'CX flips the other qubit only because the control is |1⟩. This creates a controlled relationship between the qubits.',
+        'CNOT(Q0→Q1)|10⟩ = |11⟩. The first qubit is 1, so it triggers a flip on the second qubit.',
     numQubits: 2,
-    initialQubitsStateString: '01',
+    initialQubitsStateString: '10',
     availableGates: [
-      Gate.fromIdentifier(SelectedGateType.x),
       Gate.fromIdentifier(SelectedGateType.cnot),
     ],
     solutionFinalVector: [
@@ -4036,35 +4043,48 @@ ComposerLevel _chapter4InterferenceFinale() {
   return ComposerLevel.fromBinaryString(
     title: 'What Is Interference?',
     taskDescription:
-        r'What have we actually discovered? Use hidden phase and a basis change to transform \( |0\rangle \) into \( |1\rangle \).',
+        r'The circuit already created and phase-marked two paths. Add the final gate that turns the hidden phase into \( |1\rangle \).',
     targetStateExpression: '|1⟩',
     mysteryTitle: 'What have we actually discovered?',
     mysteryText:
-        'A hidden phase can seem invisible until the circuit gives paths a way to combine. Build one final circuit where that hidden difference becomes a visible outcome.',
+        'The pre-built H→Z has prepared |−⟩. One final basis change can make that hidden phase show up as a visible measurement result.',
     discoveryTitle: 'Interference',
     discoveryText:
-        'The circuit changed phase first, then used a basis change to make that phase affect measurement. This is interference: amplitudes combining so some outcomes grow and others shrink.',
+        'Interference happened when the final H recombined the phase-marked paths. The |0⟩ outcome cancelled, the |1⟩ outcome reinforced, and the hidden phase became visible.',
     keyInsight:
         'Interference turns hidden phase differences into visible probability changes.',
     whyItMatters:
-        'Quantum algorithms use interference to reveal useful hidden structure.',
+        'Quantum algorithms use this pattern to make useful hidden structure measurable.',
     nextMystery: 'Can two qubits become one quantum system?',
     hints: [
-      'Create two paths first.',
-      'Flip the phase of one path, then combine the paths again.',
+      'The pre-built gates already created |−⟩.',
+      'Use H to recombine the paths and reveal the phase as |1⟩.',
     ],
     solutionExplanation:
-        'H creates two paths, Z changes the relative phase, and the final H makes that hidden phase visible as |1⟩.',
+        'The pre-built H creates two paths and Z changes their relative phase. The final H recombines them, making |0⟩ cancel and |1⟩ survive.',
     numQubits: 1,
     initialQubitsStateString: '0',
     availableGates: [
       Gate.fromIdentifier(SelectedGateType.hadamard),
-      Gate.fromIdentifier(SelectedGateType.z),
     ],
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.one()],
     ],
+    preInsertedGates: (QuantumCircuit circuit) {
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+        isDeletable: false,
+      );
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.z),
+        1,
+        0,
+        isDeletable: false,
+      );
+    },
   );
 }
 

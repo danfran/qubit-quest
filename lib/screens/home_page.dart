@@ -58,8 +58,8 @@ class _HomePageState extends State<HomePage> {
     'Phase Is Hidden',
     'Phase Becomes Bit',
     'Bit Becomes Phase',
-    'Interference',
     'Destructive Interference',
+    'Interference',
   };
   static const Set<String> _chapter5DiscoveryTitles = {
     'Two Qubits',
@@ -1135,7 +1135,7 @@ class _HomePageState extends State<HomePage> {
               title: 'Chapter 1 - Information',
               text:
                   'Begin with the first mystery: what is a qubit? Investigate how quantum circuits store, change, and restore information.',
-              buttonLabel: 'Start Mystery',
+              buttonLabel: 'Begin Discovery',
             ),
           ),
         );
@@ -1154,7 +1154,7 @@ class _HomePageState extends State<HomePage> {
               title: 'Chapter 2 - Hidden Change',
               text:
                   'Not every quantum change shows up in measurement right away. In this chapter, investigate changes that feel invisible until a later operation reveals them.',
-              buttonLabel: 'Start Mystery',
+              buttonLabel: 'Begin Discovery',
             ),
           ),
         );
@@ -1173,7 +1173,7 @@ class _HomePageState extends State<HomePage> {
               title: 'Chapter 3 - Superposition',
               text:
                   'A qubit does not have to be only 0 or only 1. In this chapter, investigate states that hold multiple possibilities at once.',
-              buttonLabel: 'Start Mystery',
+              buttonLabel: 'Begin Discovery',
             ),
           ),
         );
@@ -1192,7 +1192,7 @@ class _HomePageState extends State<HomePage> {
               title: 'Chapter 4 - Interference',
               text:
                   'Some quantum changes hide in phase until a circuit makes them interfere. In this chapter, experiment with how amplitudes can reinforce or cancel each other.',
-              buttonLabel: 'Start Mystery',
+              buttonLabel: 'Begin Discovery',
             ),
           ),
         );
@@ -1211,7 +1211,7 @@ class _HomePageState extends State<HomePage> {
               title: 'Chapter 5 - Entanglement',
               text:
                   'Two qubits are not always just two independent qubits. In this chapter, investigate when a pair becomes one shared quantum system.',
-              buttonLabel: 'Start Mystery',
+              buttonLabel: 'Begin Discovery',
             ),
           ),
         );
@@ -1230,7 +1230,7 @@ class _HomePageState extends State<HomePage> {
               title: 'Chapter 6 - Information Flow',
               text:
                   'Qubits do not always act alone. In this chapter, investigate how controlled interactions move and route information through a quantum system.',
-              buttonLabel: 'Start Mystery',
+              buttonLabel: 'Begin Discovery',
             ),
           ),
         );
@@ -1248,7 +1248,7 @@ class _HomePageState extends State<HomePage> {
               title: 'Chapter 7 - GHZ States',
               text:
                   'Entanglement is not limited to a pair. In this chapter, widen your view from connected qubits to a shared three-qubit quantum system.',
-              buttonLabel: 'Start Mystery',
+              buttonLabel: 'Begin Discovery',
             ),
           ),
         );
@@ -1267,7 +1267,7 @@ class _HomePageState extends State<HomePage> {
               title: 'Chapter 8 - Phase Kickback',
               text:
                   'Information does not always travel as a visible bit flip. In this chapter, look for how controlled operations can write information into phase, then reveal it through interference.',
-              buttonLabel: 'Start Mystery',
+              buttonLabel: 'Begin Discovery',
             ),
           ),
         );
@@ -1286,7 +1286,7 @@ class _HomePageState extends State<HomePage> {
               title: 'Chapter 9 - Oracle Thinking',
               text:
                   'A quantum oracle does not find the answer for you. It marks the desired solution in phase, creating a hidden label that interference can use later.',
-              buttonLabel: 'Start Mystery',
+              buttonLabel: 'Begin Discovery',
             ),
           ),
         );
@@ -1305,7 +1305,7 @@ class _HomePageState extends State<HomePage> {
               title: 'Chapter 10 - Amplitude Amplification',
               text:
                   'The oracle only marks the solution invisibly. In this chapter, use interference to turn that hidden mark into a higher chance of measuring the answer.',
-              buttonLabel: 'Start Mystery',
+              buttonLabel: 'Begin Discovery',
             ),
           ),
         );

@@ -636,6 +636,488 @@ const List<NotebookEntry> notebookEntries = [
       'Interference',
     ],
   ),
+  NotebookEntry(
+    id: 'phase_is_hidden',
+    discoveryTitle: 'Phase Is Hidden',
+    chapterIndex: 4,
+    chapterTitle: 'Chapter 4 - Interference',
+    title: 'Phase Is Hidden',
+    summary:
+        'Phase can stay invisible to direct measurement, but later operations can make it matter.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'This entry is a bridge. Chapter 2 showed that signs and phase relationships can hide from ordinary measurement. Chapter 4 asks the next question: what kind of circuit can make that hidden difference show up?',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The state changed from |+⟩ to |−⟩. The measurement odds stayed balanced, but the phase relationship is now different and ready to be revealed by another gate.',
+      examples: [
+        NotebookExample(label: 'Before', notation: '|+⟩ = (|0⟩ + |1⟩)/√2'),
+        NotebookExample(label: 'After', notation: '|−⟩ = (|0⟩ − |1⟩)/√2'),
+        NotebookExample(
+          label: 'Measurement',
+          notation: 'P(|0⟩) = 50%\nP(|1⟩) = 50%',
+        ),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'Z changes the sign of the |1⟩ part of |+⟩. The result is |−⟩, a state with the same probabilities but a different phase relationship.',
+      examples: [
+        NotebookExample(label: 'Phase change', notation: 'Z|+⟩ = |−⟩'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'The important point is not that phase exists; you already know that. The important point is that Chapter 4 will use later gates to turn phase into changed probabilities. Looking Ahead: interference becomes the tool that makes hidden phase observable.',
+    ),
+    relatedDiscoveryTitles: [
+      'Phase Information',
+      'Superposition',
+      'Phase Becomes Bit',
+    ],
+  ),
+  NotebookEntry(
+    id: 'phase_becomes_bit',
+    discoveryTitle: 'Phase Becomes Bit',
+    chapterIndex: 4,
+    chapterTitle: 'Chapter 4 - Interference',
+    title: 'Phase Becomes Bit',
+    summary:
+        'A hidden phase difference can become a visible bit difference after a basis change.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Imagine writing a note in invisible ink, then shining the right light on it. The phase difference was already in the state, but the final H gate changed the viewing angle so the hidden difference became visible as |1⟩.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The circuit first created a superposition, then changed the phase relationship, then changed basis again. The final result was no longer hidden: the measured bit changed from the |0⟩ target to |1⟩.',
+      examples: [
+        NotebookExample(label: 'Start', notation: '|0⟩'),
+        NotebookExample(label: 'Create paths', notation: '|0⟩ → H → |+⟩'),
+        NotebookExample(
+            label: 'Reveal phase', notation: '|+⟩ → Z → |−⟩ → H → |1⟩'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The identity HZH = X supports the discovery, but the discovery is the mechanism: H changes basis, Z changes phase, and the final H makes that phase visible as a bit flip.',
+      examples: [
+        NotebookExample(label: 'Gate identity', notation: 'HZH = X'),
+        NotebookExample(
+            label: 'State path',
+            notation: 'H|0⟩ = |+⟩\nZ|+⟩ = |−⟩\nH|−⟩ = |1⟩'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'A basis change decides which features of a state are visible to measurement. In this case, the plus/minus phase relationship becomes a normal 0/1 difference. Looking Ahead: quantum algorithms use basis changes to reveal hidden structure.',
+    ),
+    relatedDiscoveryTitles: [
+      'Phase Is Hidden',
+      'Bit Becomes Phase',
+      'Destructive Interference',
+    ],
+  ),
+  NotebookEntry(
+    id: 'bit_becomes_phase',
+    discoveryTitle: 'Bit Becomes Phase',
+    chapterIndex: 4,
+    chapterTitle: 'Chapter 4 - Interference',
+    title: 'Bit Becomes Phase',
+    summary: 'Changing basis changes what an operation appears to do.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'The same move can look different from another angle. X is a bit flip in the |0⟩/|1⟩ view, but when the circuit changes perspective with H gates, that same operation creates a phase change instead.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The circuit used H gates around X. That changed the perspective before and after the operation, so the final effect on the original state was the same as a phase flip.',
+      examples: [
+        NotebookExample(label: 'Start', notation: '|+⟩'),
+        NotebookExample(label: 'Change basis', notation: '|+⟩ → H → |0⟩'),
+        NotebookExample(
+            label: 'Return with phase', notation: '|0⟩ → X → |1⟩ → H → |−⟩'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The identity HXH = Z is useful because it shows that gate meaning depends on basis. The equation is not just something to memorize; it says that surrounding an operation with a basis change can alter what feature it affects.',
+      examples: [
+        NotebookExample(label: 'Gate identity', notation: 'HXH = Z'),
+        NotebookExample(
+            label: 'State path',
+            notation: 'H|+⟩ = |0⟩\nX|0⟩ = |1⟩\nH|1⟩ = |−⟩'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'Quantum circuits often move information between different viewpoints. A gate that changes one kind of information in one basis may change another kind in a different basis. Looking Ahead: later circuits will use this perspective shift with multiple qubits.',
+    ),
+    relatedDiscoveryTitles: [
+      'Phase Becomes Bit',
+      'Relative Phase',
+      'Interference',
+    ],
+  ),
+  NotebookEntry(
+    id: 'destructive_interference',
+    discoveryTitle: 'Destructive Interference',
+    chapterIndex: 4,
+    chapterTitle: 'Chapter 4 - Interference',
+    title: 'Make Zero Impossible',
+    summary:
+        'Opposite amplitudes can cancel, making a measurement outcome impossible.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Think of two equal waves meeting out of step: one pushes up while the other pushes down. They do not delete each other from history, but their combined effect at that point is zero. Quantum amplitudes can combine in the same cancelling way.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'Before the final H, the state carried a minus relationship between its two parts. After the final H, the |0⟩ contributions cancelled and the |1⟩ contributions reinforced.',
+      examples: [
+        NotebookExample(
+            label: 'Before reveal', notation: '|−⟩ = (|0⟩ − |1⟩)/√2'),
+        NotebookExample(label: 'After reveal', notation: 'H|−⟩ = |1⟩'),
+        NotebookExample(
+          label: 'Probability change',
+          notation:
+              'Before H: P(|0⟩) = 50%, P(|1⟩) = 50%\nAfter H: P(|0⟩) = 0%, P(|1⟩) = 100%',
+        ),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'Amplitudes add with signs. When two contributions to the same outcome have equal size and opposite sign, the sum is zero. The outcome is not erased; it receives zero final amplitude.',
+      examples: [
+        NotebookExample(label: 'Cancellation', notation: '1/2 − 1/2 = 0'),
+        NotebookExample(label: 'Reinforcement', notation: '1/2 + 1/2 = 1'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'Destructive interference is about how paths combine, not about deleting possibilities by force. The circuit redirects probability by making some amplitudes cancel and others add. Looking Ahead: later algorithms deliberately arrange cancellation around wrong answers.',
+    ),
+    relatedDiscoveryTitles: [
+      'Interference',
+      'Prepared Possibilities',
+      'Phase Information',
+    ],
+  ),
+  NotebookEntry(
+    id: 'interference',
+    discoveryTitle: 'Interference',
+    chapterIndex: 4,
+    chapterTitle: 'Chapter 4 - Interference',
+    title: 'What Is Interference?',
+    summary:
+        'Interference converts phase relationships inside a superposition into changed measurement probabilities.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Chapter 2 gave you hidden phase. Chapter 3 gave you controlled superposition. Chapter 4 combines them: prepare possibilities, change their relationship, then let them meet again so the final probabilities change.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The hidden phase did not stay hidden. When the paths recombined, one outcome lost amplitude while another gained it. The measurement probabilities changed because the amplitudes interfered.',
+      examples: [
+        NotebookExample(
+            label: 'Story',
+            notation:
+                'Hidden phase → Superposition → Interference → Changed probabilities'),
+        NotebookExample(
+            label: 'Destructive result', notation: 'P(|0⟩): 50% → 0%'),
+        NotebookExample(
+            label: 'Constructive result', notation: 'P(|1⟩): 50% → 100%'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'Constructive interference means contributions add and make an outcome more likely. Destructive interference means contributions cancel and make an outcome less likely or impossible. Phase controls whether contributions add or cancel.',
+      examples: [
+        NotebookExample(
+            label: 'Constructive', notation: 'same sign → amplitudes add'),
+        NotebookExample(
+            label: 'Destructive',
+            notation: 'opposite signs → amplitudes cancel'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'Interference is not separate from phase and superposition; it is what happens when phase relationships inside a superposition are recombined. Looking Ahead: interference becomes one of the main tools used by quantum algorithms.',
+    ),
+    relatedDiscoveryTitles: [
+      'Destructive Interference',
+      'Superposition',
+      'Phase Information',
+      'Prepared Possibilities',
+    ],
+  ),
+  NotebookEntry(
+    id: 'two_qubits',
+    discoveryTitle: 'Two Qubits',
+    chapterIndex: 5,
+    chapterTitle: 'Chapter 5 - Entanglement',
+    title: 'Two Qubits',
+    summary:
+        'A two-qubit register describes a pair of qubits as one combined system.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Adding a second qubit is like widening the workspace. The system can now describe two positions at once, such as |00⟩, |01⟩, |10⟩, or |11⟩. That alone is not entanglement; it is the starting point that makes entanglement possible.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The circuit no longer describes only one qubit. It describes a register with two qubits. Each qubit can still be changed independently, and the pair can still be in an ordinary unentangled state.',
+      examples: [
+        NotebookExample(label: 'One qubit', notation: '|0⟩ or |1⟩'),
+        NotebookExample(label: 'Two-qubit register', notation: '|00⟩'),
+        NotebookExample(label: 'Independent changes', notation: '|00⟩ → |11⟩'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'A two-qubit register uses basis states with two labels. The first label belongs to q0 and the second label belongs to q1. If the qubits are independent, the register can still be understood as one qubit state together with another qubit state.',
+      examples: [
+        NotebookExample(
+            label: 'Basis states', notation: '|00⟩, |01⟩, |10⟩, |11⟩'),
+        NotebookExample(label: 'Product example', notation: '|1⟩|1⟩ = |11⟩'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'The word register means a collection of qubits treated as one system. A register can be unentangled, partially connected by operations, or entangled depending on the state. Looking Ahead: larger registers make states like GHZ possible.',
+    ),
+    relatedDiscoveryTitles: [
+      'The Quantum Bit',
+      'State Transformations',
+      'Correlation',
+      'Bell State',
+    ],
+  ),
+  NotebookEntry(
+    id: 'correlation',
+    discoveryTitle: 'Correlation',
+    chapterIndex: 5,
+    chapterTitle: 'Chapter 5 - Entanglement',
+    title: 'Controlled Change',
+    summary:
+        'A controlled operation changes one qubit only when another qubit has the right value.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'CNOT acts like a conditional rule: if the control is 1, flip the target; otherwise leave the target alone. This creates a connection between the roles of the two qubits, but it does not automatically create entanglement.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The target qubit changed because the control qubit was |1⟩. The action depended on the joint register state, not on the target alone. The result here is still a definite two-qubit state, so it is controlled behavior without entanglement.',
+      examples: [
+        NotebookExample(label: 'Control off', notation: 'CNOT|00⟩ = |00⟩'),
+        NotebookExample(label: 'Control on', notation: 'CNOT|10⟩ = |11⟩'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'CNOT has two parts: a control and a target. It copies the control condition into an action on the target when the control is a definite |1⟩. If the control is in superposition, the same gate can connect different branches of the state.',
+      examples: [
+        NotebookExample(label: 'Rule', notation: '|control,target⟩'),
+        NotebookExample(label: 'Conditional flip', notation: '|10⟩ → |11⟩'),
+        NotebookExample(label: 'No flip', notation: '|00⟩ → |00⟩'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'A CNOT gate can create entanglement, but using CNOT does not automatically create an entangled state. The input state matters. Looking Ahead: future circuits use controlled operations to move information through larger systems.',
+    ),
+    relatedDiscoveryTitles: [
+      'Two Qubits',
+      'The Quantum Bit',
+      'Prepared Possibilities',
+      'Bell State',
+    ],
+  ),
+  NotebookEntry(
+    id: 'bell_state',
+    discoveryTitle: 'Bell State',
+    chapterIndex: 5,
+    chapterTitle: 'Chapter 5 - Entanglement',
+    title: 'Bell State',
+    summary:
+        'A Bell state is a simple example where two qubits behave as one shared quantum state.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Start with a superposition, then use a controlled operation to link the branches. The pair is no longer just q0 doing one thing and q1 doing another. The possibilities belong to the two-qubit system together.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The circuit created two shared possibilities: both qubits are 0 together, or both qubits are 1 together. The individual qubits do not have separate definite values, but the pair has a precise joint state.',
+      examples: [
+        NotebookExample(
+            label: 'Prepare possibilities',
+            notation: '|00⟩ → H on q0 → (|00⟩ + |10⟩)/√2'),
+        NotebookExample(
+            label: 'Connect branches', notation: 'CNOT → (|00⟩ + |11⟩)/√2'),
+        NotebookExample(
+            label: 'Measurements', notation: 'Only |00⟩ or |11⟩ can appear'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The Bell state Φ+ is a superposition of two two-qubit basis states. It cannot be treated as one independent state for q0 and a separate independent state for q1.',
+      examples: [
+        NotebookExample(
+            label: 'Bell state', notation: '|Φ+⟩ = (|00⟩ + |11⟩)/√2'),
+        NotebookExample(
+            label: 'Not independent', notation: 'not q0 state × q1 state'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'Bell states are examples of entanglement, not the definition of entanglement. They are useful because they are small, symmetric, and easy to test. Looking Ahead: Bell states become building blocks for quantum teleportation.',
+    ),
+    relatedDiscoveryTitles: [
+      'Correlation',
+      'Superposition',
+      'Prepared Possibilities',
+      'One Quantum System',
+      'Entanglement',
+    ],
+  ),
+  NotebookEntry(
+    id: 'one_quantum_system',
+    discoveryTitle: 'One Quantum System',
+    chapterIndex: 5,
+    chapterTitle: 'Chapter 5 - Entanglement',
+    title: 'One Quantum System',
+    summary:
+        'Entangled qubits can belong to one shared state instead of two separate qubit states.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Ordinary correlation is like two cards that happen to match. Entanglement is different: before measurement, the pair is described by one shared quantum state. The useful description belongs to the whole system.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The pair gained a relationship that cannot be explained by assigning a complete independent state to each qubit. Measurement outcomes are correlated, but the deeper point is that the state itself is shared.',
+      examples: [
+        NotebookExample(
+            label: 'Ordinary pair',
+            notation: '|10⟩ describes definite q0 and q1 values'),
+        NotebookExample(
+            label: 'Shared state',
+            notation: '(|01⟩ + |10⟩)/√2 belongs to the pair'),
+        NotebookExample(
+            label: 'Prediction',
+            notation: 'If one result is 0, the other is 1'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'Some two-qubit states can be factored into separate one-qubit states. Entangled states cannot. That is what makes them more than ordinary correlation.',
+      examples: [
+        NotebookExample(label: 'Separable example', notation: '|+0⟩ = |+⟩|0⟩'),
+        NotebookExample(
+            label: 'Entangled example', notation: '(|01⟩ + |10⟩)/√2'),
+        NotebookExample(
+            label: 'Key distinction',
+            notation: 'shared state, not separate states'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'Correlation describes patterns in outcomes. Entanglement describes a structure of the quantum state before outcomes are produced. Looking Ahead: this whole-system view becomes more important in multi-qubit algorithms.',
+    ),
+    relatedDiscoveryTitles: [
+      'Bell State',
+      'Two Qubits',
+      'Interference',
+      'Entanglement',
+    ],
+  ),
+  NotebookEntry(
+    id: 'entanglement',
+    discoveryTitle: 'Entanglement',
+    chapterIndex: 5,
+    chapterTitle: 'Chapter 5 - Entanglement',
+    title: 'What Is Entanglement?',
+    summary:
+        'Entanglement is a property of the whole quantum system that cannot always be split into separate qubit descriptions.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'If two ordinary objects are correlated, you can still describe each object separately. Entangled qubits are different: the clean description belongs to the pair. Measuring one qubit changes what you can predict about the other because the state was shared.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The final state is not just two qubits sitting next to each other, and it is not merely a CNOT circuit. It is a state of the two-qubit system as a whole. The individual measurement labels are still 0 and 1, but the state cannot be broken into independent pieces.',
+      examples: [
+        NotebookExample(
+            label: 'Entangled state', notation: '|Φ−⟩ = (|00⟩ − |11⟩)/√2'),
+        NotebookExample(label: 'Possible outcomes', notation: '|00⟩ or |11⟩'),
+        NotebookExample(
+            label: 'Impossible outcomes',
+            notation: '|01⟩ and |10⟩ have zero probability'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'A two-qubit state is entangled when it cannot be written as a product of one state for q0 and one state for q1. Bell states are the simplest examples, but entanglement is the broader idea.',
+      examples: [
+        NotebookExample(
+            label: 'Separate form', notation: '(q0 state) × (q1 state)'),
+        NotebookExample(label: 'Bell example', notation: '(|00⟩ − |11⟩)/√2'),
+        NotebookExample(
+            label: 'Misconception check',
+            notation: 'Bell states are examples, not the definition'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'Entanglement depends on the state, not just on the gate list. A CNOT can create entanglement from the right input, but it can also act on definite states without entangling them. Looking Ahead: entanglement will later support teleportation, GHZ states, and quantum algorithms.',
+    ),
+    relatedDiscoveryTitles: [
+      'One Quantum System',
+      'Bell State',
+      'Superposition',
+      'Interference',
+      'Prepared Possibilities',
+    ],
+  ),
 ];
 
 final Map<String, NotebookEntry> notebookEntriesByDiscoveryTitle = {

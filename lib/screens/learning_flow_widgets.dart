@@ -80,6 +80,18 @@ class DiscoveryDialog extends StatelessWidget {
       title: '✓ Level Complete',
       maxWidth: 560,
       actions: [
+        if (notebookEntry != null)
+          QubitQuestDialogButton.secondary(
+            label: 'Open Notebook',
+            onPressed: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (context) =>
+                      NotebookEntryScreen(entry: notebookEntry),
+                ),
+              );
+            },
+          ),
         QubitQuestDialogButton.primary(
           label: 'Next Level',
           onPressed: () {
@@ -256,6 +268,7 @@ class _NotebookEntryScreenState extends State<NotebookEntryScreen> {
   @override
   void initState() {
     super.initState();
+    DiscoveryProgress.markNotebookEntryOpened(widget.entry.discoveryTitle);
     _loadUnlocks();
   }
 
@@ -1230,7 +1243,7 @@ class _NotebookUpdatedBox extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    'New Discovery',
+                    'Notebook Updated',
                     style: TextStyle(
                       color: Color(0xFFFFD54F),
                       fontSize: 12,
@@ -1240,7 +1253,7 @@ class _NotebookUpdatedBox extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '$title added to Quantum Notebook',
+                    '$title is saved with deeper notes and examples.',
                     style: const TextStyle(
                       color: Color(0xFFD6E3F8),
                       fontSize: 13,
