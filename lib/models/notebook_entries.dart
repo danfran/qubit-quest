@@ -1118,6 +1118,241 @@ const List<NotebookEntry> notebookEntries = [
       'Prepared Possibilities',
     ],
   ),
+  NotebookEntry(
+    id: 'control',
+    discoveryTitle: 'Control',
+    chapterIndex: 6,
+    chapterTitle: 'Chapter 6 - Information Flow',
+    title: 'The Control Qubit',
+    summary:
+        'One qubit can conditionally influence another qubit through a controlled operation.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'A controlled gate is like a rule with a condition. The target qubit changes only when the control qubit carries the active value. The action is still one circuit step, but it depends on information stored on another wire.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The target changed because the control was active. The circuit did not flip a qubit in isolation; it used information on one qubit to decide what happened to another.',
+      examples: [
+        NotebookExample(label: 'Before', notation: '|01⟩'),
+        NotebookExample(label: 'After CX', notation: '|11⟩'),
+        NotebookExample(
+            label: 'Condition', notation: 'active control -> target flips'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'CX is a two-qubit gate. One qubit is the control and the other is the target. When the control is active, the target receives an X action. When the control is inactive, the target is left alone.',
+      examples: [
+        NotebookExample(label: 'Control active', notation: 'CX|01⟩ = |11⟩'),
+        NotebookExample(label: 'Control inactive', notation: 'CX|00⟩ = |00⟩'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'Control is the first step toward information flow. A controlled operation lets one part of a register influence another without treating the two wires as separate puzzles. Looking Ahead: the next discoveries use this conditional action to transfer and route information.',
+    ),
+    relatedDiscoveryTitles: [
+      'Two Qubits',
+      'Correlation',
+      'Conditional Action',
+      'Information Transfer',
+    ],
+  ),
+  NotebookEntry(
+    id: 'conditional_action',
+    discoveryTitle: 'Conditional Action',
+    chapterIndex: 6,
+    chapterTitle: 'Chapter 6 - Information Flow',
+    title: 'Conditional Action',
+    summary:
+        'The same CX gate can visibly change or not change the register depending on the control qubit.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'A conditional rule can be checked even when it does not fire. CX on an inactive control is like asking a question and getting "no": the target stays put, but the circuit still applied a meaningful rule.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The visible state stayed |00⟩ because the control was inactive. What changed is the explanation: the target did not stay fixed by accident; it stayed fixed because the condition was not met.',
+      examples: [
+        NotebookExample(label: 'Before', notation: '|00⟩'),
+        NotebookExample(label: 'After CX', notation: '|00⟩'),
+        NotebookExample(
+            label: 'Reason', notation: 'control = 0, so target does not flip'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'A controlled gate is defined by its full behavior, not just by one visible input. On some inputs CX changes the register. On others it leaves the displayed state unchanged because the control condition is false.',
+      examples: [
+        NotebookExample(label: 'No flip', notation: 'CX|00⟩ = |00⟩'),
+        NotebookExample(label: 'Flip', notation: 'CX|01⟩ = |11⟩'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This repeats a lesson from hidden change in a two-qubit setting: unchanged output does not always mean unused operation. The full circuit behavior explains why the output stayed fixed. Looking Ahead: useful circuits combine these conditional actions to move information across a register.',
+    ),
+    relatedDiscoveryTitles: [
+      'Hidden Change',
+      'Control',
+      'Information Transfer',
+      'State Transformations',
+    ],
+  ),
+  NotebookEntry(
+    id: 'information_transfer',
+    discoveryTitle: 'Information Transfer',
+    chapterIndex: 6,
+    chapterTitle: 'Chapter 6 - Information Flow',
+    title: 'Information Transfer',
+    summary:
+        'A circuit can create information on one qubit and propagate it to another with CX.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'First make one qubit active. Then use that qubit as the control for CX. The second qubit changes because the first qubit now carries the information that triggers the controlled action.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The circuit did two different jobs. X created an active qubit. CX then used that active qubit to change the other qubit, spreading the information through the two-qubit register.',
+      examples: [
+        NotebookExample(label: 'Create', notation: '|00⟩ -> X -> |10⟩'),
+        NotebookExample(label: 'Propagate', notation: '|10⟩ -> CX -> |11⟩'),
+        NotebookExample(label: 'Result', notation: '|00⟩ -> |11⟩'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'Information transfer here means conditional propagation through a register. CX does not copy an arbitrary quantum state; in this beginner basis-state setting, it lets the active control determine whether the target flips.',
+      examples: [
+        NotebookExample(label: 'Gate sequence', notation: 'X then CX'),
+        NotebookExample(
+            label: 'Conditional transfer',
+            notation: 'control active -> target becomes active'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'The order matters: create the active control first, then use CX to propagate it. This is the simplest form of information flow in the chapter. Looking Ahead: routing uses controlled actions in both directions, not just one transfer step.',
+    ),
+    relatedDiscoveryTitles: [
+      'Information',
+      'Control',
+      'Conditional Action',
+      'Swap',
+    ],
+  ),
+  NotebookEntry(
+    id: 'swap',
+    discoveryTitle: 'Swap',
+    chapterIndex: 6,
+    chapterTitle: 'Chapter 6 - Information Flow',
+    title: 'Swap Places',
+    summary:
+        'A three-CX pattern builds a reusable SWAP operation that exchanges both qubits in the register.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Swapping is more than making one example come out correctly. A true SWAP is a reusable route: whatever information starts on the first qubit ends on the second, and whatever starts on the second ends on the first.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The goal changed from matching a single visible input to building a full-register operation. Two CX gates may solve one displayed case, but the three-CX construction is what exchanges the qubits for every input.',
+      examples: [
+        NotebookExample(label: 'Example input', notation: '|10⟩ -> |01⟩'),
+        NotebookExample(label: 'Other direction', notation: '|01⟩ -> |10⟩'),
+        NotebookExample(label: 'SWAP pattern', notation: 'CX -> CX back -> CX'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The SWAP gate is a full-register operation. It leaves |00⟩ and |11⟩ unchanged, and exchanges |01⟩ with |10⟩. That behavior over all basis inputs is what makes it a SWAP, not just one final state.',
+      examples: [
+        NotebookExample(
+            label: 'No change', notation: '|00⟩ -> |00⟩\n|11⟩ -> |11⟩'),
+        NotebookExample(
+            label: 'Exchange', notation: '|01⟩ -> |10⟩\n|10⟩ -> |01⟩'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'A circuit can work for one input without being the intended reusable operation. Checking full circuit behavior matters when the lesson is a gate construction. Looking Ahead: the same routing pattern can be combined with information creation to show flow in either direction.',
+    ),
+    relatedDiscoveryTitles: [
+      'Information Transfer',
+      'Conditional Action',
+      'State Transformations',
+      'Information Flow',
+    ],
+  ),
+  NotebookEntry(
+    id: 'information_flow',
+    discoveryTitle: 'Information Flow',
+    chapterIndex: 6,
+    chapterTitle: 'Chapter 6 - Information Flow',
+    title: 'Information Flow',
+    summary:
+        'Quantum circuits can create information and route it through interactions between qubits.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Start by creating information on one qubit with X. Then use the three-CX routing pattern to move that information across the register. The important idea is the flow, not a required left-to-right direction.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The circuit combined creation and routing. X made one qubit active, and the controlled routing pattern moved that activity to the other qubit. Mirroring the direction still demonstrates the same information-flow idea.',
+      examples: [
+        NotebookExample(
+            label: 'One direction', notation: 'X(Q0), then route Q0 -> Q1'),
+        NotebookExample(
+            label: 'Mirrored direction',
+            notation: 'X(Q1), then route Q1 -> Q0'),
+        NotebookExample(
+            label: 'Shared concept', notation: 'create, then route'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'Routing can have direction in a specific circuit, but the lesson here is symmetric: either mirrored construction creates information on one qubit and routes it to the other using the same three-CX idea.',
+      examples: [
+        NotebookExample(
+            label: 'Original route',
+            notation: 'X(Q0) -> CX(Q0->Q1) -> CX(Q1->Q0) -> CX(Q0->Q1)'),
+        NotebookExample(
+            label: 'Mirrored route',
+            notation: 'X(Q1) -> CX(Q1->Q0) -> CX(Q0->Q1) -> CX(Q1->Q0)'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'Some lessons require a specific direction, but this one is about the general pattern of information routing. Direction matters only when the level says which qubit must receive information first or where it must end. Looking Ahead: larger systems use the same ideas to coordinate information across more than two qubits.',
+    ),
+    relatedDiscoveryTitles: [
+      'Information Transfer',
+      'Swap',
+      'Control',
+      'Entanglement',
+      'Three Qubits',
+    ],
+  ),
 ];
 
 final Map<String, NotebookEntry> notebookEntriesByDiscoveryTitle = {

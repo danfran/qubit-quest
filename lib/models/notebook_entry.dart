@@ -24,6 +24,25 @@ class NotebookEntry {
   final NotebookSection? quantumView;
   final NotebookSection? advancedNotes;
   final List<String> relatedDiscoveryTitles;
+
+  String get chapterIdentity {
+    switch (chapterIndex) {
+      case 1:
+        return 'How quantum information is stored and transformed';
+      case 2:
+        return 'How hidden properties affect states without visible change';
+      case 3:
+        return 'How quantum states are prepared and interpreted';
+      case 4:
+        return 'How hidden phase becomes visible through interference';
+      case 5:
+        return 'When quantum systems become inseparable';
+      case 6:
+        return 'How information is created, controlled, and routed';
+      default:
+        return '';
+    }
+  }
 }
 
 class NotebookSection {

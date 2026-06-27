@@ -493,6 +493,63 @@ void main() {
       }
     });
 
+    test('Quantum Notebook covers Chapter 6 discovery levels', () {
+      final chapter6DiscoveryTitles = [
+        for (int levelNumber = 26; levelNumber <= 30; levelNumber++)
+          getQQLevelById(levelNumber)!.discoveryTitle,
+      ];
+
+      expect(
+        chapter6DiscoveryTitles,
+        equals([
+          'Control',
+          'Conditional Action',
+          'Information Transfer',
+          'Swap',
+          'Information Flow',
+        ]),
+      );
+
+      for (final discoveryTitle in chapter6DiscoveryTitles) {
+        expect(discoveryTitle, isNotNull);
+        expect(
+          notebookEntriesByDiscoveryTitle,
+          contains(discoveryTitle),
+        );
+        expect(
+          notebookEntriesByDiscoveryTitle[discoveryTitle]!.chapterIndex,
+          equals(6),
+        );
+      }
+    });
+
+    test('Quantum Notebook chapter identities are stable', () {
+      expect(
+        notebookEntriesByDiscoveryTitle['Information']!.chapterIdentity,
+        equals('How quantum information is stored and transformed'),
+      );
+      expect(
+        notebookEntriesByDiscoveryTitle['Hidden Change']!.chapterIdentity,
+        equals('How hidden properties affect states without visible change'),
+      );
+      expect(
+        notebookEntriesByDiscoveryTitle['The Third State']!.chapterIdentity,
+        equals('How quantum states are prepared and interpreted'),
+      );
+      expect(
+        notebookEntriesByDiscoveryTitle['Interference']!.chapterIdentity,
+        equals('How hidden phase becomes visible through interference'),
+      );
+      expect(
+        notebookEntriesByDiscoveryTitle['Entanglement']!.chapterIdentity,
+        equals('When quantum systems become inseparable'),
+      );
+      expect(
+        notebookEntriesByDiscoveryTitle['Information Flow']!.chapterIdentity,
+        equals('How information is created, controlled, and routed'),
+      );
+    });
+
     test('Quantum Notebook opened state tracks unread notebook entries',
         () async {
       SharedPreferences.setMockInitialValues({});
@@ -1410,7 +1467,7 @@ void main() {
       expect(level.validateCircuit(circuit), isTrue);
     });
 
-    test('Chapter 6 level 98 validates information flow', () {
+    test('Chapter 6 level 30 validates information flow', () {
       final level = findComposerLevelByTitle('Information Flow');
       final circuit = simulate(level);
 
@@ -1422,6 +1479,23 @@ void main() {
           Gate.fromIdentifier(SelectedGateType.cnot), 2, 1, 0);
       circuit.insertDoublePlacedGateAt(
           Gate.fromIdentifier(SelectedGateType.cnot), 3, 0, 1);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 6 level 30 accepts mirrored information flow', () {
+      final level = findComposerLevelByTitle('Information Flow');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 1);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 2, 0, 1);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 3, 1, 0);
       circuit.runSimulation();
 
       expect(level.validateCircuit(circuit), isTrue);

@@ -3762,24 +3762,25 @@ final List<QQLevel> _authoredQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'Swap Places',
     taskDescription:
-        r'Can two qubits exchange their information? Swap \( |10\rangle \) into \( |01\rangle \) using only CX.',
-    targetStateExpression: '|01⟩',
+        r'Can two qubits exchange their information? Build a reusable SWAP circuit using only CX. It should swap any two-qubit input, including \( |10\rangle \rightarrow |01\rangle \).',
+    targetStateExpression: 'SWAP gate',
     mysteryTitle: 'Can two qubits exchange their information?',
     mysteryText:
-        'If information can move one way, can a circuit redirect both qubits so their information changes places?',
+        'A shortcut can solve one displayed input. A true SWAP circuit must exchange the two qubits for every possible input.',
     discoveryTitle: 'Swap',
     discoveryText:
-        'Three controlled steps exchanged the qubits. The information did not vanish; it was routed through the circuit.',
-    keyInsight: 'Information can be redirected between qubits.',
+        'Three controlled steps build a reusable SWAP. Two CX gates can solve this one visible input, but the third step is what makes the exchange work as a general operation.',
+    keyInsight:
+        'A circuit can match one example without being the correct reusable operation.',
     whyItMatters:
         'Real quantum hardware often requires routing information between qubits.',
     nextMystery: 'What happens when many qubits share information?',
     hints: [
-      'A full exchange needs controlled actions in both directions.',
-      'Use three CX gates: one direction, the other direction, then the first direction again.',
+      'Do not only solve |10⟩ → |01⟩. Build the operation that swaps both qubits for any input.',
+      'A full SWAP uses three CX gates: one direction, the other direction, then the first direction again.',
     ],
     solutionExplanation:
-        'The three-CX pattern performs a SWAP operation, exchanging the information carried by the two qubits.',
+        'The three-CX pattern performs the SWAP operation for the whole two-qubit register: |00⟩ stays |00⟩, |01⟩ becomes |10⟩, |10⟩ becomes |01⟩, and |11⟩ stays |11⟩.',
     numQubits: 2,
     initialQubitsStateString: '10',
     availableGates: [
@@ -3803,25 +3804,25 @@ final List<QQLevel> _authoredQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'Information Flow',
     taskDescription:
-        r'What have we actually learned? Create information, then route it across the two-qubit system.',
-    targetStateExpression: '|10⟩',
+        r'What have we actually learned? Create information on either qubit, then route it across the two-qubit system with the three-CX pattern.',
+    targetStateExpression: 'Information routed',
     mysteryTitle: 'What have we actually learned?',
     mysteryText:
-        'Controlled operations can move, redirect, and reshape information. Build a small circuit where information is created, then routed.',
+        'Controlled operations can move, redirect, and reshape information. Build a small circuit where information is created, then routed to the other qubit.',
     discoveryTitle: 'Information Flow',
     discoveryText:
-        'The circuit did more than place gates in a row. It directed information through interactions between qubits.',
+        'The circuit did more than place gates in a row. It created information, then directed it through interactions between qubits. Either mirrored direction shows the same idea.',
     keyInsight:
         'Quantum circuits direct information through interactions between qubits.',
     whyItMatters:
         'Entanglement, GHZ states, phase kickback, and quantum algorithms all depend on information flow.',
     nextMystery: 'Can three qubits become one shared quantum system?',
     hints: [
-      'First create information on one qubit.',
-      'Then use the three-CX routing pattern to move it through the system.',
+      'First create information with X on either qubit.',
+      'Then use the three-CX routing pattern to move that information to the other qubit. The mirrored direction is valid too.',
     ],
     solutionExplanation:
-        'X creates the information, and the three-CX routing pattern moves it across the two-qubit system.',
+        'X creates the information, and the three-CX routing pattern moves it across the two-qubit system. The same routing idea works in either direction.',
     numQubits: 2,
     initialQubitsStateString: '00',
     availableGates: [
@@ -3840,6 +3841,14 @@ final List<QQLevel> _authoredQQLevels = [
       [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
       [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
       [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+    ],
+    alternateTargetUnitaries: [
+      [
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+      ],
     ],
   ),
 
@@ -4100,6 +4109,11 @@ List<QQLevel> _consolidatedQQLevels() {
   ];
   final chapter5Entanglement = _authoredQQLevels.sublist(88, 93);
   final chapter6InformationFlow = _authoredQQLevels.sublist(93, 98);
+  // TODO Chapter 7 readiness check:
+  // Validate GHZ introduction does not reuse SWAP routing mechanics.
+  // Ensure entanglement scaling is conceptually distinct from Chapter 5.
+  // Avoid overlapping incorrectly with Chapter 3 superposition foundations and
+  // Chapter 4 interference concepts.
   final chapter7GhzStates = _authoredQQLevels.sublist(98, 103);
   final chapter8PhaseKickback = _authoredQQLevels.sublist(58, 63);
   final chapter9OracleThinking = _authoredQQLevels.sublist(63, 68);

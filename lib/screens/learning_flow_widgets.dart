@@ -188,6 +188,7 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> {
                   for (final chapter in _notebookChapters()) ...[
                     _NotebookChapterHeader(
                       title: chapter.title,
+                      identity: chapter.identity,
                       unlockedCount: chapter.entries
                           .where((entry) =>
                               _unlocked.contains(entry.discoveryTitle))
@@ -228,6 +229,7 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> {
         .map(
           (entry) => _NotebookChapterGroup(
             title: entry.key,
+            identity: entry.value.first.chapterIdentity,
             entries: entry.value,
           ),
         )
@@ -242,10 +244,12 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> {
 class _NotebookChapterGroup {
   const _NotebookChapterGroup({
     required this.title,
+    required this.identity,
     required this.entries,
   });
 
   final String title;
+  final String identity;
   final List<NotebookEntry> entries;
 }
 
@@ -1274,11 +1278,13 @@ class _NotebookUpdatedBox extends StatelessWidget {
 class _NotebookChapterHeader extends StatelessWidget {
   const _NotebookChapterHeader({
     required this.title,
+    required this.identity,
     required this.unlockedCount,
     required this.totalCount,
   });
 
   final String title;
+  final String identity;
   final int unlockedCount;
   final int totalCount;
 
@@ -1289,13 +1295,30 @@ class _NotebookChapterHeader extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (identity.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    identity,
+                    style: const TextStyle(
+                      color: QubitQuestDialog.mutedText,
+                      fontSize: 12,
+                      height: 1.25,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           const SizedBox(width: 10),

@@ -69,6 +69,7 @@ class ComposerLevel extends QQLevel {
   final List<List<Complex>> solutionFinalVector;
   final ValidationMode validationMode;
   final List<List<Complex>>? targetUnitary;
+  final List<List<List<Complex>>> alternateTargetUnitaries;
 
   const ComposerLevel({
     super.title,
@@ -92,6 +93,7 @@ class ComposerLevel extends QQLevel {
     required this.solutionFinalVector,
     this.validationMode = ValidationMode.finalState,
     this.targetUnitary,
+    this.alternateTargetUnitaries = const [],
     this.preInsertedGates,
   });
 
@@ -117,6 +119,7 @@ class ComposerLevel extends QQLevel {
     required List<List<Complex>> solutionFinalVector,
     ValidationMode validationMode = ValidationMode.finalState,
     List<List<Complex>>? targetUnitary,
+    List<List<List<Complex>>> alternateTargetUnitaries = const [],
     Function(QuantumCircuit)? preInsertedGates,
   }) {
     final int resolvedNumQubits = initialQubitsStateString.length;
@@ -145,6 +148,7 @@ class ComposerLevel extends QQLevel {
       solutionFinalVector: solutionFinalVector,
       validationMode: validationMode,
       targetUnitary: targetUnitary,
+      alternateTargetUnitaries: alternateTargetUnitaries,
       preInsertedGates: preInsertedGates,
     );
   }
@@ -187,7 +191,15 @@ class ComposerLevel extends QQLevel {
             return false;
           }
         }
-        return matrixClose(currentUnitary, targetUnitary!, eps: eps);
+        if (matrixClose(currentUnitary, targetUnitary!, eps: eps)) {
+          return true;
+        }
+        for (final alternateTargetUnitary in alternateTargetUnitaries) {
+          if (matrixClose(currentUnitary, alternateTargetUnitary, eps: eps)) {
+            return true;
+          }
+        }
+        return false;
     }
   }
 
