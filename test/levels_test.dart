@@ -10,6 +10,7 @@ import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
+import 'package:quantumquiz/utils/math_utils.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -366,9 +367,13 @@ void main() {
       expect(numberOfLevels, equals(104));
     });
 
-    test('levels 1–50 are the discovery campaign composer levels', () {
+    test('levels 1–50 are the discovery campaign levels', () {
       for (int levelNumber = 1; levelNumber <= 50; levelNumber++) {
-        expect(getQQLevelById(levelNumber), isA<ComposerLevel>());
+        if (levelNumber == 35) {
+          expect(getQQLevelById(levelNumber), isA<ConceptCheckLevel>());
+        } else {
+          expect(getQQLevelById(levelNumber), isA<ComposerLevel>());
+        }
       }
     });
 
@@ -523,6 +528,52 @@ void main() {
       }
     });
 
+    test('Quantum Notebook covers Chapter 7 GHZ discovery levels', () {
+      final chapter7DiscoveryTitles = [
+        for (int levelNumber = 31; levelNumber <= 35; levelNumber++)
+          getQQLevelById(levelNumber)!.discoveryTitle,
+      ];
+
+      expect(
+        chapter7DiscoveryTitles,
+        equals([
+          'Three Qubits',
+          'Shared Information',
+          'All Together',
+          'GHZ State',
+          'One System, Three Qubits',
+        ]),
+      );
+
+      for (final discoveryTitle in chapter7DiscoveryTitles) {
+        expect(discoveryTitle, isNotNull);
+        expect(
+          notebookEntriesByDiscoveryTitle,
+          contains(discoveryTitle),
+        );
+        expect(
+          notebookEntriesByDiscoveryTitle[discoveryTitle]!.chapterIndex,
+          equals(7),
+        );
+      }
+    });
+
+    test('Chapter 7 notebook entries include GHZ global constraint language',
+        () {
+      final ghzEntry = notebookEntriesByDiscoveryTitle['GHZ State']!;
+      final synthesisEntry =
+          notebookEntriesByDiscoveryTitle['One System, Three Qubits']!;
+
+      expect(ghzEntry.whatChanged!.body,
+          contains('allowed vs forbidden global outcomes'));
+      expect(ghzEntry.advancedNotes!.body,
+          contains('state space restriction interpretation'));
+      expect(synthesisEntry.whatChanged!.body,
+          contains('forbidden global outcomes'));
+      expect(synthesisEntry.quantumView!.examples.first.label,
+          contains('State space restriction interpretation'));
+    });
+
     test('Quantum Notebook chapter identities are stable', () {
       expect(
         notebookEntriesByDiscoveryTitle['Information']!.chapterIdentity,
@@ -547,6 +598,10 @@ void main() {
       expect(
         notebookEntriesByDiscoveryTitle['Information Flow']!.chapterIdentity,
         equals('How information is created, controlled, and routed'),
+      );
+      expect(
+        notebookEntriesByDiscoveryTitle['GHZ State']!.chapterIdentity,
+        equals('How multi-qubit states become global constraints'),
       );
     });
 
@@ -626,6 +681,28 @@ void main() {
       test('level 98 — What is Entanglement?', () {
         // Correct: "Their joint state cannot be written as a product…" (index 2)
         _checkMcq(98, 2);
+      });
+
+      test('Chapter 7 level 35 — GHZ synthesis interpretation', () {
+        _checkMcq(35, 0);
+        final level = getQQLevelById(35)! as ConceptCheckLevel;
+
+        expect(level.title, equals('One System, Three Qubits'));
+        expect(level.badgeLabel, equals('Chapter Synthesis Check'));
+        expect(level.discoveryTitle, equals('One System, Three Qubits'));
+        expect(
+          level.taskDescription,
+          contains(r'(|000\rangle + |111\rangle)/\sqrt{2}'),
+        );
+        expect(
+          level.options[level.correctOptionIndex],
+          contains('Only the full-register outcomes |000⟩ and |111⟩'),
+        );
+        expect(
+          level.options,
+          contains(
+              'The state means information moved from Q0 through Q1 to Q2.'),
+        );
       });
     });
 
@@ -1520,15 +1597,66 @@ void main() {
       final level = findComposerLevelByTitle('Shared Information');
       final circuit = simulate(level);
 
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 2, 2, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 7 level 100 exposes only CX after fixed X(q0)', () {
+      final level = findComposerLevelByTitle('Shared Information');
+      final circuit = simulate(level);
+
+      expect(
+        level.availableGates.map((gate) => gate.type),
+        equals([SelectedGateType.cnot]),
+      );
+      expect(
+          circuit.placedGates[0].first.gate.type, equals(SelectedGateType.x));
+      expect(circuit.placedGates[0].first.isDeletable, isFalse);
+    });
+
+    test('Chapter 7 level 100 rejects independent X shortcut', () {
+      final level = findComposerLevelByTitle('Shared Information');
+      final circuit = simulate(level);
+
       circuit.insertSinglePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+          Gate.fromIdentifier(SelectedGateType.x), 1, 1);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 2, 2);
+      circuit.runSimulation();
+
+      expect(
+        matrixClose(
+          circuit.currentState.state.toComplexList(),
+          level.solutionFinalVector,
+        ),
+        isTrue,
+      );
+      expect(level.validateCircuit(circuit), isFalse);
+    });
+
+    test('Chapter 7 level 100 rejects chain CX propagation', () {
+      final level = findComposerLevelByTitle('Shared Information');
+      final circuit = simulate(level);
+
       circuit.insertDoublePlacedGateAt(
           Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
       circuit.insertDoublePlacedGateAt(
           Gate.fromIdentifier(SelectedGateType.cnot), 2, 2, 1);
       circuit.runSimulation();
 
-      expect(level.validateCircuit(circuit), isTrue);
+      expect(
+        matrixClose(
+          circuit.currentState.state.toComplexList(),
+          level.solutionFinalVector,
+        ),
+        isTrue,
+      );
+      expect(level.validateCircuit(circuit), isFalse);
     });
 
     test('Chapter 7 level 101 validates all together', () {
@@ -1540,10 +1668,32 @@ void main() {
       circuit.insertDoublePlacedGateAt(
           Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
       circuit.insertDoublePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.cnot), 2, 2, 1);
+          Gate.fromIdentifier(SelectedGateType.cnot), 2, 2, 0);
       circuit.runSimulation();
 
       expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 7 level 101 rejects chain CX propagation', () {
+      final level = findComposerLevelByTitle('All Together');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 2, 2, 1);
+      circuit.runSimulation();
+
+      expect(
+        matrixClose(
+          circuit.currentState.state.toComplexList(),
+          level.solutionFinalVector,
+        ),
+        isTrue,
+      );
+      expect(level.validateCircuit(circuit), isFalse);
     });
 
     test('Chapter 7 level 102 validates beyond Bell states', () {
@@ -1555,27 +1705,32 @@ void main() {
       circuit.insertDoublePlacedGateAt(
           Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
       circuit.insertDoublePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.cnot), 2, 2, 1);
+          Gate.fromIdentifier(SelectedGateType.cnot), 2, 2, 0);
       circuit.runSimulation();
 
       expect(level.validateCircuit(circuit), isTrue);
     });
 
-    test('Chapter 7 level 103 validates one system, three qubits', () {
-      final level = findComposerLevelByTitle('One System, Three Qubits');
+    test('Chapter 7 level 102 rejects chain CX propagation', () {
+      final level = findComposerLevelByTitle('Beyond Bell States');
       final circuit = simulate(level);
 
       circuit.insertSinglePlacedGateAt(
           Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-      circuit.insertSinglePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.z), 1, 0);
       circuit.insertDoublePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.cnot), 2, 1, 0);
+          Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
       circuit.insertDoublePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.cnot), 3, 2, 1);
+          Gate.fromIdentifier(SelectedGateType.cnot), 2, 2, 1);
       circuit.runSimulation();
 
-      expect(level.validateCircuit(circuit), isTrue);
+      expect(
+        matrixClose(
+          circuit.currentState.state.toComplexList(),
+          level.solutionFinalVector,
+        ),
+        isTrue,
+      );
+      expect(level.validateCircuit(circuit), isFalse);
     });
   });
 

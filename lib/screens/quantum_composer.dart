@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
@@ -15,6 +14,7 @@ import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialo
 import 'package:quantumquiz/utils/complex_formatter.dart';
 import 'package:quantumquiz/widgets/gate_visual_style.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/level_header_router.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
@@ -822,66 +822,15 @@ class _QuantumComposerState extends State<QuantumComposer>
 
     return Scaffold(
         backgroundColor: qqBlack,
-        // Modify the AppBar
-        appBar: AppBar(
-          toolbarHeight: compactAppBar ? 60 : 56,
-          backgroundColor: qqBlack, // Dark app bar
-          leadingWidth: compactAppBar ? 42 : 50,
-          leading: _buildHeaderBackButton(compact: compactAppBar),
-          flexibleSpace: const ColoredBox(color: qqBlack),
-          elevation: 0,
-          shadowColor: Colors.transparent,
-          scrolledUnderElevation: 0.0, // Prevent elevation change on scroll
-          surfaceTintColor:
-              Colors.transparent, // Prevent color tinting on scroll
-          titleSpacing: compactAppBar ? 0 : 8,
-          title: Row(
-            // Use a Row to hold multiple widgets
-            mainAxisSize:
-                MainAxisSize.min, // Make the row take minimal horizontal space
-            children: [
-              _buildHeaderLogo(compact: compactAppBar),
-              SizedBox(
-                  width: compactAppBar
-                      ? 11
-                      : 12), // Add some spacing between the logo and the text
-              Flexible(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      runningAsQuantumComposer()
-                          ? 'Composer'
-                          : 'Level ${widget.levelId}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: compactAppBar ? 16 : 19,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        height: 1.08,
-                      ),
-                    ),
-                    Text(
-                      _goalTitle(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: compactAppBar ? 11 : 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: qqPurple,
-                        height: 1.18,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          // ** Add the actions list here **
+        appBar: LevelHeaderRouter.headerFor(
+          level: widget.level,
+          levelId: widget.levelId,
+          compact: compactAppBar,
+          title: runningAsQuantumComposer()
+              ? 'Composer'
+              : 'Level ${widget.levelId}',
+          subtitle: _goalTitle(),
           actions: _buildAppBarActions(compactAppBar),
-          // ****************************
         ),
         body: SafeArea(
           child: LayoutBuilder(builder: (context, constraints) {
@@ -922,39 +871,6 @@ class _QuantumComposerState extends State<QuantumComposer>
             );
           }),
         ));
-  }
-
-  Widget _buildHeaderLogo({required bool compact}) {
-    final double size = compact ? 34 : 38;
-
-    return SizedBox(
-      width: size,
-      height: size,
-      child: SvgPicture.asset(
-        'assets/images/qubit_quest_atom_logo.svg',
-        fit: BoxFit.contain,
-        colorFilter: const ColorFilter.mode(
-          qqCyan,
-          BlendMode.srcIn,
-        ),
-      ),
-    );
-  }
-
-  Widget? _buildHeaderBackButton({required bool compact}) {
-    if (!(ModalRoute.of(context)?.canPop ?? false)) {
-      return null;
-    }
-
-    return IconButton(
-      onPressed: () => Navigator.of(context).maybePop(),
-      icon: const Icon(Icons.arrow_back_rounded),
-      iconSize: compact ? 21 : 22,
-      color: Colors.white.withValues(alpha: 0.90),
-      padding: EdgeInsets.only(left: compact ? 2 : 4),
-      splashRadius: 22,
-      tooltip: 'Back',
-    );
   }
 
   Widget _buildPortraitGoalSection({required bool short}) {

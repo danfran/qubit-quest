@@ -39,6 +39,8 @@ class NotebookEntry {
         return 'When quantum systems become inseparable';
       case 6:
         return 'How information is created, controlled, and routed';
+      case 7:
+        return 'How multi-qubit states become global constraints';
       default:
         return '';
     }

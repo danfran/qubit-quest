@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/level_header_router.dart';
 
 class FillTheGateScreen extends StatefulWidget {
   final int levelId;
@@ -32,8 +32,8 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
   bool _checkAnswer(Gate gate) {
     final composerLevel = widget.level.toComposerLevelWith(gate);
     final circuit = QuantumCircuit(currentLevel: composerLevel);
-    final bool match =
-        circuit.currentState.state.almostEqualTo(QuantumMatrix(widget.level.solutionFinalVector));
+    final bool match = circuit.currentState.state
+        .almostEqualTo(QuantumMatrix(widget.level.solutionFinalVector));
     circuit.dispose();
     return match;
   }
@@ -55,26 +55,10 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1E1E2C),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E1E2C),
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SvgPicture.asset(
-              'assets/images/logo_mini.svg',
-              height: 32,
-              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Level ${widget.levelId}',
-              style: const TextStyle(
-                  color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+      appBar: LevelHeaderRouter.headerFor(
+        level: widget.level,
+        levelId: widget.levelId,
+        compact: false,
       ),
       body: CustomScrollView(
         slivers: [
@@ -226,8 +210,7 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
                                     _correct
                                         ? Icons.check_circle
                                         : Icons.cancel,
-                                    color:
-                                        _correct ? Colors.green : Colors.red,
+                                    color: _correct ? Colors.green : Colors.red,
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
@@ -257,8 +240,8 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor:
                                       _correct ? Colors.green : Colors.orange,
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 16),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
                                   shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12)),
                                 ),
@@ -302,9 +285,8 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
       final StringBuffer row = StringBuffer();
       row.write('|${widget.level.initialQubitsStateString[q]}⟩ ─── ');
 
-      final int depth = circuit.isCircuitEmpty()
-          ? 0
-          : circuit.placedGates[q].length;
+      final int depth =
+          circuit.isCircuitEmpty() ? 0 : circuit.placedGates[q].length;
       for (int pos = 0; pos < depth; pos++) {
         final gate = circuit.placedGates[q][pos];
         if (gate.gate.type == SelectedGateType.none) {
@@ -347,6 +329,3 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
     );
   }
 }
-
-
-

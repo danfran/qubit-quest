@@ -329,6 +329,31 @@ class McqLevel extends QQLevel {
   });
 }
 
+// Concept checks are MCQ-style understanding checkpoints, not construction
+// puzzles. The final level of a chapter should use this shape when it is a
+// synthesis/interpretation checkpoint rather than another mechanics exercise.
+class ConceptCheckLevel extends McqLevel {
+  final String badgeLabel;
+
+  const ConceptCheckLevel({
+    super.title,
+    required super.taskDescription,
+    super.conceptIntro,
+    super.solutionExplanation,
+    super.hints,
+    super.mysteryTitle,
+    super.mysteryText,
+    super.discoveryTitle,
+    super.discoveryText,
+    super.keyInsight,
+    super.whyItMatters,
+    super.nextMystery,
+    required super.options,
+    required super.correctOptionIndex,
+    this.badgeLabel = 'Concept Check',
+  });
+}
+
 // ── Measurement Lab ───────────────────────────────────────────────────────────
 // User presses "Measure" repeatedly to observe probability convergence.
 class MeasurementLabLevel extends QQLevel {

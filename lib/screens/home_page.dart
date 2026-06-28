@@ -3,13 +3,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:in_app_review/in_app_review.dart';
-import 'package:quantumquiz/screens/circuit_reading_screen.dart';
-import 'package:quantumquiz/screens/fill_the_gate_screen.dart';
-import 'package:quantumquiz/screens/mcq_screen.dart';
-import 'package:quantumquiz/screens/measurement_lab_screen.dart';
+import 'package:quantumquiz/screens/learning_map_screen.dart';
+import 'package:quantumquiz/screens/level_ui_router.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
+import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/screens/learning_flow_widgets.dart';
 import 'package:quantumquiz/screens/webview_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,6 +18,7 @@ import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 
 import '../models/qq_level.dart';
 import '../models/qq_levels.dart';
+import '../models/qq_levels_category.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -824,12 +824,22 @@ class _HomePageState extends State<HomePage> {
       compact: compact,
       onTap: _showQubitSelectionDialog,
     );
+    final Widget learningMapCard = _buildActionCard(
+      title: 'Learning Map',
+      subtitle: 'See the concept graph behind your journey',
+      icon: Icons.account_tree_rounded,
+      primary: false,
+      compact: compact,
+      onTap: _openLearningMap,
+    );
 
     if (compact) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           continueCard,
+          const SizedBox(height: 10),
+          learningMapCard,
           const SizedBox(height: 10),
           composerCard,
         ],
@@ -840,8 +850,24 @@ class _HomePageState extends State<HomePage> {
       children: [
         Expanded(flex: 6, child: continueCard),
         const SizedBox(width: 14),
+        Expanded(flex: 5, child: learningMapCard),
+        const SizedBox(width: 14),
         Expanded(flex: 5, child: composerCard),
       ],
+    );
+  }
+
+  void _openLearningMap() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) => LearningMapScreen(
+          maxUnlockedLevel: _maxUnlockedLevel,
+          onStartChapter: (levelNumber) async {
+            Navigator.of(context).pop();
+            await _playLevelSequence(levelNumber, this.context);
+          },
+        ),
+      ),
     );
   }
 
@@ -1090,33 +1116,11 @@ class _HomePageState extends State<HomePage> {
     final unlockCallback =
         _isLegacyChallengeLevel(level) ? null : _updateMaxUnlockedLevel;
 
-    return switch (level) {
-      ComposerLevel l => QuantumComposer(
-          levelId: levelId,
-          level: l,
-          onLevelUnlocked: unlockCallback,
-        ),
-      FillTheGateLevel l => FillTheGateScreen(
-          levelId: levelId,
-          level: l,
-          onLevelUnlocked: unlockCallback,
-        ),
-      CircuitReadingLevel l => CircuitReadingScreen(
-          levelId: levelId,
-          level: l,
-          onLevelUnlocked: unlockCallback,
-        ),
-      McqLevel l => McqScreen(
-          levelId: levelId,
-          level: l,
-          onLevelUnlocked: unlockCallback,
-        ),
-      MeasurementLabLevel l => MeasurementLabScreen(
-          levelId: levelId,
-          level: l,
-          onLevelUnlocked: unlockCallback,
-        ),
-    };
+    return LevelUIRouter.buildLevelUI(
+      level: level,
+      levelId: levelId,
+      onLevelUnlocked: unlockCallback,
+    );
   }
 
   Future<void> _showLearningIntroIfNeeded(QQLevel level) async {
@@ -1343,6 +1347,51 @@ class _HomePageState extends State<HomePage> {
         result == LevelCompletionAction.reviewSolution;
   }
 
+  QQLevelsCategory? _chapterCategoryForLevel(int levelNumber) {
+    final int levelIndex = levelNumber - 1;
+    for (final category in groupedLevels) {
+      if (category.groupName == 'Legacy Challenges') continue;
+      if (levelIndex >= category.from && levelIndex <= category.to) {
+        return category;
+      }
+    }
+    return null;
+  }
+
+  bool _isFinalChapterLevel(int levelNumber) {
+    final category = _chapterCategoryForLevel(levelNumber);
+    return category != null && levelNumber - 1 == category.to;
+  }
+
+  String _chapterDisplayTitle(QQLevelsCategory category) =>
+      category.groupName.replaceFirst(' - ', ' — ');
+
+  String _chapterIdentityFor(QQLevelsCategory category) {
+    for (final entry in notebookEntries) {
+      if (entry.chapterTitle == category.groupName) {
+        return entry.chapterIdentity;
+      }
+    }
+    return '';
+  }
+
+  Future<void> _showChapterCompleteIfNeeded(int levelNumber) async {
+    if (!_isFinalChapterLevel(levelNumber)) return;
+
+    final category = _chapterCategoryForLevel(levelNumber);
+    if (category == null || !mounted) return;
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => ChapterCompleteScreen(
+          chapterTitle: _chapterDisplayTitle(category),
+          chapterIdentity: _chapterIdentityFor(category),
+        ),
+      ),
+    );
+  }
+
   Future<void> _playLevelSequence(int levelNumber, BuildContext context) async {
     int currentLevelToPlay = levelNumber;
     bool continueLevelChain = true;
@@ -1379,6 +1428,9 @@ class _HomePageState extends State<HomePage> {
       }
 
       if (result == LevelCompletionAction.nextLevel) {
+        await _showChapterCompleteIfNeeded(currentLevelToPlay);
+        if (!context.mounted) break;
+
         if (currentLevelToPlay == _mainCampaignLevelCount) {
           _showGameCompleteDialog();
           continueLevelChain = false;

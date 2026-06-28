@@ -10,6 +10,89 @@ import 'package:quantumquiz/models/qq_level.dart';
 Complex get negOne => Complex(-1.0, 0.0); // -1
 Complex get negI => Complex(0.0, -1.0); // -i
 
+final List<List<Complex>> _ghzStarPlusTargetUnitary = [
+  [
+    Complex(math.sqrt1_2, 0),
+    Complex(math.sqrt1_2, 0),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+  ],
+  [
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex(math.sqrt1_2, 0),
+    Complex(-math.sqrt1_2, 0),
+  ],
+  [
+    Complex.zero(),
+    Complex.zero(),
+    Complex(math.sqrt1_2, 0),
+    Complex(math.sqrt1_2, 0),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+  ],
+  [
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex(math.sqrt1_2, 0),
+    Complex(-math.sqrt1_2, 0),
+    Complex.zero(),
+    Complex.zero(),
+  ],
+  [
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex(math.sqrt1_2, 0),
+    Complex(math.sqrt1_2, 0),
+    Complex.zero(),
+    Complex.zero(),
+  ],
+  [
+    Complex.zero(),
+    Complex.zero(),
+    Complex(math.sqrt1_2, 0),
+    Complex(-math.sqrt1_2, 0),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+  ],
+  [
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex(math.sqrt1_2, 0),
+    Complex(math.sqrt1_2, 0),
+  ],
+  [
+    Complex(math.sqrt1_2, 0),
+    Complex(-math.sqrt1_2, 0),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+  ],
+];
+
 final List<QQLevel> _authoredQQLevels = [
   // X
   ComposerLevel.fromBinaryString(
@@ -647,6 +730,89 @@ final List<QQLevel> _authoredQQLevels = [
       [Complex.zero()],
       [Complex.zero()],
       [Complex.one()],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
     ],
   ),
   // CCX(0,1,2)
@@ -2237,6 +2403,89 @@ final List<QQLevel> _authoredQQLevels = [
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.one()],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
     ],
   ),
 
@@ -3855,23 +4104,23 @@ final List<QQLevel> _authoredQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'Three Qubits',
     taskDescription:
-        r'What changes when we add a third qubit? Prepare the three-qubit state \( |111\rangle \).',
+        r'What changes when we add a third qubit? Prepare the full-register outcome \( |111\rangle \).',
     targetStateExpression: '|111⟩',
     mysteryTitle: 'What changes when we add a third qubit?',
     mysteryText:
-        'A third qubit widens the system. Start simply: prepare a clear three-qubit pattern and notice that the circuit now describes the whole register.',
+        'A third qubit widens the state label. Start simply: prepare one complete three-qubit outcome and read it as a whole register pattern.',
     discoveryTitle: 'Three Qubits',
     discoveryText:
-        'The system now contains more than a pair. Each qubit contributes to the shared state that the circuit transforms.',
-    keyInsight: 'Quantum systems can contain many interacting qubits.',
+        'The state is now a complete register outcome. The meaningful label is the whole pattern |111⟩, not three unrelated symbols.',
+    keyInsight: 'A three-qubit register is described by full-system outcomes.',
     whyItMatters: 'Useful quantum algorithms require many qubits.',
-    nextMystery: 'Can three qubits become connected?',
+    nextMystery: 'Can one observed part constrain the whole register?',
     hints: [
       'Each inactive qubit needs the same simple change.',
       'Use X on all three wires.',
     ],
     solutionExplanation:
-        'Each X gate flips one qubit, preparing the three-qubit state |111⟩.',
+        'Each X gate flips one qubit, preparing the full-register outcome |111⟩.',
     numQubits: 3,
     initialQubitsStateString: '000',
     availableGates: [
@@ -3892,27 +4141,35 @@ final List<QQLevel> _authoredQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'Shared Information',
     taskDescription:
-        r'Can information flow across an entire system? Create one active qubit, then spread it to reach \( |111\rangle \).',
+        r'Can one part of a register constrain all the others? Prepare the globally consistent outcome \( |111\rangle \).',
     targetStateExpression: '|111⟩',
-    mysteryTitle: 'Can information flow across an entire system?',
+    mysteryTitle: 'Can one part of a register constrain all the others?',
     mysteryText:
-        'Information does not have to stay local. A controlled step can pass it along, then another can extend it across the register.',
+        'A three-qubit register can be prepared so every observed part agrees with the whole outcome. If one part is 1, the complete pattern is fixed here.',
     discoveryTitle: 'Shared Information',
     discoveryText:
-        'One active qubit became a source for the rest of the system. Controlled operations spread that information across multiple qubits.',
-    keyInsight: 'Information can spread through multiple qubits.',
-    whyItMatters: 'Large quantum states emerge from connected interactions.',
+        'The final register is globally consistent: each qubit agrees with the same full outcome. This prepares the idea of correlations across the entire register.',
+    keyInsight: 'A full-register outcome can constrain every qubit together.',
+    whyItMatters:
+        'Large quantum states are understood through full-system patterns.',
     nextMystery: 'Can all three qubits share the same state?',
     hints: [
-      'First create one active control.',
-      'Use CX twice so the active information reaches the other two qubits.',
+      'Q0 is already fixed as the active part of the register.',
+      'Use CX from Q0 to each other qubit so the whole register ends in one consistent pattern.',
     ],
     solutionExplanation:
-        'X creates the first active qubit, then two CX gates propagate that information through the three-qubit system.',
+        'The fixed X prepares Q0 as the active part of the register. Two CX gates from Q0 prepare the consistent full-register outcome |111⟩.',
     numQubits: 3,
     initialQubitsStateString: '000',
+    preInsertedGates: (QuantumCircuit circuit) {
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.x),
+        0,
+        0,
+        isDeletable: false,
+      );
+    },
     availableGates: [
-      Gate.fromIdentifier(SelectedGateType.x),
       Gate.fromIdentifier(SelectedGateType.cnot),
     ],
     solutionFinalVector: [
@@ -3925,29 +4182,113 @@ final List<QQLevel> _authoredQQLevels = [
       [Complex.zero()],
       [Complex.one()],
     ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+      ],
+      [
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+    ],
   ),
 
   ComposerLevel.fromBinaryString(
     title: 'All Together',
     taskDescription:
-        r'Can three qubits become one shared system? Prepare \( (|000\rangle + |111\rangle)/\sqrt{2} \).',
+        r'Can three qubits become one globally constrained system? Prepare \( (|000\rangle + |111\rangle)/\sqrt{2} \).',
     targetStateLabel: '|GHZ+⟩',
     targetStateExpression: '(|000⟩ + |111⟩)/√2',
-    mysteryTitle: 'Can three qubits become one shared system?',
+    mysteryTitle: 'Can three qubits become one globally constrained system?',
     mysteryText:
-        'A Bell pair showed two qubits acting as one. Now ask whether a whole three-qubit register can share one quantum state.',
+        'The register may have local uncertainty while still allowing only globally consistent outcomes. Try preparing a state with only |000⟩ and |111⟩ present.',
     discoveryTitle: 'All Together',
     discoveryText:
-        'The final state is not one qubit plus another plus another. The possibilities belong to the full three-qubit system.',
-    keyInsight: 'The entire system now behaves as one quantum state.',
-    whyItMatters: 'This is the first example of large-scale entanglement.',
-    nextMystery: 'Is this just a bigger Bell State?',
+        'The final state allows only two complete outcomes: |000⟩ and |111⟩. Individual qubits are uncertain, but the full register is tightly structured.',
+    keyInsight:
+        'Local uncertainty can exist inside a globally consistent structure.',
+    whyItMatters: 'This is the first step toward whole-register entanglement.',
+    nextMystery: 'Is this structure explained by pairs?',
     hints: [
       'Start by creating a split possibility on one qubit.',
-      'Use controlled operations to connect that split to the other two qubits.',
+      'Use controlled operations so only the full-register outcomes |000⟩ and |111⟩ remain possible.',
     ],
     solutionExplanation:
-        'The first qubit enters a superposition, then CX gates connect the other qubits so the whole register shares |000⟩ and |111⟩.',
+        'The first qubit enters a superposition, then CX gates create one three-qubit state whose only allowed full-register outcomes are |000⟩ and |111⟩.',
     numQubits: 3,
     initialQubitsStateString: '000',
     availableGates: [
@@ -3964,29 +4305,33 @@ final List<QQLevel> _authoredQQLevels = [
       [Complex.zero()],
       [Complex(math.sqrt1_2, 0)],
     ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: _ghzStarPlusTargetUnitary,
   ),
 
   ComposerLevel.fromBinaryString(
     title: 'Beyond Bell States',
     taskDescription:
-        r'How is a GHZ state different from a Bell State? Prepare \( (|000\rangle + |111\rangle)/\sqrt{2} \).',
+        r'Why is a GHZ state not explained by pairs? Prepare \( (|000\rangle + |111\rangle)/\sqrt{2} \).',
     targetStateLabel: '|GHZ+⟩',
     targetStateExpression: '(|000⟩ + |111⟩)/√2',
-    mysteryTitle: 'How is a GHZ state different from a Bell State?',
+    mysteryTitle: 'Why is a GHZ state not explained by pairs?',
     mysteryText:
-        'A Bell state connects a pair. A GHZ state asks you to think wider: the shared state can involve an entire system.',
+        'Pairwise thinking is not enough here. The important object is the complete three-qubit register and its allowed global outcomes.',
     discoveryTitle: 'GHZ State',
     discoveryText:
-        'This is not just pairwise correlation copied one more time. The three-qubit register is described as one shared quantum state.',
-    keyInsight: 'Entanglement can involve an entire system, not just a pair.',
-    whyItMatters: 'Real quantum algorithms manipulate large entangled systems.',
-    nextMystery: 'What happens if hidden phase enters a shared state?',
+        'The state is not a collection of pair relationships. It is one full-register structure with only globally consistent outcomes.',
+    keyInsight:
+        'GHZ structure cannot be decomposed into separate pair explanations.',
+    whyItMatters:
+        'Real quantum algorithms manipulate constraints over whole registers.',
+    nextMystery: 'What is the full-register rule?',
     hints: [
       'Create a superposition first.',
-      'Then use control to make the other two qubits share the same alternatives.',
+      'Then use control so the complete register has only the alternatives |000⟩ and |111⟩.',
     ],
     solutionExplanation:
-        'A superposition on one qubit is spread through two CX gates, producing the three-qubit GHZ state.',
+        'A superposition on one qubit is connected to the full register by two CX gates, producing a GHZ state whose structure belongs to all three qubits together.',
     numQubits: 3,
     initialQubitsStateString: '000',
     availableGates: [
@@ -4003,48 +4348,40 @@ final List<QQLevel> _authoredQQLevels = [
       [Complex.zero()],
       [Complex(math.sqrt1_2, 0)],
     ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: _ghzStarPlusTargetUnitary,
   ),
 
-  ComposerLevel.fromBinaryString(
+  ConceptCheckLevel(
     title: 'One System, Three Qubits',
+    badgeLabel: 'Chapter Synthesis Check',
     taskDescription:
-        r'What have we actually discovered? Prepare \( (|000\rangle - |111\rangle)/\sqrt{2} \).',
-    targetStateLabel: '|GHZ-⟩',
-    targetStateExpression: '(|000⟩ - |111⟩)/√2',
+        r'A GHZ state has already been prepared: \( (|000\rangle + |111\rangle)/\sqrt{2} \). What does this state mean?',
+    conceptIntro:
+        'This time the circuit construction is finished. Focus on the state itself: a GHZ state is a rule over the whole register, not a pattern to build again.',
     mysteryTitle: 'What have we actually discovered?',
     mysteryText:
-        'One final shared state includes hidden phase. Prepare it and focus on the whole register rather than any individual qubit.',
+        'The register is already in a GHZ state. The question is not which gate comes next, but which full-register outcomes the state allows.',
     discoveryTitle: 'One System, Three Qubits',
     discoveryText:
-        'The three qubits form a single state. Even the phase belongs to the shared system, not to one isolated wire.',
-    keyInsight: 'Multiple qubits can form a single shared quantum state.',
+        'The three qubits form one global constraint system. GHZ is not a circuit pattern by itself: it is a restriction on the entire state space of the register.',
+    keyInsight: 'GHZ is a restriction on allowed full-register outcomes.',
     whyItMatters:
-        'Phase kickback, quantum algorithms, and large-scale quantum computation rely on thinking about systems rather than individual qubits.',
-    nextMystery:
-        'Can information be stored in phase and spread across a quantum system?',
+        'Large-scale quantum computation relies on thinking about whole systems rather than isolated qubits or pairs.',
+    nextMystery: 'Can a full-register constraint carry hidden information?',
     hints: [
-      'Use the same shared-state idea as before.',
-      'The minus sign can be introduced before the information is shared.',
+      'Read the state as a statement about complete register outcomes.',
+      'Only |000⟩ and |111⟩ have non-zero amplitude in this GHZ state.',
     ],
     solutionExplanation:
-        'A phase-marked superposition is spread across the register, creating a GHZ-style state with a relative minus sign.',
-    numQubits: 3,
-    initialQubitsStateString: '000',
-    availableGates: [
-      Gate.fromIdentifier(SelectedGateType.hadamard),
-      Gate.fromIdentifier(SelectedGateType.z),
-      Gate.fromIdentifier(SelectedGateType.cnot),
+        'The GHZ state is a global state-space constraint. The allowed measurement outcomes are |000⟩ and |111⟩; mixed outcomes such as |001⟩ or |010⟩ are forbidden because their amplitudes are zero.',
+    options: [
+      'Only the full-register outcomes |000⟩ and |111⟩ are allowed; mixed outcomes are forbidden.',
+      'Each qubit independently has a 50% chance of being 0 or 1, so all eight outcomes are possible.',
+      'Q0 is entangled with Q1, and Q2 is a separate qubit that can be measured independently.',
+      'The state means information moved from Q0 through Q1 to Q2.',
     ],
-    solutionFinalVector: [
-      [Complex(math.sqrt1_2, 0)],
-      [Complex.zero()],
-      [Complex.zero()],
-      [Complex.zero()],
-      [Complex.zero()],
-      [Complex.zero()],
-      [Complex.zero()],
-      [Complex(-math.sqrt1_2, 0)],
-    ],
+    correctOptionIndex: 0,
   ),
 ];
 
@@ -4171,6 +4508,11 @@ ComposerLevel getComposerAsLevel(int numQubits) {
   );
 }
 
+// Chapter structure rule:
+// - The last level of each chapter should be a ConceptCheckLevel when the goal
+//   is synthesis or interpretation rather than another construction puzzle.
+// - The second-to-last level should carry the final gameplay synthesis.
+// - Concept checks are first-class chapter components, not legacy quiz screens.
 final List<QQLevelsCategory> groupedLevels = [
   QQLevelsCategory(
     groupName: 'Chapter 1 - Information',

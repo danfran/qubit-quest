@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/level_header_router.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 
 class CircuitReadingScreen extends StatefulWidget {
@@ -49,26 +49,10 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1E1E2C),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E1E2C),
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SvgPicture.asset(
-              'assets/images/logo_mini.svg',
-              height: 32,
-              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Level ${widget.levelId}',
-              style: const TextStyle(
-                  color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+      appBar: LevelHeaderRouter.headerFor(
+        level: widget.level,
+        levelId: widget.levelId,
+        compact: false,
       ),
       body: CustomScrollView(
         slivers: [
@@ -192,8 +176,7 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
 
                   return Padding(
                     padding: EdgeInsets.only(
-                        bottom:
-                            idx < widget.level.options.length - 1 ? 10 : 0),
+                        bottom: idx < widget.level.options.length - 1 ? 10 : 0),
                     child: GestureDetector(
                       onTap: _answered
                           ? null
@@ -310,5 +293,3 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
     );
   }
 }
-
-

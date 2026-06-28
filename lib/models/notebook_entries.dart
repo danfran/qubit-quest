@@ -1353,6 +1353,235 @@ const List<NotebookEntry> notebookEntries = [
       'Three Qubits',
     ],
   ),
+  NotebookEntry(
+    id: 'three_qubits',
+    discoveryTitle: 'Three Qubits',
+    chapterIndex: 7,
+    chapterTitle: 'Chapter 7 - GHZ States',
+    title: 'Three Qubits',
+    summary:
+        'A three-qubit register is described by complete outcomes such as |000⟩ and |111⟩.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'With three qubits, the state label is no longer just a pair. A result like |111⟩ is one full-register outcome. Chapter 7 starts by treating the complete register as the object being described.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The register now has three positions, so the possible outcomes are full patterns such as |000⟩, |001⟩, and |111⟩. The important habit is to read the entire pattern at once.',
+      examples: [
+        NotebookExample(label: 'Start', notation: '|000⟩'),
+        NotebookExample(label: 'Prepared outcome', notation: '|111⟩'),
+        NotebookExample(
+            label: 'Mental unit', notation: 'one full three-qubit register'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'A three-qubit register has eight basis outcomes. GHZ will later restrict which of those full-register outcomes can appear, so this first step makes the register-level viewpoint explicit.',
+      examples: [
+        NotebookExample(label: 'Examples', notation: '|000⟩\n|010⟩\n|111⟩'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This entry is not yet the GHZ state. It prepares the vocabulary for GHZ by making the complete register the object of attention. Looking Ahead: the next entries narrow the allowed full-register outcomes until the state becomes a global constraint.',
+    ),
+    relatedDiscoveryTitles: [
+      'State Transformations',
+      'Two Qubits',
+      'Shared Information',
+    ],
+  ),
+  NotebookEntry(
+    id: 'shared_information',
+    discoveryTitle: 'Shared Information',
+    chapterIndex: 7,
+    chapterTitle: 'Chapter 7 - GHZ States',
+    title: 'Shared Information',
+    summary:
+        'A three-qubit register can be prepared so one observed part agrees with the whole outcome.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'If the register is definitely |111⟩, then checking any one qubit is enough to know the rest in this case. The lesson is that the full outcome can constrain every part together.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The final state is a globally consistent pattern. Every position agrees with the same full-register outcome, so the register is read as one coordinated object.',
+      examples: [
+        NotebookExample(label: 'Full outcome', notation: '|111⟩'),
+        NotebookExample(
+            label: 'Consistency', notation: 'measuring one 1 matches all 1s'),
+        NotebookExample(
+            label: 'Whole-register view',
+            notation: 'the complete pattern is fixed'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'This is still a definite basis state, not a GHZ superposition. Its purpose is to establish three-qubit correlation language before the allowed vs forbidden global outcomes become a state-space restriction interpretation.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'A full-register outcome can make every local measurement consistent without yet being entangled. Looking Ahead: GHZ keeps local uncertainty but preserves global consistency.',
+    ),
+    relatedDiscoveryTitles: [
+      'Three Qubits',
+      'Correlation',
+      'All Together',
+    ],
+  ),
+  NotebookEntry(
+    id: 'all_together',
+    discoveryTitle: 'All Together',
+    chapterIndex: 7,
+    chapterTitle: 'Chapter 7 - GHZ States',
+    title: 'All Together',
+    summary:
+        'A GHZ-like state allows only globally consistent outcomes while each qubit can remain locally uncertain.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'The register can be uncertain without becoming unstructured. In (|000⟩ + |111⟩)/√2, the individual result is not known ahead of time, but the whole register is constrained: all three outcomes must agree.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The state now has two allowed full-register outcomes. |000⟩ and |111⟩ have non-zero amplitude; mixed outcomes such as |001⟩, |010⟩, and |101⟩ are forbidden global outcomes.',
+      examples: [
+        NotebookExample(label: 'Allowed', notation: '|000⟩\n|111⟩'),
+        NotebookExample(label: 'Forbidden', notation: '|001⟩\n|010⟩\n|101⟩'),
+        NotebookExample(
+            label: 'Measurement rule',
+            notation: 'local uncertainty, global consistency'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'This is the state space restriction interpretation: the three-qubit state occupies only the part of the full basis where all qubits agree. The full register has eight basis outcomes, but only two have non-zero amplitude.',
+      examples: [
+        NotebookExample(
+            label: 'GHZ-like state', notation: '(|000⟩ + |111⟩)/√2'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'The important structure is not a pair relationship. The state restricts the complete register. Looking Ahead: the next discovery makes explicit why pairwise explanations miss this whole-system structure.',
+    ),
+    relatedDiscoveryTitles: [
+      'Shared Information',
+      'Entanglement',
+      'GHZ State',
+    ],
+  ),
+  NotebookEntry(
+    id: 'ghz_state',
+    discoveryTitle: 'GHZ State',
+    chapterIndex: 7,
+    chapterTitle: 'Chapter 7 - GHZ States',
+    title: 'Beyond Bell States',
+    summary:
+        'A GHZ state is a whole-register structure that cannot be described as separate entangled pairs.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Pair thinking is too small for GHZ. The state is not Q0 paired with Q1 plus Q1 paired with Q2. The correct object is the entire three-qubit register and the global rule over its outcomes.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The explanation changed. Bell-state intuition says a pair can be one system. GHZ says the full register is the system, and pair-only descriptions do not capture the allowed vs forbidden global outcomes.',
+      examples: [
+        NotebookExample(
+            label: 'Not enough', notation: 'pair descriptions alone'),
+        NotebookExample(
+            label: 'Correct unit', notation: 'the full three-qubit register'),
+        NotebookExample(label: 'Allowed', notation: '|000⟩ and |111⟩'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'GHZ is multi-qubit entanglement with collective structure. The non-zero amplitudes belong to complete register outcomes. That whole-system amplitude pattern is not the same as a collection of Bell pairs.',
+      examples: [
+        NotebookExample(
+            label: 'GHZ pattern', notation: 'non-zero: |000⟩, |111⟩'),
+        NotebookExample(
+            label: 'Forbidden pattern',
+            notation: 'zero amplitude: every mixed outcome'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'The state space restriction interpretation is the useful mental model: GHZ restricts the register to a globally consistent subspace. Looking Ahead: the final entry names this as a global constraint system.',
+    ),
+    relatedDiscoveryTitles: [
+      'All Together',
+      'One Quantum System',
+      'One System, Three Qubits',
+    ],
+  ),
+  NotebookEntry(
+    id: 'one_system_three_qubits',
+    discoveryTitle: 'One System, Three Qubits',
+    chapterIndex: 7,
+    chapterTitle: 'Chapter 7 - GHZ States',
+    title: 'One System, Three Qubits',
+    summary:
+        'GHZ is a global constraint system over the full register: only selected complete outcomes have non-zero amplitude.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Think of GHZ as a rule over the whole register. The rule does not describe one qubit, and it does not describe a pair. It says which full outcomes are allowed and which full outcomes are forbidden.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The complete register is now the mental unit. |000⟩ and |111⟩ are allowed global outcomes. The six mixed outcomes are forbidden global outcomes because their amplitudes are zero.',
+      examples: [
+        NotebookExample(label: 'Allowed', notation: '|000⟩\n|111⟩'),
+        NotebookExample(
+            label: 'Forbidden',
+            notation: '|001⟩\n|010⟩\n|011⟩\n|100⟩\n|101⟩\n|110⟩'),
+        NotebookExample(
+            label: 'Core idea',
+            notation: 'global constraint over the register'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'In a GHZ-style state, the amplitude pattern is a restriction on the full state space. The system is not explained by individual qubits or pair links; it is explained by the complete register state.',
+      examples: [
+        NotebookExample(
+            label: 'State space restriction interpretation',
+            notation: '8 possible basis outcomes -> 2 allowed outcomes'),
+        NotebookExample(
+            label: 'GHZ-style state', notation: '(|000⟩ - |111⟩)/√2'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'The minus sign changes the state, but the Chapter 7 lesson is the global constraint: only |000⟩ and |111⟩ have non-zero amplitude. Looking Ahead: later chapters can use whole-register constraints as resources for larger quantum procedures.',
+    ),
+    relatedDiscoveryTitles: [
+      'GHZ State',
+      'All Together',
+      'Entanglement',
+      'Phase Information',
+    ],
+  ),
 ];
 
 final Map<String, NotebookEntry> notebookEntriesByDiscoveryTitle = {

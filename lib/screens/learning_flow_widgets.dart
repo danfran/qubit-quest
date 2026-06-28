@@ -35,6 +35,48 @@ class ChapterIntroScreen extends StatelessWidget {
   }
 }
 
+class ChapterCompleteScreen extends StatelessWidget {
+  const ChapterCompleteScreen({
+    super.key,
+    required this.chapterTitle,
+    required this.chapterIdentity,
+  });
+
+  final String chapterTitle;
+  final String chapterIdentity;
+
+  @override
+  Widget build(BuildContext context) {
+    return _LearningScaffold(
+      child: _LearningCard(
+        title: 'Chapter Complete',
+        body: '',
+        icon: Icons.flag_circle_outlined,
+        actions: [
+          QubitQuestDialogButton.secondary(
+            label: 'Review Notebook',
+            onPressed: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (context) => const DiscoveriesScreen(),
+                ),
+              );
+            },
+          ),
+          QubitQuestDialogButton.primary(
+            label: 'Continue Journey',
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+        child: _ChapterCompleteBody(
+          chapterTitle: chapterTitle,
+          chapterIdentity: chapterIdentity,
+        ),
+      ),
+    );
+  }
+}
+
 class MysteryPanel extends StatelessWidget {
   const MysteryPanel({
     super.key,
@@ -1085,12 +1127,14 @@ class _LearningCard extends StatelessWidget {
     required this.body,
     required this.icon,
     required this.actions,
+    this.child,
   });
 
   final String title;
   final String body;
   final IconData icon;
   final List<Widget> actions;
+  final Widget? child;
 
   @override
   Widget build(BuildContext context) {
@@ -1143,6 +1187,10 @@ class _LearningCard extends StatelessWidget {
               const SizedBox(height: 16),
               _LearningText(body),
             ],
+            if (child != null) ...[
+              const SizedBox(height: 16),
+              child!,
+            ],
             const SizedBox(height: 18),
             Wrap(
               alignment: WrapAlignment.end,
@@ -1153,6 +1201,95 @@ class _LearningCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ChapterCompleteBody extends StatelessWidget {
+  const _ChapterCompleteBody({
+    required this.chapterTitle,
+    required this.chapterIdentity,
+  });
+
+  final String chapterTitle;
+  final String chapterIdentity;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: QubitQuestDialog.innerColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: QubitQuestDialog.borderSoftColor),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  chapterTitle,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    height: 1.12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (chapterIdentity.trim().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    chapterIdentity,
+                    style: const TextStyle(
+                      color: QubitQuestDialog.mutedText,
+                      fontSize: 14,
+                      height: 1.35,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: QubitQuestDialog.cyan.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: QubitQuestDialog.cyan.withValues(alpha: 0.34),
+            ),
+          ),
+          child: const Padding(
+            padding: EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.auto_stories_outlined,
+                  color: QubitQuestDialog.cyan,
+                  size: 22,
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'All discoveries unlocked. Your Quantum Notebook has the chapter synthesis ready for review.',
+                    style: TextStyle(
+                      color: Color(0xFFD6E3F8),
+                      fontSize: 14,
+                      height: 1.35,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
