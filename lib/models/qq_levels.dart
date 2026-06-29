@@ -2575,152 +2575,28 @@ final List<QQLevel> _authoredQQLevels = [
   ),
 
   ComposerLevel(
-    title: 'Something Changed',
+    title: 'Hidden Mark',
     taskDescription:
-        r'Can a circuit change information without changing the measured bit? Apply one controlled operation to \( |1\rangle|-\rangle \).',
-    targetStateExpression: '-|1⟩|−⟩',
-    mysteryTitle:
-        'Can a circuit change information without changing the measured bit?',
+        r'Use one controlled phase operation on \( |+\rangle|1\rangle \). The visible bit probabilities should stay the same, but the control should receive a phase mark.',
+    targetStateExpression: '|−⟩|1⟩',
+    mysteryTitle: 'Can a controlled operation mark a state invisibly?',
     mysteryText:
-        'The measured bits can look exactly the same before and after a circuit. Try the controlled operation and watch for information that measurement probabilities alone do not reveal.',
+        'The target is fixed at |1⟩. Apply a controlled phase operation and look for a change that does not appear as a visible bit flip.',
     discoveryTitle: 'Hidden Information',
     discoveryText:
-        'The target bit still behaves like |−⟩ and the control still measures as 1. Yet the state gained a phase. Something changed, even though the visible bit values did not.',
-    keyInsight: 'Not all quantum information is visible through measurement.',
+        'A controlled operation can write information into phase. The measured bit probabilities can look unchanged while the control qubit has changed from |+⟩ to |−⟩.',
+    keyInsight:
+        'Controlled operations can create hidden phase marks without changing visible bit values.',
     whyItMatters:
-        'Quantum algorithms can move information into signs and phases before anything changes in the measurement probabilities. If you only watch measured bits, you miss most of the computation.',
+        'Quantum algorithms often compute by marking phase first, then revealing that phase later. The useful information is not always visible immediately.',
     nextMystery:
-        'What kind of state can carry this hidden information without visibly changing?',
-    hints: [
-      'Use the controlled gate with the first qubit as control and the second qubit as target.',
-      'The target is |−⟩, so flipping it can create a phase instead of an obvious bit change.',
-    ],
-    solutionExplanation:
-        'CNOT with control q0 and target q1 maps |1⟩|−⟩ to -|1⟩|−⟩. The measured bit values are unchanged, but the phase changed.',
-    numQubits: 2,
-    initialQubitsStateStr: '|1⟩|−⟩',
-    initialQubitsState: [
-      Complex.zero(),
-      Complex(math.sqrt1_2, 0),
-      Complex.zero(),
-      Complex(-math.sqrt1_2, 0),
-    ],
-    availableGates: [
-      Gate.fromIdentifier(SelectedGateType.cnot),
-    ],
-    solutionFinalVector: [
-      [Complex.zero()],
-      [Complex(-math.sqrt1_2, 0)],
-      [Complex.zero()],
-      [Complex(math.sqrt1_2, 0)],
-    ],
-  ),
-
-  ComposerLevel(
-    title: 'The Hidden Passenger',
-    taskDescription:
-        r'Where did the information go? Turn the target from \( |+\rangle \) into the phase-sensitive \( |-\rangle \).',
-    targetStateExpression: '|1⟩|−⟩',
-    mysteryTitle: 'Where did the information go?',
-    mysteryText:
-        'The second qubit can hide information in phase. Prepare it as |−⟩ while the first qubit remains |1⟩.',
-    discoveryTitle: 'Phase Carrier',
-    discoveryText:
-        '|−⟩ has the same 50/50 measurement probabilities as |+⟩, but its minus sign makes it respond differently to controlled operations.',
-    keyInsight: 'Phase can carry information.',
-    whyItMatters:
-        'Phase-sensitive states let a circuit store information without needing a visible bit flip. They are the hidden passengers that make kickback possible.',
-    nextMystery:
-        'If the target carries phase, can a controlled gate send that phase back to the control?',
-    hints: [
-      'Only the target qubit needs to change.',
-      'Z changes |+⟩ into |−⟩ without changing the target measurement probabilities.',
-    ],
-    solutionExplanation:
-        'Applying Z to q1 changes |+⟩ into |−⟩. The target probabilities stay 50/50, but the phase is now different.',
-    numQubits: 2,
-    initialQubitsStateStr: '|1⟩|+⟩',
-    initialQubitsState: [
-      Complex.zero(),
-      Complex(math.sqrt1_2, 0),
-      Complex.zero(),
-      Complex(math.sqrt1_2, 0),
-    ],
-    availableGates: [
-      Gate.fromIdentifier(SelectedGateType.z),
-    ],
-    solutionFinalVector: [
-      [Complex.zero()],
-      [Complex(math.sqrt1_2, 0)],
-      [Complex.zero()],
-      [Complex(-math.sqrt1_2, 0)],
-    ],
-  ),
-
-  ComposerLevel(
-    title: 'First Kickback',
-    taskDescription:
-        r'How did the control affect something it never touched? Use one controlled operation on \( |+\rangle|-\rangle \).',
-    targetStateExpression: '|−⟩|−⟩',
-    mysteryTitle: 'How did the control affect something it never touched?',
-    mysteryText:
-        'The target qubit is set up as |−⟩. Use a controlled operation and look carefully at which qubit changes phase.',
-    discoveryTitle: 'Phase Kickback',
-    discoveryText:
-        'The CNOT acted on the target, but because the target was |−⟩, the phase kicked back onto the control. The control changed from |+⟩ to |−⟩.',
-    keyInsight: 'Controlled operations can modify phase.',
-    whyItMatters:
-        'Phase kickback is one of the core mechanisms behind quantum algorithms. It lets a circuit write information into phase without directly flipping the qubit that will later reveal the answer.',
-    nextMystery:
-        'Can this hidden communication happen without changing any visible bit value?',
-    hints: [
-      'Use the first qubit as the control and the second qubit as the target.',
-      'The target stays |−⟩, but the control can gain a phase.',
-    ],
-    solutionExplanation:
-        'CNOT maps |+⟩|−⟩ to |−⟩|−⟩. The target was flipped conditionally, but the visible change appears as phase on the control.',
-    numQubits: 2,
-    initialQubitsStateStr: '|+⟩|−⟩',
-    initialQubitsState: [
-      Complex(0.5, 0),
-      Complex(0.5, 0),
-      Complex(-0.5, 0),
-      Complex(-0.5, 0),
-    ],
-    availableGates: [
-      Gate.fromIdentifier(SelectedGateType.cnot),
-    ],
-    solutionFinalVector: [
-      [Complex(0.5, 0)],
-      [Complex(-0.5, 0)],
-      [Complex(-0.5, 0)],
-      [Complex(0.5, 0)],
-    ],
-  ),
-
-  ComposerLevel(
-    title: 'Information Without Flips',
-    taskDescription:
-        r'Can information be transferred without changing any visible bit value? Use one controlled phase operation on \( |+\rangle|1\rangle \).',
-    targetStateExpression: '|−⟩|1⟩',
-    mysteryTitle:
-        'Can information be transferred without changing any visible bit value?',
-    mysteryText:
-        'The second qubit is fixed at |1⟩. Use a controlled phase operation and watch the first qubit: no bit flip is needed for information to move.',
-    discoveryTitle: 'Hidden Communication',
-    discoveryText:
-        'CZ did not flip either bit. It only changed the sign of the |11⟩ path, which turned the control from |+⟩ into |−⟩.',
-    keyInsight: 'Quantum circuits often manipulate phase instead of bits.',
-    whyItMatters:
-        'Many quantum subroutines communicate by marking phases. The measured bit values may stand still while the useful information moves through the circuit.',
-    nextMystery:
-        'How do phase, interference, and kickback combine into the language of algorithms?',
+        'What setup lets a controlled operation push phase back onto the control?',
     hints: [
       'Use the controlled phase gate.',
-      'The second qubit remains |1⟩; the first qubit receives the phase change.',
+      'The target remains |1⟩; the control receives the phase mark.',
     ],
     solutionExplanation:
-        'CZ maps (|01⟩ + |11⟩)/√2 to (|01⟩ - |11⟩)/√2, which is |−⟩|1⟩. No bit values were flipped.',
+        'CZ maps |+⟩|1⟩ to |−⟩|1⟩. No bit flips occur, but the relative phase of the control changes.',
     numQubits: 2,
     initialQubitsStateStr: '|+⟩|1⟩',
     initialQubitsState: [
@@ -2741,28 +2617,160 @@ final List<QQLevel> _authoredQQLevels = [
   ),
 
   ComposerLevel(
-    title: 'The Quantum Secret',
+    title: 'Control Affects Control',
     taskDescription:
-        r'What have we really learned? Kick phase back onto the control, then reveal it as \( |1\rangle \).',
-    targetStateExpression: '|1⟩|−⟩',
-    mysteryTitle: 'What have we really learned?',
+        r'Use one CX on \( |1\rangle|−\rangle \). The target is flipped conditionally, but the visible state should only gain phase.',
+    targetStateExpression: '-|1⟩|−⟩',
+    mysteryTitle: 'Can the target setup affect the control logic?',
     mysteryText:
-        'A controlled operation can write information into phase. Interference can later turn that phase into a measured outcome. Combine both ideas.',
-    discoveryTitle: 'The Language of Quantum Algorithms',
+        'The target is prepared as |−⟩. Apply CX and notice that the conditional flip does not show up as an ordinary target bit change.',
+    discoveryTitle: 'Phase Carrier',
     discoveryText:
-        'The CNOT kicked phase back from the |−⟩ target onto the control. The final H converted that phase into the visible outcome |1⟩.',
+        '|−⟩ is a phase-sensitive target. When CX tries to flip it, the effect appears as phase rather than as a visible target-bit change.',
     keyInsight:
-        'Quantum algorithms frequently store information in phase and later reveal it through interference.',
+        'A phase-sensitive target can turn conditional bit logic into phase logic.',
     whyItMatters:
-        'Grover, Phase Estimation, Shor, and QAOA all rely on this principle: mark information in phase, then use interference to make the useful answers observable.',
+        'Phase kickback depends on target preparation. The controlled operation is the same, but the target state determines whether the computation writes a phase.',
     nextMystery:
-        'Next, an oracle can mark an answer in phase so interference can amplify it.',
+        'What happens when the control is in superposition and only one branch receives that phase?',
     hints: [
-      'First kick phase back with a controlled operation.',
-      'Then use H on the control qubit to reveal the kicked phase as |1⟩.',
+      'Use CX with q0 as control and q1 as target.',
+      'The target is |−⟩, so a conditional flip becomes a phase effect.',
     ],
     solutionExplanation:
-        'CNOT changes |+⟩|−⟩ into |−⟩|−⟩. H on the control maps |−⟩ to |1⟩, revealing the phase as a measurable bit.',
+        'CX with control q0 and target q1 maps |1⟩|−⟩ to -|1⟩|−⟩. The visible values are unchanged, but the controlled operation has written phase.',
+    numQubits: 2,
+    initialQubitsStateStr: '|1⟩|−⟩',
+    initialQubitsState: [
+      Complex.zero(),
+      Complex(math.sqrt1_2, 0),
+      Complex.zero(),
+      Complex(-math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex(-math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Unexpected Phase Change',
+    taskDescription:
+        r'Use one CX on \( |+\rangle|−\rangle \). The target is acted on, but the control should become \( |−\rangle \).',
+    targetStateExpression: '|−⟩|−⟩',
+    mysteryTitle: 'Why did the qubit that was not targeted change?',
+    mysteryText:
+        'The controlled gate targets q1, but the phase-sensitive target can kick information back onto q0. Watch which qubit carries the phase after the operation.',
+    discoveryTitle: 'Phase Kickback',
+    discoveryText:
+        'Phase kickback means the controlled operation writes information into the phase of the control. The target enabled the effect, but the stored information appears on the control.',
+    keyInsight:
+        'Phase kickback stores controlled-operation information in the control qubit phase.',
+    whyItMatters:
+        'This is a computational effect, not a routing or SWAP effect. The circuit writes a hidden phase mark onto the qubit that can later reveal the answer.',
+    nextMystery: 'Does the same controlled circuit always produce kickback?',
+    hints: [
+      'Use CX with q0 as control and q1 as target.',
+      'The target remains |−⟩, while q0 changes from |+⟩ to |−⟩.',
+    ],
+    solutionExplanation:
+        'CX maps |+⟩|−⟩ to |−⟩|−⟩. The target was the gate target, but the phase change is stored on the control.',
+    numQubits: 2,
+    initialQubitsStateStr: '|+⟩|−⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(-0.5, 0),
+      Complex(-0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex(0.5, 0)],
+      [Complex(-0.5, 0)],
+      [Complex(-0.5, 0)],
+      [Complex(0.5, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Setup Matters',
+    taskDescription:
+        r'Use the same CX circuit on \( |+\rangle|+\rangle \). This time the target setup should prevent phase kickback.',
+    targetStateExpression: '|+⟩|+⟩',
+    mysteryTitle: 'Does every target state create kickback?',
+    mysteryText:
+        'Use the same controlled operation as before, but with the target prepared as |+⟩ instead of |−⟩. The circuit is the same; the setup changes the result.',
+    discoveryTitle: 'Hidden Communication',
+    discoveryText:
+        'Phase kickback depends on target preparation. CX on a |−⟩ target writes phase to the control; the same CX on a |+⟩ target leaves this product state unchanged.',
+    keyInsight:
+        'The same controlled gate can produce different phase outcomes depending on the target state.',
+    whyItMatters:
+        'Phase kickback is not automatic. Algorithms must prepare the target correctly before controlled logic can encode information into phase.',
+    nextMystery:
+        'How can a circuit compute a condition, encode it into phase, and then reveal it?',
+    hints: [
+      'Use CX with q0 as control and q1 as target, just like the previous level.',
+      'Because the target is |+⟩, the same gate does not create a kicked-back phase.',
+    ],
+    solutionExplanation:
+        'CX leaves |+⟩|+⟩ unchanged. This boundary case shows that kickback depends on the target state, not just on using a controlled gate.',
+    numQubits: 2,
+    initialQubitsStateStr: '|+⟩|+⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+      [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+      [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+      [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Compute, Encode, Reveal',
+    taskDescription:
+        r'Kick phase back onto the control with CX, then use H on the control to reveal the stored phase as \( |1\rangle \).',
+    targetStateExpression: '|1⟩|−⟩',
+    mysteryTitle: 'How does hidden phase become a useful answer?',
+    mysteryText:
+        'First use controlled logic to write information into phase. Only after that should interference reveal the stored phase as a visible bit.',
+    discoveryTitle: 'The Language of Quantum Algorithms',
+    discoveryText:
+        'The controlled operation wrote information into the control phase. The final H did not create the information; it only revealed the phase that kickback had already stored.',
+    keyInsight:
+        'Phase kickback computes into phase; interference is the downstream reveal step.',
+    whyItMatters:
+        'Oracle-based algorithms use this pattern: compute a condition, encode it as phase, then use interference to make the hidden information measurable.',
+    nextMystery:
+        'Next, an oracle can mark an answer in phase so later interference can amplify it.',
+    hints: [
+      'First use CX with q0 as control and q1 as target.',
+      'Then apply H to q0 to reveal |−⟩ as |1⟩.',
+    ],
+    solutionExplanation:
+        'CX maps |+⟩|−⟩ to |−⟩|−⟩. H on the control maps |−⟩ to |1⟩, revealing the phase written by kickback.',
     numQubits: 2,
     initialQubitsStateStr: '|+⟩|−⟩',
     initialQubitsState: [

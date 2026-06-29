@@ -4,12 +4,44 @@ import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/qq_levels_category.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 
+class LearningMapConceptLink {
+  const LearningMapConceptLink({
+    required this.fromChapter,
+    required this.toChapter,
+    required this.description,
+  });
+
+  final int fromChapter;
+  final int toChapter;
+  final String description;
+
+  String get label => '$fromChapter -> $toChapter';
+}
+
 class LearningMapScreen extends StatelessWidget {
   const LearningMapScreen({
     super.key,
     required this.maxUnlockedLevel,
     required this.onStartChapter,
   });
+
+  static const List<LearningMapConceptLink> conceptLinks = [
+    LearningMapConceptLink(
+      fromChapter: 2,
+      toChapter: 4,
+      description: 'Hidden phase supports interference',
+    ),
+    LearningMapConceptLink(
+      fromChapter: 3,
+      toChapter: 4,
+      description: 'Superposition gives paths to interfere',
+    ),
+    LearningMapConceptLink(
+      fromChapter: 5,
+      toChapter: 7,
+      description: 'Entanglement scales to GHZ',
+    ),
+  ];
 
   final int maxUnlockedLevel;
   final Future<void> Function(int levelNumber) onStartChapter;
@@ -236,12 +268,6 @@ class _LearningHeaderConceptLinks extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = const [
-      ('2 -> 4', 'Hidden phase supports interference'),
-      ('3 -> 4', 'Superposition gives paths to interfere'),
-      ('5 -> 7', 'Entanglement scales to GHZ'),
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -251,8 +277,8 @@ class _LearningHeaderConceptLinks extends StatelessWidget {
           spacing: 10,
           runSpacing: 10,
           children: [
-            for (final (link, text) in items)
-              _DependencyChip(link: link, text: text),
+            for (final link in LearningMapScreen.conceptLinks)
+              _DependencyChip(link: link.label, text: link.description),
           ],
         ),
       ],

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/models/adaptive_learning.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/screens/learning_flow_widgets.dart';
+import 'package:quantumquiz/widgets/adaptive_learning_card.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
@@ -29,6 +31,8 @@ class _McqScreenState extends State<McqScreen> {
   int? _selected;
   bool _answered = false;
   bool _hasUnopenedNotebookEntries = false;
+  late AdaptiveLearningSession _adaptiveLearningSession;
+  AdaptiveLearningInsight? _adaptiveInsight;
 
   bool get _isCorrect => _selected == widget.level.correctOptionIndex;
 
@@ -41,6 +45,10 @@ class _McqScreenState extends State<McqScreen> {
   @override
   void initState() {
     super.initState();
+    _adaptiveLearningSession = AdaptiveLearningSession(
+      level: widget.level,
+      notebookEntry: _notebookEntryForLevel(widget.level),
+    );
     _loadNotebookAttentionState();
   }
 
@@ -87,6 +95,14 @@ class _McqScreenState extends State<McqScreen> {
                           text: widget.level.solutionExplanation!,
                         ),
                       ],
+                      if (_answered && _adaptiveInsight != null) ...[
+                        const SizedBox(height: 14),
+                        AdaptiveLearningCard(
+                          insight: _adaptiveInsight!,
+                          compact: compact,
+                          onReviewNotebook: _openQuantumNotebook,
+                        ),
+                      ],
                     ]),
                   ),
                 ),
@@ -125,7 +141,7 @@ class _McqScreenState extends State<McqScreen> {
                                   }
                                 : _selected == null
                                     ? null
-                                    : () => setState(() => _answered = true),
+                                    : _confirmAnswer,
                           ),
                         ),
                       ),
@@ -285,6 +301,7 @@ class _McqScreenState extends State<McqScreen> {
   }
 
   Future<void> _openQuantumNotebook() async {
+    _adaptiveLearningSession.recordNotebookOpened();
     final entry = _notebookEntryForLevel(widget.level);
     final unlocked = await DiscoveryProgress.loadUnlocked();
     if (!mounted) return;
@@ -320,6 +337,20 @@ class _McqScreenState extends State<McqScreen> {
     final discoveryTitle = level.discoveryTitle?.trim();
     if (discoveryTitle == null || discoveryTitle.isEmpty) return null;
     return notebookEntriesByDiscoveryTitle[discoveryTitle];
+  }
+
+  void _confirmAnswer() {
+    final selected = _selected;
+    if (selected == null) return;
+
+    final adaptiveInsight = _adaptiveLearningSession.recordMcqAnswer(
+      selectedIndex: selected,
+      correctIndex: widget.level.correctOptionIndex,
+    );
+    setState(() {
+      _answered = true;
+      _adaptiveInsight = adaptiveInsight;
+    });
   }
 }
 

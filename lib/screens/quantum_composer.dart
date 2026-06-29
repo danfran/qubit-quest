@@ -2,8 +2,11 @@ import 'dart:math' as math;
 
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/models/adaptive_learning.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
+import 'package:quantumquiz/models/notebook_entry.dart';
+import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/screens/learning_flow_widgets.dart';
@@ -12,6 +15,7 @@ import 'package:quantumquiz/screens/rotation_gate_dialog.dart';
 import 'package:quantumquiz/screens/three_qubits_gate_target_qubits_selection_dialog.dart';
 import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
 import 'package:quantumquiz/utils/complex_formatter.dart';
+import 'package:quantumquiz/widgets/adaptive_learning_card.dart';
 import 'package:quantumquiz/widgets/gate_visual_style.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
@@ -129,10 +133,16 @@ class _QuantumComposerState extends State<QuantumComposer>
   bool _canScrollRight = false;
   bool _sharedNonZeroOnly = false;
   bool _hasUnopenedNotebookEntries = false;
+  late AdaptiveLearningSession _adaptiveLearningSession;
+  AdaptiveLearningInsight? _adaptiveInsight;
 
   @override
   void initState() {
     super.initState();
+    _adaptiveLearningSession = AdaptiveLearningSession(
+      level: widget.level,
+      notebookEntry: _notebookEntryForLevel(),
+    );
     _gatesScrollController = ScrollController()
       ..addListener(_updateScrollButtonStates);
     _notebookPulseController = AnimationController(
@@ -527,12 +537,14 @@ class _QuantumComposerState extends State<QuantumComposer>
     required bool success,
     required String title,
     required String message,
+    AdaptiveLearningInsight? adaptiveInsight,
   }) {
     if (!mounted) return;
     setState(() {
       _checkFeedbackSuccess = success;
       _checkFeedbackTitle = title;
       _checkFeedbackMessage = message;
+      _adaptiveInsight = adaptiveInsight;
     });
   }
 
@@ -551,6 +563,7 @@ class _QuantumComposerState extends State<QuantumComposer>
         _checkFeedbackTitle = null;
         _checkFeedbackMessage = null;
         _checkFeedbackSuccess = false;
+        _adaptiveInsight = null;
       });
       if (unlocksNotebookEntry) {
         _playNotebookUnlockPulse();
@@ -568,16 +581,23 @@ class _QuantumComposerState extends State<QuantumComposer>
     } else {
       _levelSolved = false;
       if (manual) {
+        final adaptiveInsight = _adaptiveLearningSession.recordComposerAttempt(
+          signature: _adaptiveCircuitSignature(),
+          gateCounts: _adaptiveGateCounts(),
+          correct: false,
+        );
         _setCheckFeedback(
           success: false,
           title: 'Not yet',
           message: 'Adjust the gates and try again.',
+          adaptiveInsight: adaptiveInsight,
         );
       } else if (_checkFeedbackSuccess) {
         setState(() {
           _checkFeedbackTitle = null;
           _checkFeedbackMessage = null;
           _checkFeedbackSuccess = false;
+          _adaptiveInsight = null;
         });
       }
     }
@@ -602,6 +622,63 @@ class _QuantumComposerState extends State<QuantumComposer>
     if (hasUnopened) {
       _playNotebookUnlockPulse();
     }
+  }
+
+  NotebookEntry? _notebookEntryForLevel() {
+    final discoveryTitle = widget.level.discoveryTitle?.trim();
+    if (discoveryTitle == null || discoveryTitle.isEmpty) return null;
+    return notebookEntriesByDiscoveryTitle[discoveryTitle];
+  }
+
+  String _adaptiveCircuitSignature() {
+    final maxDepth = _circuit.placedGates.fold<int>(
+      0,
+      (depth, line) => line.length > depth ? line.length : depth,
+    );
+    if (maxDepth == 0) return 'empty';
+
+    final columns = <String>[];
+    for (int column = 0; column < maxDepth; column++) {
+      final gates = <String>[];
+      for (int qubit = 0; qubit < _circuit.placedGates.length; qubit++) {
+        if (column >= _circuit.placedGates[qubit].length) continue;
+        final gate = _circuit.placedGates[qubit][column];
+        if (gate.gate.type == SelectedGateType.none) continue;
+        gates.add(_adaptiveGateSignature(qubit, gate));
+      }
+      if (gates.isNotEmpty) columns.add(gates.join('+'));
+    }
+    return columns.isEmpty ? 'empty' : columns.join('|');
+  }
+
+  String _adaptiveGateSignature(int qubit, PlacedQuantumGate gate) {
+    final role = gate.isControl
+        ? 'control'
+        : gate.isControl2
+            ? 'control2'
+            : gate.isTarget
+                ? 'target'
+                : gate.isLink
+                    ? 'link'
+                    : 'single';
+    final control =
+        gate.controlQubitIndex == null ? '' : ':c${gate.controlQubitIndex}';
+    final target =
+        gate.targetQubitIndex == null ? '' : ':t${gate.targetQubitIndex}';
+    return 'q$qubit:${gate.gate.type.name}:$role$control$target';
+  }
+
+  Map<SelectedGateType, int> _adaptiveGateCounts() {
+    final counts = <SelectedGateType, int>{};
+    for (final line in _circuit.placedGates) {
+      for (final placedGate in line) {
+        final type = placedGate.gate.type;
+        if (type == SelectedGateType.none) continue;
+        if (placedGate.isLink) continue;
+        counts[type] = (counts[type] ?? 0) + 1;
+      }
+    }
+    return counts;
   }
 
   void _showConceptIntro(String intro) {
@@ -660,15 +737,14 @@ class _QuantumComposerState extends State<QuantumComposer>
     _levelSolved = false;
     _checkFeedbackTitle = null;
     _checkFeedbackMessage = null;
+    _adaptiveInsight = null;
     _runSimulation(); // Run simulation - empty circuit
     _circuitWidthNotifier.value = 0; // Reset width notifier
   }
 
   Future<void> _openQuantumNotebook() async {
-    final discoveryTitle = widget.level.discoveryTitle?.trim();
-    final entry = discoveryTitle == null
-        ? null
-        : notebookEntriesByDiscoveryTitle[discoveryTitle];
+    _adaptiveLearningSession.recordNotebookOpened();
+    final entry = _notebookEntryForLevel();
     final unlocked = await DiscoveryProgress.loadUnlocked();
     if (!mounted) return;
 
@@ -1673,6 +1749,14 @@ class _QuantumComposerState extends State<QuantumComposer>
           SizedBox(height: compact ? 5 : 6),
           _buildCheckFeedbackBanner(compact: compact),
         ],
+        if (_adaptiveInsight != null) ...[
+          SizedBox(height: compact ? 5 : 6),
+          AdaptiveLearningCard(
+            insight: _adaptiveInsight!,
+            compact: compact,
+            onReviewNotebook: _openQuantumNotebook,
+          ),
+        ],
       ],
     );
   }
@@ -1693,6 +1777,14 @@ class _QuantumComposerState extends State<QuantumComposer>
         if (_checkFeedbackTitle != null) ...[
           SizedBox(height: compact ? 6 : 8),
           _buildCheckFeedbackBanner(compact: compact),
+        ],
+        if (_adaptiveInsight != null) ...[
+          SizedBox(height: compact ? 6 : 8),
+          AdaptiveLearningCard(
+            insight: _adaptiveInsight!,
+            compact: compact,
+            onReviewNotebook: _openQuantumNotebook,
+          ),
         ],
       ],
     );

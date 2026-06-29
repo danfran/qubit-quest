@@ -11,6 +11,7 @@ import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/utils/math_utils.dart';
+import 'package:quantumquiz/validation/chapter_release_gate.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -558,6 +559,53 @@ void main() {
       }
     });
 
+    test('Quantum Notebook covers Chapter 8 Phase Kickback discovery levels',
+        () {
+      final chapter8DiscoveryTitles = [
+        for (int levelNumber = 36; levelNumber <= 40; levelNumber++)
+          getQQLevelById(levelNumber)!.discoveryTitle,
+      ];
+
+      expect(
+        chapter8DiscoveryTitles,
+        equals([
+          'Hidden Information',
+          'Phase Carrier',
+          'Phase Kickback',
+          'Hidden Communication',
+          'The Language of Quantum Algorithms',
+        ]),
+      );
+
+      final chapter8NotebookTitles = [
+        for (final discoveryTitle in chapter8DiscoveryTitles)
+          notebookEntriesByDiscoveryTitle[discoveryTitle]?.title,
+      ];
+
+      expect(
+        chapter8NotebookTitles,
+        equals([
+          'Hidden Mark',
+          'Phase On The Control',
+          'The Kickback Effect',
+          'Setup Matters',
+          'Compute → Encode → Reveal',
+        ]),
+      );
+
+      for (final discoveryTitle in chapter8DiscoveryTitles) {
+        expect(discoveryTitle, isNotNull);
+        expect(
+          notebookEntriesByDiscoveryTitle,
+          contains(discoveryTitle),
+        );
+        expect(
+          notebookEntriesByDiscoveryTitle[discoveryTitle]!.chapterIndex,
+          equals(8),
+        );
+      }
+    });
+
     test('Chapter 7 notebook entries include GHZ global constraint language',
         () {
       final ghzEntry = notebookEntriesByDiscoveryTitle['GHZ State']!;
@@ -603,6 +651,10 @@ void main() {
         notebookEntriesByDiscoveryTitle['GHZ State']!.chapterIdentity,
         equals('How multi-qubit states become global constraints'),
       );
+      expect(
+        notebookEntriesByDiscoveryTitle['Phase Kickback']!.chapterIdentity,
+        equals('How controlled operations write information into phase'),
+      );
     });
 
     test('Quantum Notebook opened state tracks unread notebook entries',
@@ -626,6 +678,34 @@ void main() {
         ),
         isFalse,
       );
+    });
+
+    test('Chapter Release Gate passes Chapter 8 integration', () {
+      final chapter8 = groupedLevels.firstWhere(
+        (category) => category.groupName == 'Chapter 8 - Phase Kickback',
+      );
+      final result = ChapterReleaseGate.validateChapter(chapter8);
+
+      expect(result.passed, isTrue, reason: result.toReport());
+      expect(result.validatedSections,
+          equals(ChapterReleaseGate.mandatorySections));
+      expect(result.status, equals('PASS'));
+    });
+
+    test('Chapter Release Gate blocks chapters with missing notebook coverage',
+        () {
+      final chapter9 = groupedLevels.firstWhere(
+        (category) => category.groupName == 'Chapter 9 - Oracle Thinking',
+      );
+      final result = ChapterReleaseGate.validateChapter(chapter9);
+
+      expect(result.passed, isFalse);
+      expect(result.status, equals('FAIL'));
+      expect(
+        result.failures,
+        contains(contains('[Notebook System Validation]')),
+      );
+      expect(result.fixPlan, isNotEmpty);
     });
 
     test('initial qubit labels preserve authored ket tokens', () {
@@ -1051,41 +1131,8 @@ void main() {
       expect(level.validateCircuit(circuit), isTrue);
     });
 
-    test('Chapter 8 level 36 validates the hidden phase CNOT', () {
-      final level = findComposerLevelByTitle('Something Changed');
-      final circuit = simulate(level);
-
-      circuit.insertDoublePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
-      circuit.runSimulation();
-
-      expect(level.validateCircuit(circuit), isTrue);
-    });
-
-    test('Chapter 8 level 60 validates preparing the phase carrier', () {
-      final level = findComposerLevelByTitle('The Hidden Passenger');
-      final circuit = simulate(level);
-
-      circuit.insertSinglePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.z), 0, 1);
-      circuit.runSimulation();
-
-      expect(level.validateCircuit(circuit), isTrue);
-    });
-
-    test('Chapter 8 level 61 validates first kickback', () {
-      final level = findComposerLevelByTitle('First Kickback');
-      final circuit = simulate(level);
-
-      circuit.insertDoublePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
-      circuit.runSimulation();
-
-      expect(level.validateCircuit(circuit), isTrue);
-    });
-
-    test('Chapter 8 level 62 validates hidden communication with CZ', () {
-      final level = findComposerLevelByTitle('Information Without Flips');
+    test('Chapter 8 level 36 validates hidden mark with CZ', () {
+      final level = findComposerLevelByTitle('Hidden Mark');
       final circuit = simulate(level);
 
       circuit.insertDoublePlacedGateAt(
@@ -1095,8 +1142,48 @@ void main() {
       expect(level.validateCircuit(circuit), isTrue);
     });
 
-    test('Chapter 8 level 63 validates kickback then reveal', () {
-      final level = findComposerLevelByTitle('The Quantum Secret');
+    test('Chapter 8 level 37 validates fixed-control phase carrier', () {
+      final level = findComposerLevelByTitle('Control Affects Control');
+      final circuit = simulate(level);
+
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 8 level 38 validates phase kickback onto control', () {
+      final level = findComposerLevelByTitle('Unexpected Phase Change');
+      final circuit = simulate(level);
+
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 8 level 39 requires same CX circuit for setup boundary', () {
+      final level = findComposerLevelByTitle('Setup Matters');
+      final circuit = simulate(level);
+
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('Chapter 8 level 39 rejects empty circuit shortcut', () {
+      final level = findComposerLevelByTitle('Setup Matters');
+      final circuit = simulate(level);
+
+      expect(level.validateCircuit(circuit), isFalse);
+    });
+
+    test('Chapter 8 level 40 validates compute encode reveal', () {
+      final level = findComposerLevelByTitle('Compute, Encode, Reveal');
       final circuit = simulate(level);
 
       circuit.insertDoublePlacedGateAt(

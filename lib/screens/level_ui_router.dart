@@ -6,8 +6,26 @@ import 'package:quantumquiz/screens/mcq_screen.dart';
 import 'package:quantumquiz/screens/measurement_lab_screen.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 
+enum LevelUIRouteKind {
+  composer,
+  conceptCheck,
+  fillGate,
+  circuitReading,
+  measurementLab,
+}
+
 class LevelUIRouter {
   const LevelUIRouter._();
+
+  static LevelUIRouteKind routeKindFor(QQLevel level) {
+    return switch (level) {
+      ComposerLevel _ => LevelUIRouteKind.composer,
+      ConceptCheckLevel _ || McqLevel _ => LevelUIRouteKind.conceptCheck,
+      FillTheGateLevel _ => LevelUIRouteKind.fillGate,
+      CircuitReadingLevel _ => LevelUIRouteKind.circuitReading,
+      MeasurementLabLevel _ => LevelUIRouteKind.measurementLab,
+    };
+  }
 
   static Widget buildLevelUI({
     required QQLevel level,

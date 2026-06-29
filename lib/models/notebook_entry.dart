@@ -41,6 +41,8 @@ class NotebookEntry {
         return 'How information is created, controlled, and routed';
       case 7:
         return 'How multi-qubit states become global constraints';
+      case 8:
+        return 'How controlled operations write information into phase';
       default:
         return '';
     }

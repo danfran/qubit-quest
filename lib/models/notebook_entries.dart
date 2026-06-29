@@ -1582,6 +1582,226 @@ const List<NotebookEntry> notebookEntries = [
       'Phase Information',
     ],
   ),
+  NotebookEntry(
+    id: 'phase_kickback_hidden_mark',
+    discoveryTitle: 'Hidden Information',
+    chapterIndex: 8,
+    chapterTitle: 'Chapter 8 - Phase Kickback',
+    title: 'Hidden Mark',
+    summary:
+        'A controlled operation can mark a quantum state without changing what measurement probabilities immediately show.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'The circuit appears to leave the visible bit pattern alone, but the state has still been changed. Chapter 8 uses this as the starting point: useful quantum information can be written into phase before it becomes visible.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The visible measurement outcomes did not change, but the internal phase description did. This is not measurement and not entanglement as the goal; it is a hidden mark created by a controlled operation.',
+      examples: [
+        NotebookExample(
+            label: 'Visible result', notation: 'same probability bars'),
+        NotebookExample(label: 'Hidden result', notation: 'phase changed'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'Phase kickback begins with the idea that a controlled gate can alter phase while leaving the computational-basis readout unchanged. The change is real even when direct measurement does not reveal it yet.',
+      examples: [
+        NotebookExample(label: 'Before', notation: 'no phase mark'),
+        NotebookExample(
+            label: 'After', notation: 'phase mark stored invisibly'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This differs from Chapter 4: interference reveals phase, while Chapter 8 focuses on how controlled operations create phase marks that can be decoded later.',
+    ),
+    relatedDiscoveryTitles: [
+      'Hidden Change',
+      'Phase Is Hidden',
+      'Phase Carrier',
+    ],
+  ),
+  NotebookEntry(
+    id: 'phase_on_the_control',
+    discoveryTitle: 'Phase Carrier',
+    chapterIndex: 8,
+    chapterTitle: 'Chapter 8 - Phase Kickback',
+    title: 'Phase On The Control',
+    summary:
+        'Phase kickback happens when a controlled operation causes the control qubit to acquire phase because of how the target is prepared.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'The target qubit may look like the place where the gate acts, but the meaningful phase mark can appear on the control. The control becomes the carrier of the written information.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The important change is assigned to the control qubit, not to a visible flip of the target. This keeps the lesson separate from ordinary conditional bit changes.',
+      examples: [
+        NotebookExample(label: 'Gate shape', notation: 'control -> target'),
+        NotebookExample(
+            label: 'Kickback result', notation: 'phase stored on control'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'When the target is prepared in the right phase-sensitive state, the controlled operation writes a phase factor back onto the control branch. The control wire carries the computational mark.',
+      examples: [
+        NotebookExample(
+            label: 'Visual cue', notation: 'phase highlight on control wire'),
+        NotebookExample(
+            label: 'Not the goal', notation: 'creating entanglement'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'Entanglement can appear in some controlled-gate circuits, but it is not the Chapter 8 objective. The objective is phase encoding on the control.',
+    ),
+    relatedDiscoveryTitles: [
+      'Control',
+      'Conditional Action',
+      'Phase Kickback',
+    ],
+  ),
+  NotebookEntry(
+    id: 'the_kickback_effect',
+    discoveryTitle: 'Phase Kickback',
+    chapterIndex: 8,
+    chapterTitle: 'Chapter 8 - Phase Kickback',
+    title: 'The Kickback Effect',
+    summary:
+        'Phase kickback means information from a controlled operation is stored as phase on the control qubit.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'The surprising part is that the qubit that is not directly targeted can carry the important change. The controlled operation pushes the information backward into phase on the control.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'Phase is now treated as stored information. The visible bit value may stay the same, but the control qubit has been marked in a way later circuit steps can use.',
+      examples: [
+        NotebookExample(
+            label: 'Kickback indicator', notation: 'gate -> control phase'),
+        NotebookExample(
+            label: 'Stored information', notation: 'phase on control'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The controlled operation applies a conditional effect whose eigenvalue becomes a phase on the control branch. That phase is the computational record of the condition.',
+      examples: [
+        NotebookExample(
+            label: 'Core mechanism',
+            notation: 'controlled operation writes phase'),
+        NotebookExample(
+            label: 'Not routing', notation: 'no SWAP or message passing'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This is not GHZ-style global constraint logic. Chapter 8 is local phase encoding into a control qubit, not a full-register allowed-outcome rule.',
+    ),
+    relatedDiscoveryTitles: [
+      'Phase Carrier',
+      'Phase Is Hidden',
+      'Hidden Communication',
+    ],
+  ),
+  NotebookEntry(
+    id: 'setup_matters',
+    discoveryTitle: 'Hidden Communication',
+    chapterIndex: 8,
+    chapterTitle: 'Chapter 8 - Phase Kickback',
+    title: 'Setup Matters',
+    summary:
+        'Phase kickback depends on target preparation; the same controlled gate can behave differently with a different target state.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'The gate alone is not the whole story. A controlled operation writes phase only when the target has been prepared so the conditional action can return a phase mark to the control.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The same visible circuit shape can produce different hidden effects depending on the target state. Setup determines whether there is kickback to store.',
+      examples: [
+        NotebookExample(label: 'Same gate', notation: 'CX'),
+        NotebookExample(
+            label: 'Different setup', notation: 'different target state'),
+        NotebookExample(
+            label: 'Different result', notation: 'phase or no phase'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'Kickback relies on the target being in a phase-sensitive state for the controlled action. Without that preparation, the operation may behave like an ordinary controlled bit action instead of encoding phase.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This boundary case prevents the misconception that every controlled gate automatically creates useful kickback. The preparation and the controlled operation work together.',
+    ),
+    relatedDiscoveryTitles: [
+      'Prepared Possibilities',
+      'Phase Kickback',
+      'The Language of Quantum Algorithms',
+    ],
+  ),
+  NotebookEntry(
+    id: 'compute_encode_reveal',
+    discoveryTitle: 'The Language of Quantum Algorithms',
+    chapterIndex: 8,
+    chapterTitle: 'Chapter 8 - Phase Kickback',
+    title: 'Compute → Encode → Reveal',
+    summary:
+        'A quantum circuit can compute a condition, encode the result into phase, and later reveal that phase using interference.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Chapter 8 ends by separating the jobs. The controlled operation writes the phase mark. Interference is used afterward as a decoding step so the hidden mark can affect visible outcomes.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'Interference is no longer the main discovery; it is downstream of computation. The new idea is that controlled operations can write computational information into phase first.',
+      examples: [
+        NotebookExample(label: 'Step 1', notation: 'compute condition'),
+        NotebookExample(label: 'Step 2', notation: 'encode into phase'),
+        NotebookExample(label: 'Step 3', notation: 'reveal with interference'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'Phase kickback is a way for a circuit to store a logical result as a relative phase on a control state. Later basis changes can convert that phase difference into a measurement difference.',
+      examples: [
+        NotebookExample(label: 'Written by', notation: 'controlled operation'),
+        NotebookExample(label: 'Revealed by', notation: 'interference step'),
+      ],
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This is the bridge toward oracle-style algorithms: the circuit can compute without first making the answer visible, then use phase as the encoded record.',
+    ),
+    relatedDiscoveryTitles: [
+      'Interference',
+      'Phase Kickback',
+      'Oracle',
+    ],
+  ),
 ];
 
 final Map<String, NotebookEntry> notebookEntriesByDiscoveryTitle = {

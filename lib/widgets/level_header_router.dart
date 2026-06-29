@@ -2,8 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/widgets/level_type_headers.dart';
 
+enum LevelHeaderKind {
+  composer,
+  conceptCheck,
+  fillGate,
+  reading,
+  experiment,
+}
+
 class LevelHeaderRouter {
   const LevelHeaderRouter._();
+
+  static LevelHeaderKind headerKindFor(QQLevel level) {
+    return switch (level) {
+      ComposerLevel _ => LevelHeaderKind.composer,
+      ConceptCheckLevel _ || McqLevel _ => LevelHeaderKind.conceptCheck,
+      FillTheGateLevel _ => LevelHeaderKind.fillGate,
+      CircuitReadingLevel _ => LevelHeaderKind.reading,
+      MeasurementLabLevel _ => LevelHeaderKind.experiment,
+    };
+  }
 
   static PreferredSizeWidget headerFor({
     required QQLevel level,
