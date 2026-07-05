@@ -58,9 +58,8 @@ class DiscoveryProgress {
     'Why One Step Is Not Enough',
     'Iteration Improves Likelihood',
     'Convergence Toward Solution',
-    'Grover Probability Evolution',
     'Classical vs Quantum Iteration',
-    'Grover as Computational Pattern',
+    'Cognitive Transfer of Iteration Thinking',
   ];
 
   static Future<Set<String>> loadUnlocked() async {

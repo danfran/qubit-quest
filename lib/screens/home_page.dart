@@ -107,11 +107,10 @@ class _HomePageState extends State<HomePage> {
     'Why One Step Is Not Enough',
     'Iteration Improves Likelihood',
     'Convergence Toward Solution',
-    'Grover Probability Evolution',
     'Classical vs Quantum Iteration',
-    'Grover as Computational Pattern',
+    'Cognitive Transfer of Iteration Thinking',
   };
-  static const int _mainCampaignLevelCount = 56;
+  static const int _mainCampaignLevelCount = 55;
   static const String _campaignProgressKey = 'maxUnlockedCampaignLevel';
 
   // Placeholder for the maximum unlocked level.
@@ -639,7 +638,7 @@ class _HomePageState extends State<HomePage> {
 
   bool _isChapter11GroverLoopIntuitionLevel(QQLevel level) {
     final discoveryTitle = level.discoveryTitle?.trim();
-    return _isLevelNumberInRange(level, 51, 56) &&
+    return _isLevelNumberInRange(level, 51, 55) &&
         discoveryTitle != null &&
         _chapter11DiscoveryTitles.contains(discoveryTitle);
   }

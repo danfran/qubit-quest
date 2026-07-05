@@ -734,59 +734,9 @@ final List<QQLevel> _authoredQQLevels = [
     validationMode: ValidationMode.unitary,
     targetUnitary: [
       [
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
         Complex.one(),
         Complex.zero(),
         Complex.zero(),
-        Complex.zero(),
-      ],
-      [
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.one(),
-        Complex.zero(),
-        Complex.zero(),
-      ],
-      [
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.one(),
-        Complex.zero(),
-      ],
-      [
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.one(),
-      ],
-      [
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.one(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-        Complex.zero(),
-      ],
-      [
-        Complex.zero(),
-        Complex.zero(),
-        Complex.one(),
         Complex.zero(),
         Complex.zero(),
         Complex.zero(),
@@ -804,12 +754,62 @@ final List<QQLevel> _authoredQQLevels = [
         Complex.zero(),
       ],
       [
+        Complex.zero(),
+        Complex.zero(),
         Complex.one(),
         Complex.zero(),
         Complex.zero(),
         Complex.zero(),
         Complex.zero(),
         Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
         Complex.zero(),
         Complex.zero(),
       ],
@@ -3258,7 +3258,7 @@ final List<QQLevel> _authoredQQLevels = [
     taskDescription:
         'What should happen to the probability distribution across useful repeated rounds?',
     conceptIntro:
-        'Convergence means the distribution trends toward the valid answer as the abstract loop is applied carefully.',
+        'Convergence means the distribution trends toward the valid answer as the abstract loop is applied carefully: flat at first, then slightly lifted, then visibly biased.',
     mysteryTitle: 'What trend should the loop create?',
     mysteryText:
         'The learner should track the shape of the probability distribution, not a low-level implementation.',
@@ -3266,7 +3266,7 @@ final List<QQLevel> _authoredQQLevels = [
     discoveryText:
         'Repeated rounds can concentrate probability toward valid states, creating a stronger chance of success.',
     keyInsight:
-        'Grover loop intuition is about a trend toward higher success probability.',
+        'Grover loop intuition is about a changing probability shape over time.',
     whyItMatters:
         'This prevents treating Grover as instant success. The value comes from structured probability improvement.',
     nextMystery: 'Why is this different from classical repetition?',
@@ -3275,43 +3275,12 @@ final List<QQLevel> _authoredQQLevels = [
       'The valid answer should become more likely over useful rounds.',
     ],
     solutionExplanation:
-        'Across useful repeated rounds, probability should move toward valid states. That convergence is the high-level behaviour Chapter 11 isolates.',
+        'Across useful repeated rounds, probability should move toward valid states. The visual story is flat distribution, slight lift, visible bias, then stronger concentration.',
     options: [
       'Probability trends toward valid states across useful repeated rounds.',
       'Probability must stay evenly spread forever.',
       'The valid answer is guaranteed after every single round.',
       'The process works by ignoring the existing bias.',
-    ],
-    correctOptionIndex: 0,
-  ),
-
-  ConceptCheckLevel(
-    title: 'Grover Probability Evolution',
-    taskDescription:
-        'How should the probability distribution look as useful Grover-style iterations continue?',
-    conceptIntro:
-        'Use a visual mental model: probability bars begin flat, then the valid answer grows taller over repeated abstract rounds.',
-    mysteryTitle: 'What changes over time?',
-    mysteryText:
-        'The loop is easier to understand when you watch the shape of the distribution over iterations.',
-    discoveryTitle: 'Grover Probability Evolution',
-    discoveryText:
-        'Iteration 0 is flat. Iteration 1 creates a slight lift for the valid answer. Iteration 2 shows a visible bias. Later useful iterations create a strong probability peak.',
-    keyInsight: 'Grover intuition is a changing probability shape over time.',
-    whyItMatters:
-        'The learner can now see the loop as dynamics: repeated abstract rounds reshape likelihood toward the valid answer.',
-    nextMystery: 'Why is this different from classical repetition?',
-    hints: [
-      'Picture probability bars changing height.',
-      'The valid answer should grow gradually, not jump instantly to certainty.',
-    ],
-    solutionExplanation:
-        'The correct visual story is flat distribution, slight lift, visible bias, then a strong peak around the valid answer. This is probability evolution, not a mechanism description.',
-    options: [
-      'The valid answer grows from equal height to a small lift, then visible bias, then a strong probability peak.',
-      'Every candidate bar stays exactly the same height after each iteration.',
-      'The valid answer becomes guaranteed immediately after the first iteration.',
-      'The distribution changes randomly with no trend toward the valid answer.',
     ],
     correctOptionIndex: 0,
   ),
@@ -3349,34 +3318,35 @@ final List<QQLevel> _authoredQQLevels = [
   ),
 
   ConceptCheckLevel(
-    title: 'Grover as Computational Pattern',
+    title: 'Applying Iteration Thinking to Structured Problems',
     badgeLabel: 'Chapter Synthesis Check',
-    taskDescription: 'What is Grover at the Chapter 11 abstraction level?',
+    taskDescription:
+        'How can iteration thinking help with structured selection problems?',
     conceptIntro:
-        'Use the whole chapter: oracle identifies valid states abstractly, amplification improves their likelihood, and iteration strengthens the advantage.',
-    mysteryTitle: 'What pattern have we learned?',
+        'Use the whole chapter as a reasoning tool: a weak preference can become useful when a structured process reinforces it repeatedly.',
+    mysteryTitle: 'Can the loop idea transfer?',
     mysteryText:
-        'Grover is now a computational pattern built from repeated abstractions, not a physical construction.',
-    discoveryTitle: 'Grover as Computational Pattern',
+        'The goal is not to build a mechanism. The goal is to recognize when repeated refinement can narrow a structured set of choices.',
+    discoveryTitle: 'Cognitive Transfer of Iteration Thinking',
     discoveryText:
-        'Grover can be understood as repeated oracle plus amplification steps that build a useful probability advantage.',
+        'Iteration thinking transfers to structured problems: start with a weak bias, reinforce it through repeated refinement, and make valid choices easier to select.',
     keyInsight:
-        'Grover is an iterative computational pattern over probability.',
+        'Bias plus structured repetition can improve selection without checking every option one by one.',
     whyItMatters:
-        'This prepares future algorithm chapters without collapsing back into implementation details.',
+        'This turns Grover loop intuition into a problem-solving pattern learners can apply beyond the chapter.',
     nextMystery:
-        'If repeated probability improvement can guide search, what other algorithmic patterns can guide computation?',
+        'If repeated refinement can guide selection, what other algorithmic patterns can organize hard choices?',
     hints: [
-      'Stay at the abstraction level.',
-      'Look for oracle, amplification, and iteration together.',
+      'Think about a candidate set, not a construction.',
+      'Look for weak preference becoming stronger through repeated refinement.',
     ],
     solutionExplanation:
-        'At this level, Grover is repeated oracle plus amplification: identify valid states abstractly, increase their likelihood, and repeat to build a useful success advantage.',
+        'The transferable idea is structured refinement: a weak bias toward valid choices can be reinforced across repeated rounds so selection becomes more likely without brute-force checking.',
     options: [
-      'A repeated oracle plus amplification pattern that increases the probability of observing a valid answer.',
-      'A direct guarantee that the answer is selected after one step.',
-      'A method that checks every candidate one by one.',
-      'A rule that only names valid states without improving likelihood.',
+      'Use repeated refinement to strengthen a weak bias toward valid choices in a structured set.',
+      'Try every option one by one until the correct choice appears.',
+      'Assume the first weak preference is already guaranteed to be correct.',
+      'Ignore the structure of the choices and sample randomly each time.',
     ],
     correctOptionIndex: 0,
   ),
@@ -4622,25 +4592,25 @@ ComposerLevel _chapter4InterferenceFinale() {
 final List<QQLevel> allQQLevels = _consolidatedQQLevels();
 
 List<QQLevel> _consolidatedQQLevels() {
-  final chapter1Information = _authoredQQLevels.sublist(79, 84);
-  final chapter2HiddenChange = _authoredQQLevels.sublist(84, 89);
-  final chapter3Superposition = _authoredQQLevels.sublist(89, 94);
+  final chapter1Information = _authoredQQLevels.sublist(78, 83);
+  final chapter2HiddenChange = _authoredQQLevels.sublist(83, 88);
+  final chapter3Superposition = _authoredQQLevels.sublist(88, 93);
   final chapter4Interference = [
     ..._authoredQQLevels.sublist(54, 58),
     _chapter4InterferenceFinale(),
   ];
-  final chapter5Entanglement = _authoredQQLevels.sublist(94, 99);
-  final chapter6InformationFlow = _authoredQQLevels.sublist(99, 104);
+  final chapter5Entanglement = _authoredQQLevels.sublist(93, 98);
+  final chapter6InformationFlow = _authoredQQLevels.sublist(98, 103);
   // TODO Chapter 7 readiness check:
   // Validate GHZ introduction does not reuse SWAP routing mechanics.
   // Ensure entanglement scaling is conceptually distinct from Chapter 5.
   // Avoid overlapping incorrectly with Chapter 3 superposition foundations and
   // Chapter 4 interference concepts.
-  final chapter7GhzStates = _authoredQQLevels.sublist(104, 109);
+  final chapter7GhzStates = _authoredQQLevels.sublist(103, 108);
   final chapter8PhaseKickback = _authoredQQLevels.sublist(58, 63);
   final chapter9OracleThinking = _authoredQQLevels.sublist(63, 68);
   final chapter10AmplitudeAmplification = _authoredQQLevels.sublist(68, 73);
-  final chapter11GroverLoopIntuition = _authoredQQLevels.sublist(73, 79);
+  final chapter11GroverLoopIntuition = _authoredQQLevels.sublist(73, 78);
   final legacyChallenges = _authoredQQLevels.sublist(0, 54);
 
   return [
@@ -4774,14 +4744,14 @@ final List<QQLevelsCategory> groupedLevels = [
   QQLevelsCategory(
     groupName: 'Chapter 11 - Grover Loop Intuition',
     from: 50,
-    to: 55,
+    to: 54,
     categoryIntro:
         'Grover is an iterative computational pattern: repeated oracle and amplification abstractions increase the probability of success.',
   ),
   QQLevelsCategory(
     groupName: 'Legacy Challenges',
-    from: 56,
-    to: 109,
+    from: 55,
+    to: 108,
     categoryIntro:
         'Optional earlier Qubit Quest challenges preserved for practice and reference. These levels are playable but are not part of the main discovery campaign.',
   ),

@@ -2274,11 +2274,13 @@ const List<NotebookEntry> notebookEntries = [
     whatChanged: NotebookSection(
       title: 'What Changed?',
       body:
-          'The learner now watches the direction of probability change across repeated rounds.',
+          'The learner now watches the direction of probability change across repeated rounds: flat at first, then slightly lifted, then visibly biased.',
       examples: [
-        NotebookExample(label: 'Before', notation: 'weak bias'),
+        NotebookExample(label: 'Iteration 0', notation: 'flat distribution'),
+        NotebookExample(label: 'Iteration 1', notation: 'slight lift'),
+        NotebookExample(label: 'Iteration 2', notation: 'visible bias'),
         NotebookExample(
-            label: 'After useful rounds', notation: 'stronger bias'),
+            label: 'Later useful rounds', notation: 'stronger bias'),
       ],
     ),
     quantumView: NotebookSection(
@@ -2295,46 +2297,6 @@ const List<NotebookEntry> notebookEntries = [
       'Iteration Improves Likelihood',
       'Bias Becomes Amplification',
       'Amplification as Computational Advantage',
-    ],
-  ),
-  NotebookEntry(
-    id: 'grover_probability_evolution',
-    discoveryTitle: 'Grover Probability Evolution',
-    chapterIndex: 11,
-    chapterTitle: 'Chapter 11 - Grover Loop Intuition',
-    title: 'Grover Probability Evolution',
-    summary:
-        'Grover loop intuition becomes visible as probability bars change shape over iterations.',
-    intuition: NotebookSection(
-      title: 'Intuition',
-      body:
-          'Picture the candidate answers as bars. At iteration 0, the bars are flat. Later useful iterations make the valid answer bar rise above the others.',
-    ),
-    whatChanged: NotebookSection(
-      title: 'What Changed?',
-      body:
-          'The learner now sees iteration as dynamics over time: flat distribution, slight lift, visible bias, then a strong probability peak.',
-      examples: [
-        NotebookExample(label: 'Iteration 0', notation: 'flat distribution'),
-        NotebookExample(label: 'Iteration 1', notation: 'slight lift'),
-        NotebookExample(label: 'Iteration 2', notation: 'visible bias'),
-        NotebookExample(label: 'Later useful rounds', notation: 'strong peak'),
-      ],
-    ),
-    quantumView: NotebookSection(
-      title: 'Quantum View',
-      body:
-          'The probability distribution is interpreted as a changing shape. The valid answer becomes more likely as its probability peak grows over useful rounds.',
-    ),
-    advancedNotes: NotebookSection(
-      title: 'Advanced Notes',
-      body:
-          'This is a visual intuition layer only. It explains what changes over iterations without describing how the change is physically implemented.',
-    ),
-    relatedDiscoveryTitles: [
-      'Convergence Toward Solution',
-      'Iteration Improves Likelihood',
-      'Classical vs Quantum Iteration',
     ],
   ),
   NotebookEntry(
@@ -2376,37 +2338,37 @@ const List<NotebookEntry> notebookEntries = [
     ],
   ),
   NotebookEntry(
-    id: 'grover_as_computational_pattern',
-    discoveryTitle: 'Grover as Computational Pattern',
+    id: 'cognitive_transfer_of_iteration_thinking',
+    discoveryTitle: 'Cognitive Transfer of Iteration Thinking',
     chapterIndex: 11,
     chapterTitle: 'Chapter 11 - Grover Loop Intuition',
-    title: 'Grover as Computational Pattern',
+    title: 'Cognitive Transfer of Iteration Thinking',
     summary:
-        'Grover is a repeated oracle plus amplification pattern that builds a useful probability advantage.',
+        'Iteration thinking transfers to structured problems where weak preferences can be reinforced into better selection.',
     intuition: NotebookSection(
       title: 'Intuition',
       body:
-          'The oracle abstraction says what counts as valid. Amplification improves likelihood. Grover intuition is the repeated pattern that strengthens the advantage.',
+          'Many hard choices start with too many candidates and only a weak signal. The transferable idea is to use structured repetition to make valid choices easier to select.',
     ),
     whatChanged: NotebookSection(
       title: 'What Changed?',
       body:
-          'The learner now sees Grover as an algorithmic loop at the abstraction level.',
+          'The learner now applies the chapter pattern to reasoning tasks: candidate sets, weak bias, repeated refinement, and improved selection.',
       examples: [
-        NotebookExample(label: 'Identify', notation: 'oracle abstraction'),
-        NotebookExample(label: 'Strengthen', notation: 'amplification'),
-        NotebookExample(label: 'Repeat', notation: 'iteration'),
+        NotebookExample(label: 'Candidate set', notation: 'many choices'),
+        NotebookExample(label: 'Weak signal', notation: 'slight preference'),
+        NotebookExample(label: 'Refinement', notation: 'stronger selection'),
       ],
     ),
     quantumView: NotebookSection(
       title: 'Quantum View',
       body:
-          'The process is understood as repeated probability advantage building over the candidate distribution.',
+          'At this abstraction level, the useful object is the distribution over choices. Repeated refinement makes valid choices more likely without checking every option one by one.',
     ),
     advancedNotes: NotebookSection(
       title: 'Advanced Notes',
       body:
-          'This entry deliberately stops at the computational-pattern layer so future chapters can build upward without conceptual drift.',
+          'This entry deliberately focuses on transfer: the learner should recognize iteration as a structured reasoning pattern, not as a construction recipe.',
     ),
     relatedDiscoveryTitles: [
       'Classical vs Quantum Iteration',
