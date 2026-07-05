@@ -1802,6 +1802,618 @@ const List<NotebookEntry> notebookEntries = [
       'Oracle',
     ],
   ),
+  NotebookEntry(
+    id: 'oracle_intuition',
+    discoveryTitle: 'A Special State',
+    chapterIndex: 9,
+    chapterTitle: 'Chapter 9 - Oracle Thinking',
+    title: 'Oracle Intuition',
+    summary:
+        'An oracle is a black-box function that classifies inputs as valid or invalid without directly revealing the answer.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Think of an oracle as a sealed rule checker. You provide possible inputs, and the rule separates accepted inputs from rejected inputs without opening the box.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The focus moved from individual operations to the function being queried. The important question is now: which inputs does f(x) accept?',
+      examples: [
+        NotebookExample(label: 'Accepted', notation: 'f(x) = 1'),
+        NotebookExample(label: 'Rejected', notation: 'f(x) = 0'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The oracle is modeled by its input-output rule. It classifies candidates while keeping the answer encoded inside the query result rather than displaying it directly.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This chapter treats the oracle as an abstraction. Internal implementation details are deliberately hidden so the learner reasons about function access.',
+    ),
+    relatedDiscoveryTitles: [
+      'Prepared Possibilities',
+      'The Language of Quantum Algorithms',
+      'Oracle',
+    ],
+  ),
+  NotebookEntry(
+    id: 'simple_marking_rule',
+    discoveryTitle: 'Hidden Mark',
+    chapterIndex: 9,
+    chapterTitle: 'Chapter 9 - Oracle Thinking',
+    title: 'Simple Marking Rule',
+    summary:
+        'A simple oracle rule marks accepted inputs and leaves rejected inputs unmarked.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'The rule behaves like a yes-or-no classifier. It does not explain itself and it does not list the answer; it only classifies the input according to f(x).',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'Marked and unmarked are now abstract rule outputs. They mean accepted and rejected, not a visible answer display.',
+      examples: [
+        NotebookExample(label: 'Rule output', notation: 'marked = valid'),
+        NotebookExample(label: 'Rule output', notation: 'unmarked = invalid'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The oracle query applies one consistent classification rule across the candidate space. The learner tracks the rule table, not the internal machinery.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This is different from mechanism-level reasoning. Chapter 9 asks what function is encoded, not how the mark is physically produced.',
+    ),
+    relatedDiscoveryTitles: [
+      'A Special State',
+      'Oracle',
+      'Invisible Mark',
+    ],
+  ),
+  NotebookEntry(
+    id: 'hidden_structure_effect',
+    discoveryTitle: 'Oracle',
+    chapterIndex: 9,
+    chapterTitle: 'Chapter 9 - Oracle Thinking',
+    title: 'Hidden Structure Effect',
+    summary:
+        'An oracle can encode useful structure as a hidden rule before the answer becomes directly available.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'The oracle has organized the candidates into valid and invalid classes. That structure matters even when it is not yet a directly readable answer.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The useful object is the hidden function table. The query tells the algorithm which class each candidate belongs to without becoming a final answer step.',
+      examples: [
+        NotebookExample(label: 'Hidden rule', notation: 'f(10) = 1'),
+        NotebookExample(label: 'Other candidates', notation: 'f(x) = 0'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'Oracle access means structured access to f(x). The circuit is treated as a black box that evaluates the rule consistently for the candidate space.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'The abstraction is intentionally higher than Chapter 8. The oracle is the hidden function being queried, not the mechanism that produces a mark.',
+    ),
+    relatedDiscoveryTitles: [
+      'Hidden Mark',
+      'The Language of Quantum Algorithms',
+      'Phase Marking',
+    ],
+  ),
+  NotebookEntry(
+    id: 'why_classical_fails',
+    discoveryTitle: 'Invisible Mark',
+    chapterIndex: 9,
+    chapterTitle: 'Chapter 9 - Oracle Thinking',
+    title: 'Why Classical Fails',
+    summary:
+        'Oracle access is not the same as checking each possible answer manually.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Classical brute force asks one candidate at a time. Oracle thinking asks how an algorithm can use a hidden rule as a reusable query.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The mental model changed from answer inspection to rule access. The oracle gives structured access to f(x), but it still does not hand over the final answer.',
+      examples: [
+        NotebookExample(label: 'Brute force', notation: 'try x, then try y'),
+        NotebookExample(label: 'Oracle model', notation: 'query f(x)'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The oracle is a query primitive. It defines how candidates are classified while leaving later algorithmic steps responsible for extracting a useful result.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This is the central abstraction shift of Chapter 9: the algorithm is given access to a rule, not direct access to the answer.',
+    ),
+    relatedDiscoveryTitles: [
+      'Oracle',
+      'Superposition',
+      'A Special State',
+    ],
+  ),
+  NotebookEntry(
+    id: 'oracle_as_computation_primitive',
+    discoveryTitle: 'Phase Marking',
+    chapterIndex: 9,
+    chapterTitle: 'Chapter 9 - Oracle Thinking',
+    title: 'Oracle as Computation Primitive',
+    summary:
+        'An oracle is a reusable computation primitive that represents the hidden rule of a problem.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'The oracle is not the whole algorithm. It is the problem-specific black box that says which candidates satisfy the rule.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The learner now treats the oracle as a module: define f(x), query it, then let later algorithm steps use that structured result.',
+      examples: [
+        NotebookExample(label: 'Oracle role', notation: 'problem rule'),
+        NotebookExample(label: 'Algorithm role', notation: 'use rule output'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The oracle abstracts the problem into a queryable function. It classifies valid and invalid candidates while preserving the separation between rule evaluation and answer extraction.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'Chapter 10 can build on this primitive, but Chapter 9 ends at the abstraction boundary: oracle means hidden function access.',
+    ),
+    relatedDiscoveryTitles: [
+      'Invisible Mark',
+      'Oracle',
+      'Amplitude Amplification',
+    ],
+  ),
+  NotebookEntry(
+    id: 'why_marking_is_not_enough',
+    discoveryTitle: 'Marked But Hidden',
+    chapterIndex: 10,
+    chapterTitle: 'Chapter 10 - Amplitude Amplification',
+    title: 'Why Marking Is Not Enough',
+    summary:
+        'Knowing which state is valid does not automatically make that state more likely to appear.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'A valid answer can still be buried in an even distribution. If every candidate has the same chance, measurement is still just a low-odds sample.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The chapter focus moves from identifying validity to changing likelihood. The useful question becomes: did the valid state become more probable?',
+      examples: [
+        NotebookExample(label: 'Before', notation: 'all candidates equal'),
+        NotebookExample(label: 'Goal', notation: 'valid candidate favored'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'Amplitude amplification is viewed here as probability redistribution. It starts from a known valid state and asks whether the distribution now favors that state.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This is not just finding the answer. Finding names the valid state; amplification changes how likely that state is to be observed.',
+    ),
+    relatedDiscoveryTitles: [
+      'Prepared Possibilities',
+      'A Special State',
+      'Mark Becomes Probability',
+    ],
+  ),
+  NotebookEntry(
+    id: 'first_bias_toward_solution',
+    discoveryTitle: 'Mark Becomes Probability',
+    chapterIndex: 10,
+    chapterTitle: 'Chapter 10 - Amplitude Amplification',
+    title: 'First Sign of Bias',
+    summary:
+        'Before amplification, learners first see that a balanced probability distribution can become uneven.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Think of the distribution as attention. A balanced distribution gives every answer equal attention; the first sign of bias is simply that some outcomes now receive more attention than others.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The learner now tracks probability before and after the step. The important change is not a final answer, but the first uneven distribution.',
+      examples: [
+        NotebookExample(label: 'Balanced', notation: 'equal likelihood'),
+        NotebookExample(label: 'Biased', notation: 'valid state higher'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The distribution is reshaped so probability is no longer spread equally across every candidate. Chapter 10 keeps attention on that visible probability change.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'The internal construction is not the learner-facing model here. The abstraction is likelihood moving toward the valid candidate.',
+    ),
+    relatedDiscoveryTitles: [
+      'Marked But Hidden',
+      'Amplitude Amplification',
+      'Prepared Possibilities',
+    ],
+  ),
+  NotebookEntry(
+    id: 'reinforcement_of_probability',
+    discoveryTitle: 'Amplitude Amplification',
+    chapterIndex: 10,
+    chapterTitle: 'Chapter 10 - Amplitude Amplification',
+    title: 'Reinforcement of Probability',
+    summary:
+        'Amplitude amplification begins as incremental reinforcement: the valid state becomes more likely, but not guaranteed.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Instead of jumping from equal odds to certainty, reinforcement makes the valid candidate more likely than it was before.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The valid state moved from one equal possibility to a stronger possibility. The chapter model is gradual probability concentration.',
+      examples: [
+        NotebookExample(label: 'Before', notation: 'spread distribution'),
+        NotebookExample(label: 'After', notation: 'weak bias'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The state is understood through its measurement probabilities. A successful reinforcement step increases the valid state probability while other outcomes can still remain possible.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This is a computation layer about reshaping likelihood. It deliberately avoids explaining the hidden construction that produced the redistribution.',
+    ),
+    relatedDiscoveryTitles: [
+      'Mark Becomes Probability',
+      'Bias Becomes Amplification',
+      'Superposition',
+    ],
+  ),
+  NotebookEntry(
+    id: 'classical_vs_quantum_search_difference',
+    discoveryTitle: 'Bias Becomes Amplification',
+    chapterIndex: 10,
+    chapterTitle: 'Chapter 10 - Amplitude Amplification',
+    title: 'Bias Becomes Amplification',
+    summary:
+        'A small probability bias becomes amplification when the distribution is strengthened toward the valid candidate.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'After a weak bias appears, the next idea is repetition of the same kind of distribution shift. Amplification means the valid answer becomes easier to observe because the bias becomes stronger.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The learner connects weak bias to a stronger pattern. The advantage is not that the answer is handed over, but that the odds are improved.',
+      examples: [
+        NotebookExample(label: 'Weak bias', notation: 'slightly higher'),
+        NotebookExample(label: 'Amplified', notation: 'much higher'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The register is interpreted as a probability distribution over candidates. Amplification changes that distribution so a valid state is measured more often.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This protects the key misconception: amplification is not just finding the answer. It is changing the likelihood of observing the answer through a stronger distribution shift.',
+    ),
+    relatedDiscoveryTitles: [
+      'Amplitude Amplification',
+      'Marked But Hidden',
+      'Prepared Possibilities',
+    ],
+  ),
+  NotebookEntry(
+    id: 'amplification_as_computational_advantage',
+    discoveryTitle: 'Amplification as Computational Advantage',
+    chapterIndex: 10,
+    chapterTitle: 'Chapter 10 - Amplitude Amplification',
+    title: 'Amplification as Computational Advantage',
+    summary:
+        'Amplitude amplification becomes useful when a small probability advantage becomes a stronger bias toward a valid state.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'The final chapter idea is simple: make the correct answer easier to see. The distribution shifts so the valid outcome is more likely, while still remaining a probability-based result.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The full abstraction is now useful probability advantage. The learner should describe the result as a stronger bias toward the valid state, not as certainty.',
+      examples: [
+        NotebookExample(label: 'Input view', notation: 'many candidates'),
+        NotebookExample(label: 'Output view', notation: 'valid state likely'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'Chapter 10 treats computation as reshaping measurement probabilities. The success condition is improved likelihood on the valid state.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'The notebook intentionally stays at the probability layer. Internal construction details belong below this learner-facing abstraction.',
+    ),
+    relatedDiscoveryTitles: [
+      'Bias Becomes Amplification',
+      'Amplitude Amplification',
+      'Superposition',
+    ],
+  ),
+  NotebookEntry(
+    id: 'why_one_step_is_not_enough',
+    discoveryTitle: 'Why One Step Is Not Enough',
+    chapterIndex: 11,
+    chapterTitle: 'Chapter 11 - Grover Loop Intuition',
+    title: 'Why One Step Is Not Enough',
+    summary:
+        'One oracle plus amplification pass can improve success probability without making success likely enough.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'A small advantage helps, but it may still leave too much probability on other candidates. Chapter 11 starts from the gap between improvement and reliable success.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The focus moves from a single probability improvement to the need for repeated strengthening.',
+      examples: [
+        NotebookExample(label: 'One pass', notation: 'better odds'),
+        NotebookExample(label: 'Need', notation: 'stronger odds'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The learner tracks whether the probability distribution is strong enough to make the valid answer likely, not merely improved.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This entry prevents the misconception that amplification means instant success. It can be useful before it is strong.',
+    ),
+    relatedDiscoveryTitles: [
+      'Oracle',
+      'Amplitude Amplification',
+      'Bias Becomes Amplification',
+    ],
+  ),
+  NotebookEntry(
+    id: 'iteration_improves_likelihood',
+    discoveryTitle: 'Iteration Improves Likelihood',
+    chapterIndex: 11,
+    chapterTitle: 'Chapter 11 - Grover Loop Intuition',
+    title: 'Iteration Improves Likelihood',
+    summary:
+        'Repeating the abstract oracle plus amplification pattern can increase the likelihood of success.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Iteration means the same high-level pattern is used again so the existing advantage can become stronger.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The new idea is repetition as computation. The learner now thinks across rounds, not just one transformation.',
+      examples: [
+        NotebookExample(label: 'Round 1', notation: 'small advantage'),
+        NotebookExample(label: 'Later rounds', notation: 'stronger advantage'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The probability distribution is interpreted across repeated abstract rounds. The valid answer should become more likely over useful rounds.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This chapter treats oracle and amplification as named abstractions. It does not reopen how either abstraction is built.',
+    ),
+    relatedDiscoveryTitles: [
+      'Why One Step Is Not Enough',
+      'Amplification as Computational Advantage',
+      'Oracle',
+    ],
+  ),
+  NotebookEntry(
+    id: 'convergence_toward_solution',
+    discoveryTitle: 'Convergence Toward Solution',
+    chapterIndex: 11,
+    chapterTitle: 'Chapter 11 - Grover Loop Intuition',
+    title: 'Convergence Toward Solution',
+    summary:
+        'Useful repeated rounds can move the probability distribution toward valid answers.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Convergence is the feeling that the distribution is leaning more and more toward success. It is a trend, not a one-step guarantee.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The learner now watches the direction of probability change across repeated rounds.',
+      examples: [
+        NotebookExample(label: 'Before', notation: 'weak bias'),
+        NotebookExample(
+            label: 'After useful rounds', notation: 'stronger bias'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The valid region receives increasing likelihood across useful rounds. The chapter remains focused on probability behaviour.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'Convergence should not be read as unlimited repetition. The beginner-level idea is simply that structured rounds can build success probability.',
+    ),
+    relatedDiscoveryTitles: [
+      'Iteration Improves Likelihood',
+      'Bias Becomes Amplification',
+      'Amplification as Computational Advantage',
+    ],
+  ),
+  NotebookEntry(
+    id: 'grover_probability_evolution',
+    discoveryTitle: 'Grover Probability Evolution',
+    chapterIndex: 11,
+    chapterTitle: 'Chapter 11 - Grover Loop Intuition',
+    title: 'Grover Probability Evolution',
+    summary:
+        'Grover loop intuition becomes visible as probability bars change shape over iterations.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Picture the candidate answers as bars. At iteration 0, the bars are flat. Later useful iterations make the valid answer bar rise above the others.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The learner now sees iteration as dynamics over time: flat distribution, slight lift, visible bias, then a strong probability peak.',
+      examples: [
+        NotebookExample(label: 'Iteration 0', notation: 'flat distribution'),
+        NotebookExample(label: 'Iteration 1', notation: 'slight lift'),
+        NotebookExample(label: 'Iteration 2', notation: 'visible bias'),
+        NotebookExample(label: 'Later useful rounds', notation: 'strong peak'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The probability distribution is interpreted as a changing shape. The valid answer becomes more likely as its probability peak grows over useful rounds.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This is a visual intuition layer only. It explains what changes over iterations without describing how the change is physically implemented.',
+    ),
+    relatedDiscoveryTitles: [
+      'Convergence Toward Solution',
+      'Iteration Improves Likelihood',
+      'Classical vs Quantum Iteration',
+    ],
+  ),
+  NotebookEntry(
+    id: 'classical_vs_quantum_iteration',
+    discoveryTitle: 'Classical vs Quantum Iteration',
+    chapterIndex: 11,
+    chapterTitle: 'Chapter 11 - Grover Loop Intuition',
+    title: 'Classical vs Quantum Iteration',
+    summary:
+        'Classical repetition retries; Grover-style iteration repeatedly improves the probability distribution.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Guessing again is not the same as making the correct answer more likely. Chapter 11 separates retrying from reshaping likelihood.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The comparison shifts from number of attempts to whether the probability distribution changes between attempts.',
+      examples: [
+        NotebookExample(label: 'Classical retry', notation: 'sample again'),
+        NotebookExample(label: 'Grover-style round', notation: 'improve odds'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The important object is the distribution over candidates. Useful iteration changes that distribution before the answer is observed.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This protects the core abstraction: Grover intuition is repeated probability improvement, not brute-force checking.',
+    ),
+    relatedDiscoveryTitles: [
+      'Convergence Toward Solution',
+      'Why One Step Is Not Enough',
+      'Oracle',
+    ],
+  ),
+  NotebookEntry(
+    id: 'grover_as_computational_pattern',
+    discoveryTitle: 'Grover as Computational Pattern',
+    chapterIndex: 11,
+    chapterTitle: 'Chapter 11 - Grover Loop Intuition',
+    title: 'Grover as Computational Pattern',
+    summary:
+        'Grover is a repeated oracle plus amplification pattern that builds a useful probability advantage.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'The oracle abstraction says what counts as valid. Amplification improves likelihood. Grover intuition is the repeated pattern that strengthens the advantage.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The learner now sees Grover as an algorithmic loop at the abstraction level.',
+      examples: [
+        NotebookExample(label: 'Identify', notation: 'oracle abstraction'),
+        NotebookExample(label: 'Strengthen', notation: 'amplification'),
+        NotebookExample(label: 'Repeat', notation: 'iteration'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The process is understood as repeated probability advantage building over the candidate distribution.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This entry deliberately stops at the computational-pattern layer so future chapters can build upward without conceptual drift.',
+    ),
+    relatedDiscoveryTitles: [
+      'Classical vs Quantum Iteration',
+      'Iteration Improves Likelihood',
+      'Amplification as Computational Advantage',
+    ],
+  ),
 ];
 
 final Map<String, NotebookEntry> notebookEntriesByDiscoveryTitle = {

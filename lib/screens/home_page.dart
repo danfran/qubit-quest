@@ -100,10 +100,18 @@ class _HomePageState extends State<HomePage> {
     'Marked But Hidden',
     'Mark Becomes Probability',
     'Amplitude Amplification',
-    'Mini Grover',
-    'Search Through Interference',
+    'Bias Becomes Amplification',
+    'Amplification as Computational Advantage',
   };
-  static const int _mainCampaignLevelCount = 50;
+  static const Set<String> _chapter11DiscoveryTitles = {
+    'Why One Step Is Not Enough',
+    'Iteration Improves Likelihood',
+    'Convergence Toward Solution',
+    'Grover Probability Evolution',
+    'Classical vs Quantum Iteration',
+    'Grover as Computational Pattern',
+  };
+  static const int _mainCampaignLevelCount = 56;
   static const String _campaignProgressKey = 'maxUnlockedCampaignLevel';
 
   // Placeholder for the maximum unlocked level.
@@ -461,6 +469,8 @@ class _HomePageState extends State<HomePage> {
         final chapter9LevelNumber = _firstChapter9OracleThinkingLevelNumber();
         final chapter10LevelNumber =
             _firstChapter10AmplitudeAmplificationLevelNumber();
+        final chapter11LevelNumber =
+            _firstChapter11GroverLoopIntuitionLevelNumber();
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => DiscoveriesScreen(
@@ -522,8 +532,14 @@ class _HomePageState extends State<HomePage> {
                 if (chapter10LevelNumber != null)
                   DiscoveryPrototypeChapter(
                     title: 'Chapter 10',
-                    subtitle: 'Start Mini Grover',
+                    subtitle: 'Start Amplitude Amplification',
                     levelNumber: chapter10LevelNumber,
+                  ),
+                if (chapter11LevelNumber != null)
+                  DiscoveryPrototypeChapter(
+                    title: 'Chapter 11',
+                    subtitle: 'Start Grover Loop Intuition',
+                    levelNumber: chapter11LevelNumber,
                   ),
               ],
               onStartPrototypeLevel: (levelNumber) =>
@@ -621,6 +637,13 @@ class _HomePageState extends State<HomePage> {
         _chapter10DiscoveryTitles.contains(discoveryTitle);
   }
 
+  bool _isChapter11GroverLoopIntuitionLevel(QQLevel level) {
+    final discoveryTitle = level.discoveryTitle?.trim();
+    return _isLevelNumberInRange(level, 51, 56) &&
+        discoveryTitle != null &&
+        _chapter11DiscoveryTitles.contains(discoveryTitle);
+  }
+
   bool _isLevelNumberInRange(QQLevel level, int firstLevel, int lastLevel) {
     final index = allQQLevels.indexOf(level);
     final levelNumber = index + 1;
@@ -680,6 +703,11 @@ class _HomePageState extends State<HomePage> {
   int? _firstChapter10AmplitudeAmplificationLevelNumber() {
     final index =
         allQQLevels.indexWhere(_isChapter10AmplitudeAmplificationLevel);
+    return index < 0 ? null : index + 1;
+  }
+
+  int? _firstChapter11GroverLoopIntuitionLevelNumber() {
+    final index = allQQLevels.indexWhere(_isChapter11GroverLoopIntuitionLevel);
     return index < 0 ? null : index + 1;
   }
 
@@ -1289,7 +1317,7 @@ class _HomePageState extends State<HomePage> {
             builder: (context) => const ChapterIntroScreen(
               title: 'Chapter 9 - Oracle Thinking',
               text:
-                  'A quantum oracle does not find the answer for you. It marks the desired solution in phase, creating a hidden label that interference can use later.',
+                  'A quantum oracle is a black-box function. In this chapter, treat a circuit as a hidden rule that classifies inputs as valid or invalid without directly revealing the answer.',
               buttonLabel: 'Begin Discovery',
             ),
           ),
@@ -1308,7 +1336,26 @@ class _HomePageState extends State<HomePage> {
             builder: (context) => const ChapterIntroScreen(
               title: 'Chapter 10 - Amplitude Amplification',
               text:
-                  'The oracle only marks the solution invisibly. In this chapter, use interference to turn that hidden mark into a higher chance of measuring the answer.',
+                  'The oracle gives structured access to a hidden rule. In this chapter, learn how a later algorithm can make a valid classification more likely to appear.',
+              buttonLabel: 'Begin Discovery',
+            ),
+          ),
+        );
+      }
+    } else if (_isChapter11GroverLoopIntuitionLevel(level)) {
+      final prefs = await SharedPreferences.getInstance();
+      const seenKey =
+          'chapter_intro_seen_chapter_11_grover_loop_intuition_vertical_slice';
+      if (prefs.getBool(seenKey) != true) {
+        await prefs.setBool(seenKey, true);
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => const ChapterIntroScreen(
+              title: 'Chapter 11 - Grover Loop Intuition',
+              text:
+                  'Grover is an iterative computational pattern. In this chapter, repeat the oracle and amplification abstractions in your reasoning to see how success probability grows.',
               buttonLabel: 'Begin Discovery',
             ),
           ),

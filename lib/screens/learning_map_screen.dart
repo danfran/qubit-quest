@@ -41,6 +41,16 @@ class LearningMapScreen extends StatelessWidget {
       toChapter: 7,
       description: 'Entanglement scales to GHZ',
     ),
+    LearningMapConceptLink(
+      fromChapter: 9,
+      toChapter: 11,
+      description: 'Oracle abstraction feeds Grover loops',
+    ),
+    LearningMapConceptLink(
+      fromChapter: 10,
+      toChapter: 11,
+      description: 'Amplification becomes an iterative pattern',
+    ),
   ];
 
   final int maxUnlockedLevel;

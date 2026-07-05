@@ -53,8 +53,14 @@ class DiscoveryProgress {
     'Marked But Hidden',
     'Mark Becomes Probability',
     'Amplitude Amplification',
-    'Mini Grover',
-    'Search Through Interference',
+    'Bias Becomes Amplification',
+    'Amplification as Computational Advantage',
+    'Why One Step Is Not Enough',
+    'Iteration Improves Likelihood',
+    'Convergence Toward Solution',
+    'Grover Probability Evolution',
+    'Classical vs Quantum Iteration',
+    'Grover as Computational Pattern',
   ];
 
   static Future<Set<String>> loadUnlocked() async {

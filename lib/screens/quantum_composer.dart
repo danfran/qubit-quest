@@ -1751,11 +1751,7 @@ class _QuantumComposerState extends State<QuantumComposer>
         ],
         if (_adaptiveInsight != null) ...[
           SizedBox(height: compact ? 5 : 6),
-          AdaptiveLearningCard(
-            insight: _adaptiveInsight!,
-            compact: compact,
-            onReviewNotebook: _openQuantumNotebook,
-          ),
+          _buildAdaptiveLearningCard(compact: compact),
         ],
       ],
     );
@@ -1780,13 +1776,22 @@ class _QuantumComposerState extends State<QuantumComposer>
         ],
         if (_adaptiveInsight != null) ...[
           SizedBox(height: compact ? 6 : 8),
-          AdaptiveLearningCard(
-            insight: _adaptiveInsight!,
-            compact: compact,
-            onReviewNotebook: _openQuantumNotebook,
-          ),
+          _buildAdaptiveLearningCard(compact: compact),
         ],
       ],
+    );
+  }
+
+  Widget _buildAdaptiveLearningCard({required bool compact}) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: compact ? 108 : 148,
+      ),
+      child: AdaptiveLearningCard(
+        insight: _adaptiveInsight!,
+        compact: compact,
+        onReviewNotebook: _openQuantumNotebook,
+      ),
     );
   }
 

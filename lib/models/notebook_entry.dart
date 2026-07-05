@@ -43,6 +43,12 @@ class NotebookEntry {
         return 'How multi-qubit states become global constraints';
       case 8:
         return 'How controlled operations write information into phase';
+      case 9:
+        return 'How hidden rules classify valid inputs without revealing answers';
+      case 10:
+        return 'How probability is concentrated toward valid states';
+      case 11:
+        return 'How repeated abstractions build search advantage';
       default:
         return '';
     }

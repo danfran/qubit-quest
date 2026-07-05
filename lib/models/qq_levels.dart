@@ -2792,27 +2792,27 @@ final List<QQLevel> _authoredQQLevels = [
   ),
 
   ComposerLevel(
-    title: 'The Special State',
+    title: 'Oracle Intuition',
     taskDescription:
-        r'Can one state be treated differently from all the others? Apply the phase-marking operation to \( |++\rangle \).',
+        r'Can a hidden rule classify one input differently from the others? Query the rule on \( |++\rangle \).',
     targetStateExpression: 'O|++⟩ = (|00⟩ + |01⟩ + |10⟩ - |11⟩)/2',
-    mysteryTitle: 'Can one state be treated differently from all the others?',
+    mysteryTitle: 'Can a circuit behave like a hidden rule?',
     mysteryText:
-        'A superposition contains several possible states at once. Try one controlled phase operation and look for the single basis state that receives special treatment.',
+        'An oracle is a black-box function. It receives possible inputs and classifies each one as valid or invalid without directly announcing the answer.',
     discoveryTitle: 'A Special State',
     discoveryText:
-        'Only the |11⟩ part changed sign. The circuit did not choose an answer yet, but it did distinguish one state from the rest.',
-    keyInsight: 'Quantum circuits can distinguish one state from many.',
+        'The hidden rule treated |11⟩ as the valid input and left the other inputs unmarked. The answer was classified, not revealed.',
+    keyInsight: 'An oracle is a hidden rule: f(x) returns valid or invalid.',
     whyItMatters:
-        'Search algorithms begin by identifying which state matters. Before an answer can be amplified, it must be treated differently from the other possibilities.',
+        'Oracle thinking separates what the rule means from how a circuit implements it. The learner reasons about input classification first.',
     nextMystery:
-        'Can that special treatment happen without measuring the state?',
+        'Can a simple rule mark one input while keeping the answer hidden?',
     hints: [
-      'Use the controlled phase gate.',
-      'CZ changes the sign only when both qubits are |1⟩.',
+      'Look for the operation that classifies only the input |11⟩ as valid.',
+      'The goal is not to read the answer. It is to apply the hidden rule once.',
     ],
     solutionExplanation:
-        'CZ leaves |00⟩, |01⟩, and |10⟩ unchanged, but adds a minus sign to |11⟩. That single sign change is the beginning of oracle thinking.',
+        'The oracle query leaves the invalid inputs unmarked and marks only the valid input |11⟩. That selective classification is the beginning of oracle thinking.',
     numQubits: 2,
     initialQubitsStateStr: '|++⟩',
     initialQubitsState: [
@@ -2833,29 +2833,28 @@ final List<QQLevel> _authoredQQLevels = [
   ),
 
   ComposerLevel(
-    title: 'Mark Without Measuring',
+    title: 'Simple Marking Rule',
     taskDescription:
-        r'Can we mark a state without observing it? Mark \( |1\rangle \) inside \( |+\rangle \) using phase.',
+        r'Can a rule mark one valid input without directly revealing it? Query the rule that accepts \( |1\rangle \).',
     targetStateLabel: '|−⟩',
     targetStateExpression: '|−⟩ = (|0⟩ - |1⟩)/√2',
-    mysteryTitle: 'Can we mark a state without observing it?',
+    mysteryTitle: 'Can a rule identify validity without showing the answer?',
     mysteryText:
-        'A measurement would collapse the state. Instead, try changing only the sign attached to one outcome.',
+        'A classical question asks for the answer. An oracle query applies a rule and only labels whether an input is valid.',
     discoveryTitle: 'Hidden Mark',
     discoveryText:
-        'The probabilities stayed 50/50, but |1⟩ received a minus sign. The mark is real even though measurement probabilities do not reveal it yet.',
-    keyInsight:
-        'A phase mark does not immediately change measurement outcomes.',
+        'The oracle classified |1⟩ as valid while |0⟩ remained unmarked. The valid input was labeled by the rule, not exposed by measurement.',
+    keyInsight: 'Oracle output means marked or unmarked, not answer displayed.',
     whyItMatters:
-        'Quantum algorithms often hide information in phase first. Interference later turns that hidden mark into something measurable.',
+        'This is the query model: ask the hidden function to evaluate inputs, then use the classification later.',
     nextMystery:
-        'If a single qubit can be marked, can you build a two-qubit oracle that marks a chosen solution?',
+        'Can the same idea classify one valid input among several possibilities?',
     hints: [
-      'Use the phase flip gate.',
-      'Z marks the |1⟩ component of |+⟩ with a minus sign.',
+      'Apply the operation that labels |1⟩ as the accepted input.',
+      'Do not look for a measurement result. Look for rule-based classification.',
     ],
     solutionExplanation:
-        'Z maps |+⟩ to |−⟩. It marks the |1⟩ component with a phase while leaving the measurement probabilities unchanged.',
+        'The oracle query labels the accepted input |1⟩ and leaves |0⟩ unmarked. The rule has been evaluated without directly displaying the answer.',
     numQubits: 1,
     initialQubitsStateStr: '|+⟩',
     initialQubitsState: [
@@ -2872,27 +2871,27 @@ final List<QQLevel> _authoredQQLevels = [
   ),
 
   ComposerLevel(
-    title: 'Build An Oracle',
+    title: 'Hidden Structure Effect',
     taskDescription:
-        r'Can you create the marking yourself? Build a circuit that marks \( |10\rangle \) inside \( |++\rangle \).',
+        r'Can a hidden rule classify \( |10\rangle \) as valid while the other inputs remain invalid?',
     targetStateExpression: 'O|++⟩ = (|00⟩ + |01⟩ - |10⟩ + |11⟩)/2',
-    mysteryTitle: 'Can you create the marking yourself?',
+    mysteryTitle: 'Can hidden structure exist before the answer is visible?',
     mysteryText:
-        'CZ naturally marks |11⟩. To mark a different solution, temporarily move the desired state into the place CZ can see.',
+        'The oracle applies a function to the input space. It can classify one input as valid even when direct reading has not revealed which input matters.',
     discoveryTitle: 'Oracle',
     discoveryText:
-        'The X gates changed which state the controlled phase gate recognized. Together, they made an oracle that marks |10⟩.',
-    keyInsight: 'An oracle marks a solution rather than revealing it.',
+        'The oracle encoded the rule f(10)=1 and f(x)=0 for the other inputs. It marked the valid input without revealing it as a measurement outcome.',
+    keyInsight: 'An oracle is a hidden function over possible inputs.',
     whyItMatters:
-        'The oracle is the first step of Grover\'s algorithm. It does not find the answer by itself; it labels the answer in phase.',
+        'This lifts the idea above individual operations: the important object is the rule that maps inputs to valid or invalid.',
     nextMystery:
-        'If marks can be hidden in phase, can you tell which state was marked?',
+        'Why is querying a hidden rule different from checking answers one at a time?',
     hints: [
-      'Use X to temporarily turn |10⟩ into |11⟩.',
-      'Apply CZ, then undo the temporary X.',
+      'Think of the oracle as the rule f(10)=1.',
+      'The other inputs should remain in the unmarked class.',
     ],
     solutionExplanation:
-        'X on q0 maps the desired |10⟩ state to |11⟩. CZ marks it, then X on q0 restores the original labels, leaving only |10⟩ with a minus sign.',
+        'The completed oracle query classifies |10⟩ as valid and all other inputs as invalid. The learner-facing idea is the function table, not the internal implementation.',
     numQubits: 2,
     initialQubitsStateStr: '|++⟩',
     initialQubitsState: [
@@ -2914,28 +2913,28 @@ final List<QQLevel> _authoredQQLevels = [
   ),
 
   ComposerLevel(
-    title: 'Which State Was Marked?',
+    title: 'Why Classical Fails',
     taskDescription:
-        r'Can you determine which state received the mark? Build a circuit that marks \( |01\rangle \) inside \( |++\rangle \).',
+        r'Why is a rule query not the same as checking each answer manually? Query the hidden rule that accepts \( |01\rangle \).',
     targetStateExpression: 'O|++⟩ = (|00⟩ - |01⟩ + |10⟩ + |11⟩)/2',
-    mysteryTitle: 'Can you determine which state received the mark?',
+    mysteryTitle: 'Why is brute-force inspection the wrong model?',
     mysteryText:
-        'The probability bars may look unchanged after a phase mark. The clue is the sign attached to exactly one basis state.',
+        'Classical inspection asks one candidate at a time. Oracle thinking treats the circuit as a black-box function that can be queried as a whole.',
     discoveryTitle: 'Invisible Mark',
     discoveryText:
-        'The marked state has the same probability as the others, but its amplitude has the opposite sign. Measurement alone would hide the mark.',
+        'The oracle query encoded f(01)=1 without turning the problem into a visible answer list. Querying the rule is not the same as brute-force inspection.',
     keyInsight:
-        'A solution can be marked in phase while measurement probabilities stay unchanged.',
+        'Oracle access evaluates a hidden rule; it does not reveal the answer by itself.',
     whyItMatters:
-        'Quantum algorithms can store useful labels in phase before interference turns those labels into visible probability changes.',
+        'This is the conceptual breakthrough: the algorithm receives structured access to a rule, not a direct answer.',
     nextMystery:
-        'What have we actually built when we can mark any desired solution?',
+        'What role does this hidden rule play inside a larger algorithm?',
     hints: [
-      'Move |01⟩ into the |11⟩ position before applying CZ.',
-      'Undo the move after the mark is applied.',
+      'Treat |01⟩ as the only input for which f(x)=1.',
+      'The goal is a rule query, not a list of tested candidates.',
     ],
     solutionExplanation:
-        'X on q1 maps |01⟩ to |11⟩. CZ marks that temporary |11⟩ state, then X on q1 restores the basis labels, leaving |01⟩ marked.',
+        'The oracle query represents the rule f(01)=1 and f(x)=0 otherwise. This gives structured access to the problem without directly exposing the answer.',
     numQubits: 2,
     initialQubitsStateStr: '|++⟩',
     initialQubitsState: [
@@ -2957,27 +2956,28 @@ final List<QQLevel> _authoredQQLevels = [
   ),
 
   ComposerLevel(
-    title: 'Preparing For Grover',
+    title: 'Oracle as Computation Primitive',
     taskDescription:
-        r'What have we actually built? Build a phase oracle that marks \( |00\rangle \) inside \( |++\rangle \).',
+        r'What have we actually built? Query a reusable oracle whose hidden rule accepts \( |00\rangle \).',
     targetStateExpression: 'O|++⟩ = (-|00⟩ + |01⟩ + |10⟩ + |11⟩)/2',
-    mysteryTitle: 'What have we actually built?',
+    mysteryTitle: 'What is an oracle for?',
     mysteryText:
-        'You can now choose which solution receives the hidden sign. Mark |00⟩ and think about what a later interference step could do with that mark.',
+        'An oracle is not the whole algorithm. It is the reusable part that encodes the problem as a hidden function.',
     discoveryTitle: 'Phase Marking',
     discoveryText:
-        'You built an oracle: a circuit that leaves every state alone except the chosen solution, which receives a phase mark.',
-    keyInsight: 'The oracle creates a hidden label on the desired solution.',
+        'You built the abstraction an algorithm needs: a reusable query that classifies |00⟩ as valid and every other input as invalid.',
+    keyInsight:
+        'An oracle is a computation primitive: query f(x), then use the result later.',
     whyItMatters:
-        'Grover\'s algorithm will use interference to amplify this marked state. The oracle does not find the solution; it gives interference something to work with.',
+        'Future algorithms can call this hidden rule as a component. Chapter 9 defines the abstraction, not the later extraction step.',
     nextMystery:
-        'If a solution is marked, can we make it more likely to appear?',
+        'If an oracle can classify valid inputs, how can a later algorithm make that classification useful?',
     hints: [
-      'CZ marks |11⟩, so first move |00⟩ into |11⟩.',
-      'Use X on both qubits before CZ, then undo both X gates.',
+      'Think of the function table: f(00)=1 and every other input maps to 0.',
+      'Build the reusable query, not a direct answer display.',
     ],
     solutionExplanation:
-        'X on both qubits maps |00⟩ to |11⟩. CZ applies the phase mark, and the final X gates restore the labels, leaving |00⟩ marked.',
+        'The resulting oracle query classifies |00⟩ as the valid input and the remaining candidates as invalid. That black-box rule is now a reusable computation primitive.',
     numQubits: 2,
     initialQubitsStateStr: '|++⟩',
     initialQubitsState: [
@@ -2999,26 +2999,27 @@ final List<QQLevel> _authoredQQLevels = [
   ),
 
   ComposerLevel(
-    title: 'The Mark Is Still Hidden',
+    title: 'Why Marking Is Not Enough',
     taskDescription:
-        r'If the solution is marked, why can’t we see it yet? Mark \( |11\rangle \) inside \( |++\rangle \).',
-    targetStateExpression: 'O|++⟩ = (|00⟩ + |01⟩ + |10⟩ - |11⟩)/2',
-    mysteryTitle: 'If the solution is marked, why can’t we see it yet?',
+        r'A valid state is known, but every outcome is still equally likely. Keep \( |11\rangle \) no more likely than the others.',
+    targetStateExpression: 'P(00)=P(01)=P(10)=P(11)=25%',
+    mysteryTitle: 'Why is knowing the valid state not enough?',
     mysteryText:
-        'The oracle can mark a solution with a minus sign. But if all probabilities stay equal, the marked answer is still hidden from measurement.',
+        'A valid answer can be identified without becoming easier to observe. If all probabilities stay equal, knowing validity has not changed the distribution.',
     discoveryTitle: 'Marked But Hidden',
     discoveryText:
-        'The oracle marked |11⟩ with phase, but the probability of each state stayed 25%. Marking alone is not the same as finding.',
-    keyInsight: 'An oracle marks the solution, but it does not amplify it.',
+        'The valid state |11⟩ still had the same 25% chance as every other state. Identifying the answer is not the same as making it likely.',
+    keyInsight:
+        'A known valid state must become more likely before measurement is useful.',
     whyItMatters:
-        'Grover needs both marking and amplification. The oracle creates the hidden sign; a later interference step makes that sign useful.',
-    nextMystery: 'Can interference make the hidden mark visible?',
+        'Amplitude amplification starts from this gap: the goal is not just to know which state is valid, but to concentrate probability toward it.',
+    nextMystery: 'Can probability shift toward the valid state?',
     hints: [
-      'Use the controlled phase gate.',
-      'CZ marks |11⟩ by changing only its sign.',
+      'Focus on the measurement chances, not on naming the valid state.',
+      'For this step, the valid state should remain equally likely.',
     ],
     solutionExplanation:
-        'CZ applies a -1 phase to |11⟩ while leaving the other basis states unchanged. The probabilities remain equal.',
+        'The resulting distribution still gives every basis state a 25% chance. The visible lesson is that validity alone has not increased the chance of observing |11⟩.',
     numQubits: 2,
     initialQubitsStateStr: '|++⟩',
     initialQubitsState: [
@@ -3039,64 +3040,70 @@ final List<QQLevel> _authoredQQLevels = [
   ),
 
   ComposerLevel(
-    title: 'Interference Reveals the Mark',
+    title: 'First Sign of Bias',
     taskDescription:
-        r'Can interference make the hidden mark visible? Convert \( |-\rangle \) into a measurable \( |1\rangle \).',
-    targetStateExpression: '|1⟩',
-    mysteryTitle: 'Can interference make the hidden mark visible?',
+        r'Can a balanced distribution become uneven? Shift \( |++\rangle \) so only two outcomes remain likely.',
+    targetStateExpression: 'P(00)=50%, P(10)=50%',
+    mysteryTitle: 'Can a balanced distribution become uneven?',
     mysteryText:
-        'The minus sign in |−⟩ is a hidden phase mark. Use interference to turn that phase difference into a bit you can measure.',
+        'Before amplification feels useful, the learner needs to see a smaller move: probability does not have to stay spread evenly across every candidate.',
     discoveryTitle: 'Mark Becomes Probability',
     discoveryText:
-        'The H gate made the positive and negative paths interfere. The hidden phase became the visible state |1⟩.',
+        'The distribution narrowed from four equally likely outcomes to two likely outcomes. This is the first visible sign that probability can be biased.',
     keyInsight:
-        'Interference can convert phase information into measurement probability.',
+        'A probability distribution can become uneven without producing a guaranteed answer.',
     whyItMatters:
-        'This is the basic mechanism behind amplitude amplification: phase information becomes probability through interference.',
-    nextMystery: 'Can one marked state become more likely than all the others?',
+        'This bridge keeps Chapter 10 gradual: first observe an uneven distribution, then use that idea to favor a valid state.',
+    nextMystery:
+        'Can a valid state become more likely without becoming certain?',
     hints: [
-      'Use the basis-changing gate.',
-      'H maps |−⟩ to |1⟩.',
+      'Aim for two likely outcomes instead of four equal ones.',
+      'The final distribution should be biased, not guaranteed.',
     ],
     solutionExplanation:
-        'H converts |−⟩ = (|0⟩ - |1⟩)/√2 into |1⟩. The phase mark becomes measurement probability.',
-    numQubits: 1,
-    initialQubitsStateStr: '|−⟩',
+        'The completed transformation leaves probability on |00⟩ and |10⟩ only. The learner-facing point is the first uneven distribution, not a final answer.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
     initialQubitsState: [
-      Complex(math.sqrt1_2, 0),
-      Complex(-math.sqrt1_2, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
     ],
     availableGates: [
       Gate.fromIdentifier(SelectedGateType.hadamard),
     ],
     solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
       [Complex.zero()],
-      [Complex.one()],
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
     ],
   ),
 
   ComposerLevel(
-    title: 'Amplify One State',
+    title: 'Reinforcement of Probability',
     taskDescription:
-        r'Can one marked state become more likely than the others? Mark \( |11\rangle \), then amplify it.',
-    targetStateExpression: '|11⟩',
-    mysteryTitle: 'Can one marked state become more likely than the others?',
+        r'Can a valid state become more likely without becoming certain? Bias the distribution toward \( |11\rangle \).',
+    targetStateExpression: 'P(00)=50%, P(11)=50%',
+    mysteryTitle:
+        'Can a valid state become more likely without becoming certain?',
     mysteryText:
-        'Start with every state equally likely. Mark |11⟩ in phase, then use the amplification pattern to make the marked state stand out.',
+        'Start with every candidate equally likely. The task is only to make |11⟩ more likely than it was before, not to force it as the guaranteed outcome.',
     discoveryTitle: 'Amplitude Amplification',
     discoveryText:
-        'The marked state became the dominant outcome. The circuit used reflections and interference to move amplitude toward the marked answer.',
+        'The probability of |11⟩ increased from 25% to 50%. That is reinforcement: a stronger preference, but still not a guaranteed result.',
     keyInsight:
-        'A marked state can be amplified by reflecting/interfering amplitudes.',
+        'Reinforcement can increase likelihood before full amplification appears.',
     whyItMatters:
-        'Grover’s algorithm uses this idea to make the correct answer appear more often instead of checking every possibility one by one.',
-    nextMystery: 'Can we search by marking, then amplifying?',
+        'This removes the sudden jump from equal probabilities to certainty. The learner sees amplification as a gradual strengthening of likelihood.',
+    nextMystery: 'How does a small bias become an amplification pattern?',
     hints: [
-      'First mark |11⟩ with CZ.',
-      'Then use the diffuser pattern: H on both, X on both, CZ, X on both, H on both.',
+      '|11⟩ should become more likely than before, but it should not be the only possible result.',
+      'Aim for a weak bias shared with one other outcome.',
     ],
     solutionExplanation:
-        'CZ marks |11⟩. The diffuser H,H,X,X,CZ,X,X,H,H reflects amplitudes so the marked |11⟩ state is amplified.',
+        'The completed sequence raises |11⟩ to 50% probability while another outcome remains possible. The visible concept is incremental reinforcement.',
     numQubits: 2,
     initialQubitsStateStr: '|++⟩',
     initialQubitsState: [
@@ -3108,100 +3115,270 @@ final List<QQLevel> _authoredQQLevels = [
     availableGates: [
       Gate.fromIdentifier(SelectedGateType.cz),
       Gate.fromIdentifier(SelectedGateType.hadamard),
-      Gate.fromIdentifier(SelectedGateType.x),
     ],
     solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
       [Complex.zero()],
       [Complex.zero()],
-      [Complex.zero()],
-      [Complex(-1, 0)],
+      [Complex(math.sqrt1_2, 0)],
     ],
   ),
 
-  ComposerLevel(
-    title: 'Mini Grover',
+  ConceptCheckLevel(
+    title: 'Bias Becomes Amplification',
     taskDescription:
-        r'Can we search by marking, then amplifying? Mark \( |10\rangle \), then amplify it.',
-    targetStateExpression: '|10⟩',
-    mysteryTitle: 'Can we search by marking, then amplifying?',
+        r'A weak bias toward \( |11\rangle \) already exists. Which description correctly turns that bias into amplification?',
+    conceptIntro:
+        'Read the probability change: amplification means a weak preference becomes stronger without becoming a guaranteed selection.',
+    mysteryTitle: 'How does a small bias become an amplification pattern?',
     mysteryText:
-        'This is a tiny Grover search: prepare all answers, mark the desired one, then amplify the mark.',
-    discoveryTitle: 'Mini Grover',
+        'Level 48 created the first weak preference. This checkpoint asks what should happen next at the probability level only.',
+    discoveryTitle: 'Bias Becomes Amplification',
     discoveryText:
-        'The circuit did not inspect each answer separately. It marked |10⟩, then interference pushed probability into that marked state.',
-    keyInsight: 'Grover search is mark, then amplify.',
+        'A small preference for |11⟩ can be strengthened into a larger preference. The result is still a probability bias, not a guaranteed answer.',
+    keyInsight: 'Amplification is a strengthened bias toward the valid state.',
     whyItMatters:
-        'This is the first complete quantum algorithm intuition in Qubit Quest 2.0: superposition, oracle mark, then amplitude amplification.',
-    nextMystery: 'What did the algorithm actually do?',
+        'This level keeps Chapter 10 at the probability layer: small preference first, stronger preference next, full certainty not required.',
+    nextMystery: 'What does amplification contribute to search?',
     hints: [
-      'Use X on q0 to make CZ mark |10⟩, then undo that X.',
-      'After the oracle, apply the diffuser pattern: H,H,X,X,CZ,X,X,H,H.',
+      'Compare before and after probabilities.',
+      'The correct answer strengthens the bias without claiming certainty.',
     ],
     solutionExplanation:
-        'The X,CZ,X oracle marks |10⟩. The diffuser then converts the hidden phase mark into high probability on |10⟩.',
-    numQubits: 2,
-    initialQubitsStateStr: '|++⟩',
-    initialQubitsState: [
-      Complex(0.5, 0),
-      Complex(0.5, 0),
-      Complex(0.5, 0),
-      Complex(0.5, 0),
+        'Before: slight preference for |11⟩. After: stronger preference for |11⟩. The result is still not guaranteed; amplification means strengthened likelihood.',
+    options: [
+      'Before: slight preference for |11⟩. After: stronger preference for |11⟩, but not certainty.',
+      'Before: slight preference for |11⟩. After: |11⟩ is guaranteed and every other outcome disappears.',
+      'Before: slight preference for |11⟩. After: each candidate is checked one at a time.',
+      'Before: slight preference for |11⟩. After: the distribution stays exactly the same.',
     ],
-    availableGates: [
-      Gate.fromIdentifier(SelectedGateType.x),
-      Gate.fromIdentifier(SelectedGateType.cz),
-      Gate.fromIdentifier(SelectedGateType.hadamard),
-    ],
-    solutionFinalVector: [
-      [Complex.zero()],
-      [Complex.zero()],
-      [Complex(-1, 0)],
-      [Complex.zero()],
-    ],
+    correctOptionIndex: 0,
   ),
 
-  ComposerLevel(
-    title: 'Why Search Can Be Faster',
+  ConceptCheckLevel(
+    title: 'Amplification as Computational Advantage',
     taskDescription:
-        r'What did the algorithm actually do? Mark \( |00\rangle \), then amplify it.',
-    targetStateExpression: '|00⟩',
-    mysteryTitle: 'What did the algorithm actually do?',
+        'What is the final Chapter 10 takeaway about amplitude amplification?',
+    badgeLabel: 'Chapter Synthesis Check',
+    conceptIntro:
+        'Use the probability model only: weak bias can become stronger bias, and stronger bias makes the valid answer more likely to be observed.',
+    mysteryTitle: 'What does amplification contribute to search?',
     mysteryText:
-        'Connect the full chain: start with all answers, mark the desired one in phase, then use interference to reshape the probabilities.',
-    discoveryTitle: 'Search Through Interference',
+        'Bring the chapter together: amplification is useful because probability can be shifted toward the valid state without treating the result as guaranteed.',
+    discoveryTitle: 'Amplification as Computational Advantage',
     discoveryText:
-        'The oracle marked |00⟩ invisibly. The amplification step used interference to concentrate probability on that marked state.',
+        'A small probability advantage can become a useful bias toward the correct answer. That stronger likelihood is the computational advantage.',
     keyInsight:
-        'Quantum search does not check every answer one by one. It reshapes amplitudes so the answer becomes more likely.',
+        'Amplitude amplification turns weak bias into useful probability advantage.',
     whyItMatters:
-        'This is why Grover’s algorithm can provide a quadratic speedup: it turns a hidden phase label into an increased chance of measuring the answer.',
+        'This is the Chapter 10 abstraction: computation can improve search by increasing likelihood, not by guaranteeing the answer.',
     nextMystery:
-        'If we can tune amplitudes for search, can we tune quantum circuits for optimization?',
+        'If we can tune probabilities for search, can we tune them for optimization?',
     hints: [
-      'Use X on both qubits to make CZ mark |00⟩, then undo both X gates.',
-      'After the oracle, apply the diffuser pattern: H,H,X,X,CZ,X,X,H,H.',
+      'Choose the answer that stays at the probability level.',
+      'The correct idea is stronger likelihood, not certainty.',
     ],
     solutionExplanation:
-        'The X,X,CZ,X,X oracle marks |00⟩. The diffuser turns that phase mark into amplitude concentrated on |00⟩.',
-    numQubits: 2,
-    initialQubitsStateStr: '|++⟩',
-    initialQubitsState: [
-      Complex(0.5, 0),
-      Complex(0.5, 0),
-      Complex(0.5, 0),
-      Complex(0.5, 0),
+        'Amplitude amplification is the process where a small probability advantage becomes a useful bias toward the correct answer. It improves likelihood without making the outcome deterministic.',
+    options: [
+      'A small probability advantage can be strengthened into a useful bias toward the correct answer.',
+      'The answer becomes guaranteed, so probability no longer matters.',
+      'The task is to select one state exactly and ignore probability.',
+      'The distribution should stay evenly spread across every candidate.',
     ],
-    availableGates: [
-      Gate.fromIdentifier(SelectedGateType.x),
-      Gate.fromIdentifier(SelectedGateType.cz),
-      Gate.fromIdentifier(SelectedGateType.hadamard),
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Why One Step Is Not Enough',
+    taskDescription:
+        'One oracle plus amplification pass improves the chance of success. Why might that still not be enough?',
+    conceptIntro:
+        'Chapter 11 starts above the mechanics. Treat oracle and amplification as abstract steps: one identifies valid states, the other improves their likelihood.',
+    mysteryTitle: 'Why is one improvement not always enough?',
+    mysteryText:
+        'A single pass can make the valid answer more likely, but a small improvement may still leave too much probability on other candidates.',
+    discoveryTitle: 'Why One Step Is Not Enough',
+    discoveryText:
+        'One round can create a useful advantage without making success likely enough. Chapter 11 begins with the need to strengthen that advantage.',
+    keyInsight:
+        'A probability advantage can be useful before it is strong enough.',
+    whyItMatters:
+        'This prepares the loop idea: repeated abstract steps can build on an existing probability advantage.',
+    nextMystery: 'What changes when the abstract process is repeated?',
+    hints: [
+      'Do not look for certainty.',
+      'Compare a small improvement with a high chance of success.',
     ],
-    solutionFinalVector: [
-      [Complex(-1, 0)],
-      [Complex.zero()],
-      [Complex.zero()],
-      [Complex.zero()],
+    solutionExplanation:
+        'One pass can improve the odds, but the valid answer may still not be likely enough. The next idea is repeating the abstract process to strengthen the advantage.',
+    options: [
+      'One pass can improve likelihood, but the success probability may still be too low.',
+      'One pass always guarantees the correct answer.',
+      'One pass is useless because probability cannot change.',
+      'One pass means every candidate must be tried separately.',
     ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Iteration Idea',
+    taskDescription:
+        'What is the new idea when the oracle plus amplification pattern is repeated?',
+    conceptIntro:
+        'Iteration means using the same abstract pattern again so an existing advantage can become stronger.',
+    mysteryTitle: 'What does repetition add?',
+    mysteryText:
+        'The chapter shift is not a new operation. The shift is using known abstractions repeatedly to improve success likelihood.',
+    discoveryTitle: 'Iteration Improves Likelihood',
+    discoveryText:
+        'Repeating the abstract process can increase the chance of observing a valid answer.',
+    keyInsight:
+        'Iteration can strengthen a probability advantage across rounds.',
+    whyItMatters:
+        'Grover intuition depends on understanding repeated abstract steps, not a one-shot transformation.',
+    nextMystery: 'What trend appears across repeated rounds?',
+    hints: [
+      'Think about likelihood across rounds.',
+      'The repeated pattern should strengthen the same valid region.',
+    ],
+    solutionExplanation:
+        'Iteration reuses the oracle plus amplification abstractions so the probability advantage can grow across rounds.',
+    options: [
+      'Repeat the abstract pattern so the valid answer becomes more likely across rounds.',
+      'Repeat random guessing without changing the distribution.',
+      'Stop after the first small improvement because repetition cannot help.',
+      'Replace probability reasoning with exact selection.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Convergence Toward Solution',
+    taskDescription:
+        'What should happen to the probability distribution across useful repeated rounds?',
+    conceptIntro:
+        'Convergence means the distribution trends toward the valid answer as the abstract loop is applied carefully.',
+    mysteryTitle: 'What trend should the loop create?',
+    mysteryText:
+        'The learner should track the shape of the probability distribution, not a low-level implementation.',
+    discoveryTitle: 'Convergence Toward Solution',
+    discoveryText:
+        'Repeated rounds can concentrate probability toward valid states, creating a stronger chance of success.',
+    keyInsight:
+        'Grover loop intuition is about a trend toward higher success probability.',
+    whyItMatters:
+        'This prevents treating Grover as instant success. The value comes from structured probability improvement.',
+    nextMystery: 'Why is this different from classical repetition?',
+    hints: [
+      'Look for a trend, not a single guaranteed jump.',
+      'The valid answer should become more likely over useful rounds.',
+    ],
+    solutionExplanation:
+        'Across useful repeated rounds, probability should move toward valid states. That convergence is the high-level behaviour Chapter 11 isolates.',
+    options: [
+      'Probability trends toward valid states across useful repeated rounds.',
+      'Probability must stay evenly spread forever.',
+      'The valid answer is guaranteed after every single round.',
+      'The process works by ignoring the existing bias.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Grover Probability Evolution',
+    taskDescription:
+        'How should the probability distribution look as useful Grover-style iterations continue?',
+    conceptIntro:
+        'Use a visual mental model: probability bars begin flat, then the valid answer grows taller over repeated abstract rounds.',
+    mysteryTitle: 'What changes over time?',
+    mysteryText:
+        'The loop is easier to understand when you watch the shape of the distribution over iterations.',
+    discoveryTitle: 'Grover Probability Evolution',
+    discoveryText:
+        'Iteration 0 is flat. Iteration 1 creates a slight lift for the valid answer. Iteration 2 shows a visible bias. Later useful iterations create a strong probability peak.',
+    keyInsight: 'Grover intuition is a changing probability shape over time.',
+    whyItMatters:
+        'The learner can now see the loop as dynamics: repeated abstract rounds reshape likelihood toward the valid answer.',
+    nextMystery: 'Why is this different from classical repetition?',
+    hints: [
+      'Picture probability bars changing height.',
+      'The valid answer should grow gradually, not jump instantly to certainty.',
+    ],
+    solutionExplanation:
+        'The correct visual story is flat distribution, slight lift, visible bias, then a strong peak around the valid answer. This is probability evolution, not a mechanism description.',
+    options: [
+      'The valid answer grows from equal height to a small lift, then visible bias, then a strong probability peak.',
+      'Every candidate bar stays exactly the same height after each iteration.',
+      'The valid answer becomes guaranteed immediately after the first iteration.',
+      'The distribution changes randomly with no trend toward the valid answer.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Classical vs Quantum Iteration',
+    taskDescription:
+        'Why is this loop idea different from simply guessing again?',
+    conceptIntro:
+        'Classical repetition retries. Grover-style iteration is different at the abstraction level because it reshapes the probability distribution.',
+    mysteryTitle: 'Why is repeated guessing not the same idea?',
+    mysteryText:
+        'A repeated guess samples again from the same situation. A useful Grover-style loop changes the distribution before the next observation.',
+    discoveryTitle: 'Classical vs Quantum Iteration',
+    discoveryText:
+        'Classical repetition does not by itself reshape probability. The Grover loop idea is repeated probability improvement.',
+    keyInsight:
+        'The loop matters because it changes the distribution, not because it merely retries.',
+    whyItMatters:
+        'This keeps the advantage conceptual: improved likelihood is different from repeated brute-force checking.',
+    nextMystery: 'How do these pieces become the Grover pattern?',
+    hints: [
+      'Compare retrying with reshaping likelihood.',
+      'The correct answer changes the distribution before measuring.',
+    ],
+    solutionExplanation:
+        'Classical repetition tries again. Grover-style iteration repeatedly improves the probability distribution so valid answers become more likely.',
+    options: [
+      'Repeated guessing retries; Grover-style iteration strengthens the probability distribution toward valid answers.',
+      'Repeated guessing and Grover-style iteration are the same because both use repetition.',
+      'Classical repetition automatically increases the probability of the correct answer.',
+      'The useful part is ignoring probability and counting attempts only.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Grover as Computational Pattern',
+    badgeLabel: 'Chapter Synthesis Check',
+    taskDescription: 'What is Grover at the Chapter 11 abstraction level?',
+    conceptIntro:
+        'Use the whole chapter: oracle identifies valid states abstractly, amplification improves their likelihood, and iteration strengthens the advantage.',
+    mysteryTitle: 'What pattern have we learned?',
+    mysteryText:
+        'Grover is now a computational pattern built from repeated abstractions, not a physical construction.',
+    discoveryTitle: 'Grover as Computational Pattern',
+    discoveryText:
+        'Grover can be understood as repeated oracle plus amplification steps that build a useful probability advantage.',
+    keyInsight:
+        'Grover is an iterative computational pattern over probability.',
+    whyItMatters:
+        'This prepares future algorithm chapters without collapsing back into implementation details.',
+    nextMystery:
+        'If repeated probability improvement can guide search, what other algorithmic patterns can guide computation?',
+    hints: [
+      'Stay at the abstraction level.',
+      'Look for oracle, amplification, and iteration together.',
+    ],
+    solutionExplanation:
+        'At this level, Grover is repeated oracle plus amplification: identify valid states abstractly, increase their likelihood, and repeat to build a useful success advantage.',
+    options: [
+      'A repeated oracle plus amplification pattern that increases the probability of observing a valid answer.',
+      'A direct guarantee that the answer is selected after one step.',
+      'A method that checks every candidate one by one.',
+      'A rule that only names valid states without improving likelihood.',
+    ],
+    correctOptionIndex: 0,
   ),
 
   ComposerLevel.fromBinaryString(
@@ -4445,24 +4622,25 @@ ComposerLevel _chapter4InterferenceFinale() {
 final List<QQLevel> allQQLevels = _consolidatedQQLevels();
 
 List<QQLevel> _consolidatedQQLevels() {
-  final chapter1Information = _authoredQQLevels.sublist(73, 78);
-  final chapter2HiddenChange = _authoredQQLevels.sublist(78, 83);
-  final chapter3Superposition = _authoredQQLevels.sublist(83, 88);
+  final chapter1Information = _authoredQQLevels.sublist(79, 84);
+  final chapter2HiddenChange = _authoredQQLevels.sublist(84, 89);
+  final chapter3Superposition = _authoredQQLevels.sublist(89, 94);
   final chapter4Interference = [
     ..._authoredQQLevels.sublist(54, 58),
     _chapter4InterferenceFinale(),
   ];
-  final chapter5Entanglement = _authoredQQLevels.sublist(88, 93);
-  final chapter6InformationFlow = _authoredQQLevels.sublist(93, 98);
+  final chapter5Entanglement = _authoredQQLevels.sublist(94, 99);
+  final chapter6InformationFlow = _authoredQQLevels.sublist(99, 104);
   // TODO Chapter 7 readiness check:
   // Validate GHZ introduction does not reuse SWAP routing mechanics.
   // Ensure entanglement scaling is conceptually distinct from Chapter 5.
   // Avoid overlapping incorrectly with Chapter 3 superposition foundations and
   // Chapter 4 interference concepts.
-  final chapter7GhzStates = _authoredQQLevels.sublist(98, 103);
+  final chapter7GhzStates = _authoredQQLevels.sublist(104, 109);
   final chapter8PhaseKickback = _authoredQQLevels.sublist(58, 63);
   final chapter9OracleThinking = _authoredQQLevels.sublist(63, 68);
   final chapter10AmplitudeAmplification = _authoredQQLevels.sublist(68, 73);
+  final chapter11GroverLoopIntuition = _authoredQQLevels.sublist(73, 79);
   final legacyChallenges = _authoredQQLevels.sublist(0, 54);
 
   return [
@@ -4476,6 +4654,7 @@ List<QQLevel> _consolidatedQQLevels() {
     ...chapter8PhaseKickback,
     ...chapter9OracleThinking,
     ...chapter10AmplitudeAmplification,
+    ...chapter11GroverLoopIntuition,
     ...legacyChallenges,
   ];
 }
@@ -4583,19 +4762,26 @@ final List<QQLevelsCategory> groupedLevels = [
     from: 40,
     to: 44,
     categoryIntro:
-        'An oracle does not search for an answer directly. It marks the desired solution in phase, creating the hidden label that interference can later amplify.',
+        'An oracle is a black-box function. This chapter treats a circuit as a hidden rule that classifies inputs as valid or invalid without directly revealing the answer.',
   ),
   QQLevelsCategory(
     groupName: 'Chapter 10 - Amplitude Amplification',
     from: 45,
     to: 49,
     categoryIntro:
-        'Amplitude amplification turns an oracle phase mark into a higher chance of measuring the marked answer. This chapter builds the first Mini Grover intuition: mark, then amplify.',
+        'Amplitude amplification reshapes probability so a known valid state becomes more likely to be measured.',
+  ),
+  QQLevelsCategory(
+    groupName: 'Chapter 11 - Grover Loop Intuition',
+    from: 50,
+    to: 55,
+    categoryIntro:
+        'Grover is an iterative computational pattern: repeated oracle and amplification abstractions increase the probability of success.',
   ),
   QQLevelsCategory(
     groupName: 'Legacy Challenges',
-    from: 50,
-    to: 103,
+    from: 56,
+    to: 109,
     categoryIntro:
         'Optional earlier Qubit Quest challenges preserved for practice and reference. These levels are playable but are not part of the main discovery campaign.',
   ),

@@ -464,6 +464,31 @@ class ChapterReleaseGate {
           'Align level copy and notebook copy with the chapter core concept.',
         );
       }
+      _validateChapterForbiddenOverlap(
+        chapter.groupName,
+        discoveryTitle,
+        '$levelText $notebookText',
+        failures,
+        fixPlan,
+      );
+    }
+  }
+
+  static void _validateChapterForbiddenOverlap(
+    String chapterName,
+    String discoveryTitle,
+    String text,
+    List<String> failures,
+    List<String> fixPlan,
+  ) {
+    for (final term in _forbiddenOverlapTerms(chapterName)) {
+      if (!text.contains(term)) continue;
+      failures.add(
+        '[Cross-System Consistency Check] Discovery "$discoveryTitle" uses forbidden overlap term "$term" for $chapterName.',
+      );
+      fixPlan.add(
+        'Reword $chapterName around its core abstraction and remove "$term" from learner-facing framing.',
+      );
     }
   }
 
@@ -508,6 +533,15 @@ class ChapterReleaseGate {
     if (chapterName.contains('Phase Kickback')) {
       return const ['kickback', 'controlled', 'phase'];
     }
+    if (chapterName.contains('Oracle Thinking')) {
+      return const ['oracle', 'function', 'rule'];
+    }
+    if (chapterName.contains('Amplitude Amplification')) {
+      return const ['probability', 'likelihood', 'amplification'];
+    }
+    if (chapterName.contains('Grover Loop Intuition')) {
+      return const ['iteration', 'repeat', 'probability'];
+    }
     if (chapterName.contains('GHZ')) {
       return const ['ghz', 'global', 'constraint'];
     }
@@ -538,6 +572,86 @@ class ChapterReleaseGate {
         'allowed',
         'forbidden',
         'full register',
+      ];
+    }
+    if (chapterName.contains('Oracle Thinking')) {
+      return const [
+        'function',
+        'rule',
+        'valid',
+        'invalid',
+      ];
+    }
+    if (chapterName.contains('Amplitude Amplification')) {
+      return const [
+        'probability',
+        'likelihood',
+        'valid',
+        'distribution',
+        'not just finding',
+      ];
+    }
+    if (chapterName.contains('Grover Loop Intuition')) {
+      return const [
+        'iteration',
+        'repeated',
+        'probability',
+        'likelihood',
+        'oracle',
+        'amplification',
+      ];
+    }
+    return const [];
+  }
+
+  static List<String> _forbiddenOverlapTerms(String chapterName) {
+    if (chapterName.contains('Oracle Thinking')) {
+      return const [
+        'phase kickback',
+        'kickback',
+        'interference',
+        'entanglement',
+        'ghz',
+        'global constraint',
+        'swap',
+        'routing',
+      ];
+    }
+    if (chapterName.contains('Amplitude Amplification')) {
+      return const [
+        'phase kickback',
+        'kickback',
+        'phase',
+        'interference',
+        'oracle',
+        'diffuser',
+        'cz',
+        'gate',
+        'circuit construction',
+        'controlled operation',
+        'entanglement',
+        'ghz',
+        'global constraint',
+        'swap',
+        'routing',
+      ];
+    }
+    if (chapterName.contains('Grover Loop Intuition')) {
+      return const [
+        'phase kickback',
+        'kickback',
+        'phase',
+        'interference',
+        'diffuser',
+        'cz',
+        'gate',
+        'circuit',
+        'controlled operation',
+        'entanglement',
+        'ghz',
+        'global constraint',
+        'swap',
+        'routing',
       ];
     }
     return const [];
