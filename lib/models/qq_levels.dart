@@ -3351,6 +3351,169 @@ final List<QQLevel> _authoredQQLevels = [
     correctOptionIndex: 0,
   ),
 
+  ConceptCheckLevel(
+    title: 'The Full Picture Appears',
+    taskDescription:
+        'What is the best high-level description of a quantum algorithm at this point in Qubit Quest?',
+    conceptIntro:
+        'Chapter 12 is a unification layer. It does not add a new concept; it connects the abstract roles learned across the last three chapters.',
+    mysteryTitle: 'What has the pattern become?',
+    mysteryText:
+        'The learner now steps back from individual ideas and sees the algorithm as a structured process rather than a single clever trick.',
+    discoveryTitle: 'Quantum Algorithm Structure',
+    discoveryText:
+        'A quantum algorithm can be understood as a structured process: define valid solutions, increase their likelihood, and use repetition to build advantage.',
+    keyInsight:
+        'The algorithmic idea is structure across roles, not one isolated trick.',
+    whyItMatters:
+        'This gives the learner a stable mental model for future algorithms without reopening lower-level construction details.',
+    nextMystery: 'What role does each part play?',
+    hints: [
+      'Look for the answer that combines roles into one process.',
+      'Do not reduce the chapter to one isolated step.',
+    ],
+    solutionExplanation:
+        'The full picture is a structured process: one role defines valid solutions, another increases their likelihood, and iteration turns the combination into useful advantage.',
+    options: [
+      'A structured process that defines valid solutions, biases selection toward them, and repeats the pattern to build advantage.',
+      'A single trick that works because one step already guarantees the answer.',
+      'A random retry strategy with no organized roles.',
+      'A list of unrelated concepts that do not combine into a process.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Separation of Roles',
+    taskDescription:
+        'How should the oracle, amplification, and iteration roles be separated conceptually?',
+    conceptIntro:
+        'Each role has a distinct job in the abstract model: define what counts, make valid outcomes more likely, and repeat the pattern.',
+    mysteryTitle: 'Which part does what?',
+    mysteryText:
+        'The goal is clean role separation. The learner should not blur definition, likelihood increase, and repetition into one vague idea.',
+    discoveryTitle: 'Role Separation in Quantum Algorithms',
+    discoveryText:
+        'Oracle, amplification, and iteration are distinct roles: define validity, increase likelihood, and combine repeated rounds into advantage.',
+    keyInsight:
+        'Clear role separation prevents the algorithm from becoming a memorized slogan.',
+    whyItMatters:
+        'Future algorithm models become easier when the learner can identify what each layer contributes.',
+    nextMystery: 'Why does combining roles matter?',
+    hints: [
+      'One role defines validity.',
+      'Another role changes likelihood, and iteration organizes repeated use.',
+    ],
+    solutionExplanation:
+        'The roles separate cleanly: oracle defines valid solutions, amplification increases likelihood of valid solutions, and iteration combines those effects across rounds.',
+    options: [
+      'Oracle defines valid solutions; amplification increases their likelihood; iteration combines repeated rounds.',
+      'Oracle increases likelihood; amplification decides validity; iteration removes structure.',
+      'All three roles do exactly the same job.',
+      'Iteration replaces both definition and likelihood increase.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Why Composition Matters',
+    taskDescription:
+        'Why does computational advantage depend on combining the roles rather than naming them separately?',
+    conceptIntro:
+        'A role by itself is only part of the story. The useful model is compositional: definition, bias, and repetition work as a layered process.',
+    mysteryTitle: 'Why is combination useful?',
+    mysteryText:
+        'The learner now asks why separate abstractions become more powerful when they are arranged together.',
+    discoveryTitle: 'Why Composition Creates Advantage',
+    discoveryText:
+        'Advantage comes from composition: validity gives direction, likelihood increase gives pressure, and iteration turns pressure into a stronger process.',
+    keyInsight:
+        'Composition creates advantage because each layer contributes a different kind of structure.',
+    whyItMatters:
+        'This avoids treating quantum algorithms as vocabulary lists. The power is in how the layers work together.',
+    nextMystery:
+        'How is this structure different from ordinary repeated search?',
+    hints: [
+      'A definition alone does not create the full advantage.',
+      'A likelihood change becomes more useful when organized by repeated structure.',
+    ],
+    solutionExplanation:
+        'The roles matter because they compose. Validity gives the process a target, likelihood increase biases selection toward that target, and iteration strengthens the organized pattern.',
+    options: [
+      'The roles compose: define the valid set, bias selection toward it, then repeat the structure to strengthen advantage.',
+      'The roles matter only as labels and do not need to interact.',
+      'The first role alone guarantees success, so composition is unnecessary.',
+      'Composition means ignoring validity and sampling without structure.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Classical vs Quantum Structure',
+    taskDescription:
+        'At this meta level, what structural difference separates ordinary repeated search from the quantum algorithm model?',
+    conceptIntro:
+        'Classical repeated search tries again. The quantum structure discussed here organizes a probability-shaping process around valid solutions.',
+    mysteryTitle: 'What is structurally different?',
+    mysteryText:
+        'The comparison is not about implementation. It is about whether repetition merely retries or whether it is part of a structured probability-shaping system.',
+    discoveryTitle: 'Classical vs Quantum Structural Difference',
+    discoveryText:
+        'Classical search repeatedly checks candidates. The quantum model builds an organized probability-shaping system around valid solutions.',
+    keyInsight:
+        'The structural difference is repeated checking versus layered probability shaping.',
+    whyItMatters:
+        'This keeps the comparison at the algorithm-design level, where the learner can reason without implementation details.',
+    nextMystery: 'Can the whole model be summarized as a pipeline?',
+    hints: [
+      'Classical repetition retries or checks.',
+      'The quantum model uses a structured probability-shaping process.',
+    ],
+    solutionExplanation:
+        'The difference is structural: classical search repeats checks, while the quantum algorithm model defines validity and shapes probability through an organized repeated process.',
+    options: [
+      'Classical search repeats checks; the quantum model uses structured probability shaping around valid solutions.',
+      'Classical and quantum structures are identical because both involve repetition.',
+      'The quantum model is random sampling with no definition of valid solutions.',
+      'Classical search always changes the probability distribution before each check.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Unified Quantum Algorithm Model',
+    badgeLabel: 'Chapter Synthesis Check',
+    taskDescription:
+        'Which abstract pipeline best summarizes Chapters 9-12 together?',
+    conceptIntro:
+        'The synthesis is a layered abstract pipeline: define what counts as valid, bias probability toward validity, then iterate the structure.',
+    mysteryTitle: 'What is the unified model?',
+    mysteryText:
+        'The learner should leave the chapter with a portable algorithm model, not a construction recipe.',
+    discoveryTitle: 'Unified Quantum Algorithm Model',
+    discoveryText:
+        'The unified model is define -> bias -> iterate: define valid solutions, increase their likelihood, and repeat the structure to build advantage.',
+    keyInsight:
+        'Quantum algorithm thinking can be modeled as a layered pipeline: define, bias, iterate.',
+    whyItMatters:
+        'This provides a clean bridge from beginner discoveries to later algorithm chapters.',
+    nextMystery:
+        'What other quantum algorithm families use layered abstract structure?',
+    hints: [
+      'Look for a three-layer pipeline.',
+      'The correct answer stays conceptual: define, bias, iterate.',
+    ],
+    solutionExplanation:
+        'The unified abstract model is define -> bias -> iterate. It unifies oracle thinking, amplification, and iteration without adding lower-level construction details.',
+    options: [
+      'Define valid solutions -> bias probability toward them -> iterate the structure to build advantage.',
+      'Guess randomly -> ignore validity -> stop after one attempt.',
+      'Define nothing -> bias nothing -> repeat without structure.',
+      'Check every candidate one by one until the answer appears.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
   ComposerLevel.fromBinaryString(
     title: 'The First Qubit',
     taskDescription:
@@ -4592,25 +4755,26 @@ ComposerLevel _chapter4InterferenceFinale() {
 final List<QQLevel> allQQLevels = _consolidatedQQLevels();
 
 List<QQLevel> _consolidatedQQLevels() {
-  final chapter1Information = _authoredQQLevels.sublist(78, 83);
-  final chapter2HiddenChange = _authoredQQLevels.sublist(83, 88);
-  final chapter3Superposition = _authoredQQLevels.sublist(88, 93);
+  final chapter1Information = _authoredQQLevels.sublist(83, 88);
+  final chapter2HiddenChange = _authoredQQLevels.sublist(88, 93);
+  final chapter3Superposition = _authoredQQLevels.sublist(93, 98);
   final chapter4Interference = [
     ..._authoredQQLevels.sublist(54, 58),
     _chapter4InterferenceFinale(),
   ];
-  final chapter5Entanglement = _authoredQQLevels.sublist(93, 98);
-  final chapter6InformationFlow = _authoredQQLevels.sublist(98, 103);
+  final chapter5Entanglement = _authoredQQLevels.sublist(98, 103);
+  final chapter6InformationFlow = _authoredQQLevels.sublist(103, 108);
   // TODO Chapter 7 readiness check:
   // Validate GHZ introduction does not reuse SWAP routing mechanics.
   // Ensure entanglement scaling is conceptually distinct from Chapter 5.
   // Avoid overlapping incorrectly with Chapter 3 superposition foundations and
   // Chapter 4 interference concepts.
-  final chapter7GhzStates = _authoredQQLevels.sublist(103, 108);
+  final chapter7GhzStates = _authoredQQLevels.sublist(108, 113);
   final chapter8PhaseKickback = _authoredQQLevels.sublist(58, 63);
   final chapter9OracleThinking = _authoredQQLevels.sublist(63, 68);
   final chapter10AmplitudeAmplification = _authoredQQLevels.sublist(68, 73);
   final chapter11GroverLoopIntuition = _authoredQQLevels.sublist(73, 78);
+  final chapter12QuantumAlgorithmStructure = _authoredQQLevels.sublist(78, 83);
   final legacyChallenges = _authoredQQLevels.sublist(0, 54);
 
   return [
@@ -4625,6 +4789,7 @@ List<QQLevel> _consolidatedQQLevels() {
     ...chapter9OracleThinking,
     ...chapter10AmplitudeAmplification,
     ...chapter11GroverLoopIntuition,
+    ...chapter12QuantumAlgorithmStructure,
     ...legacyChallenges,
   ];
 }
@@ -4749,9 +4914,16 @@ final List<QQLevelsCategory> groupedLevels = [
         'Grover is an iterative computational pattern: repeated oracle and amplification abstractions increase the probability of success.',
   ),
   QQLevelsCategory(
-    groupName: 'Legacy Challenges',
+    groupName: 'Chapter 12 - Quantum Algorithm Structure',
     from: 55,
-    to: 108,
+    to: 59,
+    categoryIntro:
+        'Step back and unify the last three abstractions into a meta-level algorithm model: define valid solutions, bias toward them, and iterate the structure.',
+  ),
+  QQLevelsCategory(
+    groupName: 'Legacy Challenges',
+    from: 60,
+    to: 113,
     categoryIntro:
         'Optional earlier Qubit Quest challenges preserved for practice and reference. These levels are playable but are not part of the main discovery campaign.',
   ),

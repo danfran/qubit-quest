@@ -2376,6 +2376,201 @@ const List<NotebookEntry> notebookEntries = [
       'Amplification as Computational Advantage',
     ],
   ),
+  NotebookEntry(
+    id: 'quantum_algorithm_structure',
+    discoveryTitle: 'Quantum Algorithm Structure',
+    chapterIndex: 12,
+    chapterTitle: 'Chapter 12 - Quantum Algorithm Structure',
+    title: 'Quantum Algorithm Structure',
+    summary:
+        'A quantum algorithm can be understood as a structured process, not a single isolated trick.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Step back from the parts. The algorithm is a plan with roles: define what counts as valid, make valid choices more likely, and use organized repetition to build advantage.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The learner now sees the earlier abstractions as one algorithm structure rather than separate chapter ideas.',
+      examples: [
+        NotebookExample(label: 'Define', notation: 'valid solutions'),
+        NotebookExample(label: 'Bias', notation: 'higher likelihood'),
+        NotebookExample(label: 'Iterate', notation: 'stronger advantage'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'At this meta level, the useful object is the probability distribution over possible choices. The algorithm structure organizes how valid choices become easier to select.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This is a synthesis layer only. It names the abstract process without explaining how the parts are built.',
+    ),
+    relatedDiscoveryTitles: [
+      'Oracle',
+      'Amplification as Computational Advantage',
+      'Cognitive Transfer of Iteration Thinking',
+    ],
+  ),
+  NotebookEntry(
+    id: 'role_separation_in_quantum_algorithms',
+    discoveryTitle: 'Role Separation in Quantum Algorithms',
+    chapterIndex: 12,
+    chapterTitle: 'Chapter 12 - Quantum Algorithm Structure',
+    title: 'Role Separation in Quantum Algorithms',
+    summary:
+        'Oracle, amplification, and iteration each contribute a distinct role to the abstract algorithm model.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'A good process is easier to understand when each part has one job. One role defines valid solutions, one role increases likelihood, and one role organizes repeated use.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The learner separates definition, bias, and repetition instead of blending them into one vague algorithm word.',
+      examples: [
+        NotebookExample(label: 'Oracle', notation: 'defines valid'),
+        NotebookExample(
+            label: 'Amplification', notation: 'increases likelihood'),
+        NotebookExample(label: 'Iteration', notation: 'repeats structure'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'Role separation keeps the probability-shaping story clear: validity gives direction, likelihood gives preference, and iteration gives organized continuation.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This entry treats the roles as black-box abstractions. It does not revisit their internal design.',
+    ),
+    relatedDiscoveryTitles: [
+      'Quantum Algorithm Structure',
+      'Oracle',
+      'Amplitude Amplification',
+    ],
+  ),
+  NotebookEntry(
+    id: 'why_composition_creates_advantage',
+    discoveryTitle: 'Why Composition Creates Advantage',
+    chapterIndex: 12,
+    chapterTitle: 'Chapter 12 - Quantum Algorithm Structure',
+    title: 'Why Composition Creates Advantage',
+    summary:
+        'Advantage comes from composing distinct roles into one organized process.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'A label by itself is not enough. Validity gives the process direction, increased likelihood gives it pressure, and repeated structure lets that pressure become useful.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The learner now focuses on composition: the value appears when separate abstractions are arranged into a layered process.',
+      examples: [
+        NotebookExample(label: 'Separate parts', notation: 'roles'),
+        NotebookExample(label: 'Combined parts', notation: 'process'),
+        NotebookExample(label: 'Result', notation: 'advantage'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The probability distribution becomes useful because the process has both direction and repeated likelihood improvement.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'Composition is the main meta-level lesson. The chapter does not add a new primitive; it shows why the previous abstractions matter together.',
+    ),
+    relatedDiscoveryTitles: [
+      'Role Separation in Quantum Algorithms',
+      'Bias Becomes Amplification',
+      'Iteration Improves Likelihood',
+    ],
+  ),
+  NotebookEntry(
+    id: 'classical_vs_quantum_structural_difference',
+    discoveryTitle: 'Classical vs Quantum Structural Difference',
+    chapterIndex: 12,
+    chapterTitle: 'Chapter 12 - Quantum Algorithm Structure',
+    title: 'Classical vs Quantum Structural Difference',
+    summary:
+        'Classical repeated search checks again; the quantum model is structured probability shaping around valid solutions.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'Trying again is not the same as organizing the whole process around making valid choices more likely. The structural difference is retrying versus shaping the selection landscape.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The learner compares processes, not hardware: repeated checking on one side, layered probability shaping on the other.',
+      examples: [
+        NotebookExample(label: 'Classical', notation: 'repeated checks'),
+        NotebookExample(label: 'Quantum model', notation: 'structured shaping'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The quantum algorithm model treats the distribution over candidates as something the process can organize toward valid solutions.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This comparison stays at the structural level. It does not claim every quantum algorithm has the same pipeline.',
+    ),
+    relatedDiscoveryTitles: [
+      'Classical vs Quantum Iteration',
+      'Why Composition Creates Advantage',
+      'Quantum Algorithm Structure',
+    ],
+  ),
+  NotebookEntry(
+    id: 'unified_quantum_algorithm_model',
+    discoveryTitle: 'Unified Quantum Algorithm Model',
+    chapterIndex: 12,
+    chapterTitle: 'Chapter 12 - Quantum Algorithm Structure',
+    title: 'Unified Quantum Algorithm Model',
+    summary:
+        'The unified beginner model is a layered pipeline: define, bias, iterate.',
+    intuition: NotebookSection(
+      title: 'Intuition',
+      body:
+          'The chapter compresses the last three abstractions into one portable model: define valid solutions, bias the distribution toward them, then iterate the structure.',
+    ),
+    whatChanged: NotebookSection(
+      title: 'What Changed?',
+      body:
+          'The learner leaves with a compact mental pipeline instead of a list of separate terms.',
+      examples: [
+        NotebookExample(label: 'Step 1', notation: 'define'),
+        NotebookExample(label: 'Step 2', notation: 'bias'),
+        NotebookExample(label: 'Step 3', notation: 'iterate'),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'Quantum View',
+      body:
+          'The unified model describes an abstract probability-shaping pipeline over candidate solutions.',
+    ),
+    advancedNotes: NotebookSection(
+      title: 'Advanced Notes',
+      body:
+          'This is deliberately a high-level model. It prepares future algorithm chapters without reopening lower-level explanations.',
+    ),
+    relatedDiscoveryTitles: [
+      'Quantum Algorithm Structure',
+      'Role Separation in Quantum Algorithms',
+      'Why Composition Creates Advantage',
+    ],
+  ),
 ];
 
 final Map<String, NotebookEntry> notebookEntriesByDiscoveryTitle = {

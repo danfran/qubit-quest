@@ -542,6 +542,9 @@ class ChapterReleaseGate {
     if (chapterName.contains('Grover Loop Intuition')) {
       return const ['iteration', 'repeat', 'probability'];
     }
+    if (chapterName.contains('Quantum Algorithm Structure')) {
+      return const ['algorithm', 'structure', 'probability'];
+    }
     if (chapterName.contains('GHZ')) {
       return const ['ghz', 'global', 'constraint'];
     }
@@ -601,6 +604,16 @@ class ChapterReleaseGate {
         'amplification',
       ];
     }
+    if (chapterName.contains('Quantum Algorithm Structure')) {
+      return const [
+        'define',
+        'bias',
+        'iterate',
+        'structured',
+        'valid',
+        'probability',
+      ];
+    }
     return const [];
   }
 
@@ -646,6 +659,28 @@ class ChapterReleaseGate {
         'cz',
         'gate',
         'circuit',
+        'controlled operation',
+        'entanglement',
+        'ghz',
+        'global constraint',
+        'swap',
+        'routing',
+      ];
+    }
+    if (chapterName.contains('Quantum Algorithm Structure')) {
+      return const [
+        'grover',
+        'phase kickback',
+        'kickback',
+        'phase',
+        'interference',
+        'diffuser',
+        'cz',
+        'gate',
+        'circuit',
+        'physics',
+        'mechanics',
+        'mechanism',
         'controlled operation',
         'entanglement',
         'ghz',

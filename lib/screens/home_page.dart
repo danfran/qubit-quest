@@ -110,7 +110,14 @@ class _HomePageState extends State<HomePage> {
     'Classical vs Quantum Iteration',
     'Cognitive Transfer of Iteration Thinking',
   };
-  static const int _mainCampaignLevelCount = 55;
+  static const Set<String> _chapter12DiscoveryTitles = {
+    'Quantum Algorithm Structure',
+    'Role Separation in Quantum Algorithms',
+    'Why Composition Creates Advantage',
+    'Classical vs Quantum Structural Difference',
+    'Unified Quantum Algorithm Model',
+  };
+  static const int _mainCampaignLevelCount = 60;
   static const String _campaignProgressKey = 'maxUnlockedCampaignLevel';
 
   // Placeholder for the maximum unlocked level.
@@ -470,6 +477,8 @@ class _HomePageState extends State<HomePage> {
             _firstChapter10AmplitudeAmplificationLevelNumber();
         final chapter11LevelNumber =
             _firstChapter11GroverLoopIntuitionLevelNumber();
+        final chapter12LevelNumber =
+            _firstChapter12QuantumAlgorithmStructureLevelNumber();
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => DiscoveriesScreen(
@@ -539,6 +548,12 @@ class _HomePageState extends State<HomePage> {
                     title: 'Chapter 11',
                     subtitle: 'Start Grover Loop Intuition',
                     levelNumber: chapter11LevelNumber,
+                  ),
+                if (chapter12LevelNumber != null)
+                  DiscoveryPrototypeChapter(
+                    title: 'Chapter 12',
+                    subtitle: 'Start Quantum Algorithm Structure',
+                    levelNumber: chapter12LevelNumber,
                   ),
               ],
               onStartPrototypeLevel: (levelNumber) =>
@@ -643,6 +658,13 @@ class _HomePageState extends State<HomePage> {
         _chapter11DiscoveryTitles.contains(discoveryTitle);
   }
 
+  bool _isChapter12QuantumAlgorithmStructureLevel(QQLevel level) {
+    final discoveryTitle = level.discoveryTitle?.trim();
+    return _isLevelNumberInRange(level, 56, 60) &&
+        discoveryTitle != null &&
+        _chapter12DiscoveryTitles.contains(discoveryTitle);
+  }
+
   bool _isLevelNumberInRange(QQLevel level, int firstLevel, int lastLevel) {
     final index = allQQLevels.indexOf(level);
     final levelNumber = index + 1;
@@ -707,6 +729,12 @@ class _HomePageState extends State<HomePage> {
 
   int? _firstChapter11GroverLoopIntuitionLevelNumber() {
     final index = allQQLevels.indexWhere(_isChapter11GroverLoopIntuitionLevel);
+    return index < 0 ? null : index + 1;
+  }
+
+  int? _firstChapter12QuantumAlgorithmStructureLevelNumber() {
+    final index =
+        allQQLevels.indexWhere(_isChapter12QuantumAlgorithmStructureLevel);
     return index < 0 ? null : index + 1;
   }
 
@@ -1355,6 +1383,25 @@ class _HomePageState extends State<HomePage> {
               title: 'Chapter 11 - Grover Loop Intuition',
               text:
                   'Grover is an iterative computational pattern. In this chapter, repeat the oracle and amplification abstractions in your reasoning to see how success probability grows.',
+              buttonLabel: 'Begin Discovery',
+            ),
+          ),
+        );
+      }
+    } else if (_isChapter12QuantumAlgorithmStructureLevel(level)) {
+      final prefs = await SharedPreferences.getInstance();
+      const seenKey =
+          'chapter_intro_seen_chapter_12_quantum_algorithm_structure_vertical_slice';
+      if (prefs.getBool(seenKey) != true) {
+        await prefs.setBool(seenKey, true);
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => const ChapterIntroScreen(
+              title: 'Chapter 12 - Quantum Algorithm Structure',
+              text:
+                  'This chapter is a meta-level synthesis. Unify oracle, amplification, and iteration into one abstract algorithm model: define, bias, iterate.',
               buttonLabel: 'Begin Discovery',
             ),
           ),

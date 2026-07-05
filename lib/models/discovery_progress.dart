@@ -60,6 +60,11 @@ class DiscoveryProgress {
     'Convergence Toward Solution',
     'Classical vs Quantum Iteration',
     'Cognitive Transfer of Iteration Thinking',
+    'Quantum Algorithm Structure',
+    'Role Separation in Quantum Algorithms',
+    'Why Composition Creates Advantage',
+    'Classical vs Quantum Structural Difference',
+    'Unified Quantum Algorithm Model',
   ];
 
   static Future<Set<String>> loadUnlocked() async {

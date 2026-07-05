@@ -49,6 +49,8 @@ class NotebookEntry {
         return 'How probability is concentrated toward valid states';
       case 11:
         return 'How repeated abstractions build search advantage';
+      case 12:
+        return 'How algorithm roles compose into structured advantage';
       default:
         return '';
     }

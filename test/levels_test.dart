@@ -347,8 +347,8 @@ void main() {
     ];
 
     for (int i = 1; i <= tests.length; i++) {
-      test('legacy level ${i + 55}', () {
-        _testBody(i + 55, tests[i - 1]);
+      test('legacy level ${i + 60}', () {
+        _testBody(i + 60, tests[i - 1]);
       });
     }
   });
@@ -364,16 +364,16 @@ void main() {
     final s = math.sqrt1_2;
 
     // ── Structural sanity ───────────────────────────────────────────────────
-    test('total level count is 109', () {
-      expect(numberOfLevels, equals(109));
+    test('total level count is 114', () {
+      expect(numberOfLevels, equals(114));
     });
 
-    test('levels 1–55 are the discovery campaign levels', () {
-      for (int levelNumber = 1; levelNumber <= 55; levelNumber++) {
+    test('levels 1–60 are the discovery campaign levels', () {
+      for (int levelNumber = 1; levelNumber <= 60; levelNumber++) {
         if (levelNumber == 35 ||
             levelNumber == 49 ||
             levelNumber == 50 ||
-            (levelNumber >= 51 && levelNumber <= 55)) {
+            (levelNumber >= 51 && levelNumber <= 60)) {
           expect(getQQLevelById(levelNumber), isA<ConceptCheckLevel>());
         } else {
           expect(getQQLevelById(levelNumber), isA<ComposerLevel>());
@@ -382,17 +382,17 @@ void main() {
     });
 
     test('legacy challenge levels preserve the expected mixed types', () {
-      for (int levelNumber = 56; levelNumber <= 101; levelNumber++) {
+      for (int levelNumber = 61; levelNumber <= 106; levelNumber++) {
         expect(getQQLevelById(levelNumber), isA<ComposerLevel>());
       }
-      expect(getQQLevelById(102), isA<McqLevel>());
-      expect(getQQLevelById(103), isA<McqLevel>());
-      expect(getQQLevelById(104), isA<MeasurementLabLevel>());
-      expect(getQQLevelById(105), isA<MeasurementLabLevel>());
-      expect(getQQLevelById(106), isA<FillTheGateLevel>());
-      expect(getQQLevelById(107), isA<FillTheGateLevel>());
-      expect(getQQLevelById(108), isA<CircuitReadingLevel>());
-      expect(getQQLevelById(109), isA<CircuitReadingLevel>());
+      expect(getQQLevelById(107), isA<McqLevel>());
+      expect(getQQLevelById(108), isA<McqLevel>());
+      expect(getQQLevelById(109), isA<MeasurementLabLevel>());
+      expect(getQQLevelById(110), isA<MeasurementLabLevel>());
+      expect(getQQLevelById(111), isA<FillTheGateLevel>());
+      expect(getQQLevelById(112), isA<FillTheGateLevel>());
+      expect(getQQLevelById(113), isA<CircuitReadingLevel>());
+      expect(getQQLevelById(114), isA<CircuitReadingLevel>());
     });
 
     test('groupedLevels exposes the campaign before legacy challenges', () {
@@ -410,6 +410,7 @@ void main() {
           'Chapter 9 - Oracle Thinking',
           'Chapter 10 - Amplitude Amplification',
           'Chapter 11 - Grover Loop Intuition',
+          'Chapter 12 - Quantum Algorithm Structure',
           'Legacy Challenges',
         ]),
       );
@@ -419,8 +420,10 @@ void main() {
       expect(groupedLevels[9].to, equals(49));
       expect(groupedLevels[10].from, equals(50));
       expect(groupedLevels[10].to, equals(54));
-      expect(groupedLevels.last.from, equals(55));
-      expect(groupedLevels.last.to, equals(108));
+      expect(groupedLevels[11].from, equals(55));
+      expect(groupedLevels[11].to, equals(59));
+      expect(groupedLevels.last.from, equals(60));
+      expect(groupedLevels.last.to, equals(113));
     });
 
     test('DiscoveryProgress follows the consolidated campaign sequence', () {
@@ -482,6 +485,11 @@ void main() {
           'Convergence Toward Solution',
           'Classical vs Quantum Iteration',
           'Cognitive Transfer of Iteration Thinking',
+          'Quantum Algorithm Structure',
+          'Role Separation in Quantum Algorithms',
+          'Why Composition Creates Advantage',
+          'Classical vs Quantum Structural Difference',
+          'Unified Quantum Algorithm Model',
         ]),
       );
     });
@@ -743,6 +751,47 @@ void main() {
       }
     });
 
+    test('Quantum Notebook covers Chapter 12 algorithm structure levels', () {
+      final chapter12DiscoveryTitles = [
+        for (int levelNumber = 56; levelNumber <= 60; levelNumber++)
+          getQQLevelById(levelNumber)!.discoveryTitle,
+      ];
+
+      expect(
+        chapter12DiscoveryTitles,
+        equals([
+          'Quantum Algorithm Structure',
+          'Role Separation in Quantum Algorithms',
+          'Why Composition Creates Advantage',
+          'Classical vs Quantum Structural Difference',
+          'Unified Quantum Algorithm Model',
+        ]),
+      );
+
+      final chapter12NotebookTitles = [
+        for (final discoveryTitle in chapter12DiscoveryTitles)
+          notebookEntriesByDiscoveryTitle[discoveryTitle]?.title,
+      ];
+
+      expect(
+        chapter12NotebookTitles,
+        equals([
+          'Quantum Algorithm Structure',
+          'Role Separation in Quantum Algorithms',
+          'Why Composition Creates Advantage',
+          'Classical vs Quantum Structural Difference',
+          'Unified Quantum Algorithm Model',
+        ]),
+      );
+
+      for (final discoveryTitle in chapter12DiscoveryTitles) {
+        expect(
+          notebookEntriesByDiscoveryTitle[discoveryTitle]!.chapterIndex,
+          equals(12),
+        );
+      }
+    });
+
     test('Chapter 7 notebook entries include GHZ global constraint language',
         () {
       final ghzEntry = notebookEntriesByDiscoveryTitle['GHZ State']!;
@@ -808,6 +857,11 @@ void main() {
                 'Cognitive Transfer of Iteration Thinking']!
             .chapterIdentity,
         equals('How repeated abstractions build search advantage'),
+      );
+      expect(
+        notebookEntriesByDiscoveryTitle['Unified Quantum Algorithm Model']!
+            .chapterIdentity,
+        equals('How algorithm roles compose into structured advantage'),
       );
     });
 
@@ -878,6 +932,17 @@ void main() {
       expect(result.status, equals('PASS'));
     });
 
+    test('Chapter Release Gate passes Chapter 12 meta synthesis', () {
+      final chapter12 = groupedLevels.firstWhere(
+        (category) =>
+            category.groupName == 'Chapter 12 - Quantum Algorithm Structure',
+      );
+      final result = ChapterReleaseGate.validateChapter(chapter12);
+
+      expect(result.passed, isTrue, reason: result.toReport());
+      expect(result.status, equals('PASS'));
+    });
+
     test('Chapter Release Gate blocks non-releasable legacy bucket', () {
       final legacy = groupedLevels.firstWhere(
         (category) => category.groupName == 'Legacy Challenges',
@@ -938,14 +1003,14 @@ void main() {
             reason: 'level $levelId missing taskDescription');
       }
 
-      test('level 102 — What is Superposition?', () {
+      test('level 107 — What is Superposition?', () {
         // Correct: "In both |0⟩ and |1⟩ simultaneously…" (index 1)
-        _checkMcq(102, 1);
+        _checkMcq(107, 1);
       });
 
-      test('level 103 — What is Entanglement?', () {
+      test('level 108 — What is Entanglement?', () {
         // Correct: "Their joint state cannot be written as a product…" (index 2)
-        _checkMcq(103, 2);
+        _checkMcq(108, 2);
       });
 
       test('Chapter 7 level 35 — GHZ synthesis interpretation', () {
@@ -973,8 +1038,8 @@ void main() {
 
     // ── MeasurementLab ───────────────────────────────────────────────────────
     group('MeasurementLab', () {
-      test('level 104 — Measure |+⟩: structure', () {
-        final level = getQQLevelById(104)! as MeasurementLabLevel;
+      test('level 109 — Measure |+⟩: structure', () {
+        final level = getQQLevelById(109)! as MeasurementLabLevel;
         expect(level.numQubits, equals(1));
         expect(level.requiredMeasurements, greaterThanOrEqualTo(1));
         expect(level.conceptIntro, isNotNull);
@@ -983,19 +1048,19 @@ void main() {
         expect(level.hints!, isNotEmpty);
       });
 
-      test('level 104 — Measure |+⟩: circuit simulates to (|0⟩+|1⟩)/√2', () {
-        final level = getQQLevelById(104)! as MeasurementLabLevel;
+      test('level 109 — Measure |+⟩: circuit simulates to (|0⟩+|1⟩)/√2', () {
+        final level = getQQLevelById(109)! as MeasurementLabLevel;
         final circuit = _simulate(level.toComposerLevel());
         final expected = QuantumMatrix([
           [Complex(s)],
           [Complex(s)],
         ]);
         expect(circuit.currentState.state.almostEqualTo(expected), isTrue,
-            reason: 'Level 104 circuit should produce the |+⟩ state');
+            reason: 'Level 109 circuit should produce the |+⟩ state');
       });
 
-      test('level 105 — Measure Bell State: structure', () {
-        final level = getQQLevelById(105)! as MeasurementLabLevel;
+      test('level 110 — Measure Bell State: structure', () {
+        final level = getQQLevelById(110)! as MeasurementLabLevel;
         expect(level.numQubits, equals(2));
         expect(level.requiredMeasurements, greaterThanOrEqualTo(1));
         expect(level.conceptIntro, isNotNull);
@@ -1005,9 +1070,9 @@ void main() {
       });
 
       test(
-          'level 105 — Measure Bell State: circuit simulates to (|00⟩+|11⟩)/√2',
+          'level 110 — Measure Bell State: circuit simulates to (|00⟩+|11⟩)/√2',
           () {
-        final level = getQQLevelById(105)! as MeasurementLabLevel;
+        final level = getQQLevelById(110)! as MeasurementLabLevel;
         final circuit = _simulate(level.toComposerLevel());
         final expected = QuantumMatrix([
           [Complex(s)], // |00⟩
@@ -1016,7 +1081,7 @@ void main() {
           [Complex(s)], // |11⟩
         ]);
         expect(circuit.currentState.state.almostEqualTo(expected), isTrue,
-            reason: 'Level 105 circuit should produce the Bell Φ+ state');
+            reason: 'Level 110 circuit should produce the Bell Φ+ state');
       });
     });
 
@@ -1037,16 +1102,16 @@ void main() {
         expect(level.conceptIntro, isNotNull);
       }
 
-      test('level 106 — Fill: Create |+⟩: structure', () {
-        _checkFtgStructure(106);
-        final level = getQQLevelById(106)! as FillTheGateLevel;
+      test('level 111 — Fill: Create |+⟩: structure', () {
+        _checkFtgStructure(111);
+        final level = getQQLevelById(111)! as FillTheGateLevel;
         expect(level.correctGate.type, equals(SelectedGateType.hadamard));
       });
 
       test(
-          'level 106 — Fill: Create |+⟩: correct gate simulation matches solution',
+          'level 111 — Fill: Create |+⟩: correct gate simulation matches solution',
           () {
-        final level = getQQLevelById(106)! as FillTheGateLevel;
+        final level = getQQLevelById(111)! as FillTheGateLevel;
         final circuit = _simulate(level.toComposerLevelWith(level.correctGate));
         expect(
           circuit.currentState.state
@@ -1057,9 +1122,9 @@ void main() {
         );
       });
 
-      test('level 106 — Fill: Create |+⟩: wrong gates do NOT match solution',
+      test('level 111 — Fill: Create |+⟩: wrong gates do NOT match solution',
           () {
-        final level = getQQLevelById(106)! as FillTheGateLevel;
+        final level = getQQLevelById(111)! as FillTheGateLevel;
         final wrongOptions =
             level.options.where((g) => g.type != level.correctGate.type);
         for (final wrong in wrongOptions) {
@@ -1073,16 +1138,16 @@ void main() {
         }
       });
 
-      test('level 107 — Fill: Flip the Bit: structure', () {
-        _checkFtgStructure(107);
-        final level = getQQLevelById(107)! as FillTheGateLevel;
+      test('level 112 — Fill: Flip the Bit: structure', () {
+        _checkFtgStructure(112);
+        final level = getQQLevelById(112)! as FillTheGateLevel;
         expect(level.correctGate.type, equals(SelectedGateType.x));
       });
 
       test(
-          'level 107 — Fill: Flip the Bit: correct gate simulation matches solution',
+          'level 112 — Fill: Flip the Bit: correct gate simulation matches solution',
           () {
-        final level = getQQLevelById(107)! as FillTheGateLevel;
+        final level = getQQLevelById(112)! as FillTheGateLevel;
         final circuit = _simulate(level.toComposerLevelWith(level.correctGate));
         expect(
           circuit.currentState.state
@@ -1093,9 +1158,9 @@ void main() {
         );
       });
 
-      test('level 107 — Fill: Flip the Bit: wrong gates do NOT match solution',
+      test('level 112 — Fill: Flip the Bit: wrong gates do NOT match solution',
           () {
-        final level = getQQLevelById(107)! as FillTheGateLevel;
+        final level = getQQLevelById(112)! as FillTheGateLevel;
         final wrongOptions =
             level.options.where((g) => g.type != level.correctGate.type);
         for (final wrong in wrongOptions) {
@@ -1128,13 +1193,13 @@ void main() {
         expect(level.hints!, isNotEmpty);
       }
 
-      test('level 108 — Read: H Gate: structure', () {
+      test('level 113 — Read: H Gate: structure', () {
         // Correct option index 2 → |+⟩ = (|0⟩+|1⟩)/√2
-        _checkCrStructure(108, 2);
+        _checkCrStructure(113, 2);
       });
 
-      test('level 108 — Read: H Gate: circuit simulates to |+⟩', () {
-        final level = getQQLevelById(108)! as CircuitReadingLevel;
+      test('level 113 — Read: H Gate: circuit simulates to |+⟩', () {
+        final level = getQQLevelById(113)! as CircuitReadingLevel;
         final circuit = _simulate(level.toComposerLevel());
         final expected = QuantumMatrix([
           [Complex(s)],
@@ -1144,13 +1209,13 @@ void main() {
             reason: 'H|0⟩ must equal |+⟩ = (|0⟩+|1⟩)/√2');
       });
 
-      test('level 109 — Read: Bell State: structure', () {
+      test('level 114 — Read: Bell State: structure', () {
         // Correct option index 1 → (|00⟩+|11⟩)/√2 = Φ+
-        _checkCrStructure(109, 1);
+        _checkCrStructure(114, 1);
       });
 
-      test('level 109 — Read: Bell State: circuit simulates to Φ+', () {
-        final level = getQQLevelById(109)! as CircuitReadingLevel;
+      test('level 114 — Read: Bell State: circuit simulates to Φ+', () {
+        final level = getQQLevelById(114)! as CircuitReadingLevel;
         final circuit = _simulate(level.toComposerLevel());
         final expected = QuantumMatrix([
           [Complex(s)], // |00⟩
@@ -1994,7 +2059,7 @@ void main() {
   // accidental renames or copy-paste errors.
   group('Titles', () {
     // ── Exhaustive: every level must have a title ──────────────────────────
-    test('all 109 levels have a non-null, non-empty title', () {
+    test('all 114 levels have a non-null, non-empty title', () {
       for (int id = 1; id <= numberOfLevels; id++) {
         final level = getQQLevelById(id)!;
         expect(level.title, isNotNull,
@@ -2024,12 +2089,15 @@ void main() {
           getQQLevelById(54)!.title, equals('Classical vs Quantum Iteration'));
       expect(getQQLevelById(55)!.title,
           equals('Applying Iteration Thinking to Structured Problems'));
+      expect(getQQLevelById(56)!.title, equals('The Full Picture Appears'));
+      expect(
+          getQQLevelById(60)!.title, equals('Unified Quantum Algorithm Model'));
     });
 
     test('legacy challenges start after the campaign', () {
-      expect(getQQLevelById(56)!.title, equals('Bit Flip'));
-      expect(getQQLevelById(102)!.title, equals('What is Superposition?'));
-      expect(getQQLevelById(109)!.title, equals('Read: Bell State'));
+      expect(getQQLevelById(61)!.title, equals('Bit Flip'));
+      expect(getQQLevelById(107)!.title, equals('What is Superposition?'));
+      expect(getQQLevelById(114)!.title, equals('Read: Bell State'));
     });
   });
 }
