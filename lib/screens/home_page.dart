@@ -117,7 +117,8 @@ class _HomePageState extends State<HomePage> {
     'Classical vs Quantum Structural Difference',
     'Unified Quantum Algorithm Model',
   };
-  static const int _mainCampaignLevelCount = 60;
+  static const int _guidedDiscoveryLevelCount = 60;
+  static const int _journeyLevelCount = 114;
   static const String _campaignProgressKey = 'maxUnlockedCampaignLevel';
 
   // Placeholder for the maximum unlocked level.
@@ -193,11 +194,11 @@ class _HomePageState extends State<HomePage> {
           backgroundColor:
               const Color(0xFF2D2E40), // Dark background for the dialog
           title: const Text(
-            'Campaign Completed!',
+            'Learning Journey Complete!',
             style: TextStyle(color: Colors.white),
           ),
           content: const Text(
-            'You completed the Qubit Quest discovery campaign. Legacy Challenges remain available for extra practice.',
+            'You completed Guided Discovery and the Mastery Challenges. The full curriculum remains available for review.',
             style: TextStyle(color: Colors.white70),
           ),
           actions: <Widget>[
@@ -673,7 +674,15 @@ class _HomePageState extends State<HomePage> {
 
   bool _isLegacyChallengeLevel(QQLevel level) {
     final index = allQQLevels.indexOf(level);
-    return index >= _mainCampaignLevelCount;
+    return index >= _guidedDiscoveryLevelCount;
+  }
+
+  bool _isMasteryChallengeLevel(QQLevel level) {
+    return _isLegacyChallengeLevel(level);
+  }
+
+  bool _isMasteryCategoryName(String groupName) {
+    return groupName == 'Mastery Challenges';
   }
 
   int? _firstChapter1InformationLevelNumber() {
@@ -857,14 +866,16 @@ class _HomePageState extends State<HomePage> {
   Widget _buildPrimaryActionSection({required bool compact}) {
     final Widget continueCard = _buildActionCard(
       title: 'Continue Journey',
-      subtitle: _maxUnlockedLevel > _mainCampaignLevelCount
-          ? 'Review your completed quantum path'
-          : 'Next: Level $_maxUnlockedLevel',
+      subtitle: _maxUnlockedLevel > _journeyLevelCount
+          ? 'Review your completed learning journey'
+          : _maxUnlockedLevel > _guidedDiscoveryLevelCount
+              ? 'Next: Mastery Challenge ${_maxUnlockedLevel - _guidedDiscoveryLevelCount}'
+              : 'Next: Guided Discovery $_maxUnlockedLevel',
       icon: Icons.play_arrow_rounded,
       primary: true,
       compact: compact,
       onTap: () {
-        if (_maxUnlockedLevel > _mainCampaignLevelCount) {
+        if (_maxUnlockedLevel > _journeyLevelCount) {
           _showGameCompleteDialog();
           return;
         }
@@ -1039,6 +1050,11 @@ class _HomePageState extends State<HomePage> {
     int indexStop, {
     required bool compact,
   }) {
+    final category = groupedLevels.firstWhere(
+      (category) => category.groupName == topic,
+    );
+    final isMasterySection = _isMasteryCategoryName(topic);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1047,24 +1063,53 @@ class _HomePageState extends State<HomePage> {
             top: compact ? 12 : 16,
             bottom: compact ? 8 : 10,
           ),
-          child: Text(
-            topic,
-            style: TextStyle(
-              fontSize: compact ? 18 : 22,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              height: 1.12,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                topic,
+                style: TextStyle(
+                  fontSize: compact ? 18 : 22,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  height: 1.12,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${category.phaseTitle} • ${category.phasePurpose}',
+                style: TextStyle(
+                  fontSize: compact ? 11 : 12.5,
+                  fontWeight: FontWeight.w800,
+                  color: isMasterySection
+                      ? const Color(0xFF7CFFB2)
+                      : qqCyan.withValues(alpha: 0.85),
+                  height: 1.2,
+                ),
+              ),
+            ],
           ),
         ),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: compact ? 116.0 : 132.0,
+            maxCrossAxisExtent: isMasterySection
+                ? compact
+                    ? 178.0
+                    : 220.0
+                : compact
+                    ? 116.0
+                    : 132.0,
             crossAxisSpacing: compact ? 8.0 : 10.0,
             mainAxisSpacing: compact ? 8.0 : 10.0,
-            childAspectRatio: compact ? 1.18 : 1.32,
+            childAspectRatio: isMasterySection
+                ? compact
+                    ? 1.18
+                    : 1.38
+                : compact
+                    ? 1.18
+                    : 1.32,
           ),
           itemCount: indexStop - indexStart + 1,
           itemBuilder: (context, index) {
@@ -1088,12 +1133,18 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
                 gradient: isUnlocked
-                    ? const LinearGradient(
-                        colors: [
-                          Color(0xFF4A8DFF),
-                          Color(0xFF2F6FEA),
-                          Color(0xFF1F4FC7),
-                        ],
+                    ? LinearGradient(
+                        colors: isMasterySection
+                            ? const [
+                                Color(0xFF0F766E),
+                                Color(0xFF115E59),
+                                Color(0xFF134E4A),
+                              ]
+                            : const [
+                                Color(0xFF4A8DFF),
+                                Color(0xFF2F6FEA),
+                                Color(0xFF1F4FC7),
+                              ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       )
@@ -1126,10 +1177,18 @@ class _HomePageState extends State<HomePage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '$levelNumber',
+                            isMasterySection
+                                ? 'Challenge ${levelNumber - _guidedDiscoveryLevelCount}'
+                                : '$levelNumber',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: compact ? 21 : 23,
+                              fontSize: isMasterySection
+                                  ? compact
+                                      ? 13
+                                      : 14
+                                  : compact
+                                      ? 21
+                                      : 23,
                               fontWeight: FontWeight.w900,
                               color: Colors.white,
                               height: 1,
@@ -1143,6 +1202,22 @@ class _HomePageState extends State<HomePage> {
                                 fontSize: compact ? 9.5 : 10.5,
                                 color: Colors.white.withValues(alpha: 0.78),
                                 fontWeight: FontWeight.w700,
+                                height: 1.08,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                          if (isMasterySection &&
+                              level.conceptsUsed.isNotEmpty) ...[
+                            const SizedBox(height: 5),
+                            Text(
+                              level.conceptsUsed.take(2).join(' + '),
+                              style: TextStyle(
+                                fontSize: compact ? 8.5 : 9.5,
+                                color: Colors.white.withValues(alpha: 0.72),
+                                fontWeight: FontWeight.w800,
                                 height: 1.08,
                               ),
                               textAlign: TextAlign.center,
@@ -1168,14 +1243,151 @@ class _HomePageState extends State<HomePage> {
 
   // Route to the correct screen based on level type
   Widget _screenForLevel(QQLevel level, int levelId) {
-    final unlockCallback =
-        _isLegacyChallengeLevel(level) ? null : _updateMaxUnlockedLevel;
-
     return LevelUIRouter.buildLevelUI(
       level: level,
       levelId: levelId,
-      onLevelUnlocked: unlockCallback,
+      onLevelUnlocked: _updateMaxUnlockedLevel,
     );
+  }
+
+  Future<void> _showMasteryTransitionDialog() async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF2D2E40),
+          title: const Text(
+            'Guided Discovery Complete',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            'Phase 2 begins now. Mastery Challenges combine discoveries you already learned so you can recognise and use ideas together.',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'Begin Mastery Challenges',
+                style: TextStyle(color: Colors.blueAccent),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<bool> _showMasteryChallengeBrief(
+    QQLevel level,
+    int levelNumber,
+  ) async {
+    if (!mounted) return false;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final relatedEntries = [
+          for (final title in level.relatedDiscoveryTitles)
+            if (notebookEntriesByDiscoveryTitle[title] != null)
+              notebookEntriesByDiscoveryTitle[title]!,
+        ];
+
+        return AlertDialog(
+          backgroundColor: const Color(0xFF2D2E40),
+          title: Text(
+            'Mastery Challenge ${levelNumber - _guidedDiscoveryLevelCount}',
+            style: const TextStyle(color: Colors.white),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (level.difficulty != null) ...[
+                  Text(
+                    'Difficulty: ${level.difficulty}',
+                    style: const TextStyle(
+                      color: Color(0xFF7CFFB2),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                const Text(
+                  'Concepts Used',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final concept in level.conceptsUsed)
+                      Chip(
+                        label: Text(concept),
+                        backgroundColor: const Color(0xFF134E4A),
+                        labelStyle: const TextStyle(color: Colors.white),
+                        side: BorderSide.none,
+                      ),
+                  ],
+                ),
+                if (relatedEntries.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Related Discoveries',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final entry in relatedEntries)
+                        OutlinedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop(false);
+                            Navigator.of(this.context).push<void>(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    NotebookEntryScreen(entry: entry),
+                              ),
+                            );
+                          },
+                          child: Text(entry.discoveryTitle),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Not now'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text(
+                'Start Challenge',
+                style: TextStyle(color: Colors.blueAccent),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result ?? false;
   }
 
   Future<void> _showLearningIntroIfNeeded(QQLevel level) async {
@@ -1443,7 +1655,7 @@ class _HomePageState extends State<HomePage> {
   QQLevelsCategory? _chapterCategoryForLevel(int levelNumber) {
     final int levelIndex = levelNumber - 1;
     for (final category in groupedLevels) {
-      if (category.groupName == 'Legacy Challenges') continue;
+      if (category.isMasteryPhase) continue;
       if (levelIndex >= category.from && levelIndex <= category.to) {
         return category;
       }
@@ -1500,6 +1712,12 @@ class _HomePageState extends State<HomePage> {
         break;
       }
 
+      if (_isMasteryChallengeLevel(levelData)) {
+        final shouldStart =
+            await _showMasteryChallengeBrief(levelData, currentLevelToPlay);
+        if (!shouldStart || !context.mounted) break;
+      }
+
       await _showLearningIntroIfNeeded(levelData);
       if (!context.mounted) break;
 
@@ -1524,7 +1742,11 @@ class _HomePageState extends State<HomePage> {
         await _showChapterCompleteIfNeeded(currentLevelToPlay);
         if (!context.mounted) break;
 
-        if (currentLevelToPlay == _mainCampaignLevelCount) {
+        if (currentLevelToPlay == _guidedDiscoveryLevelCount) {
+          await _showMasteryTransitionDialog();
+          if (!context.mounted) break;
+          currentLevelToPlay++;
+        } else if (currentLevelToPlay == _journeyLevelCount) {
           _showGameCompleteDialog();
           continueLevelChain = false;
         } else {

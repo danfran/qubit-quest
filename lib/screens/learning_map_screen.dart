@@ -15,7 +15,9 @@ class LearningMapConceptLink {
   final int toChapter;
   final String description;
 
-  String get label => '$fromChapter -> $toChapter';
+  String get label => toChapter == 13
+      ? '$fromChapter -> Mastery'
+      : '$fromChapter -> $toChapter';
 }
 
 class LearningMapScreen extends StatelessWidget {
@@ -51,6 +53,11 @@ class LearningMapScreen extends StatelessWidget {
       toChapter: 11,
       description: 'Amplification becomes an iterative pattern',
     ),
+    LearningMapConceptLink(
+      fromChapter: 12,
+      toChapter: 13,
+      description: 'Synthesis leads into integrated mastery',
+    ),
   ];
 
   final int maxUnlockedLevel;
@@ -58,9 +65,7 @@ class LearningMapScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chapters = groupedLevels
-        .where((category) => category.groupName != 'Legacy Challenges')
-        .toList(growable: false);
+    final chapters = groupedLevels.toList(growable: false);
 
     return Scaffold(
       backgroundColor: const Color(0xFF00030A),
@@ -167,7 +172,7 @@ class LearningHeaderSystem extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Follow the chapters as connected ideas. The main path is linear, with extra links showing where earlier concepts become prerequisites later.',
+                        'Learn concepts, combine concepts, then master them through integrated challenges. The path stays continuous from Guided Discovery into Mastery Challenges.',
                         style: TextStyle(
                           color: Color(0xFFD6E3F8),
                           fontSize: 14,
@@ -480,6 +485,7 @@ class _LearningMapNode extends StatelessWidget {
                   chapterNumber: chapterNumber,
                   status: status,
                   accent: accent,
+                  isMasteryPhase: category.isMasteryPhase,
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -499,7 +505,7 @@ class _LearningMapNode extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        _chapterIdentity(category.groupName),
+                        _chapterIdentity(category),
                         style: TextStyle(
                           color: locked
                               ? QubitQuestDialog.mutedText
@@ -531,11 +537,13 @@ class _LearningMapNode extends StatelessWidget {
   String _chapterTitle(String groupName) =>
       groupName.replaceFirst(' - ', ' — ');
 
-  String _chapterIdentity(String chapterTitle) {
+  String _chapterIdentity(QQLevelsCategory category) {
     for (final entry in notebookEntries) {
-      if (entry.chapterTitle == chapterTitle) return entry.chapterIdentity;
+      if (entry.chapterTitle == category.groupName) {
+        return entry.chapterIdentity;
+      }
     }
-    return '';
+    return category.categoryIntro ?? category.phasePurpose;
   }
 }
 
@@ -544,11 +552,13 @@ class _ChapterOrb extends StatelessWidget {
     required this.chapterNumber,
     required this.status,
     required this.accent,
+    required this.isMasteryPhase,
   });
 
   final int chapterNumber;
   final _ChapterMapStatus status;
   final Color accent;
+  final bool isMasteryPhase;
 
   @override
   Widget build(BuildContext context) {
@@ -562,16 +572,19 @@ class _ChapterOrb extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: accent.withValues(alpha: 0.44)),
       ),
-      child: status == _ChapterMapStatus.completed
-          ? const Icon(Icons.check_rounded, color: Color(0xFF7CFFB2), size: 26)
-          : Text(
-              '$chapterNumber',
-              style: TextStyle(
-                color: accent,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
+      child: isMasteryPhase && status != _ChapterMapStatus.completed
+          ? Icon(Icons.workspace_premium_outlined, color: accent, size: 25)
+          : status == _ChapterMapStatus.completed
+              ? const Icon(Icons.check_rounded,
+                  color: Color(0xFF7CFFB2), size: 26)
+              : Text(
+                  '$chapterNumber',
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
     );
   }
 }
@@ -638,7 +651,14 @@ class _LearningMapConnectionsPainter extends CustomPainter {
       canvas.drawLine(centers[i], centers[i + 1], paint);
     }
 
-    for (final (from, to) in const [(2, 4), (3, 4), (5, 7)]) {
+    for (final (from, to) in const [
+      (2, 4),
+      (3, 4),
+      (5, 7),
+      (9, 11),
+      (10, 11),
+      (12, 13),
+    ]) {
       if (from <= centers.length && to <= centers.length) {
         final start = centers[from - 1];
         final end = centers[to - 1];

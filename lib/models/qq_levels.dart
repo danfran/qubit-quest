@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/foundation.dart';
+import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/qq_levels_category.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
@@ -4775,7 +4776,12 @@ List<QQLevel> _consolidatedQQLevels() {
   final chapter10AmplitudeAmplification = _authoredQQLevels.sublist(68, 73);
   final chapter11GroverLoopIntuition = _authoredQQLevels.sublist(73, 78);
   final chapter12QuantumAlgorithmStructure = _authoredQQLevels.sublist(78, 83);
-  final legacyChallenges = _authoredQQLevels.sublist(0, 54);
+  final masteryChallenges = _authoredQQLevels
+      .sublist(0, 54)
+      .asMap()
+      .entries
+      .map((entry) => _withMasteryMetadata(entry.value, entry.key))
+      .toList(growable: false);
 
   return [
     ...chapter1Information,
@@ -4790,8 +4796,214 @@ List<QQLevel> _consolidatedQQLevels() {
     ...chapter10AmplitudeAmplification,
     ...chapter11GroverLoopIntuition,
     ...chapter12QuantumAlgorithmStructure,
-    ...legacyChallenges,
+    ...masteryChallenges,
   ];
+}
+
+QQLevel _withMasteryMetadata(QQLevel level, int challengeIndex) {
+  final concepts = _masteryConceptsFor(challengeIndex);
+  final difficulty = _masteryDifficultyFor(challengeIndex);
+  final relatedDiscoveries = _masteryRelatedDiscoveriesFor(challengeIndex);
+
+  switch (level) {
+    case ComposerLevel():
+      return ComposerLevel(
+        title: level.title,
+        taskDescription: level.taskDescription,
+        conceptIntro: level.conceptIntro,
+        solutionExplanation: level.solutionExplanation,
+        hints: level.hints,
+        targetStateLabel: level.targetStateLabel,
+        targetStateExpression: level.targetStateExpression,
+        mysteryTitle: level.mysteryTitle,
+        mysteryText: level.mysteryText,
+        discoveryTitle: level.discoveryTitle,
+        discoveryText: level.discoveryText,
+        keyInsight: level.keyInsight,
+        whyItMatters: level.whyItMatters,
+        nextMystery: level.nextMystery,
+        conceptsUsed: concepts,
+        difficulty: difficulty,
+        relatedDiscoveryTitles: relatedDiscoveries,
+        numQubits: level.numQubits,
+        initialQubitsStateStr: level.initialQubitsStateStr,
+        initialQubitsState: level.initialQubitsState,
+        availableGates: level.availableGates,
+        solutionFinalVector: level.solutionFinalVector,
+        validationMode: level.validationMode,
+        targetUnitary: level.targetUnitary,
+        alternateTargetUnitaries: level.alternateTargetUnitaries,
+        preInsertedGates: level.preInsertedGates,
+      );
+    case ConceptCheckLevel():
+      return ConceptCheckLevel(
+        title: level.title,
+        taskDescription: level.taskDescription,
+        conceptIntro: level.conceptIntro,
+        solutionExplanation: level.solutionExplanation,
+        hints: level.hints,
+        mysteryTitle: level.mysteryTitle,
+        mysteryText: level.mysteryText,
+        discoveryTitle: level.discoveryTitle,
+        discoveryText: level.discoveryText,
+        keyInsight: level.keyInsight,
+        whyItMatters: level.whyItMatters,
+        nextMystery: level.nextMystery,
+        conceptsUsed: concepts,
+        difficulty: difficulty,
+        relatedDiscoveryTitles: relatedDiscoveries,
+        options: level.options,
+        correctOptionIndex: level.correctOptionIndex,
+        badgeLabel: level.badgeLabel,
+      );
+    case McqLevel():
+      return McqLevel(
+        title: level.title,
+        taskDescription: level.taskDescription,
+        conceptIntro: level.conceptIntro,
+        solutionExplanation: level.solutionExplanation,
+        hints: level.hints,
+        mysteryTitle: level.mysteryTitle,
+        mysteryText: level.mysteryText,
+        discoveryTitle: level.discoveryTitle,
+        discoveryText: level.discoveryText,
+        keyInsight: level.keyInsight,
+        whyItMatters: level.whyItMatters,
+        nextMystery: level.nextMystery,
+        conceptsUsed: concepts,
+        difficulty: difficulty,
+        relatedDiscoveryTitles: relatedDiscoveries,
+        options: level.options,
+        correctOptionIndex: level.correctOptionIndex,
+      );
+    case FillTheGateLevel():
+      return FillTheGateLevel(
+        title: level.title,
+        taskDescription: level.taskDescription,
+        conceptIntro: level.conceptIntro,
+        solutionExplanation: level.solutionExplanation,
+        hints: level.hints,
+        mysteryTitle: level.mysteryTitle,
+        mysteryText: level.mysteryText,
+        discoveryTitle: level.discoveryTitle,
+        discoveryText: level.discoveryText,
+        keyInsight: level.keyInsight,
+        whyItMatters: level.whyItMatters,
+        nextMystery: level.nextMystery,
+        conceptsUsed: concepts,
+        difficulty: difficulty,
+        relatedDiscoveryTitles: relatedDiscoveries,
+        numQubits: level.numQubits,
+        initialQubitsStateString: level.initialQubitsStateString,
+        preBuiltGates: level.preBuiltGates,
+        correctGate: level.correctGate,
+        options: level.options,
+        solutionFinalVector: level.solutionFinalVector,
+      );
+    case CircuitReadingLevel():
+      return CircuitReadingLevel(
+        title: level.title,
+        taskDescription: level.taskDescription,
+        conceptIntro: level.conceptIntro,
+        solutionExplanation: level.solutionExplanation,
+        hints: level.hints,
+        mysteryTitle: level.mysteryTitle,
+        mysteryText: level.mysteryText,
+        discoveryTitle: level.discoveryTitle,
+        discoveryText: level.discoveryText,
+        keyInsight: level.keyInsight,
+        whyItMatters: level.whyItMatters,
+        nextMystery: level.nextMystery,
+        conceptsUsed: concepts,
+        difficulty: difficulty,
+        relatedDiscoveryTitles: relatedDiscoveries,
+        numQubits: level.numQubits,
+        initialQubitsStateString: level.initialQubitsStateString,
+        circuit: level.circuit,
+        options: level.options,
+        correctOptionIndex: level.correctOptionIndex,
+      );
+    case MeasurementLabLevel():
+      return MeasurementLabLevel(
+        title: level.title,
+        taskDescription: level.taskDescription,
+        conceptIntro: level.conceptIntro,
+        solutionExplanation: level.solutionExplanation,
+        hints: level.hints,
+        mysteryTitle: level.mysteryTitle,
+        mysteryText: level.mysteryText,
+        discoveryTitle: level.discoveryTitle,
+        discoveryText: level.discoveryText,
+        keyInsight: level.keyInsight,
+        whyItMatters: level.whyItMatters,
+        nextMystery: level.nextMystery,
+        conceptsUsed: concepts,
+        difficulty: difficulty,
+        relatedDiscoveryTitles: relatedDiscoveries,
+        numQubits: level.numQubits,
+        initialQubitsStateString: level.initialQubitsStateString,
+        preBuiltCircuit: level.preBuiltCircuit,
+        requiredMeasurements: level.requiredMeasurements,
+      );
+  }
+}
+
+List<String> _masteryConceptsFor(int index) {
+  if (index <= 4) {
+    return const ['Information', 'Reversibility', 'State Transformations'];
+  }
+  if (index <= 12) {
+    return const ['Superposition', 'Hidden Change', 'Phase Information'];
+  }
+  if (index <= 20) {
+    return const ['Control', 'Information Flow', 'Reversibility'];
+  }
+  if (index <= 26) {
+    return const ['Superposition', 'Entanglement', 'Interference'];
+  }
+  if (index <= 31) {
+    return const ['Interference', 'Phase Information', 'Information Flow'];
+  }
+  if (index <= 34) {
+    return const [
+      'Control',
+      'Information Flow',
+      'Role Separation in Quantum Algorithms'
+    ];
+  }
+  if (index <= 38) {
+    return const ['Entanglement', 'GHZ State', 'One System, Three Qubits'];
+  }
+  if (index <= 45) {
+    return const ['Hidden Change', 'Superposition', 'State Transformations'];
+  }
+  if (index <= 47) {
+    return const [
+      'Superposition',
+      'Entanglement',
+      'Quantum Algorithm Structure'
+    ];
+  }
+  if (index <= 49) {
+    return const ['Superposition', 'Entanglement', 'Amplitude Amplification'];
+  }
+  if (index <= 51) {
+    return const ['State Transformations', 'Superposition', 'Reversibility'];
+  }
+  return const ['Circuit Reading', 'Superposition', 'Entanglement'];
+}
+
+String _masteryDifficultyFor(int index) {
+  if (index <= 12) return 'Beginner';
+  if (index <= 31) return 'Intermediate';
+  if (index <= 45) return 'Advanced';
+  return 'Expert';
+}
+
+List<String> _masteryRelatedDiscoveriesFor(int index) {
+  return _masteryConceptsFor(index)
+      .where(notebookEntriesByDiscoveryTitle.containsKey)
+      .toList(growable: false);
 }
 
 int numberOfLevels = allQQLevels.length;
@@ -4921,10 +5133,13 @@ final List<QQLevelsCategory> groupedLevels = [
         'Step back and unify the last three abstractions into a meta-level algorithm model: define valid solutions, bias toward them, and iterate the structure.',
   ),
   QQLevelsCategory(
-    groupName: 'Legacy Challenges',
+    groupName: 'Mastery Challenges',
     from: 60,
     to: 113,
     categoryIntro:
-        'Optional earlier Qubit Quest challenges preserved for practice and reference. These levels are playable but are not part of the main discovery campaign.',
+        'Phase 2 turns the guided discoveries into integrated practice. These advanced challenges combine earlier ideas so you can recognise and use them together.',
+    phaseTitle: 'Phase 2 - Mastery Challenges',
+    phasePurpose: 'Concept Integration',
+    isMasteryPhase: true,
   ),
 ];

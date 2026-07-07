@@ -381,7 +381,7 @@ void main() {
       }
     });
 
-    test('legacy challenge levels preserve the expected mixed types', () {
+    test('mastery challenge levels preserve the expected mixed types', () {
       for (int levelNumber = 61; levelNumber <= 106; levelNumber++) {
         expect(getQQLevelById(levelNumber), isA<ComposerLevel>());
       }
@@ -395,7 +395,8 @@ void main() {
       expect(getQQLevelById(114), isA<CircuitReadingLevel>());
     });
 
-    test('groupedLevels exposes the campaign before legacy challenges', () {
+    test('groupedLevels exposes guided discovery before mastery challenges',
+        () {
       expect(
         groupedLevels.map((category) => category.groupName).toList(),
         equals([
@@ -411,7 +412,7 @@ void main() {
           'Chapter 10 - Amplitude Amplification',
           'Chapter 11 - Grover Loop Intuition',
           'Chapter 12 - Quantum Algorithm Structure',
-          'Legacy Challenges',
+          'Mastery Challenges',
         ]),
       );
       expect(groupedLevels.first.from, equals(0));
@@ -424,6 +425,34 @@ void main() {
       expect(groupedLevels[11].to, equals(59));
       expect(groupedLevels.last.from, equals(60));
       expect(groupedLevels.last.to, equals(113));
+      expect(groupedLevels.last.isMasteryPhase, isTrue);
+      expect(groupedLevels.last.phasePurpose, equals('Concept Integration'));
+    });
+
+    test('Mastery Challenges carry educational metadata only', () {
+      const allowedDifficulties = {
+        'Beginner',
+        'Intermediate',
+        'Advanced',
+        'Expert',
+      };
+
+      for (int levelNumber = 61; levelNumber <= 114; levelNumber++) {
+        final level = getQQLevelById(levelNumber)!;
+
+        expect(level.conceptsUsed, isNotEmpty);
+        expect(allowedDifficulties, contains(level.difficulty));
+        expect(level.relatedDiscoveryTitles, isNotEmpty);
+
+        for (final discoveryTitle in level.relatedDiscoveryTitles) {
+          expect(
+            notebookEntriesByDiscoveryTitle,
+            contains(discoveryTitle),
+            reason:
+                'Mastery Challenge $levelNumber links to an unknown discovery.',
+          );
+        }
+      }
     });
 
     test('DiscoveryProgress follows the consolidated campaign sequence', () {
@@ -943,11 +972,26 @@ void main() {
       expect(result.status, equals('PASS'));
     });
 
-    test('Chapter Release Gate blocks non-releasable legacy bucket', () {
-      final legacy = groupedLevels.firstWhere(
-        (category) => category.groupName == 'Legacy Challenges',
+    test('Chapter Release Gate validates the continuous curriculum', () {
+      final result = ChapterReleaseGate.validateCurriculumJourney();
+
+      expect(result.passed, isTrue, reason: result.toReport());
+      expect(result.status, equals('PASS'));
+      expect(
+        result.validatedSections,
+        contains('Phase 1 Concept Acquisition'),
       );
-      final result = ChapterReleaseGate.validateChapter(legacy);
+      expect(
+        result.validatedSections,
+        contains('Phase 2 Concept Integration'),
+      );
+    });
+
+    test('Chapter Release Gate routes mastery through journey validation', () {
+      final mastery = groupedLevels.firstWhere(
+        (category) => category.groupName == 'Mastery Challenges',
+      );
+      final result = ChapterReleaseGate.validateChapter(mastery);
 
       expect(result.passed, isFalse);
       expect(result.status, equals('FAIL'));
@@ -2094,7 +2138,7 @@ void main() {
           getQQLevelById(60)!.title, equals('Unified Quantum Algorithm Model'));
     });
 
-    test('legacy challenges start after the campaign', () {
+    test('mastery challenges start after guided discovery', () {
       expect(getQQLevelById(61)!.title, equals('Bit Flip'));
       expect(getQQLevelById(107)!.title, equals('What is Superposition?'));
       expect(getQQLevelById(114)!.title, equals('Read: Bell State'));

@@ -66,12 +66,12 @@ class ChapterReleaseGate {
     final failures = <String>[];
     final fixPlan = <String>[];
 
-    if (_isLegacyCategory(chapter)) {
+    if (_isMasteryCategory(chapter)) {
       failures.add(
-        '[Level System Validation] "${chapter.groupName}" is a legacy practice bucket, not a releasable chapter.',
+        '[Level System Validation] "${chapter.groupName}" is Phase 2 concept integration, not a single releasable chapter.',
       );
       fixPlan.add(
-        'Run the release gate against a named chapter category, not Legacy Challenges.',
+        'Run validateCurriculumJourney() to validate Guided Discovery plus Mastery Challenges as one curriculum.',
       );
       return ChapterReleaseGateResult(
         chapterName: chapter.groupName,
@@ -107,13 +107,126 @@ class ChapterReleaseGate {
 
   static List<QQLevelsCategory> campaignChaptersThrough(int chapterNumber) {
     return groupedLevels
-        .where((chapter) => !_isLegacyCategory(chapter))
+        .where((chapter) => !_isMasteryCategory(chapter))
         .where((chapter) => _chapterNumber(chapter) <= chapterNumber)
         .toList(growable: false);
   }
 
-  static bool _isLegacyCategory(QQLevelsCategory chapter) {
-    return chapter.groupName == 'Legacy Challenges';
+  static ChapterReleaseGateResult validateCurriculumJourney() {
+    final failures = <String>[];
+    final fixPlan = <String>[];
+    final guidedDiscovery =
+        groupedLevels.where((category) => !category.isMasteryPhase).toList();
+    final masteryPhases =
+        groupedLevels.where((category) => category.isMasteryPhase).toList();
+
+    if (guidedDiscovery.length != 12) {
+      failures.add(
+        '[Level System Validation] Phase 1 expected 12 guided discovery chapters but found ${guidedDiscovery.length}.',
+      );
+      fixPlan
+          .add('Keep Chapters 1-12 as the Phase 1 concept acquisition path.');
+    }
+    if (masteryPhases.length != 1) {
+      failures.add(
+        '[Level System Validation] Phase 2 expected one Mastery Challenges section but found ${masteryPhases.length}.',
+      );
+      fixPlan.add(
+          'Represent the existing 54 challenge levels as one Phase 2 integration section.');
+    }
+
+    final mastery = masteryPhases.isEmpty ? null : masteryPhases.first;
+    if (mastery != null) {
+      final masteryCount = mastery.to - mastery.from + 1;
+      if (masteryCount != 54) {
+        failures.add(
+          '[Level System Validation] Phase 2 expected 54 Mastery Challenges but found $masteryCount.',
+        );
+        fixPlan.add(
+            'Preserve the existing 54 challenge levels without redesigning their gameplay.');
+      }
+      if (mastery.from != 60) {
+        failures.add(
+          '[Level System Validation] Phase 2 should begin immediately after Chapter 12 at level 61.',
+        );
+        fixPlan.add(
+            'Place Mastery Challenges after the 60 guided discovery levels.');
+      }
+      if (mastery.phasePurpose != 'Concept Integration') {
+        failures.add(
+          '[Cross-System Consistency Check] Phase 2 purpose must be Concept Integration.',
+        );
+        fixPlan
+            .add('Set Mastery Challenges phasePurpose to Concept Integration.');
+      }
+
+      for (int index = mastery.from; index <= mastery.to; index++) {
+        final levelNumber = index + 1;
+        final level = getQQLevelById(levelNumber);
+        if (level == null) {
+          failures.add(
+            '[Level System Validation] Missing Mastery Challenge $levelNumber.',
+          );
+          fixPlan.add(
+              'Correct the Mastery Challenges range or restore the missing level.');
+          continue;
+        }
+        if (level.conceptsUsed.isEmpty) {
+          failures.add(
+            '[Notebook System Validation] Mastery Challenge $levelNumber has no Concepts Used metadata.',
+          );
+          fixPlan
+              .add('Add lightweight concept tags to every Mastery Challenge.');
+        }
+        if (level.difficulty?.trim().isEmpty ?? true) {
+          failures.add(
+            '[Level System Validation] Mastery Challenge $levelNumber has no difficulty metadata.',
+          );
+          fixPlan.add(
+              'Add Beginner, Intermediate, Advanced, or Expert difficulty metadata.');
+        }
+        if (level.relatedDiscoveryTitles.isEmpty) {
+          failures.add(
+            '[Notebook System Validation] Mastery Challenge $levelNumber has no related discoveries.',
+          );
+          fixPlan.add(
+              'Connect every Mastery Challenge to existing notebook discoveries.');
+        }
+        for (final discoveryTitle in level.relatedDiscoveryTitles) {
+          if (!notebookEntriesByDiscoveryTitle.containsKey(discoveryTitle)) {
+            failures.add(
+              '[Notebook System Validation] Mastery Challenge $levelNumber links to unknown discovery "$discoveryTitle".',
+            );
+            fixPlan.add(
+                'Use relatedDiscoveryTitles that already exist in the Quantum Notebook.');
+          }
+        }
+      }
+    }
+
+    if (groupedLevels.isNotEmpty && !groupedLevels.last.isMasteryPhase) {
+      failures.add(
+        '[Learning Map Integration] The journey should end by flowing into Mastery Challenges.',
+      );
+      fixPlan.add('Keep Mastery Challenges after Chapter 12 in groupedLevels.');
+    }
+
+    return ChapterReleaseGateResult(
+      chapterName: 'Qubit Quest Continuous Curriculum',
+      validatedSections: const [
+        'Phase 1 Concept Acquisition',
+        'Phase 2 Concept Integration',
+        'Notebook Reference Integration',
+        'Learning Map Continuity',
+        'Cross-System Consistency Check',
+      ],
+      failures: failures,
+      fixPlan: failures.isEmpty ? const [] : fixPlan.toSet().toList(),
+    );
+  }
+
+  static bool _isMasteryCategory(QQLevelsCategory chapter) {
+    return chapter.isMasteryPhase || chapter.groupName == 'Mastery Challenges';
   }
 
   static int _chapterNumber(QQLevelsCategory chapter) {
@@ -371,8 +484,9 @@ class ChapterReleaseGate {
     List<String> fixPlan,
   ) {
     final campaignChapters = groupedLevels
-        .where((category) => !_isLegacyCategory(category))
+        .where((category) => !_isMasteryCategory(category))
         .toList();
+    final journeySections = groupedLevels.toList(growable: false);
     final chapterNumber = _chapterNumber(chapter);
 
     if (!campaignChapters.contains(chapter)) {
@@ -380,7 +494,7 @@ class ChapterReleaseGate {
         '[Learning Map Integration] ${chapter.groupName} is not present in groupedLevels campaign chapters.',
       );
       fixPlan.add(
-        'Add the chapter to groupedLevels before Legacy Challenges so the Learning Map can render it.',
+        'Add the chapter to groupedLevels before Mastery Challenges so the Learning Map can render it.',
       );
     }
 
@@ -401,12 +515,12 @@ class ChapterReleaseGate {
       if (link.fromChapter < 1 ||
           link.toChapter < 1 ||
           link.fromChapter > campaignChapters.length ||
-          link.toChapter > campaignChapters.length) {
+          link.toChapter > journeySections.length) {
         failures.add(
           '[Learning Map Integration] Concept link ${link.label} references a missing chapter.',
         );
         fixPlan.add(
-          'Update LearningMapScreen.conceptLinks so every link references an existing campaign chapter.',
+          'Update LearningMapScreen.conceptLinks so every link references an existing guided discovery chapter.',
         );
       }
     }

@@ -27,6 +27,9 @@ sealed class QQLevel {
   final String? keyInsight;
   final String? whyItMatters;
   final String? nextMystery;
+  final List<String> conceptsUsed;
+  final String? difficulty;
+  final List<String> relatedDiscoveryTitles;
 
   const QQLevel({
     this.title,
@@ -43,6 +46,9 @@ sealed class QQLevel {
     this.keyInsight,
     this.whyItMatters,
     this.nextMystery,
+    this.conceptsUsed = const [],
+    this.difficulty,
+    this.relatedDiscoveryTitles = const [],
   });
 
   bool get hasMystery =>
@@ -86,6 +92,9 @@ class ComposerLevel extends QQLevel {
     super.keyInsight,
     super.whyItMatters,
     super.nextMystery,
+    super.conceptsUsed,
+    super.difficulty,
+    super.relatedDiscoveryTitles,
     required this.numQubits,
     required this.initialQubitsStateStr,
     required this.initialQubitsState,
@@ -112,6 +121,9 @@ class ComposerLevel extends QQLevel {
     String? keyInsight,
     String? whyItMatters,
     String? nextMystery,
+    List<String> conceptsUsed = const [],
+    String? difficulty,
+    List<String> relatedDiscoveryTitles = const [],
     int?
         numQubits, // kept for backward compat with existing levels; derived from string if null
     required String initialQubitsStateString,
@@ -141,6 +153,9 @@ class ComposerLevel extends QQLevel {
       keyInsight: keyInsight,
       whyItMatters: whyItMatters,
       nextMystery: nextMystery,
+      conceptsUsed: conceptsUsed,
+      difficulty: difficulty,
+      relatedDiscoveryTitles: relatedDiscoveryTitles,
       numQubits: resolvedNumQubits,
       initialQubitsStateStr: initialQubitsStateString,
       initialQubitsState: convertedInitialState,
@@ -241,6 +256,9 @@ class FillTheGateLevel extends QQLevel {
     super.keyInsight,
     super.whyItMatters,
     super.nextMystery,
+    super.conceptsUsed,
+    super.difficulty,
+    super.relatedDiscoveryTitles,
     required this.numQubits,
     required this.initialQubitsStateString,
     required this.preBuiltGates,
@@ -288,6 +306,9 @@ class CircuitReadingLevel extends QQLevel {
     super.keyInsight,
     super.whyItMatters,
     super.nextMystery,
+    super.conceptsUsed,
+    super.difficulty,
+    super.relatedDiscoveryTitles,
     required this.numQubits,
     required this.initialQubitsStateString,
     required this.circuit,
@@ -324,6 +345,9 @@ class McqLevel extends QQLevel {
     super.keyInsight,
     super.whyItMatters,
     super.nextMystery,
+    super.conceptsUsed,
+    super.difficulty,
+    super.relatedDiscoveryTitles,
     required this.options,
     required this.correctOptionIndex,
   });
@@ -348,6 +372,9 @@ class ConceptCheckLevel extends McqLevel {
     super.keyInsight,
     super.whyItMatters,
     super.nextMystery,
+    super.conceptsUsed,
+    super.difficulty,
+    super.relatedDiscoveryTitles,
     required super.options,
     required super.correctOptionIndex,
     this.badgeLabel = 'Concept Check',
@@ -375,6 +402,9 @@ class MeasurementLabLevel extends QQLevel {
     super.keyInsight,
     super.whyItMatters,
     super.nextMystery,
+    super.conceptsUsed,
+    super.difficulty,
+    super.relatedDiscoveryTitles,
     required this.numQubits,
     required this.initialQubitsStateString,
     this.preBuiltCircuit,
