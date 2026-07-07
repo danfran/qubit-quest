@@ -23,6 +23,7 @@ import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
+import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 
 import '../models/qq_level.dart';
 
@@ -684,21 +685,23 @@ class _QuantumComposerState extends State<QuantumComposer>
   void _showConceptIntro(String intro) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: qqCard,
-        title: const Text('Before you start',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: Text(intro,
-            style: const TextStyle(
-                color: Colors.white70, fontSize: 15, height: 1.5)),
+      builder: (ctx) => QubitQuestDialog(
+        title: 'Before You Start',
         actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: qqPurple),
+          QubitQuestDialogButton.primary(
+            label: 'Got it',
             onPressed: () => Navigator.of(ctx).pop(),
-            child:
-                const Text('Got it →', style: TextStyle(color: Colors.white)),
           ),
         ],
+        child: Text(
+          intro,
+          style: const TextStyle(
+            color: Color(0xFFD6E3F8),
+            fontSize: 15,
+            height: 1.45,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
@@ -709,20 +712,33 @@ class _QuantumComposerState extends State<QuantumComposer>
     setState(() => _currentHintIndex = nextIndex);
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: qqCard,
-        title: Text('Hint ${nextIndex + 1} / ${_hints.length}',
-            style: const TextStyle(
-                color: Colors.amber, fontWeight: FontWeight.bold)),
-        content: Text(_hints[nextIndex],
-            style: const TextStyle(
-                color: Colors.white70, fontSize: 15, height: 1.5)),
+      builder: (ctx) => QubitQuestDialog(
+        title: 'Hint ${nextIndex + 1} / ${_hints.length}',
         actions: [
-          TextButton(
+          QubitQuestDialogButton.primary(
+            label: 'OK',
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('OK', style: TextStyle(color: Colors.blueAccent)),
           ),
         ],
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: QubitQuestDialog.innerColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: QubitQuestDialog.borderSoftColor),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Text(
+              _hints[nextIndex],
+              style: const TextStyle(
+                color: Color(0xFFD6E3F8),
+                fontSize: 15,
+                height: 1.45,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1476,34 +1492,23 @@ class _QuantumComposerState extends State<QuantumComposer>
     showDialog<void>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: qqCard,
-          surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-            side: qqComposerCardBorder,
-          ),
-          title: const Text(
-            'Composer',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          content: Text(
-            _taskDescription,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.82),
-              fontSize: 14,
-              height: 1.35,
-            ),
-          ),
+        return QubitQuestDialog(
+          title: 'Composer',
           actions: [
-            TextButton(
+            QubitQuestDialogButton.primary(
+              label: 'Start Composing',
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Start composing'),
             ),
           ],
+          child: Text(
+            _taskDescription,
+            style: const TextStyle(
+              color: Color(0xFFD6E3F8),
+              fontSize: 14,
+              height: 1.42,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         );
       },
     );

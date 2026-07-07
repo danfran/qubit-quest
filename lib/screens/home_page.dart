@@ -9,6 +9,7 @@ import 'package:quantumquiz/screens/quantum_composer.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
+import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/screens/learning_flow_widgets.dart';
 import 'package:quantumquiz/screens/webview_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -150,14 +151,14 @@ class _HomePageState extends State<HomePage> {
     // This method creates the list of data to display in the grid
     _aboutData = [
       MapEntry('App name', _packageInfo.appName),
-      MapEntry('Author', 'aion'),
+      MapEntry('Author', 'Eigenplay'),
       MapEntry('Package name', _packageInfo.packageName),
       MapEntry('App version', _packageInfo.version),
       MapEntry('Build number', _packageInfo.buildNumber),
       MapEntry('Build signature', _packageInfo.buildSignature),
       MapEntry(
           'Installer store', _packageInfo.installerStore ?? 'not available'),
-      MapEntry('Contact', 'dfrancesconi12@gmail.com'),
+      MapEntry('Contact', 'qubitquestapp@gmail.com'),
     ];
   }
 
@@ -190,26 +191,18 @@ class _HomePageState extends State<HomePage> {
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor:
-              const Color(0xFF2D2E40), // Dark background for the dialog
-          title: const Text(
-            'Learning Journey Complete!',
-            style: TextStyle(color: Colors.white),
-          ),
-          content: const Text(
-            'You completed Guided Discovery and the Mastery Challenges. The full curriculum remains available for review.',
-            style: TextStyle(color: Colors.white70),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Close',
-                  style: TextStyle(color: Colors.blueAccent)),
+        return QubitQuestDialog(
+          title: 'Learning Journey Complete',
+          maxWidth: 520,
+          actions: [
+            QubitQuestDialogButton.primary(
+              label: 'Close',
               onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).pop();
               },
             ),
           ],
+          child: const _JourneyCompleteBody(),
         );
       },
     );
@@ -310,70 +303,42 @@ class _HomePageState extends State<HomePage> {
     showDialog<int>(
       context: context,
       builder: (BuildContext dialogContext) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final double maxWidth = constraints.maxWidth.clamp(0, 460);
-
-              return ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxWidth),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: qqCard,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: qqBorder),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.34),
-                        blurRadius: 18,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text(
-                        'Choose Number of Qubits',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          height: 1.12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Open the sandbox with a circuit size.',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.66),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          for (int numQubits = 1; numQubits <= 5; numQubits++)
-                            _buildQubitChoiceButton(
-                              dialogContext,
-                              numQubits,
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
+        return QubitQuestDialog(
+          title: 'Choose Number of Qubits',
+          maxWidth: 460,
+          actions: [
+            QubitQuestDialogButton.secondary(
+              label: 'Cancel',
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+          ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Open the sandbox with a circuit size.',
+                style: TextStyle(
+                  color: QubitQuestDialog.mutedText,
+                  fontSize: 13,
+                  height: 1.35,
+                  fontWeight: FontWeight.w700,
                 ),
-              );
-            },
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (int numQubits = 1; numQubits <= 5; numQubits++)
+                    _buildQubitChoiceButton(
+                      dialogContext,
+                      numQubits,
+                    ),
+                ],
+              ),
+            ],
           ),
         );
       },
@@ -1250,34 +1215,47 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<void> _showMasteryTransitionDialog() async {
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF2D2E40),
-          title: const Text(
-            'Guided Discovery Complete',
-            style: TextStyle(color: Colors.white),
-          ),
-          content: const Text(
-            'Phase 2 begins now. Mastery Challenges combine discoveries you already learned so you can recognise and use ideas together.',
-            style: TextStyle(color: Colors.white70),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                'Begin Mastery Challenges',
-                style: TextStyle(color: Colors.blueAccent),
+  Future<bool> _showMasteryTransitionDialog() async {
+    while (mounted) {
+      final action = await showDialog<_MasteryTransitionAction>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return QubitQuestDialog(
+            title: 'Guided Discovery Complete',
+            maxWidth: 560,
+            actions: [
+              QubitQuestDialogButton.secondary(
+                label: 'Review Notebook',
+                onPressed: () => Navigator.of(context).pop(
+                  _MasteryTransitionAction.reviewNotebook,
+                ),
               ),
-            ),
-          ],
+              QubitQuestDialogButton.primary(
+                label: 'Start Mastery Challenges',
+                onPressed: () => Navigator.of(context).pop(
+                  _MasteryTransitionAction.start,
+                ),
+              ),
+            ],
+            child: const _MasteryTransitionBody(),
+          );
+        },
+      );
+
+      if (!mounted) return false;
+      if (action == _MasteryTransitionAction.start) return true;
+      if (action == _MasteryTransitionAction.reviewNotebook) {
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (context) => const DiscoveriesScreen(),
+          ),
         );
-      },
-    );
+        continue;
+      }
+      return false;
+    }
+    return false;
   }
 
   Future<bool> _showMasteryChallengeBrief(
@@ -1286,108 +1264,52 @@ class _HomePageState extends State<HomePage> {
   ) async {
     if (!mounted) return false;
 
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        final relatedEntries = [
-          for (final title in level.relatedDiscoveryTitles)
-            if (notebookEntriesByDiscoveryTitle[title] != null)
-              notebookEntriesByDiscoveryTitle[title]!,
-        ];
+    final relatedEntries = [
+      for (final title in level.relatedDiscoveryTitles)
+        if (notebookEntriesByDiscoveryTitle[title] != null)
+          notebookEntriesByDiscoveryTitle[title]!,
+    ];
 
-        return AlertDialog(
-          backgroundColor: const Color(0xFF2D2E40),
-          title: Text(
-            'Mastery Challenge ${levelNumber - _guidedDiscoveryLevelCount}',
-            style: const TextStyle(color: Colors.white),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (level.difficulty != null) ...[
-                  Text(
-                    'Difficulty: ${level.difficulty}',
-                    style: const TextStyle(
-                      color: Color(0xFF7CFFB2),
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                const Text(
-                  'Concepts Used',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final concept in level.conceptsUsed)
-                      Chip(
-                        label: Text(concept),
-                        backgroundColor: const Color(0xFF134E4A),
-                        labelStyle: const TextStyle(color: Colors.white),
-                        side: BorderSide.none,
-                      ),
-                  ],
-                ),
-                if (relatedEntries.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Related Discoveries',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final entry in relatedEntries)
-                        OutlinedButton(
-                          onPressed: () {
-                            Navigator.of(context).pop(false);
-                            Navigator.of(this.context).push<void>(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    NotebookEntryScreen(entry: entry),
-                              ),
-                            );
-                          },
-                          child: Text(entry.discoveryTitle),
-                        ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Not now'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text(
-                'Start Challenge',
-                style: TextStyle(color: Colors.blueAccent),
+    while (mounted) {
+      final result = await showDialog<Object>(
+        context: context,
+        builder: (context) {
+          return QubitQuestDialog(
+            title:
+                'Mastery Challenge ${levelNumber - _guidedDiscoveryLevelCount}',
+            maxWidth: 560,
+            actions: [
+              QubitQuestDialogButton.secondary(
+                label: 'Not now',
+                onPressed: () => Navigator.of(context).pop(false),
               ),
+              QubitQuestDialogButton.primary(
+                label: 'Start Challenge',
+                onPressed: () => Navigator.of(context).pop(true),
+              ),
+            ],
+            child: _MasteryChallengeBriefBody(
+              level: level,
+              relatedEntries: relatedEntries,
+              onReviewDiscovery: (entry) => Navigator.of(context).pop(entry),
             ),
-          ],
-        );
-      },
-    );
+          );
+        },
+      );
 
-    return result ?? false;
+      if (!mounted) return false;
+      if (result == true) return true;
+      if (result is NotebookEntry) {
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (context) => NotebookEntryScreen(entry: result),
+          ),
+        );
+        continue;
+      }
+      return false;
+    }
+    return false;
   }
 
   Future<void> _showLearningIntroIfNeeded(QQLevel level) async {
@@ -1682,6 +1604,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _showChapterCompleteIfNeeded(int levelNumber) async {
     if (!_isFinalChapterLevel(levelNumber)) return;
+    if (levelNumber == _guidedDiscoveryLevelCount) return;
 
     final category = _chapterCategoryForLevel(levelNumber);
     if (category == null || !mounted) return;
@@ -1743,8 +1666,8 @@ class _HomePageState extends State<HomePage> {
         if (!context.mounted) break;
 
         if (currentLevelToPlay == _guidedDiscoveryLevelCount) {
-          await _showMasteryTransitionDialog();
-          if (!context.mounted) break;
+          final startMastery = await _showMasteryTransitionDialog();
+          if (!startMastery || !context.mounted) break;
           currentLevelToPlay++;
         } else if (currentLevelToPlay == _journeyLevelCount) {
           _showGameCompleteDialog();
@@ -1760,6 +1683,353 @@ class _HomePageState extends State<HomePage> {
         continueLevelChain = false;
       }
     }
+  }
+}
+
+enum _MasteryTransitionAction {
+  start,
+  reviewNotebook,
+}
+
+class _JourneyCompleteBody extends StatelessWidget {
+  const _JourneyCompleteBody();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: QubitQuestDialog.cyan.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: QubitQuestDialog.cyan.withValues(alpha: 0.32),
+        ),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.workspace_premium_outlined,
+              color: QubitQuestDialog.cyan,
+              size: 22,
+            ),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'You completed Guided Discovery and the Mastery Challenges. The full curriculum remains available for review.',
+                style: TextStyle(
+                  color: Color(0xFFD6E3F8),
+                  fontSize: 14,
+                  height: 1.38,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MasteryTransitionBody extends StatelessWidget {
+  const _MasteryTransitionBody();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _MasteryIconHeader(
+          icon: Icons.workspace_premium_outlined,
+          label: 'Phase 2: Concept Integration',
+        ),
+        const SizedBox(height: 14),
+        const Text(
+          'You have completed the guided curriculum. Mastery Challenges now unlock advanced puzzles that combine the concepts you discovered.',
+          style: TextStyle(
+            color: Color(0xFFD6E3F8),
+            fontSize: 15,
+            height: 1.44,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 14),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: QubitQuestDialog.innerColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: QubitQuestDialog.borderSoftColor),
+          ),
+          child: const Padding(
+            padding: EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _MasteryFlowRow(
+                  icon: Icons.auto_stories_outlined,
+                  title: 'Guided Discovery',
+                  text: 'Learn concepts in a scaffolded order.',
+                ),
+                SizedBox(height: 12),
+                _MasteryFlowRow(
+                  icon: Icons.hub_outlined,
+                  title: 'Mastery Challenges',
+                  text: 'Apply what you learned as combined ideas.',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MasteryChallengeBriefBody extends StatelessWidget {
+  const _MasteryChallengeBriefBody({
+    required this.level,
+    required this.relatedEntries,
+    required this.onReviewDiscovery,
+  });
+
+  final QQLevel level;
+  final List<NotebookEntry> relatedEntries;
+  final ValueChanged<NotebookEntry> onReviewDiscovery;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _MasteryIconHeader(
+          icon: Icons.hub_outlined,
+          label: level.difficulty == null
+              ? 'Apply what you learned'
+              : '${level.difficulty} Advanced Challenge',
+        ),
+        const SizedBox(height: 14),
+        const Text(
+          'This challenge combines discoveries from the guided curriculum. Use the concepts together; the puzzle mechanics are unchanged.',
+          style: TextStyle(
+            color: Color(0xFFD6E3F8),
+            fontSize: 14,
+            height: 1.42,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        if (level.conceptsUsed.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          const _MasterySectionLabel('Concepts Used'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final concept in level.conceptsUsed)
+                _MasteryTag(label: concept),
+            ],
+          ),
+        ],
+        if (relatedEntries.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          const _MasterySectionLabel('Related Discoveries'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final entry in relatedEntries)
+                _MasteryDiscoveryButton(
+                  label: entry.discoveryTitle,
+                  onPressed: () => onReviewDiscovery(entry),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _MasteryIconHeader extends StatelessWidget {
+  const _MasteryIconHeader({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: QubitQuestDialog.cyan.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: QubitQuestDialog.cyan.withValues(alpha: 0.32),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: QubitQuestDialog.cyan.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: QubitQuestDialog.borderColor),
+              ),
+              child: Icon(icon, color: QubitQuestDialog.cyan, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  height: 1.16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MasteryFlowRow extends StatelessWidget {
+  const _MasteryFlowRow({
+    required this.icon,
+    required this.title,
+    required this.text,
+  });
+
+  final IconData icon;
+  final String title;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: QubitQuestDialog.cyan, size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                text,
+                style: const TextStyle(
+                  color: QubitQuestDialog.mutedText,
+                  fontSize: 13,
+                  height: 1.28,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MasterySectionLabel extends StatelessWidget {
+  const _MasterySectionLabel(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 13,
+        letterSpacing: 0.4,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+  }
+}
+
+class _MasteryTag extends StatelessWidget {
+  const _MasteryTag({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF134E4A),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: const Color(0xFF7CFFB2).withValues(alpha: 0.34),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MasteryDiscoveryButton extends StatelessWidget {
+  const _MasteryDiscoveryButton({
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      style: TextButton.styleFrom(
+        foregroundColor: const Color(0xFFD6E3F8),
+        backgroundColor: QubitQuestDialog.cardColor,
+        side: BorderSide(
+          color: QubitQuestDialog.cyan.withValues(alpha: 0.32),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+        textStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      onPressed: onPressed,
+      child: Text(label),
+    );
   }
 }
 
