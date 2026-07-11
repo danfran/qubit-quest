@@ -4,7 +4,9 @@ import 'package:advance_math/advance_math.dart' show Complex;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
+import 'package:quantumquiz/models/mastery_completion_progress.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
@@ -253,10 +255,10 @@ void main() {
             Gate.fromIdentifier(SelectedGateType.cnot), 0, 2, 0);
       },
       (QuantumCircuit circuit) {
-        circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.x), 0, 0);
         circuit.insertDoublePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.cnot), 1, 2, 0);
+            Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 2);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 1, 0, 2);
       },
       (QuantumCircuit circuit) {
         // 35
@@ -453,6 +455,78 @@ void main() {
           );
         }
       }
+    });
+
+    test('Progression locks Mastery Challenges on fresh install', () {
+      const freshInstallMaxUnlockedLevel = 1;
+
+      expect(
+        ProgressionRules.isLevelUnlocked(
+          levelNumber: 1,
+          maxUnlockedLevel: freshInstallMaxUnlockedLevel,
+        ),
+        isTrue,
+      );
+      expect(
+        ProgressionRules.isLevelUnlocked(
+          levelNumber: 2,
+          maxUnlockedLevel: freshInstallMaxUnlockedLevel,
+        ),
+        isFalse,
+      );
+      expect(
+        ProgressionRules.isLevelUnlocked(
+          levelNumber: 61,
+          maxUnlockedLevel: freshInstallMaxUnlockedLevel,
+        ),
+        isFalse,
+      );
+      expect(
+        ProgressionRules.isLevelUnlocked(
+          levelNumber: 114,
+          maxUnlockedLevel: freshInstallMaxUnlockedLevel,
+        ),
+        isFalse,
+      );
+    });
+
+    test('Progression unlocks all Mastery Challenges after Guided Discovery',
+        () {
+      const afterGuidedDiscovery =
+          ProgressionRules.guidedDiscoveryLevelCount + 1;
+
+      expect(
+        ProgressionRules.masteryChallengesUnlocked(afterGuidedDiscovery),
+        isTrue,
+      );
+      expect(
+        ProgressionRules.isLevelUnlocked(
+          levelNumber: 61,
+          maxUnlockedLevel: afterGuidedDiscovery,
+        ),
+        isTrue,
+      );
+      expect(
+        ProgressionRules.isLevelUnlocked(
+          levelNumber: 114,
+          maxUnlockedLevel: afterGuidedDiscovery,
+        ),
+        isTrue,
+      );
+    });
+
+    test('Mastery completion progress persists completed challenge ids',
+        () async {
+      SharedPreferences.setMockInitialValues({});
+
+      expect(await MasteryCompletionProgress.loadCompletedLevels(), isEmpty);
+
+      await MasteryCompletionProgress.markCompleted(61);
+
+      expect(
+        await MasteryCompletionProgress.loadCompletedLevels(),
+        equals({61}),
+      );
     });
 
     test('DiscoveryProgress follows the consolidated campaign sequence', () {
@@ -1306,6 +1380,40 @@ void main() {
 
       expect(level.validationMode, ValidationMode.finalState);
       expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('CNOT Fan-Out requires one control fanned out to two targets', () {
+      final level = findComposerLevelByTitle('CNOT Fan-Out');
+
+      expect(level.initialQubitsStateStr, '100');
+      expect(
+        level.availableGates.map((gate) => gate.type),
+        equals([SelectedGateType.cnot]),
+      );
+
+      final fanOutCircuit = simulate(level);
+      fanOutCircuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 2);
+      fanOutCircuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 1, 0, 2);
+      fanOutCircuit.runSimulation();
+
+      expect(level.validateCircuit(fanOutCircuit), isTrue);
+
+      final oldShortcutCircuit = simulate(level);
+      oldShortcutCircuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+      oldShortcutCircuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 1, 2);
+      oldShortcutCircuit.runSimulation();
+
+      expect(
+        matrixClose(
+          oldShortcutCircuit.currentState.state.toComplexList(),
+          level.solutionFinalVector,
+        ),
+        isFalse,
+      );
     });
 
     test('SWAP via Three CNOTs rejects two CNOTs even if |10> reaches |01>',

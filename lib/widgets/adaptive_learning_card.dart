@@ -8,11 +8,13 @@ class AdaptiveLearningCard extends StatelessWidget {
     required this.insight,
     required this.compact,
     this.onReviewNotebook,
+    this.onDismiss,
   });
 
   final AdaptiveLearningInsight insight;
   final bool compact;
   final VoidCallback? onReviewNotebook;
+  final VoidCallback? onDismiss;
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +53,24 @@ class AdaptiveLearningCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (onDismiss != null) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: onDismiss,
+                      tooltip: 'Dismiss insight',
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(
+                        minWidth: 30,
+                        minHeight: 30,
+                      ),
+                      padding: EdgeInsets.zero,
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: Colors.white.withValues(alpha: 0.72),
+                        size: compact ? 18 : 20,
+                      ),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 8),

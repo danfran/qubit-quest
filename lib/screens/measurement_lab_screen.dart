@@ -10,12 +10,14 @@ class MeasurementLabScreen extends StatefulWidget {
   final int levelId;
   final MeasurementLabLevel level;
   final Function(int)? onLevelUnlocked;
+  final bool isCompleted;
 
   const MeasurementLabScreen({
     super.key,
     required this.levelId,
     required this.level,
     required this.onLevelUnlocked,
+    this.isCompleted = false,
   });
 
   @override
@@ -28,10 +30,12 @@ class _MeasurementLabScreenState extends State<MeasurementLabScreen> {
   final Random _rng = Random();
   late QuantumCircuit _circuit;
   bool _unlocked = false;
+  late bool _isCompleted;
 
   @override
   void initState() {
     super.initState();
+    _isCompleted = widget.isCompleted;
     _circuit = QuantumCircuit(currentLevel: widget.level.toComposerLevel());
   }
 
@@ -63,6 +67,9 @@ class _MeasurementLabScreenState extends State<MeasurementLabScreen> {
       _total++;
       if (_total >= widget.level.requiredMeasurements && !_unlocked) {
         _unlocked = true;
+        if (LevelHeaderRouter.isMasteryLevel(widget.levelId)) {
+          _isCompleted = true;
+        }
         widget.onLevelUnlocked?.call(widget.levelId + 1);
       }
     });
@@ -79,6 +86,7 @@ class _MeasurementLabScreenState extends State<MeasurementLabScreen> {
         level: widget.level,
         levelId: widget.levelId,
         compact: false,
+        isCompleted: _isCompleted,
       ),
 
       // ── Fixed footer: action buttons ─────────────────────────────────────

@@ -13,6 +13,27 @@ enum LevelHeaderKind {
 class LevelHeaderRouter {
   const LevelHeaderRouter._();
 
+  static const int guidedDiscoveryLevelCount = 60;
+
+  static bool isMasteryLevel(int levelId) {
+    return levelId > guidedDiscoveryLevelCount;
+  }
+
+  static int masteryChallengeNumber(int levelId) {
+    return levelId - guidedDiscoveryLevelCount;
+  }
+
+  static String displayLabel(int levelId, {bool compact = false}) {
+    if (levelId == -1) return 'Composer';
+    if (isMasteryLevel(levelId)) {
+      final challengeNumber = masteryChallengeNumber(levelId);
+      return compact
+          ? 'Challenge $challengeNumber'
+          : 'Mastery Challenge $challengeNumber';
+    }
+    return 'Lesson $levelId';
+  }
+
   static LevelHeaderKind headerKindFor(QQLevel level) {
     return switch (level) {
       ComposerLevel _ => LevelHeaderKind.composer,
@@ -30,33 +51,50 @@ class LevelHeaderRouter {
     List<Widget> actions = const [],
     String? title,
     String? subtitle,
+    bool isCompleted = false,
   }) {
     final resolvedTitle = _levelTitle(level, levelId);
+    final displayLabel = LevelHeaderRouter.displayLabel(levelId);
+    final compactDisplayLabel = LevelHeaderRouter.displayLabel(
+      levelId,
+      compact: true,
+    );
+    final isMastery = LevelHeaderRouter.isMasteryLevel(levelId);
 
     return switch (level) {
       ComposerLevel _ => ComposerHeader(
           compact: compact,
-          title: title ?? 'Level $levelId',
+          title: title ?? displayLabel,
           subtitle: subtitle ?? resolvedTitle,
+          isMastery: isMastery,
+          isCompleted: isCompleted && isMastery,
           actions: actions,
         ),
       ConceptCheckLevel _ || McqLevel _ => ConceptCheckHeader(
           compact: compact,
-          levelId: levelId,
+          displayLabel: displayLabel,
           title: resolvedTitle,
+          isMastery: isMastery,
+          isCompleted: isCompleted && isMastery,
           actions: actions,
         ),
       FillTheGateLevel _ => FillGateHeader(
-          levelId: levelId,
+          displayLabel: displayLabel,
           title: resolvedTitle,
+          isMastery: isMastery,
+          isCompleted: isCompleted && isMastery,
         ),
       CircuitReadingLevel _ => ReadingHeader(
-          levelId: levelId,
+          displayLabel: displayLabel,
           title: resolvedTitle,
+          isMastery: isMastery,
+          isCompleted: isCompleted && isMastery,
         ),
       MeasurementLabLevel _ => ExperimentHeader(
-          levelId: levelId,
+          displayLabel: compactDisplayLabel,
           title: resolvedTitle,
+          isMastery: isMastery,
+          isCompleted: isCompleted && isMastery,
         ),
     };
   }
@@ -66,6 +104,6 @@ class LevelHeaderRouter {
     if (title != null && title.isNotEmpty) return title;
     final task = level.taskDescription.trim();
     if (task.isNotEmpty) return task;
-    return 'Level $levelId';
+    return displayLabel(levelId);
   }
 }

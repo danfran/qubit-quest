@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/adaptive_learning.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
@@ -15,12 +17,14 @@ class McqScreen extends StatefulWidget {
   final int levelId;
   final McqLevel level;
   final Function(int)? onLevelUnlocked;
+  final bool isCompleted;
 
   const McqScreen({
     super.key,
     required this.levelId,
     required this.level,
     required this.onLevelUnlocked,
+    this.isCompleted = false,
   });
 
   @override
@@ -30,9 +34,12 @@ class McqScreen extends StatefulWidget {
 class _McqScreenState extends State<McqScreen> {
   int? _selected;
   bool _answered = false;
+  late bool _isCompleted;
   bool _hasUnopenedNotebookEntries = false;
   late AdaptiveLearningSession _adaptiveLearningSession;
   AdaptiveLearningInsight? _adaptiveInsight;
+  bool _adaptiveInsightDismissed = false;
+  Timer? _adaptiveInsightAutoDismissTimer;
 
   bool get _isCorrect => _selected == widget.level.correctOptionIndex;
 
@@ -45,11 +52,18 @@ class _McqScreenState extends State<McqScreen> {
   @override
   void initState() {
     super.initState();
+    _isCompleted = widget.isCompleted;
     _adaptiveLearningSession = AdaptiveLearningSession(
       level: widget.level,
       notebookEntry: _notebookEntryForLevel(widget.level),
     );
     _loadNotebookAttentionState();
+  }
+
+  @override
+  void dispose() {
+    _adaptiveInsightAutoDismissTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -95,12 +109,15 @@ class _McqScreenState extends State<McqScreen> {
                           text: widget.level.solutionExplanation!,
                         ),
                       ],
-                      if (_answered && _adaptiveInsight != null) ...[
+                      if (_answered &&
+                          _adaptiveInsight != null &&
+                          !_adaptiveInsightDismissed) ...[
                         const SizedBox(height: 14),
                         AdaptiveLearningCard(
                           insight: _adaptiveInsight!,
                           compact: compact,
                           onReviewNotebook: _openQuantumNotebook,
+                          onDismiss: _dismissAdaptiveInsight,
                         ),
                       ],
                     ]),
@@ -125,11 +142,19 @@ class _McqScreenState extends State<McqScreen> {
                             label: _answered
                                 ? (_isCorrect
                                     ? 'Continue Journey'
-                                    : 'Back to Level Select')
+                                    : 'Back to Journey')
                                 : 'Confirm Answer',
                             onPressed: _answered
                                 ? () {
                                     if (_isCorrect) {
+                                      setState(() {
+                                        _isCompleted =
+                                            LevelHeaderRouter.isMasteryLevel(
+                                          widget.levelId,
+                                        )
+                                                ? true
+                                                : _isCompleted;
+                                      });
                                       widget.onLevelUnlocked
                                           ?.call(widget.levelId + 1);
                                     }
@@ -162,6 +187,7 @@ class _McqScreenState extends State<McqScreen> {
       levelId: widget.levelId,
       compact: compact,
       actions: _buildAppBarActions(compact),
+      isCompleted: _isCompleted,
     );
   }
 
@@ -248,7 +274,7 @@ class _McqScreenState extends State<McqScreen> {
           child: ListTile(
             leading: Icon(Icons.view_list_outlined, color: Colors.white),
             title: Text(
-              'Back to Level Select',
+              'Back to Journey',
               style: TextStyle(color: Colors.white),
             ),
           ),
@@ -322,6 +348,26 @@ class _McqScreenState extends State<McqScreen> {
     );
   }
 
+  void _scheduleAdaptiveInsightAutoDismiss(AdaptiveLearningInsight? insight) {
+    _adaptiveInsightAutoDismissTimer?.cancel();
+    if (insight == null) return;
+
+    _adaptiveInsightAutoDismissTimer = Timer(const Duration(seconds: 9), () {
+      if (!mounted || _adaptiveInsight != insight) return;
+      setState(() {
+        _adaptiveInsightDismissed = true;
+      });
+    });
+  }
+
+  void _dismissAdaptiveInsight() {
+    _adaptiveInsightAutoDismissTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _adaptiveInsightDismissed = true;
+    });
+  }
+
   void _selectMenuAction(String action) {
     switch (action) {
       case 'notebook':
@@ -350,7 +396,9 @@ class _McqScreenState extends State<McqScreen> {
     setState(() {
       _answered = true;
       _adaptiveInsight = adaptiveInsight;
+      _adaptiveInsightDismissed = false;
     });
+    _scheduleAdaptiveInsightAutoDismiss(adaptiveInsight);
   }
 }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:advance_math/advance_math.dart';
@@ -27,16 +28,23 @@ import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 
 import '../models/qq_level.dart';
 
+enum _MasteryChallengeCompletionAction {
+  review,
+  continueJourney,
+}
+
 class QuantumComposer extends StatefulWidget {
   final int levelId;
   final ComposerLevel level;
   final Function(int unlockedLevel)? onLevelUnlocked;
+  final bool isCompleted;
 
   const QuantumComposer({
     super.key,
     required this.levelId,
     required this.level,
     required this.onLevelUnlocked,
+    this.isCompleted = false,
   });
 
   @override
@@ -122,6 +130,7 @@ class _QuantumComposerState extends State<QuantumComposer>
   bool _checkFeedbackSuccess = false;
   bool _isShowingCompletionDialog = false;
   bool _levelSolved = false;
+  late bool _isCompleted;
 
   final ValueNotifier<double> _circuitWidthNotifier =
       ValueNotifier<double>(0.0);
@@ -136,10 +145,13 @@ class _QuantumComposerState extends State<QuantumComposer>
   bool _hasUnopenedNotebookEntries = false;
   late AdaptiveLearningSession _adaptiveLearningSession;
   AdaptiveLearningInsight? _adaptiveInsight;
+  bool _adaptiveInsightDismissed = false;
+  Timer? _adaptiveInsightAutoDismissTimer;
 
   @override
   void initState() {
     super.initState();
+    _isCompleted = widget.isCompleted;
     _adaptiveLearningSession = AdaptiveLearningSession(
       level: widget.level,
       notebookEntry: _notebookEntryForLevel(),
@@ -189,6 +201,7 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   @override
   void dispose() {
+    _adaptiveInsightAutoDismissTimer?.cancel();
     _gatesScrollController.removeListener(_updateScrollButtonStates);
     _gatesScrollController.dispose(); // Dispose the controller
     _notebookPulseController.dispose();
@@ -546,6 +559,28 @@ class _QuantumComposerState extends State<QuantumComposer>
       _checkFeedbackTitle = title;
       _checkFeedbackMessage = message;
       _adaptiveInsight = adaptiveInsight;
+      _adaptiveInsightDismissed = false;
+    });
+    _scheduleAdaptiveInsightAutoDismiss(adaptiveInsight);
+  }
+
+  void _scheduleAdaptiveInsightAutoDismiss(AdaptiveLearningInsight? insight) {
+    _adaptiveInsightAutoDismissTimer?.cancel();
+    if (insight == null) return;
+
+    _adaptiveInsightAutoDismissTimer = Timer(const Duration(seconds: 9), () {
+      if (!mounted || _adaptiveInsight != insight) return;
+      setState(() {
+        _adaptiveInsightDismissed = true;
+      });
+    });
+  }
+
+  void _dismissAdaptiveInsight() {
+    _adaptiveInsightAutoDismissTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _adaptiveInsightDismissed = true;
     });
   }
 
@@ -558,27 +593,52 @@ class _QuantumComposerState extends State<QuantumComposer>
       final discoveryTitle = widget.level.discoveryTitle?.trim();
       final unlocksNotebookEntry = discoveryTitle != null &&
           notebookEntriesByDiscoveryTitle.containsKey(discoveryTitle);
+      final String keyInsight = _completionKeyInsight();
 
       setState(() {
         _levelSolved = true;
-        _checkFeedbackTitle = null;
-        _checkFeedbackMessage = null;
-        _checkFeedbackSuccess = false;
+        _checkFeedbackTitle = LevelHeaderRouter.isMasteryLevel(widget.levelId)
+            ? 'Challenge Complete'
+            : null;
+        _checkFeedbackMessage = LevelHeaderRouter.isMasteryLevel(widget.levelId)
+            ? keyInsight
+            : null;
+        _checkFeedbackSuccess =
+            LevelHeaderRouter.isMasteryLevel(widget.levelId);
         _adaptiveInsight = null;
+        _adaptiveInsightDismissed = false;
+        _isCompleted = LevelHeaderRouter.isMasteryLevel(widget.levelId)
+            ? true
+            : _isCompleted;
       });
+      _adaptiveInsightAutoDismissTimer?.cancel();
       if (unlocksNotebookEntry) {
         _playNotebookUnlockPulse();
       }
 
       _isShowingCompletionDialog = true;
-      await Future.delayed(const Duration(milliseconds: 420));
-      if (!mounted) return;
+      try {
+        await Future.delayed(const Duration(milliseconds: 420));
+        if (!mounted) return;
 
-      widget.onLevelUnlocked?.call(widget.levelId + 1);
-      _isShowingCompletionDialog = false;
-      if (!mounted) return;
+        widget.onLevelUnlocked?.call(widget.levelId + 1);
 
-      Navigator.of(context).pop(LevelCompletionAction.nextLevel);
+        if (LevelHeaderRouter.isMasteryLevel(widget.levelId)) {
+          final action = await _showMasteryChallengeCompletionDialog(
+            keyInsight: keyInsight,
+          );
+          if (!mounted) return;
+          if (action == _MasteryChallengeCompletionAction.continueJourney) {
+            Navigator.of(context).pop(LevelCompletionAction.nextLevel);
+          }
+          return;
+        }
+
+        if (!mounted) return;
+        Navigator.of(context).pop(LevelCompletionAction.nextLevel);
+      } finally {
+        _isShowingCompletionDialog = false;
+      }
     } else {
       _levelSolved = false;
       if (manual) {
@@ -599,9 +659,59 @@ class _QuantumComposerState extends State<QuantumComposer>
           _checkFeedbackMessage = null;
           _checkFeedbackSuccess = false;
           _adaptiveInsight = null;
+          _adaptiveInsightDismissed = false;
         });
+        _adaptiveInsightAutoDismissTimer?.cancel();
       }
     }
+  }
+
+  String _completionKeyInsight() {
+    final explanation = widget.level.solutionExplanation?.trim();
+    if (explanation == null || explanation.isEmpty) {
+      return 'You solved this challenge.';
+    }
+
+    final firstSentenceMatch = RegExp(r'^(.+?[.!?])(?:\s|$)')
+        .firstMatch(explanation.replaceAll(RegExp(r'\s+'), ' '));
+    final candidate = firstSentenceMatch?.group(1) ?? explanation;
+    if (candidate.length <= 180) return candidate;
+    return '${candidate.substring(0, 177).trimRight()}...';
+  }
+
+  Future<_MasteryChallengeCompletionAction>
+      _showMasteryChallengeCompletionDialog({
+    required String keyInsight,
+  }) async {
+    final action = await showDialog<_MasteryChallengeCompletionAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return QubitQuestDialog(
+          title: 'Challenge Complete',
+          maxWidth: 560,
+          actions: [
+            QubitQuestDialogButton.secondary(
+              label: 'Review Challenge',
+              onPressed: () => Navigator.of(context)
+                  .pop(_MasteryChallengeCompletionAction.review),
+            ),
+            QubitQuestDialogButton.primary(
+              label: 'Continue',
+              onPressed: () => Navigator.of(context)
+                  .pop(_MasteryChallengeCompletionAction.continueJourney),
+            ),
+          ],
+          child: _MasteryChallengeCompletionBody(
+            challengeTitle: _goalTitle(),
+            keyInsight: keyInsight,
+            solutionExplanation: widget.level.solutionExplanation,
+          ),
+        );
+      },
+    );
+
+    return action ?? _MasteryChallengeCompletionAction.review;
   }
 
   void _playNotebookUnlockPulse() {
@@ -754,6 +864,8 @@ class _QuantumComposerState extends State<QuantumComposer>
     _checkFeedbackTitle = null;
     _checkFeedbackMessage = null;
     _adaptiveInsight = null;
+    _adaptiveInsightDismissed = false;
+    _adaptiveInsightAutoDismissTimer?.cancel();
     _runSimulation(); // Run simulation - empty circuit
     _circuitWidthNotifier.value = 0; // Reset width notifier
   }
@@ -920,8 +1032,9 @@ class _QuantumComposerState extends State<QuantumComposer>
           compact: compactAppBar,
           title: runningAsQuantumComposer()
               ? 'Composer'
-              : 'Level ${widget.levelId}',
+              : LevelHeaderRouter.displayLabel(widget.levelId),
           subtitle: _goalTitle(),
+          isCompleted: _isCompleted,
           actions: _buildAppBarActions(compactAppBar),
         ),
         body: SafeArea(
@@ -1400,7 +1513,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     if (runningAsQuantumComposer()) {
       return 'Composer';
     }
-    return widget.level.title ?? 'Level ${widget.levelId}';
+    return widget.level.title ?? LevelHeaderRouter.displayLabel(widget.levelId);
   }
 
   Widget _buildGoalBanner({required bool compact}) {
@@ -1608,7 +1721,7 @@ class _QuantumComposerState extends State<QuantumComposer>
                   Text(
                     runningAsQuantumComposer()
                         ? 'Sandbox'
-                        : 'Level ${widget.levelId}',
+                        : LevelHeaderRouter.displayLabel(widget.levelId),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.52),
                       fontSize: 11,
@@ -1754,7 +1867,7 @@ class _QuantumComposerState extends State<QuantumComposer>
           SizedBox(height: compact ? 5 : 6),
           _buildCheckFeedbackBanner(compact: compact),
         ],
-        if (_adaptiveInsight != null) ...[
+        if (_adaptiveInsight != null && !_adaptiveInsightDismissed) ...[
           SizedBox(height: compact ? 5 : 6),
           _buildAdaptiveLearningCard(compact: compact),
         ],
@@ -1779,7 +1892,7 @@ class _QuantumComposerState extends State<QuantumComposer>
           SizedBox(height: compact ? 6 : 8),
           _buildCheckFeedbackBanner(compact: compact),
         ],
-        if (_adaptiveInsight != null) ...[
+        if (_adaptiveInsight != null && !_adaptiveInsightDismissed) ...[
           SizedBox(height: compact ? 6 : 8),
           _buildAdaptiveLearningCard(compact: compact),
         ],
@@ -1796,6 +1909,7 @@ class _QuantumComposerState extends State<QuantumComposer>
         insight: _adaptiveInsight!,
         compact: compact,
         onReviewNotebook: _openQuantumNotebook,
+        onDismiss: _dismissAdaptiveInsight,
       ),
     );
   }
@@ -2426,6 +2540,185 @@ class _NotebookAttentionBadge extends StatelessWidget {
               ),
             ),
           ),
+      ],
+    );
+  }
+}
+
+class _MasteryChallengeCompletionBody extends StatefulWidget {
+  const _MasteryChallengeCompletionBody({
+    required this.challengeTitle,
+    required this.keyInsight,
+    required this.solutionExplanation,
+  });
+
+  final String challengeTitle;
+  final String keyInsight;
+  final String? solutionExplanation;
+
+  @override
+  State<_MasteryChallengeCompletionBody> createState() =>
+      _MasteryChallengeCompletionBodyState();
+}
+
+class _MasteryChallengeCompletionBodyState
+    extends State<_MasteryChallengeCompletionBody> {
+  bool _showFullSolution = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final fullSolution = widget.solutionExplanation?.trim();
+    final hasFullSolution = fullSolution != null && fullSolution.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: QubitQuestDialog.cyan.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: QubitQuestDialog.cyan.withValues(alpha: 0.32),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: QubitQuestDialog.cyan.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: QubitQuestDialog.borderColor),
+                  ),
+                  child: const Icon(
+                    Icons.workspace_premium_outlined,
+                    color: QubitQuestDialog.cyan,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.challengeTitle,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          height: 1.16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Solved. You can review the completed circuit or continue to the next challenge.',
+                        style: TextStyle(
+                          color: QubitQuestDialog.mutedText,
+                          fontSize: 13,
+                          height: 1.32,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        const Text(
+          'Key Insight',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            letterSpacing: 0.4,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: QubitQuestDialog.innerColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: QubitQuestDialog.borderSoftColor),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(
+              widget.keyInsight,
+              style: const TextStyle(
+                color: Color(0xFFD6E3F8),
+                fontSize: 14,
+                height: 1.42,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+        if (hasFullSolution) ...[
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              style: TextButton.styleFrom(
+                foregroundColor: QubitQuestDialog.cyan,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              onPressed: () {
+                setState(() {
+                  _showFullSolution = !_showFullSolution;
+                });
+              },
+              icon: Icon(
+                _showFullSolution
+                    ? Icons.expand_less_rounded
+                    : Icons.expand_more_rounded,
+                size: 18,
+              ),
+              label: Text(
+                _showFullSolution ? 'Hide Full Solution' : 'View Full Solution',
+              ),
+            ),
+          ),
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: DecoratedBox(
+              decoration: BoxDecoration(
+                color: QubitQuestDialog.cardColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: QubitQuestDialog.borderSoftColor),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  fullSolution,
+                  style: const TextStyle(
+                    color: Color(0xFFD6E3F8),
+                    fontSize: 13,
+                    height: 1.42,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+            crossFadeState: _showFullSolution
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 180),
+          ),
+        ],
       ],
     );
   }

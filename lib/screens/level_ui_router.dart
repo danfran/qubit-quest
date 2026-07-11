@@ -31,37 +31,44 @@ class LevelUIRouter {
     required QQLevel level,
     required int levelId,
     required Function(int)? onLevelUnlocked,
+    bool isCompleted = false,
   }) {
     return switch (level) {
       ComposerLevel l => QuantumComposer(
           levelId: levelId,
           level: l,
           onLevelUnlocked: onLevelUnlocked,
+          isCompleted: isCompleted,
         ),
       ConceptCheckLevel l => McqScreen(
           levelId: levelId,
           level: l,
           onLevelUnlocked: onLevelUnlocked,
+          isCompleted: isCompleted,
         ),
       McqLevel l => McqScreen(
           levelId: levelId,
           level: l,
           onLevelUnlocked: onLevelUnlocked,
+          isCompleted: isCompleted,
         ),
       FillTheGateLevel l => FillTheGateScreen(
           levelId: levelId,
           level: l,
           onLevelUnlocked: onLevelUnlocked,
+          isCompleted: isCompleted,
         ),
       CircuitReadingLevel l => CircuitReadingScreen(
           levelId: levelId,
           level: l,
           onLevelUnlocked: onLevelUnlocked,
+          isCompleted: isCompleted,
         ),
       MeasurementLabLevel l => MeasurementLabScreen(
           levelId: levelId,
           level: l,
           onLevelUnlocked: onLevelUnlocked,
+          isCompleted: isCompleted,
         ),
     };
   }

@@ -1453,39 +1453,32 @@ final List<QQLevel> _authoredQQLevels = [
       [Complex.zero()],
     ], // Target: |101>
   ),
-  // X(0) + CX(0,2)
+  // TODO(video): Existing solution video was recorded for the previous |010⟩
+  // version of this challenge and needs a future update to the |100⟩ fan-out model.
+  // CX from the qubit that starts as |1⟩ to each |0⟩ target.
   ComposerLevel.fromBinaryString(
     title: 'CNOT Fan-Out',
     taskDescription:
-        r"Transform \( |010\rangle \) to \( |111\rangle \). This requires a careful sequence of gates.",
+        r"Transform \( |100\rangle \) to \( |111\rangle \) using only CNOT fan-out from the existing 1.",
     targetStateExpression: "|111⟩",
     conceptIntro:
-        'CNOT "fans out" (copies) a |1⟩ value from a control qubit into a |0⟩ target qubit. '
+        'CNOT can fan out one classical |1⟩ value from a control qubit into multiple |0⟩ targets. '
         'Note: this copying only works for classical basis states — '
         'for superpositions, CNOT creates entanglement instead of copying. '
-        'CNOT can only trigger a flip when its control is |1⟩; if the intended control is |0⟩, '
-        'no flip will occur. Look at the initial state and plan the correct sequence '
-        'to get every qubit into the required value.',
+        'Here one qubit already holds the control value |1⟩. Use that same control twice so both other qubits become |1⟩.',
     hints: [
-      'In |010⟩: Q0=0, Q1=1, Q2=0. Q1 is already |1⟩. '
-          'You need Q0 and Q2 to also become |1⟩. '
-          'Start by flipping Q0 with X.',
-      'X on Q0: |010⟩ → |110⟩. '
-          'Now Q0=1 can act as control: CNOT(Q0→Q2) flips Q2: 0→1 → |111⟩. '
-          'Two gates, no Toffoli needed.',
+      'In |100⟩, one qubit is already |1⟩. The other two qubits are |0⟩ targets.',
+      'Use the qubit that starts as |1⟩ as the control for two separate CNOTs.',
+      'First fan out to one |0⟩ target, giving |110⟩. Then fan out to the remaining |0⟩ target, giving |111⟩.',
     ],
-    solutionExplanation: 'X flips Q0: |010⟩ → |110⟩. '
-        'CNOT(Q0→Q2): Q0=1 → Q2 flips: 0→1 → |111⟩. '
-        'Q1 was already |1⟩ and is left untouched. '
-        'This fan-out pattern — X to set a control, then CNOT to copy its value — '
-        'appears in quantum adder circuits and quantum error correction encoders.',
+    solutionExplanation: 'Use the qubit that starts as |1⟩ as the control. '
+        'The first CNOT flips one |0⟩ target, so |100⟩ becomes |110⟩. '
+        'The second CNOT reuses the same control and flips the remaining |0⟩ target, giving |111⟩. '
+        'This is fan-out: one classical control value is used to conditionally update multiple targets.',
     numQubits: 3,
-    initialQubitsStateString: "010",
+    initialQubitsStateString: "100",
     availableGates: [
-      Gate.fromIdentifier(SelectedGateType.x),
       Gate.fromIdentifier(SelectedGateType.cnot),
-      Gate.fromIdentifier(SelectedGateType.ccnot),
-      Gate.fromIdentifier(SelectedGateType.hadamard)
     ],
     solutionFinalVector: [
       [Complex.zero()],

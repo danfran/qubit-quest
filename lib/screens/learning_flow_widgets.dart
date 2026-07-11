@@ -119,7 +119,7 @@ class DiscoveryDialog extends StatelessWidget {
         : notebookEntriesByDiscoveryTitle[discoveryTitle];
 
     return QubitQuestDialog(
-      title: '✓ Level Complete',
+      title: 'Discovery Complete',
       maxWidth: 560,
       actions: [
         if (notebookEntry != null)
@@ -135,7 +135,7 @@ class DiscoveryDialog extends StatelessWidget {
             },
           ),
         QubitQuestDialogButton.primary(
-          label: 'Next Level',
+          label: 'Continue Journey',
           onPressed: () {
             Navigator.of(context).pop();
           },

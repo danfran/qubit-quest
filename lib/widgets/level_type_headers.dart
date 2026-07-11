@@ -7,12 +7,16 @@ class ComposerHeader extends StatelessWidget implements PreferredSizeWidget {
     required this.compact,
     required this.title,
     required this.subtitle,
+    required this.isMastery,
+    required this.isCompleted,
     required this.actions,
   });
 
   final bool compact;
   final String title;
   final String subtitle;
+  final bool isMastery;
+  final bool isCompleted;
   final List<Widget> actions;
 
   @override
@@ -35,13 +39,16 @@ class ComposerHeader extends StatelessWidget implements PreferredSizeWidget {
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _LevelHeaderAtomLogo(compact: compact),
+          isMastery
+              ? _LevelHeaderMasteryIcon(compact: compact)
+              : _LevelHeaderAtomLogo(compact: compact),
           SizedBox(width: compact ? 11 : 12),
           Flexible(
             child: _LevelHeaderTitleBlock(
               compact: compact,
               title: title,
               subtitle: subtitle,
+              isCompleted: isCompleted,
             ),
           ),
         ],
@@ -56,14 +63,18 @@ class ConceptCheckHeader extends StatelessWidget
   const ConceptCheckHeader({
     super.key,
     required this.compact,
-    required this.levelId,
+    required this.displayLabel,
     required this.title,
+    required this.isMastery,
+    required this.isCompleted,
     required this.actions,
   });
 
   final bool compact;
-  final int levelId;
+  final String displayLabel;
   final String title;
+  final bool isMastery;
+  final bool isCompleted;
   final List<Widget> actions;
 
   @override
@@ -86,13 +97,16 @@ class ConceptCheckHeader extends StatelessWidget
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _LevelHeaderConceptIcon(compact: compact),
+          isMastery
+              ? _LevelHeaderMasteryIcon(compact: compact)
+              : _LevelHeaderAtomLogo(compact: compact),
           SizedBox(width: compact ? 11 : 12),
           Flexible(
             child: _LevelHeaderTitleBlock(
               compact: compact,
-              title: 'Level $levelId',
+              title: displayLabel,
               subtitle: title,
+              isCompleted: isCompleted,
             ),
           ),
         ],
@@ -105,22 +119,30 @@ class ConceptCheckHeader extends StatelessWidget
 class FillGateHeader extends StatelessWidget implements PreferredSizeWidget {
   const FillGateHeader({
     super.key,
-    required this.levelId,
+    required this.displayLabel,
     required this.title,
+    required this.isMastery,
+    required this.isCompleted,
   });
 
-  final int levelId;
+  final String displayLabel;
   final String title;
+  final bool isMastery;
+  final bool isCompleted;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
   Widget build(BuildContext context) {
-    return _LegacyLearningHeader(
-      levelId: levelId,
+    return _CompactLearningHeader(
+      displayLabel: displayLabel,
       title: title,
-      icon: Icons.extension_outlined,
+      icon: isMastery
+          ? Icons.workspace_premium_outlined
+          : Icons.extension_outlined,
+      isMastery: isMastery,
+      isCompleted: isCompleted,
     );
   }
 }
@@ -128,22 +150,30 @@ class FillGateHeader extends StatelessWidget implements PreferredSizeWidget {
 class ReadingHeader extends StatelessWidget implements PreferredSizeWidget {
   const ReadingHeader({
     super.key,
-    required this.levelId,
+    required this.displayLabel,
     required this.title,
+    required this.isMastery,
+    required this.isCompleted,
   });
 
-  final int levelId;
+  final String displayLabel;
   final String title;
+  final bool isMastery;
+  final bool isCompleted;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
   Widget build(BuildContext context) {
-    return _LegacyLearningHeader(
-      levelId: levelId,
+    return _CompactLearningHeader(
+      displayLabel: displayLabel,
       title: title,
-      icon: Icons.visibility_outlined,
+      icon: isMastery
+          ? Icons.workspace_premium_outlined
+          : Icons.visibility_outlined,
+      isMastery: isMastery,
+      isCompleted: isCompleted,
     );
   }
 }
@@ -151,22 +181,29 @@ class ReadingHeader extends StatelessWidget implements PreferredSizeWidget {
 class ExperimentHeader extends StatelessWidget implements PreferredSizeWidget {
   const ExperimentHeader({
     super.key,
-    required this.levelId,
+    required this.displayLabel,
     required this.title,
+    required this.isMastery,
+    required this.isCompleted,
   });
 
-  final int levelId;
+  final String displayLabel;
   final String title;
+  final bool isMastery;
+  final bool isCompleted;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
   Widget build(BuildContext context) {
-    return _LegacyLearningHeader(
-      levelId: levelId,
+    return _CompactLearningHeader(
+      displayLabel: displayLabel,
       title: title,
-      icon: Icons.science_outlined,
+      icon:
+          isMastery ? Icons.workspace_premium_outlined : Icons.science_outlined,
+      isMastery: isMastery,
+      isCompleted: isCompleted,
     );
   }
 }
@@ -252,20 +289,25 @@ class LevelHeaderTokens {
   static const Color borderSoft = Color(0x3D344A73);
   static const Color cyan = Color(0xFF56CCF2);
   static const Color purple = Color(0xFFB388FF);
+  static const Color green = Color(0xFF7CFFB2);
   static const Color yellow = Color(0xFFFFD54F);
 }
 
-class _LegacyLearningHeader extends StatelessWidget
+class _CompactLearningHeader extends StatelessWidget
     implements PreferredSizeWidget {
-  const _LegacyLearningHeader({
-    required this.levelId,
+  const _CompactLearningHeader({
+    required this.displayLabel,
     required this.title,
     required this.icon,
+    required this.isMastery,
+    required this.isCompleted,
   });
 
-  final int levelId;
+  final String displayLabel;
   final String title;
   final IconData icon;
+  final bool isMastery;
+  final bool isCompleted;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -280,15 +322,21 @@ class _LegacyLearningHeader extends StatelessWidget
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: const Color(0xFF5D5FE6), size: 26),
+          Icon(
+            icon,
+            color:
+                isMastery ? LevelHeaderTokens.green : const Color(0xFF5D5FE6),
+            size: 26,
+          ),
           const SizedBox(width: 8),
           Flexible(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (isCompleted) const _CompletedHeaderLabel(),
                 Text(
-                  'Level $levelId',
+                  displayLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -323,11 +371,13 @@ class _LevelHeaderTitleBlock extends StatelessWidget {
     required this.compact,
     required this.title,
     required this.subtitle,
+    required this.isCompleted,
   });
 
   final bool compact;
   final String title;
   final String subtitle;
+  final bool isCompleted;
 
   @override
   Widget build(BuildContext context) {
@@ -335,6 +385,7 @@ class _LevelHeaderTitleBlock extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (isCompleted) const _CompletedHeaderLabel(),
         Text(
           title,
           maxLines: 1,
@@ -358,6 +409,25 @@ class _LevelHeaderTitleBlock extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CompletedHeaderLabel extends StatelessWidget {
+  const _CompletedHeaderLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Text(
+      '✓ Completed',
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        color: LevelHeaderTokens.green,
+        fontSize: 10,
+        fontWeight: FontWeight.w900,
+        height: 1.05,
+      ),
     );
   }
 }
@@ -386,8 +456,8 @@ class _LevelHeaderAtomLogo extends StatelessWidget {
   }
 }
 
-class _LevelHeaderConceptIcon extends StatelessWidget {
-  const _LevelHeaderConceptIcon({required this.compact});
+class _LevelHeaderMasteryIcon extends StatelessWidget {
+  const _LevelHeaderMasteryIcon({required this.compact});
 
   final bool compact;
 
@@ -399,13 +469,15 @@ class _LevelHeaderConceptIcon extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: LevelHeaderTokens.purple.withValues(alpha: 0.12),
+        color: LevelHeaderTokens.green.withValues(alpha: 0.12),
         shape: BoxShape.circle,
-        border: Border.all(color: LevelHeaderTokens.border),
+        border: Border.all(
+          color: LevelHeaderTokens.green.withValues(alpha: 0.44),
+        ),
       ),
       child: Icon(
-        Icons.psychology_alt_outlined,
-        color: LevelHeaderTokens.purple,
+        Icons.workspace_premium_outlined,
+        color: LevelHeaderTokens.green,
         size: compact ? 19 : 21,
       ),
     );

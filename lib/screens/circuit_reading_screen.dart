@@ -11,12 +11,14 @@ class CircuitReadingScreen extends StatefulWidget {
   final int levelId;
   final CircuitReadingLevel level;
   final Function(int)? onLevelUnlocked;
+  final bool isCompleted;
 
   const CircuitReadingScreen({
     super.key,
     required this.levelId,
     required this.level,
     required this.onLevelUnlocked,
+    this.isCompleted = false,
   });
 
   @override
@@ -26,6 +28,7 @@ class CircuitReadingScreen extends StatefulWidget {
 class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
   int? _selected;
   bool _answered = false;
+  late bool _isCompleted;
   late QuantumCircuit _circuit;
 
   final ValueNotifier<double> _circuitWidthNotifier = ValueNotifier(0.0);
@@ -35,6 +38,7 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
   @override
   void initState() {
     super.initState();
+    _isCompleted = widget.isCompleted;
     _circuit = QuantumCircuit(currentLevel: widget.level.toComposerLevel());
   }
 
@@ -53,6 +57,7 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
         level: widget.level,
         levelId: widget.levelId,
         compact: false,
+        isCompleted: _isCompleted,
       ),
       body: CustomScrollView(
         slivers: [
@@ -250,6 +255,14 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
                       onPressed: _answered
                           ? () {
                               if (_isCorrect) {
+                                setState(() {
+                                  _isCompleted =
+                                      LevelHeaderRouter.isMasteryLevel(
+                                    widget.levelId,
+                                  )
+                                          ? true
+                                          : _isCompleted;
+                                });
                                 widget.onLevelUnlocked
                                     ?.call(widget.levelId + 1);
                               }
@@ -274,8 +287,8 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
                       child: Text(
                         _answered
                             ? (_isCorrect
-                                ? 'Next Level →'
-                                : 'Back to Level Select')
+                                ? 'Continue Journey'
+                                : 'Back to Journey')
                             : 'Confirm',
                         style: const TextStyle(
                             fontSize: 17,

@@ -7,6 +7,8 @@ import 'package:quantumquiz/screens/learning_map_screen.dart';
 import 'package:quantumquiz/screens/level_ui_router.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
+import 'package:quantumquiz/models/mastery_completion_progress.dart';
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
@@ -118,14 +120,16 @@ class _HomePageState extends State<HomePage> {
     'Classical vs Quantum Structural Difference',
     'Unified Quantum Algorithm Model',
   };
-  static const int _guidedDiscoveryLevelCount = 60;
-  static const int _journeyLevelCount = 114;
+  static const int _guidedDiscoveryLevelCount =
+      ProgressionRules.guidedDiscoveryLevelCount;
+  static const int _journeyLevelCount = ProgressionRules.journeyLevelCount;
   static const String _campaignProgressKey = 'maxUnlockedCampaignLevel';
 
   // Placeholder for the maximum unlocked level.
   // In a real app, this would be loaded from user data (e.g., preferences, database).
   int _maxUnlockedLevel = 1; // Example: Levels 1 to 5 are unlocked initially
   bool _isLoadingLevels = true; // To show loading state
+  Set<int> _completedMasteryLevels = {};
 
   late PackageInfo _packageInfo;
   List<MapEntry<String, String>>? _aboutData; // Data for the about dialog
@@ -165,8 +169,11 @@ class _HomePageState extends State<HomePage> {
   // Load the max unlocked level from SharedPreferences
   Future<void> _loadMaxUnlockedLevel() async {
     final prefs = await SharedPreferences.getInstance();
+    final completedMasteryLevels =
+        await MasteryCompletionProgress.loadCompletedLevels();
     setState(() {
       _maxUnlockedLevel = prefs.getInt(_campaignProgressKey) ?? 1;
+      _completedMasteryLevels = completedMasteryLevels;
       _isLoadingLevels = false; // Loading complete
     });
     debugPrint('Loaded max unlocked level: $_maxUnlockedLevel');
@@ -174,6 +181,19 @@ class _HomePageState extends State<HomePage> {
 
   // Update and save the max unlocked level
   Future<void> _updateMaxUnlockedLevel(int completedLevelNumber) async {
+    final completedLevel = completedLevelNumber - 1;
+    if (ProgressionRules.isMasteryLevel(completedLevel)) {
+      await MasteryCompletionProgress.markCompleted(completedLevel);
+      if (mounted) {
+        setState(() {
+          _completedMasteryLevels = {
+            ..._completedMasteryLevels,
+            completedLevel,
+          };
+        });
+      }
+    }
+
     if (completedLevelNumber >= _maxUnlockedLevel) {
       final newMaxLevel = completedLevelNumber;
       final prefs = await SharedPreferences.getInstance();
@@ -646,6 +666,21 @@ class _HomePageState extends State<HomePage> {
     return _isLegacyChallengeLevel(level);
   }
 
+  bool get _masteryChallengesUnlocked {
+    return ProgressionRules.masteryChallengesUnlocked(_maxUnlockedLevel);
+  }
+
+  bool _isLevelUnlocked(int levelNumber) {
+    return ProgressionRules.isLevelUnlocked(
+      levelNumber: levelNumber,
+      maxUnlockedLevel: _maxUnlockedLevel,
+    );
+  }
+
+  bool _isMasteryCompleted(int levelNumber) {
+    return _completedMasteryLevels.contains(levelNumber);
+  }
+
   bool _isMasteryCategoryName(String groupName) {
     return groupName == 'Mastery Challenges';
   }
@@ -745,43 +780,37 @@ class _HomePageState extends State<HomePage> {
             itemBuilder: (context) => const [
               PopupMenuItem(
                 value: 'videos',
-                child: ListTile(
-                  leading:
-                      Icon(Icons.video_library_outlined, color: Colors.white),
-                  title: Text('Solution Videos',
-                      style: TextStyle(color: Colors.white)),
+                child: _UtilityMenuRow(
+                  icon: Icons.video_library_outlined,
+                  label: 'Solution Videos',
                 ),
               ),
               PopupMenuItem(
                 value: 'discoveries',
-                child: ListTile(
-                  leading:
-                      Icon(Icons.auto_stories_outlined, color: Colors.white),
-                  title: Text('Quantum Notebook',
-                      style: TextStyle(color: Colors.white)),
+                child: _UtilityMenuRow(
+                  icon: Icons.auto_stories_outlined,
+                  label: 'Quantum Notebook',
                 ),
               ),
               PopupMenuItem(
                 value: 'rate',
-                child: ListTile(
-                  leading: Icon(Icons.star_outline, color: Colors.white),
-                  title: Text('Rate Us', style: TextStyle(color: Colors.white)),
+                child: _UtilityMenuRow(
+                  icon: Icons.star_outline,
+                  label: 'Rate Us',
                 ),
               ),
               PopupMenuItem(
                 value: 'privacy',
-                child: ListTile(
-                  leading:
-                      Icon(Icons.privacy_tip_outlined, color: Colors.white),
-                  title: Text('Privacy Policy',
-                      style: TextStyle(color: Colors.white)),
+                child: _UtilityMenuRow(
+                  icon: Icons.privacy_tip_outlined,
+                  label: 'Privacy Policy',
                 ),
               ),
               PopupMenuItem(
                 value: 'about',
-                child: ListTile(
-                  leading: Icon(Icons.info_outline, color: Colors.white),
-                  title: Text('About', style: TextStyle(color: Colors.white)),
+                child: _UtilityMenuRow(
+                  icon: Icons.info_outline,
+                  label: 'About',
                 ),
               ),
             ],
@@ -835,7 +864,7 @@ class _HomePageState extends State<HomePage> {
           ? 'Review your completed learning journey'
           : _maxUnlockedLevel > _guidedDiscoveryLevelCount
               ? 'Next: Mastery Challenge ${_maxUnlockedLevel - _guidedDiscoveryLevelCount}'
-              : 'Next: Guided Discovery $_maxUnlockedLevel',
+              : 'Next: Lesson $_maxUnlockedLevel',
       icon: Icons.play_arrow_rounded,
       primary: true,
       compact: compact,
@@ -944,66 +973,94 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
-        child: Row(
-          children: [
-            Container(
-              width: compact ? 36 : 42,
-              height: compact ? 36 : 42,
-              decoration: BoxDecoration(
-                color: primary
-                    ? Colors.white.withValues(alpha: 0.16)
-                    : qqCyan.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color:
-                      primary ? Colors.white.withValues(alpha: 0.20) : qqBorder,
-                ),
-              ),
-              child: Icon(
-                icon,
-                color: primary ? Colors.white : qqCyan,
-                size: compact ? 22 : 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: compact ? 16 : 19,
-                      fontWeight: FontWeight.w900,
-                      height: 1.1,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final bool narrow = constraints.maxWidth < 250;
+            final double iconSize = narrow
+                ? 32
+                : compact
+                    ? 36
+                    : 42;
+
+            return Row(
+              children: [
+                Container(
+                  width: iconSize,
+                  height: iconSize,
+                  decoration: BoxDecoration(
+                    color: primary
+                        ? Colors.white.withValues(alpha: 0.16)
+                        : qqCyan.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: primary
+                          ? Colors.white.withValues(alpha: 0.20)
+                          : qqBorder,
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color:
-                          Colors.white.withValues(alpha: primary ? 0.82 : 0.68),
-                      fontSize: compact ? 11 : 12.5,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  child: Icon(
+                    icon,
+                    color: primary ? Colors.white : qqCyan,
+                    size: narrow
+                        ? 20
+                        : compact
+                            ? 22
+                            : 24,
+                  ),
+                ),
+                SizedBox(width: narrow ? 9 : 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: narrow ? 2 : 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: narrow
+                              ? 14
+                              : compact
+                                  ? 16
+                                  : 19,
+                          fontWeight: FontWeight.w900,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        maxLines: narrow ? 2 : 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white
+                              .withValues(alpha: primary ? 0.82 : 0.68),
+                          fontSize: narrow
+                              ? 10.5
+                              : compact
+                                  ? 11
+                                  : 12.5,
+                          fontWeight: FontWeight.w700,
+                          height: 1.15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (!narrow) ...[
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color:
+                        Colors.white.withValues(alpha: primary ? 0.92 : 0.60),
+                    size: compact ? 24 : 28,
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: Colors.white.withValues(alpha: primary ? 0.92 : 0.60),
-              size: compact ? 24 : 28,
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
@@ -1019,190 +1076,215 @@ class _HomePageState extends State<HomePage> {
       (category) => category.groupName == topic,
     );
     final isMasterySection = _isMasteryCategoryName(topic);
+    final masteryCompletionSummary =
+        'Completed: ${_completedMasteryLevels.length} / 54';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.only(
-            top: compact ? 12 : 16,
-            bottom: compact ? 8 : 10,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                topic,
-                style: TextStyle(
-                  fontSize: compact ? 18 : 22,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  height: 1.12,
-                ),
+    return Padding(
+      padding: EdgeInsets.only(bottom: compact ? 14 : 18),
+      child: CustomScrollView(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: compact ? 12 : 16,
+                bottom: compact ? 8 : 10,
               ),
-              const SizedBox(height: 4),
-              Text(
-                '${category.phaseTitle} • ${category.phasePurpose}',
-                style: TextStyle(
-                  fontSize: compact ? 11 : 12.5,
-                  fontWeight: FontWeight.w800,
-                  color: isMasterySection
-                      ? const Color(0xFF7CFFB2)
-                      : qqCyan.withValues(alpha: 0.85),
-                  height: 1.2,
-                ),
-              ),
-            ],
-          ),
-        ),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: isMasterySection
-                ? compact
-                    ? 178.0
-                    : 220.0
-                : compact
-                    ? 116.0
-                    : 132.0,
-            crossAxisSpacing: compact ? 8.0 : 10.0,
-            mainAxisSpacing: compact ? 8.0 : 10.0,
-            childAspectRatio: isMasterySection
-                ? compact
-                    ? 1.18
-                    : 1.38
-                : compact
-                    ? 1.18
-                    : 1.32,
-          ),
-          itemCount: indexStop - indexStart + 1,
-          itemBuilder: (context, index) {
-            final int currentIndex = indexStart + index;
-            final int levelNumber = currentIndex + 1;
-            final QQLevel level = allQQLevels[currentIndex];
-            final bool isLegacyChallenge = _isLegacyChallengeLevel(level);
-            final bool isUnlocked =
-                isLegacyChallenge || levelNumber <= _maxUnlockedLevel;
-
-            return Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black
-                        .withValues(alpha: isUnlocked ? 0.28 : 0.16),
-                    spreadRadius: isUnlocked ? 1 : 0.5,
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-                gradient: isUnlocked
-                    ? LinearGradient(
-                        colors: isMasterySection
-                            ? const [
-                                Color(0xFF0F766E),
-                                Color(0xFF115E59),
-                                Color(0xFF134E4A),
-                              ]
-                            : const [
-                                Color(0xFF4A8DFF),
-                                Color(0xFF2F6FEA),
-                                Color(0xFF1F4FC7),
-                              ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      )
-                    : null,
-                color: isUnlocked ? null : qqCard2,
-                border: Border.all(
-                  color: isUnlocked ? const Color(0x80344A73) : qqBorder,
-                ),
-              ),
-              child: ElevatedButton(
-                onPressed: isUnlocked
-                    ? () async {
-                        await _playLevelSequence(levelNumber, context);
-                      }
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  elevation: 0,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                ),
-                child: isUnlocked
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            isMasterySection
-                                ? 'Challenge ${levelNumber - _guidedDiscoveryLevelCount}'
-                                : '$levelNumber',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: isMasterySection
-                                  ? compact
-                                      ? 13
-                                      : 14
-                                  : compact
-                                      ? 21
-                                      : 23,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              height: 1,
-                            ),
-                          ),
-                          if (level.title != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              level.title!,
-                              style: TextStyle(
-                                fontSize: compact ? 9.5 : 10.5,
-                                color: Colors.white.withValues(alpha: 0.78),
-                                fontWeight: FontWeight.w700,
-                                height: 1.08,
-                              ),
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                          if (isMasterySection &&
-                              level.conceptsUsed.isNotEmpty) ...[
-                            const SizedBox(height: 5),
-                            Text(
-                              level.conceptsUsed.take(2).join(' + '),
-                              style: TextStyle(
-                                fontSize: compact ? 8.5 : 9.5,
-                                color: Colors.white.withValues(alpha: 0.72),
-                                fontWeight: FontWeight.w800,
-                                height: 1.08,
-                              ),
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ],
-                      )
-                    : Icon(
-                        Icons.lock,
-                        color: Colors.white.withValues(alpha: 0.24),
-                        size: 26,
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: topic,
+                      style: TextStyle(
+                        fontSize: compact ? 18 : 22,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        height: 1.12,
                       ),
+                    ),
+                    TextSpan(
+                      text:
+                          '\n${category.phaseTitle} • ${category.phasePurpose}'
+                          '${isMasterySection ? ' • $masteryCompletionSummary' : ''}',
+                      style: TextStyle(
+                        fontSize: compact ? 11 : 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: isMasterySection
+                            ? const Color(0xFF7CFFB2)
+                            : qqCyan.withValues(alpha: 0.85),
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            );
-          },
-        ),
-        SizedBox(height: compact ? 14 : 18),
-      ],
+            ),
+          ),
+          if (isMasterySection && !_masteryChallengesUnlocked)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: compact ? 10 : 12),
+                child: _MasteryLockedCard(compact: compact),
+              ),
+            ),
+          SliverGrid.builder(
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: isMasterySection
+                  ? compact
+                      ? 178.0
+                      : 220.0
+                  : compact
+                      ? 116.0
+                      : 132.0,
+              crossAxisSpacing: compact ? 8.0 : 10.0,
+              mainAxisSpacing: compact ? 8.0 : 10.0,
+              childAspectRatio: isMasterySection
+                  ? compact
+                      ? 0.98
+                      : 1.18
+                  : compact
+                      ? 1.02
+                      : 1.18,
+            ),
+            itemCount: indexStop - indexStart + 1,
+            itemBuilder: (context, index) {
+              final int currentIndex = indexStart + index;
+              final int levelNumber = currentIndex + 1;
+              final QQLevel level = allQQLevels[currentIndex];
+              final bool isUnlocked = _isLevelUnlocked(levelNumber);
+              final bool isCompleted =
+                  isMasterySection && _isMasteryCompleted(levelNumber);
+
+              return Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10.0),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black
+                          .withValues(alpha: isUnlocked ? 0.28 : 0.16),
+                      spreadRadius: isUnlocked ? 1 : 0.5,
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                  gradient: isUnlocked
+                      ? LinearGradient(
+                          colors: isMasterySection
+                              ? const [
+                                  Color(0xFF0F766E),
+                                  Color(0xFF115E59),
+                                  Color(0xFF134E4A),
+                                ]
+                              : const [
+                                  Color(0xFF4A8DFF),
+                                  Color(0xFF2F6FEA),
+                                  Color(0xFF1F4FC7),
+                                ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        )
+                      : null,
+                  color: isUnlocked ? null : qqCard2,
+                  border: Border.all(
+                    color: isUnlocked ? const Color(0x80344A73) : qqBorder,
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: ElevatedButton(
+                        onPressed: isUnlocked
+                            ? () async {
+                                await _playLevelSequence(levelNumber, context);
+                              }
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 6,
+                          ),
+                        ),
+                        child: isUnlocked
+                            ? Center(
+                                child: Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: isMasterySection
+                                            ? 'Challenge ${ProgressionRules.masteryChallengeNumber(levelNumber)}'
+                                            : 'Lesson $levelNumber',
+                                        style: TextStyle(
+                                          fontSize: isMasterySection
+                                              ? compact
+                                                  ? 12.5
+                                                  : 13.5
+                                              : compact
+                                                  ? 14
+                                                  : 16,
+                                          fontWeight: FontWeight.w900,
+                                          color: Colors.white,
+                                          height: 1.04,
+                                        ),
+                                      ),
+                                      if (level.title != null)
+                                        TextSpan(
+                                          text: '\n${level.title!}',
+                                          style: TextStyle(
+                                            fontSize: compact ? 9 : 10,
+                                            color: Colors.white
+                                                .withValues(alpha: 0.78),
+                                            fontWeight: FontWeight.w700,
+                                            height: 1.08,
+                                          ),
+                                        ),
+                                      if (isMasterySection &&
+                                          level.conceptsUsed.isNotEmpty)
+                                        TextSpan(
+                                          text:
+                                              '\n${level.conceptsUsed.take(2).join(' + ')}',
+                                          style: TextStyle(
+                                            fontSize: compact ? 8 : 9,
+                                            color: Colors.white
+                                                .withValues(alpha: 0.72),
+                                            fontWeight: FontWeight.w800,
+                                            height: 1.08,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: isMasterySection ? 5 : 4,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              )
+                            : Icon(
+                                Icons.lock,
+                                color: Colors.white.withValues(alpha: 0.24),
+                                size: 26,
+                              ),
+                      ),
+                    ),
+                    if (isCompleted)
+                      const Positioned(
+                        top: 7,
+                        right: 7,
+                        child: _MasteryCompletedCheckmark(),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -1212,6 +1294,7 @@ class _HomePageState extends State<HomePage> {
       level: level,
       levelId: levelId,
       onLevelUnlocked: _updateMaxUnlockedLevel,
+      isCompleted: _isMasteryCompleted(levelId),
     );
   }
 
@@ -1310,6 +1393,27 @@ class _HomePageState extends State<HomePage> {
       return false;
     }
     return false;
+  }
+
+  Future<void> _showMasteryLockedDialog() async {
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return QubitQuestDialog(
+          title: 'Mastery Challenges Locked',
+          maxWidth: 500,
+          actions: [
+            QubitQuestDialogButton.primary(
+              label: 'Back to Journey',
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+          child: const _MasteryLockedDialogBody(),
+        );
+      },
+    );
   }
 
   Future<void> _showLearningIntroIfNeeded(QQLevel level) async {
@@ -1635,6 +1739,12 @@ class _HomePageState extends State<HomePage> {
         break;
       }
 
+      if (_isMasteryChallengeLevel(levelData) && !_masteryChallengesUnlocked) {
+        await _showMasteryLockedDialog();
+        continueLevelChain = false;
+        break;
+      }
+
       if (_isMasteryChallengeLevel(levelData)) {
         final shouldStart =
             await _showMasteryChallengeBrief(levelData, currentLevelToPlay);
@@ -1686,9 +1796,141 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+class _UtilityMenuRow extends StatelessWidget {
+  const _UtilityMenuRow({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 220,
+      height: 40,
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white, size: 21),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 enum _MasteryTransitionAction {
   start,
   reviewNotebook,
+}
+
+class _MasteryLockedCard extends StatelessWidget {
+  const _MasteryLockedCard({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B2D2A).withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFF7CFFB2).withValues(alpha: 0.28),
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(compact ? 12 : 14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: compact ? 34 : 38,
+              height: compact ? 34 : 38,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF7CFFB2).withValues(alpha: 0.12),
+                border: Border.all(
+                  color: const Color(0xFF7CFFB2).withValues(alpha: 0.32),
+                ),
+              ),
+              child: const Icon(
+                Icons.lock_outline_rounded,
+                color: Color(0xFF7CFFB2),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Mastery Challenges are the application phase.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: compact ? 13.5 : 15,
+                      height: 1.2,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    'Complete Guided Discovery to unlock Mastery Challenges.',
+                    style: TextStyle(
+                      color: const Color(0xFFD6E3F8).withValues(alpha: 0.88),
+                      fontSize: compact ? 12 : 13,
+                      height: 1.32,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MasteryCompletedCheckmark extends StatelessWidget {
+  const _MasteryCompletedCheckmark();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF7CFFB2).withValues(alpha: 0.16),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: const Color(0xFF7CFFB2).withValues(alpha: 0.46),
+        ),
+      ),
+      child: const SizedBox(
+        width: 22,
+        height: 22,
+        child: Icon(
+          Icons.check_rounded,
+          color: Color(0xFF7CFFB2),
+          size: 16,
+        ),
+      ),
+    );
+  }
 }
 
 class _JourneyCompleteBody extends StatelessWidget {
@@ -1724,6 +1966,80 @@ class _JourneyCompleteBody extends StatelessWidget {
                   height: 1.38,
                   fontWeight: FontWeight.w800,
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MasteryLockedDialogBody extends StatelessWidget {
+  const _MasteryLockedDialogBody();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _MasteryLockedInfo(
+      title: 'Complete Guided Discovery first.',
+      text:
+          'Complete Guided Discovery to unlock Mastery Challenges. They apply combined concepts after Chapter 12 Level 5.',
+    );
+  }
+}
+
+class _MasteryLockedInfo extends StatelessWidget {
+  const _MasteryLockedInfo({
+    required this.title,
+    required this.text,
+  });
+
+  final String title;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: QubitQuestDialog.innerColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: QubitQuestDialog.borderSoftColor),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.lock_outline_rounded,
+              color: QubitQuestDialog.cyan,
+              size: 22,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      height: 1.22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    text,
+                    style: const TextStyle(
+                      color: Color(0xFFD6E3F8),
+                      fontSize: 14,
+                      height: 1.38,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

@@ -11,12 +11,14 @@ class FillTheGateScreen extends StatefulWidget {
   final int levelId;
   final FillTheGateLevel level;
   final Function(int)? onLevelUnlocked;
+  final bool isCompleted;
 
   const FillTheGateScreen({
     super.key,
     required this.levelId,
     required this.level,
     required this.onLevelUnlocked,
+    this.isCompleted = false,
   });
 
   @override
@@ -27,6 +29,13 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
   int? _selectedIndex;
   bool _answered = false;
   bool _correct = false;
+  late bool _isCompleted;
+
+  @override
+  void initState() {
+    super.initState();
+    _isCompleted = widget.isCompleted;
+  }
 
   /// Simulate the circuit with the chosen gate and compare to the solution.
   bool _checkAnswer(Gate gate) {
@@ -45,6 +54,9 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
       _selectedIndex = idx;
       _answered = true;
       _correct = correct;
+      if (correct && LevelHeaderRouter.isMasteryLevel(widget.levelId)) {
+        _isCompleted = true;
+      }
     });
     if (correct) {
       widget.onLevelUnlocked?.call(widget.levelId + 1);
@@ -59,6 +71,7 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
         level: widget.level,
         levelId: widget.levelId,
         compact: false,
+        isCompleted: _isCompleted,
       ),
       body: CustomScrollView(
         slivers: [
@@ -247,8 +260,8 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
                                 ),
                                 child: Text(
                                   _correct
-                                      ? 'Next Level →'
-                                      : 'Back to Level Select',
+                                      ? 'Continue Journey'
+                                      : 'Back to Journey',
                                   style: const TextStyle(
                                       fontSize: 17,
                                       color: Colors.white,
