@@ -4,6 +4,8 @@ class MasteryCompletionProgress {
   const MasteryCompletionProgress._();
 
   static const String _completedMasteryLevelsKey = 'completedMasteryLevels';
+  static const String _masteryCompleteDialogShownKey =
+      'masteryCompleteDialogShown';
 
   static Future<Set<int>> loadCompletedLevels() async {
     final prefs = await SharedPreferences.getInstance();
@@ -26,5 +28,15 @@ class MasteryCompletionProgress {
       _completedMasteryLevelsKey,
       sortedCompleted.map((level) => level.toString()).toList(),
     );
+  }
+
+  static Future<bool> hasShownMasteryCompleteDialog() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_masteryCompleteDialogShownKey) ?? false;
+  }
+
+  static Future<void> markMasteryCompleteDialogShown() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_masteryCompleteDialogShownKey, true);
   }
 }

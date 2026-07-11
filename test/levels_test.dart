@@ -529,6 +529,22 @@ void main() {
       );
     });
 
+    test('Mastery complete dialog flag persists after first display', () async {
+      SharedPreferences.setMockInitialValues({});
+
+      expect(
+        await MasteryCompletionProgress.hasShownMasteryCompleteDialog(),
+        isFalse,
+      );
+
+      await MasteryCompletionProgress.markMasteryCompleteDialogShown();
+
+      expect(
+        await MasteryCompletionProgress.hasShownMasteryCompleteDialog(),
+        isTrue,
+      );
+    });
+
     test('DiscoveryProgress follows the consolidated campaign sequence', () {
       expect(
         DiscoveryProgress.discoveryOrder,
