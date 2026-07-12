@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/foundation.dart';
+import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/qq_levels_category.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
@@ -10,12 +11,96 @@ import 'package:quantumquiz/models/qq_level.dart';
 Complex get negOne => Complex(-1.0, 0.0); // -1
 Complex get negI => Complex(0.0, -1.0); // -i
 
-final List<QQLevel> allQQLevels = [
+final List<List<Complex>> _ghzStarPlusTargetUnitary = [
+  [
+    Complex(math.sqrt1_2, 0),
+    Complex(math.sqrt1_2, 0),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+  ],
+  [
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex(math.sqrt1_2, 0),
+    Complex(-math.sqrt1_2, 0),
+  ],
+  [
+    Complex.zero(),
+    Complex.zero(),
+    Complex(math.sqrt1_2, 0),
+    Complex(math.sqrt1_2, 0),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+  ],
+  [
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex(math.sqrt1_2, 0),
+    Complex(-math.sqrt1_2, 0),
+    Complex.zero(),
+    Complex.zero(),
+  ],
+  [
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex(math.sqrt1_2, 0),
+    Complex(math.sqrt1_2, 0),
+    Complex.zero(),
+    Complex.zero(),
+  ],
+  [
+    Complex.zero(),
+    Complex.zero(),
+    Complex(math.sqrt1_2, 0),
+    Complex(-math.sqrt1_2, 0),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+  ],
+  [
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex(math.sqrt1_2, 0),
+    Complex(math.sqrt1_2, 0),
+  ],
+  [
+    Complex(math.sqrt1_2, 0),
+    Complex(-math.sqrt1_2, 0),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+    Complex.zero(),
+  ],
+];
+
+final List<QQLevel> _authoredQQLevels = [
   // X
   ComposerLevel.fromBinaryString(
     title: 'Bit Flip',
     taskDescription:
         r"Your first quantum challenge! Apply a gate to transform \( |0\rangle \) to \( |1\rangle \).",
+    targetStateExpression: "|1⟩",
     conceptIntro:
         'Quantum gates are the elementary operations that transform qubit states. '
         'Just as classical computers have logic gates (AND, OR, NOT), quantum computers have '
@@ -47,6 +132,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Phase Flip',
     taskDescription:
         r"Let's change now only the phase of \( |1\rangle \) without flipping the bit. Transform \( |1\rangle \) to \( -|1\rangle \).",
+    targetStateLabel: "-|1⟩",
+    targetStateExpression: "-|1⟩",
     conceptIntro:
         'Not every quantum operation changes which basis state a qubit occupies. '
         'Some gates leave the bit value completely unchanged while introducing a phase factor '
@@ -78,6 +165,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Bit & Phase Flip',
     taskDescription:
         r"Let's change now the phase and flipping the bit from \( |1\rangle \) to \( |0\rangle \).",
+    targetStateLabel: "-i|0⟩",
+    targetStateExpression: "-i|0⟩",
     conceptIntro:
         'The three Pauli gates — X, Y, and Z — form a family of fundamental single-qubit operations. '
         'You have already met two of them: X is a pure bit flip, and Z is a pure phase flip. '
@@ -110,6 +199,8 @@ final List<QQLevel> allQQLevels = [
     title: 'The i-State',
     taskDescription:
         r"From \( |0\rangle \), reach \( |1\rangle \) with a phase of \( i \). This state is \( |i\rangle \).",
+    targetStateLabel: "|i⟩",
+    targetStateExpression: "|i⟩ = i|1⟩",
     conceptIntro: 'A quantum state can have any complex amplitude. '
         'The imaginary unit i appears naturally as a phase factor in quantum mechanics — '
         'states like i|1⟩ are physically distinct from |1⟩ because the phase matters '
@@ -142,6 +233,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Phase Sandwich',
     taskDescription:
         r"Starting from \( |0\rangle \), achieve \( -|0\rangle \).",
+    targetStateLabel: "-|0⟩",
+    targetStateExpression: "-|0⟩",
     conceptIntro:
         'Gates compose: applying multiple gates in sequence multiplies their matrices. '
         'Some operations cannot be applied directly to the current state — '
@@ -175,6 +268,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Superposition',
     taskDescription:
         r"Create a superposition! Turn \( |0\rangle \) into \( |+\rangle \).",
+    targetStateLabel: "|+⟩",
+    targetStateExpression: "|+⟩ = (|0⟩ + |1⟩)/√2",
     conceptIntro: 'Superposition is a defining feature of quantum computing. '
         'Unlike a classical bit that is always exactly 0 or 1, a qubit can exist in a '
         'combination of both states at once — described by complex probability amplitudes. '
@@ -205,6 +300,8 @@ final List<QQLevel> allQQLevels = [
     title: 'T Gate Phase',
     taskDescription:
         r"You're at \( |0\rangle \). Apply gates to reach a state where the \( |1\rangle \) amplitude has a phase of \( e^{i\pi/4} \). This is \( (|0\rangle + e^{i\pi/4}|1\rangle)/\sqrt{2} \).",
+    targetStateLabel: "T|+⟩",
+    targetStateExpression: "T|+⟩ = (|0⟩ + e^{iπ/4}|1⟩)/√2",
     conceptIntro:
         'Phase gates rotate only the phase of the |1⟩ amplitude by a fixed angle, leaving |0⟩ unchanged. '
         'On their own, phase gates are invisible to a single measurement — |e^(iφ)|² = 1 regardless of φ. '
@@ -238,6 +335,8 @@ final List<QQLevel> allQQLevels = [
     title: 'S Gate — 90° Phase',
     taskDescription:
         r"Transform the initial state of the qubit from \( |0\rangle \) to the target state \( |+i\rangle = (|0\rangle + |i\rangle)/\sqrt{2} \).",
+    targetStateLabel: "|+i⟩",
+    targetStateExpression: "|+i⟩ = (|0⟩ + i|1⟩)/√2",
     conceptIntro:
         'The S gate is a phase gate that applies a 90° rotation to the |1⟩ amplitude: S|1⟩ = i|1⟩. '
         'Like all phase gates, S cannot create superposition on its own — '
@@ -269,6 +368,8 @@ final List<QQLevel> allQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'The Minus State',
     taskDescription: r"Transform \( |+\rangle \) to \( |-\rangle \).",
+    targetStateLabel: "|-⟩",
+    targetStateExpression: "|-⟩ = (|0⟩ - |1⟩)/√2",
     conceptIntro:
         'The |-⟩ state is (|0⟩−|1⟩)/√2 — a superposition where the |1⟩ amplitude carries a negative sign. '
         'Together with |+⟩, |+i⟩, and |−i⟩, it forms the four cardinal "compass points" '
@@ -301,6 +402,8 @@ final List<QQLevel> allQQLevels = [
     title: '2-Qubit Product State',
     taskDescription:
         r"From \( |00\rangle \), create the product state \( |+\rangle \otimes |1\rangle = (|01\rangle + |11\rangle)/\sqrt{2} \).",
+    targetStateLabel: "|+⟩⊗|1⟩",
+    targetStateExpression: "|+⟩⊗|1⟩ = (|01⟩ + |11⟩)/√2",
     conceptIntro: 'Two-qubit systems are described by tensor products. '
         'When no controlled gate connects them, each qubit can be operated independently. '
         'The full state vector has 2² = 4 entries: |00⟩, |01⟩, |10⟩, |11⟩. '
@@ -333,6 +436,8 @@ final List<QQLevel> allQQLevels = [
     title: 'The −i State',
     taskDescription:
         r"From \( |+\rangle \), achieve \( |-i\rangle = (|0\rangle - i|1\rangle)/\sqrt{2} \).",
+    targetStateLabel: "|-i⟩",
+    targetStateExpression: "|-i⟩ = (|0⟩ - i|1⟩)/√2",
     conceptIntro:
         'You have seen |+i⟩ = (|0⟩+i|1⟩)/√2 — now aim for its mirror: |-i⟩ = (|0⟩−i|1⟩)/√2. '
         'The four cardinal equatorial states |+⟩, |−⟩, |+i⟩, |−i⟩ each differ by a 90° phase step on |1⟩. '
@@ -367,6 +472,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Uncomputing a Phase State',
     taskDescription:
         r"You're at \( (|0\rangle - i|1\rangle)/\sqrt{2} \). Transform this state back to \( |1\rangle \).",
+    targetStateExpression: "|1⟩",
     conceptIntro:
         'Quantum circuits are reversible — every operation can be undone. '
         'The pre-inserted gates H→S→Z have already transformed |0⟩ into |-i⟩ = (|0⟩−i|1⟩)/√2. '
@@ -414,6 +520,8 @@ final List<QQLevel> allQQLevels = [
     title: 'T† — Inverse Phase Gate',
     taskDescription:
         r"From \( |0\rangle \), reach \( (|0\rangle + e^{-i\pi/4}|1\rangle)/\sqrt{2} \).",
+    targetStateLabel: "T†|+⟩",
+    targetStateExpression: "T†|+⟩ = (|0⟩ + e^{-iπ/4}|1⟩)/√2",
     conceptIntro:
         'T† (T-dagger, also written T⁻¹) is the inverse of the T gate. '
         'Where T rotates the |1⟩ phase by +π/4, T† rotates by −π/4. '
@@ -450,6 +558,7 @@ final List<QQLevel> allQQLevels = [
     title: 'CNOT Gate',
     taskDescription:
         r"From \( |10\rangle \), create a circuit where Qubit 1 will 'mirror' the state of Qubit 0. The final state should be \( |11\rangle \).",
+    targetStateExpression: "|11⟩",
     conceptIntro:
         'The CNOT (Controlled-NOT, CX) gate is the fundamental two-qubit gate. '
         'It has a "control" qubit and a "target" qubit: the target flips if and only if the control is |1⟩, '
@@ -484,6 +593,7 @@ final List<QQLevel> allQQLevels = [
     // 15
     title: 'CNOT: Swapping Control & Target',
     taskDescription: r"Transform \( |01\rangle \) to \( |11\rangle \).",
+    targetStateExpression: "|11⟩",
     conceptIntro:
         'CNOT is not symmetric — swapping the roles of the control and target qubit '
         'produces a completely different operation. '
@@ -518,6 +628,7 @@ final List<QQLevel> allQQLevels = [
     title: '3-Qubit CNOT',
     taskDescription:
         r"Explore 3 qubits! Transform \( |101\rangle \) to \( |100\rangle \).",
+    targetStateExpression: "|100⟩",
     conceptIntro:
         'CNOT can connect any two qubits in a multi-qubit register — they do not need to be adjacent. '
         'A 3-qubit system has a state vector with 2³=8 entries. '
@@ -550,6 +661,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Uncomputing with CNOT',
     taskDescription:
         r"From \( |11\rangle \), transform the state to \( |00\rangle \).",
+    targetStateExpression: "|00⟩",
     conceptIntro:
         'Reaching any two-qubit basis state from any other requires the right combination of gates '
         'applied in the correct order. '
@@ -585,6 +697,7 @@ final List<QQLevel> allQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'Toffoli Gate (CCX)',
     taskDescription: r"Turn \( |101\rangle \) into \( |111\rangle \).",
+    targetStateExpression: "|111⟩",
     conceptIntro:
         'The Toffoli gate (CCX, CCNOT) has two control qubits and one target. '
         'It flips the target only when BOTH controls are |1⟩ — making it a quantum AND gate. '
@@ -619,12 +732,96 @@ final List<QQLevel> allQQLevels = [
       [Complex.zero()],
       [Complex.one()],
     ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+    ],
   ),
   // CCX(0,1,2)
   ComposerLevel.fromBinaryString(
     title: 'Toffoli: Choose Your Controls',
     taskDescription:
         r"From \( |011\rangle \), transform the state to \( |111\rangle \).",
+    targetStateExpression: "|111⟩",
     conceptIntro:
         'The Toffoli gate is flexible — any two qubits can be the controls and '
         'any distinct third qubit can be the target. '
@@ -667,6 +864,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Toffoli Self-Inverse',
     taskDescription:
         r"You are given a 3-qubit circuit already in the state \( |111\rangle \). Transform this state back to \( |110\rangle \).",
+    targetStateExpression: "|110⟩",
     conceptIntro:
         'Like X and CNOT, the Toffoli gate is its own inverse: CCX·CCX = I. '
         'Applying CCX twice in a row restores the original state, because flipping a bit twice returns it to its start. '
@@ -708,6 +906,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Toffoli as AND Gate',
     taskDescription:
         r"From \( |010\rangle \), transform the state to \( |111\rangle \).",
+    targetStateExpression: "|111⟩",
     conceptIntro:
         'The Toffoli gate computes a quantum AND: CCX(ctrl₁,ctrl₂→tgt) sets '
         'tgt ← tgt ⊕ (ctrl₁ AND ctrl₂). '
@@ -750,6 +949,8 @@ final List<QQLevel> allQQLevels = [
     title: 'First Bell State Φ⁺',
     taskDescription:
         r"Entangle two qubits! Create the Bell state \( |00\rangle + |11\rangle\).",
+    targetStateLabel: "|Φ⁺⟩",
+    targetStateExpression: "|Φ⁺⟩ = (|00⟩ + |11⟩)/√2",
     conceptIntro: 'Entanglement is the defining feature of quantum mechanics. '
         'The Bell state Φ⁺ = (|00⟩+|11⟩)/√2 cannot be written as (state of Q0)⊗(state of Q1). '
         'After creating it, measuring either qubit instantly determines the other — '
@@ -786,6 +987,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Bell State Ψ⁺',
     taskDescription:
         r"From \( |01\rangle \), create the Bell state \( |\Psi^+\rangle = (|01\rangle + |10\rangle)/\sqrt{2} \).",
+    targetStateLabel: "|Ψ⁺⟩",
+    targetStateExpression: "|Ψ⁺⟩ = (|01⟩ + |10⟩)/√2",
     conceptIntro:
         'There are four Bell states, each a maximally-entangled two-qubit state. '
         'Ψ⁺ = (|01⟩+|10⟩)/√2 is anti-correlated: measuring one qubit always gives the '
@@ -824,6 +1027,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Disentangling a Bell State',
     taskDescription:
         r"Time for disentangling Bell State. Can you reverse the process to get back to \( |00\rangle \)?",
+    targetStateExpression: "|00⟩",
     conceptIntro:
         'Quantum circuits are reversible — every entangling operation can be undone. '
         'The pre-inserted circuit created the Bell state Φ⁺. '
@@ -870,6 +1074,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Bell State Ψ⁻',
     taskDescription:
         r"From \( |10\rangle \), create the Bell state \( |\Psi^-\rangle = (|01\rangle - |10\rangle)/\sqrt{2} \).",
+    targetStateLabel: "|Ψ⁻⟩",
+    targetStateExpression: "|Ψ⁻⟩ = (|01⟩ - |10⟩)/√2",
     conceptIntro:
         'Ψ⁻ = (|01⟩−|10⟩)/√2 is the only Bell state antisymmetric under qubit swap '
         '(swapping the two qubits gives −Ψ⁻). It is known as the "singlet" state in physics. '
@@ -910,6 +1116,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Bell State Φ⁻',
     taskDescription:
         r"From \( |00\rangle \), prepare the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle)/\sqrt{2} \). You need only one solution although it can have 2 solutions potenially, due to entanglement.",
+    targetStateLabel: "|Φ⁻⟩",
+    targetStateExpression: "|Φ⁻⟩ = (|00⟩ - |11⟩)/√2",
     conceptIntro:
         'The four Bell states — Φ⁺, Φ⁻, Ψ⁺, Ψ⁻ — form a complete orthonormal basis for '
         'two-qubit space. Any two-qubit state can be expanded in the Bell basis. '
@@ -948,6 +1156,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Uncomputing Φ⁻',
     taskDescription:
         r"This circuit is pre-configured. Your task is to transform this state back to \( |00\rangle \).",
+    targetStateExpression: "|00⟩",
     conceptIntro:
         'The pre-inserted H→CNOT→Z sequence has created Φ⁻=(|00⟩−|11⟩)/√2. '
         'To reverse an entangled state, apply the inverse operations in reverse order. '
@@ -999,6 +1208,7 @@ final List<QQLevel> allQQLevels = [
     title: 'SWAP via Three CNOTs',
     taskDescription:
         r"From \( |10\rangle \), swap the states of the two qubits to achieve \( |01\rangle \). This can be done using only CX gates.",
+    targetStateExpression: "|01⟩",
     conceptIntro:
         'A SWAP gate exchanges the states of two qubits: SWAP|ab⟩ = |ba⟩. '
         'There is no SWAP gate in your toolbar, but it can be constructed from gates you already know. '
@@ -1040,6 +1250,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Conditional Phase Flip',
     taskDescription:
         r"From \( |00\rangle \), flip the phase of \( |11\rangle \).",
+    targetStateLabel: "CZ|++⟩",
+    targetStateExpression: "CZ|++⟩ = (|00⟩ + |01⟩ + |10⟩ - |11⟩)/2",
     conceptIntro:
         'Flipping only the phase of |11⟩ while leaving all other basis states unchanged '
         'is called a Controlled-Z (CZ) operation. '
@@ -1082,6 +1294,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Bell Ψ⁺ from |00⟩',
     taskDescription:
         r"From \( |00\rangle \), create the Bell state \( |\Psi^+\rangle = (|01\rangle + |10\rangle)/\sqrt{2} \).",
+    targetStateLabel: "|Ψ⁺⟩",
+    targetStateExpression: "|Ψ⁺⟩ = (|01⟩ + |10⟩)/√2",
     conceptIntro:
         'All four Bell states can be prepared from |00⟩ by adjusting what you do '
         'before or after the standard entangling circuit. '
@@ -1122,6 +1336,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Bell Φ⁻ from |10⟩',
     taskDescription:
         r"From \( |10\rangle \), create the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle)/\sqrt{2} \).",
+    targetStateLabel: "|Φ⁻⟩",
+    targetStateExpression: "|Φ⁻⟩ = (|00⟩ - |11⟩)/√2",
     conceptIntro:
         'H|1⟩ = (|0⟩−|1⟩)/√2 = |−⟩ — when applied to a qubit that is already |1⟩, '
         'the Hadamard gate produces a superposition with a built-in minus sign. '
@@ -1163,6 +1379,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Complete the SWAP',
     taskDescription:
         r"This circuit is pre-configured with the first CNOT of a qubit swap. Complete the swap of qubits 0 and 1, so \( |01\rangle \) becomes \( |10\rangle \).",
+    targetStateExpression: "|10⟩",
     conceptIntro:
         'A SWAP gate exchanges the states of two qubits and can be built from CNOT gates alone '
         '(as you discovered in level 28). Here the first CNOT of the decomposition is already pre-inserted. '
@@ -1204,6 +1421,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Long-Range CNOT',
     taskDescription:
         r"From \( |001\rangle \), transform the state to \( |101\rangle \).",
+    targetStateExpression: "|101⟩",
     conceptIntro: 'In a 3-qubit register CNOT can connect any two qubits — '
         'they do not need to be adjacent. '
         'Here Q2=1 is the only available control. '
@@ -1235,38 +1453,32 @@ final List<QQLevel> allQQLevels = [
       [Complex.zero()],
     ], // Target: |101>
   ),
-  // X(0) + CX(0,2)
+  // TODO(video): Existing solution video was recorded for the previous |010⟩
+  // version of this challenge and needs a future update to the |100⟩ fan-out model.
+  // CX from the qubit that starts as |1⟩ to each |0⟩ target.
   ComposerLevel.fromBinaryString(
     title: 'CNOT Fan-Out',
     taskDescription:
-        r"Transform \( |010\rangle \) to \( |111\rangle \). This requires a careful sequence of gates.",
+        r"Transform \( |100\rangle \) to \( |111\rangle \) using only CNOT fan-out from the existing 1.",
+    targetStateExpression: "|111⟩",
     conceptIntro:
-        'CNOT "fans out" (copies) a |1⟩ value from a control qubit into a |0⟩ target qubit. '
+        'CNOT can fan out one classical |1⟩ value from a control qubit into multiple |0⟩ targets. '
         'Note: this copying only works for classical basis states — '
         'for superpositions, CNOT creates entanglement instead of copying. '
-        'CNOT can only trigger a flip when its control is |1⟩; if the intended control is |0⟩, '
-        'no flip will occur. Look at the initial state and plan the correct sequence '
-        'to get every qubit into the required value.',
+        'Here one qubit already holds the control value |1⟩. Use that same control twice so both other qubits become |1⟩.',
     hints: [
-      'In |010⟩: Q0=0, Q1=1, Q2=0. Q1 is already |1⟩. '
-          'You need Q0 and Q2 to also become |1⟩. '
-          'Start by flipping Q0 with X.',
-      'X on Q0: |010⟩ → |110⟩. '
-          'Now Q0=1 can act as control: CNOT(Q0→Q2) flips Q2: 0→1 → |111⟩. '
-          'Two gates, no Toffoli needed.',
+      'In |100⟩, one qubit is already |1⟩. The other two qubits are |0⟩ targets.',
+      'Use the qubit that starts as |1⟩ as the control for two separate CNOTs.',
+      'First fan out to one |0⟩ target, giving |110⟩. Then fan out to the remaining |0⟩ target, giving |111⟩.',
     ],
-    solutionExplanation: 'X flips Q0: |010⟩ → |110⟩. '
-        'CNOT(Q0→Q2): Q0=1 → Q2 flips: 0→1 → |111⟩. '
-        'Q1 was already |1⟩ and is left untouched. '
-        'This fan-out pattern — X to set a control, then CNOT to copy its value — '
-        'appears in quantum adder circuits and quantum error correction encoders.',
+    solutionExplanation: 'Use the qubit that starts as |1⟩ as the control. '
+        'The first CNOT flips one |0⟩ target, so |100⟩ becomes |110⟩. '
+        'The second CNOT reuses the same control and flips the remaining |0⟩ target, giving |111⟩. '
+        'This is fan-out: one classical control value is used to conditionally update multiple targets.',
     numQubits: 3,
-    initialQubitsStateString: "010",
+    initialQubitsStateString: "100",
     availableGates: [
-      Gate.fromIdentifier(SelectedGateType.x),
       Gate.fromIdentifier(SelectedGateType.cnot),
-      Gate.fromIdentifier(SelectedGateType.ccnot),
-      Gate.fromIdentifier(SelectedGateType.hadamard)
     ],
     solutionFinalVector: [
       [Complex.zero()],
@@ -1284,6 +1496,8 @@ final List<QQLevel> allQQLevels = [
     title: 'GHZ State Manipulation',
     taskDescription:
         r"This circuit is pre-configured to the GHZ state \( (|000\rangle + |111\rangle)/\sqrt{2} \). Transform this state to \( (|001\rangle + |110\rangle)/\sqrt{2} \).",
+    targetStateLabel: "X-target GHZ",
+    targetStateExpression: "(|001⟩ + |110⟩)/√2",
     conceptIntro:
         'The GHZ (Greenberger–Horne–Zeilinger) state (|000⟩+|111⟩)/√2 is '
         'maximally entangled across all three qubits. '
@@ -1340,6 +1554,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Uniform 2-Qubit Superposition',
     taskDescription:
         r"From \( |00\rangle \), create a uniform superposition of all possible 2-qubit states: \( (|00\rangle + |01\rangle + |10\rangle + |11\rangle)/2 \).",
+    targetStateLabel: "|++⟩",
+    targetStateExpression: "|++⟩ = (|00⟩ + |01⟩ + |10⟩ + |11⟩)/2",
     conceptIntro:
         'A uniform superposition over all 2ⁿ basis states gives each state equal amplitude '
         'and equal measurement probability 1/2ⁿ. '
@@ -1381,6 +1597,8 @@ final List<QQLevel> allQQLevels = [
     title: 'GHZ State with Phase',
     taskDescription:
         r"From \( |001\rangle \), transform the state to \( (|000\rangle - |111\rangle)/\sqrt{2} \).",
+    targetStateLabel: "GHZ⁻",
+    targetStateExpression: "GHZ⁻ = (|000⟩ - |111⟩)/√2",
     conceptIntro:
         'The GHZ state (|000⟩+|111⟩)/√2 is a maximally entangled 3-qubit state. '
         'Building it requires creating a single-qubit superposition and then spreading '
@@ -1441,6 +1659,8 @@ final List<QQLevel> allQQLevels = [
     title: 'CZ Gate — Controlled Phase',
     taskDescription:
         r"This is about Conditional Phase Shift (Shor's Principle Hint). From \( |00\rangle \), create a uniform superposition where the \( |11\rangle \) component has its phase flipped to \(-1\). The target state is \( (|00\rangle + |01\rangle + |10\rangle - |11\rangle)/2 \).",
+    targetStateLabel: "CZ|++⟩",
+    targetStateExpression: "CZ|++⟩ = (|00⟩ + |01⟩ + |10⟩ - |11⟩)/2",
     conceptIntro:
         'The Controlled-Z (CZ) gate applies a phase of −1 to |11⟩ and '
         'leaves all other basis states unchanged. '
@@ -1493,6 +1713,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Uncomputing CZ Entanglement',
     taskDescription:
         r"This circuit is pre-configured to an entangled state where the \( |11\rangle \) component has a negative phase. Your task is to transform this state back to \( |00\rangle \).",
+    targetStateExpression: "|00⟩",
     conceptIntro:
         'The pre-inserted H→H→CZ sequence has created the state (|00⟩+|01⟩+|10⟩−|11⟩)/2. '
         'To return to |00⟩, you must reverse the pre-inserted circuit. '
@@ -1547,6 +1768,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Rx Rotation Gate',
     taskDescription:
         r"Transform the initial state \( |0\rangle \) to the 'plus' state \( |+\rangle \). This can be achieved with a single rotation gate.",
+    targetStateLabel: "Rx(π/2)|0⟩",
+    targetStateExpression: "Rx(π/2)|0⟩ = (|0⟩ - i|1⟩)/√2",
     conceptIntro:
         'Rotation gates rotate a qubit around a Bloch sphere axis by a specific angle θ. '
         'Rx(θ) rotates around the X-axis: Rx(θ)|0⟩ = cos(θ/2)|0⟩ − i·sin(θ/2)|1⟩. '
@@ -1583,6 +1806,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Ry Rotation Gate',
     taskDescription:
         r"Rotate the initial state \( |0\rangle \) to a new state on the equatorial plane of the Bloch sphere. Try to find the correct rotation.",
+    targetStateLabel: "|+⟩",
+    targetStateExpression: "|+⟩ = (|0⟩ + |1⟩)/√2",
     conceptIntro: 'Ry(θ) rotates around the Y-axis of the Bloch sphere: '
         'Ry(θ)|0⟩ = cos(θ/2)|0⟩ + sin(θ/2)|1⟩. '
         'Unlike Rx, the Y-axis rotation keeps all amplitudes real — no imaginary phase on |1⟩. '
@@ -1615,6 +1840,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Rz — Phase Rotation',
     taskDescription:
         r"Apply a phase shift to the state \( |1\rangle \) to transform it to \( |i\rangle \). This requires an Rz gate.",
+    targetStateLabel: "e^{iπ/4}|1⟩",
+    targetStateExpression: "e^{iπ/4}|1⟩",
     conceptIntro:
         'Rz(θ) rotates around the Z-axis: Rz(θ)|0⟩ = e^(−iθ/2)|0⟩ and Rz(θ)|1⟩ = e^(iθ/2)|1⟩. '
         'Since |0⟩ and |1⟩ get opposite phases, Rz only creates a relative phase — '
@@ -1650,6 +1877,7 @@ final List<QQLevel> allQQLevels = [
     title: 'Inverse Rotation',
     taskDescription:
         r"You start with a pre-configured superposition. Use a rotation gate to return to the \( |0\rangle \) state.",
+    targetStateExpression: "|0⟩",
     conceptIntro:
         'Every rotation gate has an inverse: Rx(−θ) = Rx(θ)†, Ry(−θ) = Ry(θ)†, Rz(−θ) = Rz(θ)†. '
         'Applying a rotation followed by its inverse cancels to the identity: R(θ)·R(−θ) = I. '
@@ -1689,6 +1917,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Composing Rx and Ry',
     taskDescription:
         r"Combine two different rotation gates to get a specific final state. The first rotation is given.",
+    targetStateLabel: "Complex equator state",
+    targetStateExpression: "((1+i)|0⟩ + (1-i)|1⟩)/2",
     conceptIntro:
         'Combining rotations around different axes creates states unreachable by either axis alone. '
         'The Bloch sphere shows why: a single axis can only reach a circle of states, '
@@ -1731,6 +1961,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Rz on an Entangled State',
     taskDescription:
         r"Use a rotation gate to apply a very specific phase shift on a multi-qubit state. The initial state is a superposition.",
+    targetStateLabel: "Phased Bell pair",
+    targetStateExpression: "(e^{-iπ/8}|00⟩ + e^{iπ/8}|11⟩)/√2",
     conceptIntro:
         'Rotation gates can be applied to individual qubits of an entangled state. '
         'Rz(θ) on Q0 of Φ⁺=(|00⟩+|11⟩)/√2 adds e^(−iθ/2) when Q0=0 '
@@ -1784,6 +2016,8 @@ final List<QQLevel> allQQLevels = [
     title: 'Precise Bloch Sphere Navigation',
     taskDescription:
         r"Transform the initial state to a specific point on the Bloch sphere. This requires precise rotations.",
+    targetStateLabel: "Precise phase state",
+    targetStateExpression: "e^{-iπ/8}(|0⟩ + |1⟩)/√2",
     conceptIntro:
         'Any point on the Bloch sphere can be reached with at most two rotations around different axes — '
         'the Euler angle decomposition. '
@@ -2093,7 +2327,2677 @@ final List<QQLevel> allQQLevels = [
     solutionExplanation: 'H creates superposition on Q0 giving (|00⟩+|10⟩)/√2. '
         'CNOT(0→1) then flips Q1 when Q0=1, producing (|00⟩+|11⟩)/√2 — the Bell state Φ⁺.',
   ),
+
+  ComposerLevel(
+    title: 'Phase Is Hidden',
+    taskDescription:
+        r'Can something change without changing what we measure? Transform \( |+\rangle \) into \( |-\rangle \).',
+    targetStateLabel: '|-⟩',
+    targetStateExpression: '|-⟩ = (|0⟩ - |1⟩)/√2',
+    mysteryTitle: 'Can something change without changing what we measure?',
+    mysteryText:
+        'You have seen this kind of hidden change before. Make the same 50/50 state carry the opposite phase so the next puzzles can reveal it.',
+    discoveryTitle: 'Phase Is Hidden',
+    discoveryText:
+        'The Z gate changed |+⟩ into |−⟩. Nothing visible happened to the measurement odds yet, but the state is now ready to behave differently.',
+    keyInsight: 'Hidden phase becomes useful when another gate reveals it.',
+    whyItMatters:
+        'This is the bridge into interference: first phase changes quietly, then later gates make its effects visible.',
+    nextMystery:
+        'If phase can hide from measurement, can we make it show up as a bit we can see?',
+    hints: [
+      'The two states have the same probabilities. Look for a gate that changes a sign, not a bit value.',
+      'Z leaves |0⟩ unchanged and gives |1⟩ a minus sign.',
+    ],
+    solutionExplanation:
+        'Z(|0⟩ + |1⟩)/√2 = (|0⟩ - |1⟩)/√2. The probabilities are still 50/50, but the phase changed.',
+    numQubits: 1,
+    initialQubitsStateStr: '|+⟩',
+    initialQubitsState: [
+      Complex(math.sqrt1_2, 0),
+      Complex(math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'HZH = X',
+    taskDescription:
+        r'Can a phase flip become a bit flip? Starting from \( |0\rangle \), reach \( |1\rangle \) using only H and Z.',
+    targetStateExpression: '|1⟩',
+    mysteryTitle: 'Can a phase flip become a bit flip?',
+    mysteryText:
+        'Z only changes phase, so it should not flip |0⟩ into |1⟩ directly. But what if you change the basis before and after the phase flip?',
+    discoveryTitle: 'Phase Becomes Bit',
+    discoveryText:
+        'The first H created two paths. Z changed their phase relationship, and the final H converted that hidden difference into the visible state |1⟩.',
+    keyInsight: 'HZH behaves exactly like X.',
+    whyItMatters:
+        'This is the payoff for hidden phase: a basis change can turn it into something measurement can see.',
+    nextMystery:
+        'If phase can become a bit, can a bit flip become a phase flip?',
+    hints: [
+      'Use H to move from the computational basis into the plus/minus basis.',
+      'Try placing Z between two H gates.',
+    ],
+    solutionExplanation:
+        'H maps |0⟩ to |+⟩. Z maps |+⟩ to |-⟩. H maps |-⟩ to |1⟩, so HZH acts like X.',
+    numQubits: 1,
+    initialQubitsStateString: '0',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'HXH = Z',
+    taskDescription:
+        r'Can a bit flip become a phase flip? Starting from \( |+\rangle \), reach \( |-\rangle \) using only H and X.',
+    targetStateLabel: '|-⟩',
+    targetStateExpression: '|-⟩ = (|0⟩ - |1⟩)/√2',
+    mysteryTitle: 'Can a bit flip become a phase flip?',
+    mysteryText:
+        'X is a bit flip in the normal |0⟩/|1⟩ basis. But in a different basis, the same operation can change phase instead.',
+    discoveryTitle: 'Bit Becomes Phase',
+    discoveryText:
+        'The Hadamard gates changed the perspective around X. In that perspective, a bit flip produced the same final effect as a phase flip.',
+    keyInsight: 'HXH behaves exactly like Z.',
+    whyItMatters:
+        'Interference depends on perspective. Basis changes decide whether a hidden phase stays hidden or becomes visible.',
+    nextMystery:
+        'If signs can be moved around, can two paths cancel so completely that an outcome becomes impossible?',
+    hints: [
+      'Use H to change basis before applying X.',
+      'Mirror the previous pattern: H, then X, then H.',
+    ],
+    solutionExplanation:
+        'H maps |+⟩ to |0⟩. X maps |0⟩ to |1⟩. H maps |1⟩ to |-⟩, so HXH acts like Z.',
+    numQubits: 1,
+    initialQubitsStateStr: '|+⟩',
+    initialQubitsState: [
+      Complex(math.sqrt1_2, 0),
+      Complex(math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.x),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Make Zero Impossible',
+    taskDescription:
+        r'The first H is already placed. Complete the circuit so \( P(|0\rangle)=0 \).',
+    targetStateExpression: '|1⟩',
+    mysteryTitle: 'Can you completely eliminate one outcome?',
+    mysteryText:
+        'The pre-built H has created two possible paths. Can you arrange them so the |0⟩ outcome cancels away completely?',
+    discoveryTitle: 'Destructive Interference',
+    discoveryText:
+        'The completed circuit made the |0⟩ paths cancel and the |1⟩ paths reinforce. The result is P(|0⟩) = 0: an outcome disappeared.',
+    keyInsight: 'Destructive interference can make an outcome impossible.',
+    whyItMatters:
+        'Quantum algorithms use this kind of cancellation to suppress wrong answers and make useful outcomes stand out.',
+    nextMystery:
+        'What is the general rule behind this cancellation and reinforcement?',
+    hints: [
+      'The pre-built H already created |+⟩. First change it into |−⟩.',
+      'After creating |-⟩, use H to turn cancellation into a visible |1⟩ outcome.',
+    ],
+    solutionExplanation:
+        'The pre-built H creates |+⟩. Z changes |+⟩ into |−⟩. H maps |−⟩ to |1⟩, so P(|0⟩)=0.',
+    numQubits: 1,
+    initialQubitsStateStr: '0',
+    initialQubitsState: [
+      Complex.one(),
+      Complex.zero(),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+    preInsertedGates: (QuantumCircuit circuit) {
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+        isDeletable: false,
+      );
+    },
+  ),
+
+  ComposerLevel(
+    title: 'Hidden Mark',
+    taskDescription:
+        r'Use one controlled phase operation on \( |+\rangle|1\rangle \). The visible bit probabilities should stay the same, but the control should receive a phase mark.',
+    targetStateExpression: '|−⟩|1⟩',
+    mysteryTitle: 'Can a controlled operation mark a state invisibly?',
+    mysteryText:
+        'The target is fixed at |1⟩. Apply a controlled phase operation and look for a change that does not appear as a visible bit flip.',
+    discoveryTitle: 'Hidden Information',
+    discoveryText:
+        'A controlled operation can write information into phase. The measured bit probabilities can look unchanged while the control qubit has changed from |+⟩ to |−⟩.',
+    keyInsight:
+        'Controlled operations can create hidden phase marks without changing visible bit values.',
+    whyItMatters:
+        'Quantum algorithms often compute by marking phase first, then revealing that phase later. The useful information is not always visible immediately.',
+    nextMystery:
+        'What setup lets a controlled operation push phase back onto the control?',
+    hints: [
+      'Use the controlled phase gate.',
+      'The target remains |1⟩; the control receives the phase mark.',
+    ],
+    solutionExplanation:
+        'CZ maps |+⟩|1⟩ to |−⟩|1⟩. No bit flips occur, but the relative phase of the control changes.',
+    numQubits: 2,
+    initialQubitsStateStr: '|+⟩|1⟩',
+    initialQubitsState: [
+      Complex.zero(),
+      Complex(math.sqrt1_2, 0),
+      Complex.zero(),
+      Complex(math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cz),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Control Affects Control',
+    taskDescription:
+        r'Use one CX on \( |1\rangle|−\rangle \). The target is flipped conditionally, but the visible state should only gain phase.',
+    targetStateExpression: '-|1⟩|−⟩',
+    mysteryTitle: 'Can the target setup affect the control logic?',
+    mysteryText:
+        'The target is prepared as |−⟩. Apply CX and notice that the conditional flip does not show up as an ordinary target bit change.',
+    discoveryTitle: 'Phase Carrier',
+    discoveryText:
+        '|−⟩ is a phase-sensitive target. When CX tries to flip it, the effect appears as phase rather than as a visible target-bit change.',
+    keyInsight:
+        'A phase-sensitive target can turn conditional bit logic into phase logic.',
+    whyItMatters:
+        'Phase kickback depends on target preparation. The controlled operation is the same, but the target state determines whether the computation writes a phase.',
+    nextMystery:
+        'What happens when the control is in superposition and only one branch receives that phase?',
+    hints: [
+      'Use CX with q0 as control and q1 as target.',
+      'The target is |−⟩, so a conditional flip becomes a phase effect.',
+    ],
+    solutionExplanation:
+        'CX with control q0 and target q1 maps |1⟩|−⟩ to -|1⟩|−⟩. The visible values are unchanged, but the controlled operation has written phase.',
+    numQubits: 2,
+    initialQubitsStateStr: '|1⟩|−⟩',
+    initialQubitsState: [
+      Complex.zero(),
+      Complex(math.sqrt1_2, 0),
+      Complex.zero(),
+      Complex(-math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex(-math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Unexpected Phase Change',
+    taskDescription:
+        r'Use one CX on \( |+\rangle|−\rangle \). The target is acted on, but the control should become \( |−\rangle \).',
+    targetStateExpression: '|−⟩|−⟩',
+    mysteryTitle: 'Why did the qubit that was not targeted change?',
+    mysteryText:
+        'The controlled gate targets q1, but the phase-sensitive target can kick information back onto q0. Watch which qubit carries the phase after the operation.',
+    discoveryTitle: 'Phase Kickback',
+    discoveryText:
+        'Phase kickback means the controlled operation writes information into the phase of the control. The target enabled the effect, but the stored information appears on the control.',
+    keyInsight:
+        'Phase kickback stores controlled-operation information in the control qubit phase.',
+    whyItMatters:
+        'This is a computational effect, not a routing or SWAP effect. The circuit writes a hidden phase mark onto the qubit that can later reveal the answer.',
+    nextMystery: 'Does the same controlled circuit always produce kickback?',
+    hints: [
+      'Use CX with q0 as control and q1 as target.',
+      'The target remains |−⟩, while q0 changes from |+⟩ to |−⟩.',
+    ],
+    solutionExplanation:
+        'CX maps |+⟩|−⟩ to |−⟩|−⟩. The target was the gate target, but the phase change is stored on the control.',
+    numQubits: 2,
+    initialQubitsStateStr: '|+⟩|−⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(-0.5, 0),
+      Complex(-0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex(0.5, 0)],
+      [Complex(-0.5, 0)],
+      [Complex(-0.5, 0)],
+      [Complex(0.5, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Setup Matters',
+    taskDescription:
+        r'Use the same CX circuit on \( |+\rangle|+\rangle \). This time the target setup should prevent phase kickback.',
+    targetStateExpression: '|+⟩|+⟩',
+    mysteryTitle: 'Does every target state create kickback?',
+    mysteryText:
+        'Use the same controlled operation as before, but with the target prepared as |+⟩ instead of |−⟩. The circuit is the same; the setup changes the result.',
+    discoveryTitle: 'Hidden Communication',
+    discoveryText:
+        'Phase kickback depends on target preparation. CX on a |−⟩ target writes phase to the control; the same CX on a |+⟩ target leaves this product state unchanged.',
+    keyInsight:
+        'The same controlled gate can produce different phase outcomes depending on the target state.',
+    whyItMatters:
+        'Phase kickback is not automatic. Algorithms must prepare the target correctly before controlled logic can encode information into phase.',
+    nextMystery:
+        'How can a circuit compute a condition, encode it into phase, and then reveal it?',
+    hints: [
+      'Use CX with q0 as control and q1 as target, just like the previous level.',
+      'Because the target is |+⟩, the same gate does not create a kicked-back phase.',
+    ],
+    solutionExplanation:
+        'CX leaves |+⟩|+⟩ unchanged. This boundary case shows that kickback depends on the target state, not just on using a controlled gate.',
+    numQubits: 2,
+    initialQubitsStateStr: '|+⟩|+⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+      [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+      [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+      [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Compute, Encode, Reveal',
+    taskDescription:
+        r'Kick phase back onto the control with CX, then use H on the control to reveal the stored phase as \( |1\rangle \).',
+    targetStateExpression: '|1⟩|−⟩',
+    mysteryTitle: 'How does hidden phase become a useful answer?',
+    mysteryText:
+        'First use controlled logic to write information into phase. Only after that should interference reveal the stored phase as a visible bit.',
+    discoveryTitle: 'The Language of Quantum Algorithms',
+    discoveryText:
+        'The controlled operation wrote information into the control phase. The final H did not create the information; it only revealed the phase that kickback had already stored.',
+    keyInsight:
+        'Phase kickback computes into phase; interference is the downstream reveal step.',
+    whyItMatters:
+        'Oracle-based algorithms use this pattern: compute a condition, encode it as phase, then use interference to make the hidden information measurable.',
+    nextMystery:
+        'Next, an oracle can mark an answer in phase so later interference can amplify it.',
+    hints: [
+      'First use CX with q0 as control and q1 as target.',
+      'Then apply H to q0 to reveal |−⟩ as |1⟩.',
+    ],
+    solutionExplanation:
+        'CX maps |+⟩|−⟩ to |−⟩|−⟩. H on the control maps |−⟩ to |1⟩, revealing the phase written by kickback.',
+    numQubits: 2,
+    initialQubitsStateStr: '|+⟩|−⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(-0.5, 0),
+      Complex(-0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Oracle Intuition',
+    taskDescription:
+        r'Can a hidden rule classify one input differently from the others? Query the rule on \( |++\rangle \).',
+    targetStateExpression: 'O|++⟩ = (|00⟩ + |01⟩ + |10⟩ - |11⟩)/2',
+    mysteryTitle: 'Can a circuit behave like a hidden rule?',
+    mysteryText:
+        'An oracle is a black-box function. It receives possible inputs and classifies each one as valid or invalid without directly announcing the answer.',
+    discoveryTitle: 'A Special State',
+    discoveryText:
+        'The hidden rule treated |11⟩ as the valid input and left the other inputs unmarked. The answer was classified, not revealed.',
+    keyInsight: 'An oracle is a hidden rule: f(x) returns valid or invalid.',
+    whyItMatters:
+        'Oracle thinking separates what the rule means from how a circuit implements it. The learner reasons about input classification first.',
+    nextMystery:
+        'Can a simple rule mark one input while keeping the answer hidden?',
+    hints: [
+      'Look for the operation that classifies only the input |11⟩ as valid.',
+      'The goal is not to read the answer. It is to apply the hidden rule once.',
+    ],
+    solutionExplanation:
+        'The oracle query leaves the invalid inputs unmarked and marks only the valid input |11⟩. That selective classification is the beginning of oracle thinking.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cz),
+    ],
+    solutionFinalVector: [
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(-0.5, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Simple Marking Rule',
+    taskDescription:
+        r'Can a rule mark one valid input without directly revealing it? Query the rule that accepts \( |1\rangle \).',
+    targetStateLabel: '|−⟩',
+    targetStateExpression: '|−⟩ = (|0⟩ - |1⟩)/√2',
+    mysteryTitle: 'Can a rule identify validity without showing the answer?',
+    mysteryText:
+        'A classical question asks for the answer. An oracle query applies a rule and only labels whether an input is valid.',
+    discoveryTitle: 'Hidden Mark',
+    discoveryText:
+        'The oracle classified |1⟩ as valid while |0⟩ remained unmarked. The valid input was labeled by the rule, not exposed by measurement.',
+    keyInsight: 'Oracle output means marked or unmarked, not answer displayed.',
+    whyItMatters:
+        'This is the query model: ask the hidden function to evaluate inputs, then use the classification later.',
+    nextMystery:
+        'Can the same idea classify one valid input among several possibilities?',
+    hints: [
+      'Apply the operation that labels |1⟩ as the accepted input.',
+      'Do not look for a measurement result. Look for rule-based classification.',
+    ],
+    solutionExplanation:
+        'The oracle query labels the accepted input |1⟩ and leaves |0⟩ unmarked. The rule has been evaluated without directly displaying the answer.',
+    numQubits: 1,
+    initialQubitsStateStr: '|+⟩',
+    initialQubitsState: [
+      Complex(math.sqrt1_2, 0),
+      Complex(math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Hidden Structure Effect',
+    taskDescription:
+        r'Can a hidden rule classify \( |10\rangle \) as valid while the other inputs remain invalid?',
+    targetStateExpression: 'O|++⟩ = (|00⟩ + |01⟩ - |10⟩ + |11⟩)/2',
+    mysteryTitle: 'Can hidden structure exist before the answer is visible?',
+    mysteryText:
+        'The oracle applies a function to the input space. It can classify one input as valid even when direct reading has not revealed which input matters.',
+    discoveryTitle: 'Oracle',
+    discoveryText:
+        'The oracle encoded the rule f(10)=1 and f(x)=0 for the other inputs. It marked the valid input without revealing it as a measurement outcome.',
+    keyInsight: 'An oracle is a hidden function over possible inputs.',
+    whyItMatters:
+        'This lifts the idea above individual operations: the important object is the rule that maps inputs to valid or invalid.',
+    nextMystery:
+        'Why is querying a hidden rule different from checking answers one at a time?',
+    hints: [
+      'Think of the oracle as the rule f(10)=1.',
+      'The other inputs should remain in the unmarked class.',
+    ],
+    solutionExplanation:
+        'The completed oracle query classifies |10⟩ as valid and all other inputs as invalid. The learner-facing idea is the function table, not the internal implementation.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.cz),
+    ],
+    solutionFinalVector: [
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(-0.5, 0)],
+      [Complex(0.5, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Why Classical Fails',
+    taskDescription:
+        r'Why is a rule query not the same as checking each answer manually? Query the hidden rule that accepts \( |01\rangle \).',
+    targetStateExpression: 'O|++⟩ = (|00⟩ - |01⟩ + |10⟩ + |11⟩)/2',
+    mysteryTitle: 'Why is brute-force inspection the wrong model?',
+    mysteryText:
+        'Classical inspection asks one candidate at a time. Oracle thinking treats the circuit as a black-box function that can be queried as a whole.',
+    discoveryTitle: 'Invisible Mark',
+    discoveryText:
+        'The oracle query encoded f(01)=1 without turning the problem into a visible answer list. Querying the rule is not the same as brute-force inspection.',
+    keyInsight:
+        'Oracle access evaluates a hidden rule; it does not reveal the answer by itself.',
+    whyItMatters:
+        'This is the conceptual breakthrough: the algorithm receives structured access to a rule, not a direct answer.',
+    nextMystery:
+        'What role does this hidden rule play inside a larger algorithm?',
+    hints: [
+      'Treat |01⟩ as the only input for which f(x)=1.',
+      'The goal is a rule query, not a list of tested candidates.',
+    ],
+    solutionExplanation:
+        'The oracle query represents the rule f(01)=1 and f(x)=0 otherwise. This gives structured access to the problem without directly exposing the answer.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.cz),
+    ],
+    solutionFinalVector: [
+      [Complex(0.5, 0)],
+      [Complex(-0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Oracle as Computation Primitive',
+    taskDescription:
+        r'What have we actually built? Query a reusable oracle whose hidden rule accepts \( |00\rangle \).',
+    targetStateExpression: 'O|++⟩ = (-|00⟩ + |01⟩ + |10⟩ + |11⟩)/2',
+    mysteryTitle: 'What is an oracle for?',
+    mysteryText:
+        'An oracle is not the whole algorithm. It is the reusable part that encodes the problem as a hidden function.',
+    discoveryTitle: 'Phase Marking',
+    discoveryText:
+        'You built the abstraction an algorithm needs: a reusable query that classifies |00⟩ as valid and every other input as invalid.',
+    keyInsight:
+        'An oracle is a computation primitive: query f(x), then use the result later.',
+    whyItMatters:
+        'Future algorithms can call this hidden rule as a component. Chapter 9 defines the abstraction, not the later extraction step.',
+    nextMystery:
+        'If an oracle can classify valid inputs, how can a later algorithm make that classification useful?',
+    hints: [
+      'Think of the function table: f(00)=1 and every other input maps to 0.',
+      'Build the reusable query, not a direct answer display.',
+    ],
+    solutionExplanation:
+        'The resulting oracle query classifies |00⟩ as the valid input and the remaining candidates as invalid. That black-box rule is now a reusable computation primitive.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.cz),
+    ],
+    solutionFinalVector: [
+      [Complex(-0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Why Marking Is Not Enough',
+    taskDescription:
+        r'A valid state is known, but every outcome is still equally likely. Keep \( |11\rangle \) no more likely than the others.',
+    targetStateExpression: 'P(00)=P(01)=P(10)=P(11)=25%',
+    mysteryTitle: 'Why is knowing the valid state not enough?',
+    mysteryText:
+        'A valid answer can be identified without becoming easier to observe. If all probabilities stay equal, knowing validity has not changed the distribution.',
+    discoveryTitle: 'Marked But Hidden',
+    discoveryText:
+        'The valid state |11⟩ still had the same 25% chance as every other state. Identifying the answer is not the same as making it likely.',
+    keyInsight:
+        'A known valid state must become more likely before measurement is useful.',
+    whyItMatters:
+        'Amplitude amplification starts from this gap: the goal is not just to know which state is valid, but to concentrate probability toward it.',
+    nextMystery: 'Can probability shift toward the valid state?',
+    hints: [
+      'Focus on the measurement chances, not on naming the valid state.',
+      'For this step, the valid state should remain equally likely.',
+    ],
+    solutionExplanation:
+        'The resulting distribution still gives every basis state a 25% chance. The visible lesson is that validity alone has not increased the chance of observing |11⟩.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cz),
+    ],
+    solutionFinalVector: [
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(0.5, 0)],
+      [Complex(-0.5, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'First Sign of Bias',
+    taskDescription:
+        r'Can a balanced distribution become uneven? Shift \( |++\rangle \) so only two outcomes remain likely.',
+    targetStateExpression: 'P(00)=50%, P(10)=50%',
+    mysteryTitle: 'Can a balanced distribution become uneven?',
+    mysteryText:
+        'Before amplification feels useful, the learner needs to see a smaller move: probability does not have to stay spread evenly across every candidate.',
+    discoveryTitle: 'Mark Becomes Probability',
+    discoveryText:
+        'The distribution narrowed from four equally likely outcomes to two likely outcomes. This is the first visible sign that probability can be biased.',
+    keyInsight:
+        'A probability distribution can become uneven without producing a guaranteed answer.',
+    whyItMatters:
+        'This bridge keeps Chapter 10 gradual: first observe an uneven distribution, then use that idea to favor a valid state.',
+    nextMystery:
+        'Can a valid state become more likely without becoming certain?',
+    hints: [
+      'Aim for two likely outcomes instead of four equal ones.',
+      'The final distribution should be biased, not guaranteed.',
+    ],
+    solutionExplanation:
+        'The completed transformation leaves probability on |00⟩ and |10⟩ only. The learner-facing point is the first uneven distribution, not a final answer.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Reinforcement of Probability',
+    taskDescription:
+        r'Can a valid state become more likely without becoming certain? Bias the distribution toward \( |11\rangle \).',
+    targetStateExpression: 'P(00)=50%, P(11)=50%',
+    mysteryTitle:
+        'Can a valid state become more likely without becoming certain?',
+    mysteryText:
+        'Start with every candidate equally likely. The task is only to make |11⟩ more likely than it was before, not to force it as the guaranteed outcome.',
+    discoveryTitle: 'Amplitude Amplification',
+    discoveryText:
+        'The probability of |11⟩ increased from 25% to 50%. That is reinforcement: a stronger preference, but still not a guaranteed result.',
+    keyInsight:
+        'Reinforcement can increase likelihood before full amplification appears.',
+    whyItMatters:
+        'This removes the sudden jump from equal probabilities to certainty. The learner sees amplification as a gradual strengthening of likelihood.',
+    nextMystery: 'How does a small bias become an amplification pattern?',
+    hints: [
+      '|11⟩ should become more likely than before, but it should not be the only possible result.',
+      'Aim for a weak bias shared with one other outcome.',
+    ],
+    solutionExplanation:
+        'The completed sequence raises |11⟩ to 50% probability while another outcome remains possible. The visible concept is incremental reinforcement.',
+    numQubits: 2,
+    initialQubitsStateStr: '|++⟩',
+    initialQubitsState: [
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+      Complex(0.5, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cz),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ConceptCheckLevel(
+    title: 'Bias Becomes Amplification',
+    taskDescription:
+        r'A weak bias toward \( |11\rangle \) already exists. Which description correctly turns that bias into amplification?',
+    conceptIntro:
+        'Read the probability change: amplification means a weak preference becomes stronger without becoming a guaranteed selection.',
+    mysteryTitle: 'How does a small bias become an amplification pattern?',
+    mysteryText:
+        'Level 48 created the first weak preference. This checkpoint asks what should happen next at the probability level only.',
+    discoveryTitle: 'Bias Becomes Amplification',
+    discoveryText:
+        'A small preference for |11⟩ can be strengthened into a larger preference. The result is still a probability bias, not a guaranteed answer.',
+    keyInsight: 'Amplification is a strengthened bias toward the valid state.',
+    whyItMatters:
+        'This level keeps Chapter 10 at the probability layer: small preference first, stronger preference next, full certainty not required.',
+    nextMystery: 'What does amplification contribute to search?',
+    hints: [
+      'Compare before and after probabilities.',
+      'The correct answer strengthens the bias without claiming certainty.',
+    ],
+    solutionExplanation:
+        'Before: slight preference for |11⟩. After: stronger preference for |11⟩. The result is still not guaranteed; amplification means strengthened likelihood.',
+    options: [
+      'Before: slight preference for |11⟩. After: stronger preference for |11⟩, but not certainty.',
+      'Before: slight preference for |11⟩. After: |11⟩ is guaranteed and every other outcome disappears.',
+      'Before: slight preference for |11⟩. After: each candidate is checked one at a time.',
+      'Before: slight preference for |11⟩. After: the distribution stays exactly the same.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Amplification as Computational Advantage',
+    taskDescription:
+        'What is the final Chapter 10 takeaway about amplitude amplification?',
+    badgeLabel: 'Chapter Synthesis Check',
+    conceptIntro:
+        'Use the probability model only: weak bias can become stronger bias, and stronger bias makes the valid answer more likely to be observed.',
+    mysteryTitle: 'What does amplification contribute to search?',
+    mysteryText:
+        'Bring the chapter together: amplification is useful because probability can be shifted toward the valid state without treating the result as guaranteed.',
+    discoveryTitle: 'Amplification as Computational Advantage',
+    discoveryText:
+        'A small probability advantage can become a useful bias toward the correct answer. That stronger likelihood is the computational advantage.',
+    keyInsight:
+        'Amplitude amplification turns weak bias into useful probability advantage.',
+    whyItMatters:
+        'This is the Chapter 10 abstraction: computation can improve search by increasing likelihood, not by guaranteeing the answer.',
+    nextMystery:
+        'If we can tune probabilities for search, can we tune them for optimization?',
+    hints: [
+      'Choose the answer that stays at the probability level.',
+      'The correct idea is stronger likelihood, not certainty.',
+    ],
+    solutionExplanation:
+        'Amplitude amplification is the process where a small probability advantage becomes a useful bias toward the correct answer. It improves likelihood without making the outcome deterministic.',
+    options: [
+      'A small probability advantage can be strengthened into a useful bias toward the correct answer.',
+      'The answer becomes guaranteed, so probability no longer matters.',
+      'The task is to select one state exactly and ignore probability.',
+      'The distribution should stay evenly spread across every candidate.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Why One Step Is Not Enough',
+    taskDescription:
+        'One oracle plus amplification pass improves the chance of success. Why might that still not be enough?',
+    conceptIntro:
+        'Chapter 11 starts above the mechanics. Treat oracle and amplification as abstract steps: one identifies valid states, the other improves their likelihood.',
+    mysteryTitle: 'Why is one improvement not always enough?',
+    mysteryText:
+        'A single pass can make the valid answer more likely, but a small improvement may still leave too much probability on other candidates.',
+    discoveryTitle: 'Why One Step Is Not Enough',
+    discoveryText:
+        'One round can create a useful advantage without making success likely enough. Chapter 11 begins with the need to strengthen that advantage.',
+    keyInsight:
+        'A probability advantage can be useful before it is strong enough.',
+    whyItMatters:
+        'This prepares the loop idea: repeated abstract steps can build on an existing probability advantage.',
+    nextMystery: 'What changes when the abstract process is repeated?',
+    hints: [
+      'Do not look for certainty.',
+      'Compare a small improvement with a high chance of success.',
+    ],
+    solutionExplanation:
+        'One pass can improve the odds, but the valid answer may still not be likely enough. The next idea is repeating the abstract process to strengthen the advantage.',
+    options: [
+      'One pass can improve likelihood, but the success probability may still be too low.',
+      'One pass always guarantees the correct answer.',
+      'One pass is useless because probability cannot change.',
+      'One pass means every candidate must be tried separately.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Iteration Idea',
+    taskDescription:
+        'What is the new idea when the oracle plus amplification pattern is repeated?',
+    conceptIntro:
+        'Iteration means using the same abstract pattern again so an existing advantage can become stronger.',
+    mysteryTitle: 'What does repetition add?',
+    mysteryText:
+        'The chapter shift is not a new operation. The shift is using known abstractions repeatedly to improve success likelihood.',
+    discoveryTitle: 'Iteration Improves Likelihood',
+    discoveryText:
+        'Repeating the abstract process can increase the chance of observing a valid answer.',
+    keyInsight:
+        'Iteration can strengthen a probability advantage across rounds.',
+    whyItMatters:
+        'Grover intuition depends on understanding repeated abstract steps, not a one-shot transformation.',
+    nextMystery: 'What trend appears across repeated rounds?',
+    hints: [
+      'Think about likelihood across rounds.',
+      'The repeated pattern should strengthen the same valid region.',
+    ],
+    solutionExplanation:
+        'Iteration reuses the oracle plus amplification abstractions so the probability advantage can grow across rounds.',
+    options: [
+      'Repeat the abstract pattern so the valid answer becomes more likely across rounds.',
+      'Repeat random guessing without changing the distribution.',
+      'Stop after the first small improvement because repetition cannot help.',
+      'Replace probability reasoning with exact selection.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Convergence Toward Solution',
+    taskDescription:
+        'What should happen to the probability distribution across useful repeated rounds?',
+    conceptIntro:
+        'Convergence means the distribution trends toward the valid answer as the abstract loop is applied carefully: flat at first, then slightly lifted, then visibly biased.',
+    mysteryTitle: 'What trend should the loop create?',
+    mysteryText:
+        'The learner should track the shape of the probability distribution, not a low-level implementation.',
+    discoveryTitle: 'Convergence Toward Solution',
+    discoveryText:
+        'Repeated rounds can concentrate probability toward valid states, creating a stronger chance of success.',
+    keyInsight:
+        'Grover loop intuition is about a changing probability shape over time.',
+    whyItMatters:
+        'This prevents treating Grover as instant success. The value comes from structured probability improvement.',
+    nextMystery: 'Why is this different from classical repetition?',
+    hints: [
+      'Look for a trend, not a single guaranteed jump.',
+      'The valid answer should become more likely over useful rounds.',
+    ],
+    solutionExplanation:
+        'Across useful repeated rounds, probability should move toward valid states. The visual story is flat distribution, slight lift, visible bias, then stronger concentration.',
+    options: [
+      'Probability trends toward valid states across useful repeated rounds.',
+      'Probability must stay evenly spread forever.',
+      'The valid answer is guaranteed after every single round.',
+      'The process works by ignoring the existing bias.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Classical vs Quantum Iteration',
+    taskDescription:
+        'Why is this loop idea different from simply guessing again?',
+    conceptIntro:
+        'Classical repetition retries. Grover-style iteration is different at the abstraction level because it reshapes the probability distribution.',
+    mysteryTitle: 'Why is repeated guessing not the same idea?',
+    mysteryText:
+        'A repeated guess samples again from the same situation. A useful Grover-style loop changes the distribution before the next observation.',
+    discoveryTitle: 'Classical vs Quantum Iteration',
+    discoveryText:
+        'Classical repetition does not by itself reshape probability. The Grover loop idea is repeated probability improvement.',
+    keyInsight:
+        'The loop matters because it changes the distribution, not because it merely retries.',
+    whyItMatters:
+        'This keeps the advantage conceptual: improved likelihood is different from repeated brute-force checking.',
+    nextMystery: 'How do these pieces become the Grover pattern?',
+    hints: [
+      'Compare retrying with reshaping likelihood.',
+      'The correct answer changes the distribution before measuring.',
+    ],
+    solutionExplanation:
+        'Classical repetition tries again. Grover-style iteration repeatedly improves the probability distribution so valid answers become more likely.',
+    options: [
+      'Repeated guessing retries; Grover-style iteration strengthens the probability distribution toward valid answers.',
+      'Repeated guessing and Grover-style iteration are the same because both use repetition.',
+      'Classical repetition automatically increases the probability of the correct answer.',
+      'The useful part is ignoring probability and counting attempts only.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Applying Iteration Thinking to Structured Problems',
+    badgeLabel: 'Chapter Synthesis Check',
+    taskDescription:
+        'How can iteration thinking help with structured selection problems?',
+    conceptIntro:
+        'Use the whole chapter as a reasoning tool: a weak preference can become useful when a structured process reinforces it repeatedly.',
+    mysteryTitle: 'Can the loop idea transfer?',
+    mysteryText:
+        'The goal is not to build a mechanism. The goal is to recognize when repeated refinement can narrow a structured set of choices.',
+    discoveryTitle: 'Cognitive Transfer of Iteration Thinking',
+    discoveryText:
+        'Iteration thinking transfers to structured problems: start with a weak bias, reinforce it through repeated refinement, and make valid choices easier to select.',
+    keyInsight:
+        'Bias plus structured repetition can improve selection without checking every option one by one.',
+    whyItMatters:
+        'This turns Grover loop intuition into a problem-solving pattern learners can apply beyond the chapter.',
+    nextMystery:
+        'If repeated refinement can guide selection, what other algorithmic patterns can organize hard choices?',
+    hints: [
+      'Think about a candidate set, not a construction.',
+      'Look for weak preference becoming stronger through repeated refinement.',
+    ],
+    solutionExplanation:
+        'The transferable idea is structured refinement: a weak bias toward valid choices can be reinforced across repeated rounds so selection becomes more likely without brute-force checking.',
+    options: [
+      'Use repeated refinement to strengthen a weak bias toward valid choices in a structured set.',
+      'Try every option one by one until the correct choice appears.',
+      'Assume the first weak preference is already guaranteed to be correct.',
+      'Ignore the structure of the choices and sample randomly each time.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'The Full Picture Appears',
+    taskDescription:
+        'What is the best high-level description of a quantum algorithm at this point in Qubit Quest?',
+    conceptIntro:
+        'Chapter 12 is a unification layer. It does not add a new concept; it connects the abstract roles learned across the last three chapters.',
+    mysteryTitle: 'What has the pattern become?',
+    mysteryText:
+        'The learner now steps back from individual ideas and sees the algorithm as a structured process rather than a single clever trick.',
+    discoveryTitle: 'Quantum Algorithm Structure',
+    discoveryText:
+        'A quantum algorithm can be understood as a structured process: define valid solutions, increase their likelihood, and use repetition to build advantage.',
+    keyInsight:
+        'The algorithmic idea is structure across roles, not one isolated trick.',
+    whyItMatters:
+        'This gives the learner a stable mental model for future algorithms without reopening lower-level construction details.',
+    nextMystery: 'What role does each part play?',
+    hints: [
+      'Look for the answer that combines roles into one process.',
+      'Do not reduce the chapter to one isolated step.',
+    ],
+    solutionExplanation:
+        'The full picture is a structured process: one role defines valid solutions, another increases their likelihood, and iteration turns the combination into useful advantage.',
+    options: [
+      'A structured process that defines valid solutions, biases selection toward them, and repeats the pattern to build advantage.',
+      'A single trick that works because one step already guarantees the answer.',
+      'A random retry strategy with no organized roles.',
+      'A list of unrelated concepts that do not combine into a process.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Separation of Roles',
+    taskDescription:
+        'How should the oracle, amplification, and iteration roles be separated conceptually?',
+    conceptIntro:
+        'Each role has a distinct job in the abstract model: define what counts, make valid outcomes more likely, and repeat the pattern.',
+    mysteryTitle: 'Which part does what?',
+    mysteryText:
+        'The goal is clean role separation. The learner should not blur definition, likelihood increase, and repetition into one vague idea.',
+    discoveryTitle: 'Role Separation in Quantum Algorithms',
+    discoveryText:
+        'Oracle, amplification, and iteration are distinct roles: define validity, increase likelihood, and combine repeated rounds into advantage.',
+    keyInsight:
+        'Clear role separation prevents the algorithm from becoming a memorized slogan.',
+    whyItMatters:
+        'Future algorithm models become easier when the learner can identify what each layer contributes.',
+    nextMystery: 'Why does combining roles matter?',
+    hints: [
+      'One role defines validity.',
+      'Another role changes likelihood, and iteration organizes repeated use.',
+    ],
+    solutionExplanation:
+        'The roles separate cleanly: oracle defines valid solutions, amplification increases likelihood of valid solutions, and iteration combines those effects across rounds.',
+    options: [
+      'Oracle defines valid solutions; amplification increases their likelihood; iteration combines repeated rounds.',
+      'Oracle increases likelihood; amplification decides validity; iteration removes structure.',
+      'All three roles do exactly the same job.',
+      'Iteration replaces both definition and likelihood increase.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Why Composition Matters',
+    taskDescription:
+        'Why does computational advantage depend on combining the roles rather than naming them separately?',
+    conceptIntro:
+        'A role by itself is only part of the story. The useful model is compositional: definition, bias, and repetition work as a layered process.',
+    mysteryTitle: 'Why is combination useful?',
+    mysteryText:
+        'The learner now asks why separate abstractions become more powerful when they are arranged together.',
+    discoveryTitle: 'Why Composition Creates Advantage',
+    discoveryText:
+        'Advantage comes from composition: validity gives direction, likelihood increase gives pressure, and iteration turns pressure into a stronger process.',
+    keyInsight:
+        'Composition creates advantage because each layer contributes a different kind of structure.',
+    whyItMatters:
+        'This avoids treating quantum algorithms as vocabulary lists. The power is in how the layers work together.',
+    nextMystery:
+        'How is this structure different from ordinary repeated search?',
+    hints: [
+      'A definition alone does not create the full advantage.',
+      'A likelihood change becomes more useful when organized by repeated structure.',
+    ],
+    solutionExplanation:
+        'The roles matter because they compose. Validity gives the process a target, likelihood increase biases selection toward that target, and iteration strengthens the organized pattern.',
+    options: [
+      'The roles compose: define the valid set, bias selection toward it, then repeat the structure to strengthen advantage.',
+      'The roles matter only as labels and do not need to interact.',
+      'The first role alone guarantees success, so composition is unnecessary.',
+      'Composition means ignoring validity and sampling without structure.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Classical vs Quantum Structure',
+    taskDescription:
+        'At this meta level, what structural difference separates ordinary repeated search from the quantum algorithm model?',
+    conceptIntro:
+        'Classical repeated search tries again. The quantum structure discussed here organizes a probability-shaping process around valid solutions.',
+    mysteryTitle: 'What is structurally different?',
+    mysteryText:
+        'The comparison is not about implementation. It is about whether repetition merely retries or whether it is part of a structured probability-shaping system.',
+    discoveryTitle: 'Classical vs Quantum Structural Difference',
+    discoveryText:
+        'Classical search repeatedly checks candidates. The quantum model builds an organized probability-shaping system around valid solutions.',
+    keyInsight:
+        'The structural difference is repeated checking versus layered probability shaping.',
+    whyItMatters:
+        'This keeps the comparison at the algorithm-design level, where the learner can reason without implementation details.',
+    nextMystery: 'Can the whole model be summarized as a pipeline?',
+    hints: [
+      'Classical repetition retries or checks.',
+      'The quantum model uses a structured probability-shaping process.',
+    ],
+    solutionExplanation:
+        'The difference is structural: classical search repeats checks, while the quantum algorithm model defines validity and shapes probability through an organized repeated process.',
+    options: [
+      'Classical search repeats checks; the quantum model uses structured probability shaping around valid solutions.',
+      'Classical and quantum structures are identical because both involve repetition.',
+      'The quantum model is random sampling with no definition of valid solutions.',
+      'Classical search always changes the probability distribution before each check.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ConceptCheckLevel(
+    title: 'Unified Quantum Algorithm Model',
+    badgeLabel: 'Chapter Synthesis Check',
+    taskDescription:
+        'Which abstract pipeline best summarizes Chapters 9-12 together?',
+    conceptIntro:
+        'The synthesis is a layered abstract pipeline: define what counts as valid, bias probability toward validity, then iterate the structure.',
+    mysteryTitle: 'What is the unified model?',
+    mysteryText:
+        'The learner should leave the chapter with a portable algorithm model, not a construction recipe.',
+    discoveryTitle: 'Unified Quantum Algorithm Model',
+    discoveryText:
+        'The unified model is define -> bias -> iterate: define valid solutions, increase their likelihood, and repeat the structure to build advantage.',
+    keyInsight:
+        'Quantum algorithm thinking can be modeled as a layered pipeline: define, bias, iterate.',
+    whyItMatters:
+        'This provides a clean bridge from beginner discoveries to later algorithm chapters.',
+    nextMystery:
+        'What other quantum algorithm families use layered abstract structure?',
+    hints: [
+      'Look for a three-layer pipeline.',
+      'The correct answer stays conceptual: define, bias, iterate.',
+    ],
+    solutionExplanation:
+        'The unified abstract model is define -> bias -> iterate. It unifies oracle thinking, amplification, and iteration without adding lower-level construction details.',
+    options: [
+      'Define valid solutions -> bias probability toward them -> iterate the structure to build advantage.',
+      'Guess randomly -> ignore validity -> stop after one attempt.',
+      'Define nothing -> bias nothing -> repeat without structure.',
+      'Check every candidate one by one until the answer appears.',
+    ],
+    correctOptionIndex: 0,
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'The First Qubit',
+    taskDescription:
+        r'Can a quantum bit store information? Transform \( |0\rangle \) into \( |1\rangle \).',
+    targetStateExpression: '|1⟩',
+    mysteryTitle: 'Can a quantum bit store information?',
+    mysteryText:
+        'Start with the simplest possible quantum register: one qubit showing |0⟩. Can a gate make it carry a different value?',
+    discoveryTitle: 'Information',
+    discoveryText:
+        'The X gate changed |0⟩ into |1⟩. The qubit is not just a label on a wire; it is a state a circuit can transform.',
+    keyInsight: 'A qubit can store a state that a circuit changes.',
+    whyItMatters:
+        'Every later puzzle starts from this move: prepare information, transform it, then inspect what changed.',
+    nextMystery: 'Can a quantum change be undone?',
+    hints: [
+      'There is only one gate available.',
+      'Use X to flip |0⟩ into |1⟩.',
+    ],
+    solutionExplanation:
+        'X flips the qubit from |0⟩ to |1⟩. This is the first information transformation.',
+    numQubits: 1,
+    initialQubitsStateString: '0',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Undo The Change',
+    taskDescription:
+        r'Can a change be reversed? The qubit has already been flipped. Return it to \( |0\rangle \).',
+    targetStateExpression: '|0⟩',
+    mysteryTitle: 'Can a change be reversed?',
+    mysteryText:
+        'The circuit has already flipped the qubit. Instead of erasing the circuit, try to use another operation to retrace the change.',
+    discoveryTitle: 'Reversibility',
+    discoveryText:
+        'A second X brought the qubit back to |0⟩. The first gate did not destroy the original information; its effect could be reversed.',
+    keyInsight: 'Quantum gates act like reversible transformations.',
+    whyItMatters:
+        'Quantum circuits are built from operations that preserve enough structure to be undone or combined with other operations.',
+    nextMystery: 'Can extra moves cancel out?',
+    hints: [
+      'The first X has already been placed.',
+      'X followed by X returns the qubit to its starting state.',
+    ],
+    solutionExplanation:
+        'The pre-built X flips |0⟩ to |1⟩. A second X flips |1⟩ back to |0⟩, so X followed by X restores the original state.',
+    numQubits: 1,
+    initialQubitsStateString: '0',
+    preInsertedGates: (QuantumCircuit circuit) {
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0,
+          isDeletable: false);
+    },
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+    ],
+    solutionFinalVector: [
+      [Complex.one()],
+      [Complex.zero()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Different Paths',
+    taskDescription:
+        r'Can extra moves cancel out? Reach \( |1\rangle \) from \( |0\rangle \) after adding more than one gate.',
+    targetStateExpression: '|1⟩',
+    mysteryTitle: 'Can extra moves cancel out?',
+    mysteryText:
+        'A circuit is not judged by how many gates it contains. Try making a longer route where part of the route erases itself.',
+    discoveryTitle: 'Equivalent Results',
+    discoveryText:
+        'Three X gates still ended at |1⟩ because two of them canceled as a pair. The whole circuit matters more than any single step.',
+    keyInsight: 'A circuit has an overall effect, and some steps can cancel.',
+    whyItMatters:
+        'Later puzzles use the same idea with less obvious gates: build a useful transformation by combining pieces that may undo, redirect, or reveal each other.',
+    nextMystery: 'Can one circuit transform a whole pattern?',
+    hints: [
+      'Build a route with more gates than the direct answer needs.',
+      'Two neighboring X gates cancel; the remaining X sets the final state.',
+    ],
+    solutionExplanation:
+        'X then X then X reaches |1⟩ because one pair of flips cancels. The circuit is longer, but its net effect is still a single flip.',
+    numQubits: 1,
+    initialQubitsStateString: '0',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Information Patterns',
+    taskDescription:
+        r'Can information move through multiple states? Transform \( |00\rangle \) into \( |11\rangle \).',
+    targetStateExpression: '|11⟩',
+    mysteryTitle: 'Can information move through multiple states?',
+    mysteryText:
+        'One qubit can change, but useful registers contain patterns. Can you transform both parts of the pattern without treating them as one big switch?',
+    discoveryTitle: 'State Transformations',
+    discoveryText:
+        'Each wire carried one piece of the pattern. Changing both pieces transformed the register from |00⟩ into |11⟩.',
+    keyInsight: 'Multi-qubit states are information patterns.',
+    whyItMatters:
+        'Quantum algorithms work on registers, not isolated symbols. Even simple gates can reshape a complete pattern.',
+    nextMystery: 'What is the thing being transformed?',
+    hints: [
+      'Each qubit needs to change from 0 to 1.',
+      'Use one X on each qubit.',
+    ],
+    solutionExplanation:
+        'X on each qubit flips both bits of information, changing |00⟩ into |11⟩.',
+    numQubits: 2,
+    initialQubitsStateString: '00',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'What Have We Learned?',
+    taskDescription:
+        r'What is a qubit really? Transform the information pattern \( |01\rangle \) into \( |10\rangle \).',
+    targetStateExpression: '|10⟩',
+    mysteryTitle: 'What is a qubit really?',
+    mysteryText:
+        'You have flipped, undone, canceled, and changed patterns. Use one final pattern change to name what the circuit has been acting on.',
+    discoveryTitle: 'The Quantum Bit',
+    discoveryText:
+        'The circuit changed |01⟩ into |10⟩ by transforming each qubit. A qubit is the basic piece of information inside the register.',
+    keyInsight: 'Qubits are the transformable units of quantum information.',
+    whyItMatters:
+        'Everything next asks a sharper question: if a qubit can change, will measurement always show that change?',
+    nextMystery: 'Can a circuit change something we cannot see yet?',
+    hints: [
+      'Both qubits need to change.',
+      'Use X on each qubit to swap the pattern from |01⟩ to |10⟩.',
+    ],
+    solutionExplanation:
+        'X flips each qubit: the 0 becomes 1 and the 1 becomes 0. The information pattern changes from |01⟩ to |10⟩.',
+    numQubits: 2,
+    initialQubitsStateString: '01',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+      [Complex.zero()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Nothing Happened?',
+    taskDescription:
+        r'Can a quantum state change without changing its measurement? Use Z on \( |0\rangle \).',
+    targetStateExpression: 'Z|0⟩ = |0⟩',
+    mysteryTitle:
+        'Can a quantum state change without changing its measurement?',
+    mysteryText:
+        'So far, every useful change moved a visible 0 or 1. Try a gate whose action is real, even though this starting state still measures the same way.',
+    discoveryTitle: 'Hidden Change',
+    discoveryText:
+        'Z was applied, but |0⟩ still measured as |0⟩. The surprise is that a gate can be part of the circuit even when this particular input hides its effect.',
+    keyInsight:
+        'A gate can have a real action without changing every visible outcome.',
+    whyItMatters:
+        'This separates “nothing visible happened” from “nothing happened.” Quantum puzzles often depend on that difference.',
+    nextMystery: 'Where can an invisible effect leave a trace?',
+    hints: [
+      'There is only one gate available.',
+      'Use Z and notice that this input hides the gate in the measured result.',
+    ],
+    solutionExplanation:
+        'Z leaves |0⟩ unchanged for this input. The operation is still part of the circuit; this state simply does not expose its sign-changing side.',
+    numQubits: 1,
+    initialQubitsStateString: '0',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex.one()],
+      [Complex.zero()],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [Complex.one(), Complex.zero()],
+      [Complex.zero(), Complex(-1, 0)],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'The Invisible Difference',
+    taskDescription:
+        r'How can two states look identical but behave differently later? Change \( |1\rangle \) without changing its measurement.',
+    targetStateExpression: '-|1⟩',
+    mysteryTitle:
+        'How can two states look identical but behave differently later?',
+    mysteryText:
+        'Now try the same gate on |1⟩. The measured bit will not flip, but watch the state expression for a trace that was missing before.',
+    discoveryTitle: 'Invisible Difference',
+    discoveryText:
+        'The bit value stayed 1, but the state picked up a minus sign. Measurement of this single basis state hides the sign; the state display reveals it.',
+    keyInsight:
+        'Quantum state descriptions can contain signs that measurement probabilities ignore.',
+    whyItMatters:
+        'This is the first visible trace of phase. By itself it is quiet, but in a state with multiple pieces a sign can change what happens next.',
+    nextMystery: 'What happens when only one piece gets the sign?',
+    hints: [
+      'Use the same gate as before, but start from the state where its sign effect appears.',
+      'Z does not flip |1⟩ into |0⟩; it attaches a minus sign to |1⟩.',
+    ],
+    solutionExplanation:
+        'Z changes |1⟩ into -|1⟩. The measured bit stays fixed, while the state expression exposes the sign.',
+    numQubits: 1,
+    initialQubitsStateString: '1',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex(-1, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'The Minus Sign',
+    taskDescription:
+        r'Why does a minus sign matter? Create the phase-flipped \( |-\rangle \) state.',
+    targetStateLabel: '|-⟩',
+    targetStateExpression: '(|0⟩ - |1⟩)/√2',
+    mysteryTitle: 'Why does a minus sign matter?',
+    mysteryText:
+        'A balanced state has two pieces. If only one piece receives the minus sign, the odds still look balanced, but the relationship between the pieces changes.',
+    discoveryTitle: 'Relative Phase',
+    discoveryText:
+        'The state still gives equal chances of |0⟩ and |1⟩, but the sign between the two pieces changed. That relationship is relative phase.',
+    keyInsight: 'Relative phase is a sign relationship inside a state.',
+    whyItMatters:
+        'Relative phase is where the hidden sign becomes useful: later gates can make different relationships produce different outcomes.',
+    nextMystery: 'Can phase act like memory?',
+    hints: [
+      'You are already balanced between |0⟩ and |1⟩.',
+      'Use Z to change the relationship between the two pieces.',
+    ],
+    solutionExplanation:
+        'Z changes |+⟩ into |−⟩ by giving only the |1⟩ part a minus sign. The important change is the relationship between the two amplitudes.',
+    numQubits: 1,
+    initialQubitsStateStr: '|+⟩',
+    initialQubitsState: [
+      Complex(math.sqrt1_2, 0),
+      Complex(math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Hidden Information',
+    taskDescription:
+        r'Can information be stored in phase? Change \( |-\rangle \) back into \( |+\rangle \).',
+    targetStateLabel: '|+⟩',
+    targetStateExpression: '(|0⟩ + |1⟩)/√2',
+    mysteryTitle: 'Can information be stored in phase?',
+    mysteryText:
+        'The possible outcomes are unchanged. The puzzle is whether changing only the relationship between them can still count as changing information.',
+    discoveryTitle: 'Phase Information',
+    discoveryText:
+        'Z changed |−⟩ back into |+⟩. Nothing about the 50/50 odds changed, but the phase relationship did.',
+    keyInsight:
+        'Quantum information can live in relationships, not only values.',
+    whyItMatters:
+        'Future algorithms mark and guide answers by changing relationships first, then making those changes visible later.',
+    nextMystery: 'Can a hidden relationship become a visible result?',
+    hints: [
+      'The target restores the plus relationship between the two pieces.',
+      'Use the same gate again; phase changes can be reversible too.',
+    ],
+    solutionExplanation:
+        'Z changes |−⟩ back into |+⟩. The outcome options stay the same, but the phase relationship is restored.',
+    numQubits: 1,
+    initialQubitsStateStr: '|−⟩',
+    initialQubitsState: [
+      Complex(math.sqrt1_2, 0),
+      Complex(-math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.z),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'What Did We Actually Discover?',
+    taskDescription:
+        r'What was changing all along? Turn the hidden change in \( |+\rangle \) into the visible state \( |1\rangle \).',
+    targetStateExpression: '|1⟩',
+    mysteryTitle: 'What was changing all along?',
+    mysteryText:
+        'You have changed values, signs, and relationships. Now build the reveal: make phase affect the measured bit.',
+    discoveryTitle: 'Phase',
+    discoveryText:
+        'Z created the phase relationship, then H changed how the state was read. The hidden phase became the visible outcome |1⟩.',
+    keyInsight: 'Phase is hidden until another operation makes it observable.',
+    whyItMatters:
+        'This is the bridge into the next chapters: quantum circuits can store useful structure in phase, then reveal it through later transformations.',
+    nextMystery: 'Can a qubit be more than 0 or 1?',
+    hints: [
+      'First create the phase relationship with Z.',
+      'Then use H to read that relationship as a definite bit value.',
+    ],
+    solutionExplanation:
+        'Z changes |+⟩ into |−⟩. H then maps |−⟩ to |1⟩, turning phase into a visible result.',
+    numQubits: 1,
+    initialQubitsStateStr: '|+⟩',
+    initialQubitsState: [
+      Complex(math.sqrt1_2, 0),
+      Complex(math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'The Third State',
+    taskDescription:
+        r'Must a qubit always be 0 or 1? Create a state that is neither \( |0\rangle \) nor \( |1\rangle \).',
+    targetStateLabel: '|+⟩',
+    targetStateExpression: '(|0⟩ + |1⟩)/√2',
+    mysteryTitle: 'Must a qubit always be 0 or 1?',
+    mysteryText:
+        'You have changed qubits between 0 and 1, and you have seen hidden phase. Now try making a state that does not look like either classical option.',
+    discoveryTitle: 'The Third State',
+    discoveryText:
+        'The qubit is no longer just |0⟩ or just |1⟩. It has become a balanced combination of both possibilities.',
+    keyInsight: 'A qubit can exist in a combination of possibilities.',
+    whyItMatters:
+        'Quantum computing becomes powerful because qubits are not restricted to classical states.',
+    nextMystery: 'What happens if we measure this strange state?',
+    hints: [
+      'There is only one gate available.',
+      'Use the gate and watch the probability bars split evenly.',
+    ],
+    solutionExplanation:
+        'The circuit creates |+⟩, a state with both |0⟩ and |1⟩ present at the same time.',
+    numQubits: 1,
+    initialQubitsStateString: '0',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Fifty Fifty',
+    taskDescription:
+        r'What outcome will appear when we measure a superposition? Create a state with equal probability of \( |0\rangle \) and \( |1\rangle \).',
+    targetStateLabel: '|-⟩',
+    targetStateExpression: '(|0⟩ - |1⟩)/√2',
+    mysteryTitle: 'What outcome will appear when we measure a superposition?',
+    mysteryText:
+        'A qubit can hold more than one possibility before measurement. Make a state where neither outcome has all the probability.',
+    discoveryTitle: 'Two Possibilities',
+    discoveryText:
+        'The state now gives |0⟩ half the time and |1⟩ half the time. The outcome is uncertain, but the probabilities are precise.',
+    keyInsight: 'A superposition can create precise measurement odds.',
+    whyItMatters:
+        'Quantum algorithms use exact probability patterns, not vague randomness.',
+    nextMystery: 'If measurement is uncertain, is the state just random?',
+    hints: [
+      'Start from |1⟩ and use the only available gate.',
+      'The goal is equal probabilities, not a single certain outcome.',
+    ],
+    solutionExplanation:
+        'The circuit turns |1⟩ into a balanced state. Measurement can now produce either |0⟩ or |1⟩ with equal probability.',
+    numQubits: 1,
+    initialQubitsStateString: '1',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel(
+    title: 'Precise, Not Random',
+    taskDescription:
+        r'If measurement is uncertain, is the state just random? Turn \( |+\rangle \) back into \( |0\rangle \).',
+    targetStateExpression: '|0⟩',
+    mysteryTitle: 'If measurement is uncertain, is the state just random?',
+    mysteryText:
+        'A balanced state can look like a coin toss when measured. Test whether it is still a precise state that a gate can control.',
+    discoveryTitle: 'Precise Superposition',
+    discoveryText:
+        'The balanced state returned cleanly to |0⟩. Superposition is not uncontrolled randomness; it is a precise state.',
+    keyInsight: 'A superposition can be reversed by the right operation.',
+    whyItMatters:
+        'This makes superposition useful in circuits: gates can create it, transform it, and turn it back into certainty.',
+    nextMystery: 'Can we prepare a balanced state on purpose?',
+    hints: [
+      'Use the gate that created |+⟩ from |0⟩.',
+      'The same operation can also turn |+⟩ back into |0⟩.',
+    ],
+    solutionExplanation:
+        'H turns |+⟩ back into |0⟩. The state had uncertain measurement outcomes, but it was still exactly controllable.',
+    numQubits: 1,
+    initialQubitsStateStr: '|+⟩',
+    initialQubitsState: [
+      Complex(math.sqrt1_2, 0),
+      Complex(math.sqrt1_2, 0),
+    ],
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex.one()],
+      [Complex.zero()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Build The Balance',
+    taskDescription:
+        r'Can we prepare uncertainty on purpose? Transform \( |1\rangle \) into the balanced \( |+\rangle \) state.',
+    targetStateLabel: '|+⟩',
+    targetStateExpression: '(|0⟩ + |1⟩)/√2',
+    mysteryTitle: 'Can we prepare uncertainty on purpose?',
+    mysteryText:
+        'Superposition is not something that only happens by accident. Set up the input, then create the balanced state deliberately.',
+    discoveryTitle: 'Prepared Possibilities',
+    discoveryText:
+        'You first prepared the right starting value, then created the balanced state. Superposition can be built intentionally.',
+    keyInsight: 'Superposition can be prepared as part of a planned circuit.',
+    whyItMatters:
+        'Useful quantum circuits prepare the state they need before using it.',
+    nextMystery: 'Can a superposition be only one step in a larger plan?',
+    hints: [
+      'Using H immediately from |1⟩ gives the wrong balanced state.',
+      'First flip |1⟩ to |0⟩, then create |+⟩.',
+    ],
+    solutionExplanation:
+        'X changes |1⟩ to |0⟩. H then creates |+⟩, the balanced superposition with equal |0⟩ and |1⟩ parts.',
+    numQubits: 1,
+    initialQubitsStateString: '1',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'What Is Superposition?',
+    taskDescription:
+        r'Can superposition be placed on one qubit inside a larger register? Transform \( |10\rangle \) into \( |+0\rangle \).',
+    targetStateLabel: '|+0⟩',
+    targetStateExpression: '(|00⟩ + |10⟩)/√2',
+    mysteryTitle: 'Can only one qubit become superposed?',
+    mysteryText:
+        'A register can contain more than one qubit. Prepare the register, then place superposition only where it is needed.',
+    discoveryTitle: 'Superposition',
+    discoveryText:
+        'Only one qubit became superposed while the other stayed definite. Superposition can be placed precisely inside a larger register.',
+    keyInsight:
+        'Superposition is a controllable resource; it does not have to affect every qubit.',
+    whyItMatters:
+        'Larger quantum circuits prepare specific qubits in superposition while keeping other qubits fixed for the next step.',
+    nextMystery: 'Can prepared possibilities change what we measure next?',
+    hints: [
+      'The second qubit should stay 0 in the final state.',
+      'First change |10⟩ to |00⟩, then apply H only to the first qubit.',
+    ],
+    solutionExplanation:
+        'X changes the first ket position from 1 to 0, giving |00⟩. H on that same position then creates |+0⟩ = (|00⟩ + |10⟩)/√2 while the other qubit stays |0⟩.',
+    numQubits: 2,
+    initialQubitsStateString: '10',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Together',
+    taskDescription:
+        r'Can two qubits be prepared together? Transform \( |00\rangle \) into \( |11\rangle \).',
+    targetStateExpression: '|11⟩',
+    mysteryTitle: 'Can two qubits be prepared together?',
+    mysteryText:
+        'So far, one qubit has carried the story. Now there are two. Can you prepare a state that describes both qubits at once?',
+    discoveryTitle: 'Two Qubits',
+    discoveryText:
+        'The state now describes a pair of qubits together. A quantum system can contain more than one qubit.',
+    keyInsight: 'A quantum system can contain multiple qubits.',
+    whyItMatters: 'Real quantum algorithms use many qubits at once.',
+    nextMystery: 'Can two qubits become connected?',
+    hints: [
+      'Both qubits need to change from 0 to 1.',
+      'Use one X on each qubit.',
+    ],
+    solutionExplanation:
+        'Each X flips one qubit, preparing the combined two-qubit state |11⟩.',
+    numQubits: 2,
+    initialQubitsStateString: '00',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Connected',
+    taskDescription:
+        r'Can changing one qubit affect another? Use the controlled operation to transform \( |10\rangle \) into \( |11\rangle \).',
+    targetStateExpression: '|11⟩',
+    mysteryTitle: 'Can changing one qubit affect another?',
+    mysteryText:
+        'One qubit is already active. Can it act as a condition that changes the other qubit?',
+    discoveryTitle: 'Correlation',
+    discoveryText:
+        'The second qubit changed only because the first qubit was set to 1. CNOT made one qubit control whether another qubit flipped.',
+    keyInsight: 'The state of one qubit can influence another.',
+    whyItMatters: 'Correlation is the first step toward entanglement.',
+    nextMystery: 'Is correlation the same as entanglement?',
+    hints: [
+      'Use the qubit that is already 1 as the control.',
+      'CNOT flips the target only when the control is 1.',
+    ],
+    solutionExplanation:
+        'CNOT(Q0→Q1)|10⟩ = |11⟩. The first qubit is 1, so it triggers a flip on the second qubit.',
+    numQubits: 2,
+    initialQubitsStateString: '10',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'The Bell State',
+    taskDescription:
+        r'Can two qubits become one quantum system? Transform \( |00\rangle \) into Bell State \( \Phi^+ \).',
+    targetStateLabel: '|Φ+⟩',
+    targetStateExpression: '(|00⟩ + |11⟩)/√2',
+    mysteryTitle: 'Can two qubits become one quantum system?',
+    mysteryText:
+        'A superposition can hold more than one possibility. A controlled operation can connect qubits. What happens when those ideas meet?',
+    discoveryTitle: 'Bell State',
+    discoveryText:
+        'The result is not two independent qubits. The state belongs to the pair as a whole.',
+    keyInsight: 'The two qubits can no longer be described independently.',
+    whyItMatters:
+        'Entanglement is one of the defining features of quantum computing.',
+    nextMystery: 'What makes entanglement different from ordinary correlation?',
+    hints: [
+      'First create a split possibility on q0.',
+      'Then connect q1 to q0 with CX.',
+    ],
+    solutionExplanation:
+        'The circuit creates a state where the pair is either |00⟩ or |11⟩ together. That shared state is the Bell state Φ+.',
+    numQubits: 2,
+    initialQubitsStateString: '00',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'More Than Correlation',
+    taskDescription:
+        r'Why is entanglement special? Create a Bell state from \( |10\rangle \).',
+    targetStateLabel: '|Ψ+⟩',
+    targetStateExpression: '(|01⟩ + |10⟩)/√2',
+    mysteryTitle: 'Why is entanglement special?',
+    mysteryText:
+        'Ordinary correlation says two values match. Entanglement is deeper: the whole pair has a state that cannot be assigned to each qubit separately.',
+    discoveryTitle: 'One Quantum System',
+    discoveryText:
+        'The pair is now described as one shared quantum state. Looking for a separate state of each qubit is no longer enough.',
+    keyInsight: 'Entangled qubits form a single quantum state.',
+    whyItMatters:
+        'Quantum communication and quantum algorithms rely on entanglement.',
+    nextMystery: 'Can entanglement survive if we look at only one qubit?',
+    hints: [
+      'Start by splitting the first qubit into two possibilities.',
+      'Then use CX to connect the second qubit to those possibilities.',
+    ],
+    solutionExplanation:
+        'The circuit creates a Bell state with a hidden sign difference. The state belongs to the two-qubit system, not to either qubit alone.',
+    numQubits: 2,
+    initialQubitsStateString: '10',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'What Is Entanglement?',
+    taskDescription:
+        r'What have we actually discovered? Prepare the entangled state \( (|00\rangle - |11\rangle)/\sqrt{2} \).',
+    targetStateLabel: '|Φ-⟩',
+    targetStateExpression: '(|00⟩ - |11⟩)/√2',
+    mysteryTitle: 'What have we actually discovered?',
+    mysteryText:
+        'You have seen two qubits act as one shared system. Prepare one more entangled state and focus on what cannot be described separately.',
+    discoveryTitle: 'Entanglement',
+    discoveryText:
+        'The final state is a property of the pair. It cannot be explained as one independent state for q0 and another independent state for q1.',
+    keyInsight:
+        'Some quantum states cannot be broken into separate qubit descriptions.',
+    whyItMatters:
+        'Entanglement enables quantum communication, teleportation, and many quantum algorithms.',
+    nextMystery:
+        'If qubits can become one system, how does information move through that system?',
+    hints: [
+      'Begin with q1 set to 1.',
+      'Create a split possibility on q0, then connect the qubits with CX.',
+    ],
+    solutionExplanation:
+        'The circuit prepares an entangled pair where the possibilities |01⟩ and |10⟩ belong to the whole system.',
+    numQubits: 2,
+    initialQubitsStateString: '01',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(-math.sqrt1_2, 0)],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'The Control Qubit',
+    taskDescription:
+        r'Can one qubit decide what happens to another? Use CX to transform \( |01\rangle \) into \( |11\rangle \).',
+    targetStateExpression: '|11⟩',
+    mysteryTitle: 'Can one qubit decide what happens to another?',
+    mysteryText:
+        'A two-qubit circuit can contain a decision: one qubit can determine whether another qubit changes.',
+    discoveryTitle: 'Control',
+    discoveryText:
+        'The target changed only because the control was active. The operation was not just on one wire; it depended on information in another qubit.',
+    keyInsight: 'One qubit can conditionally influence another.',
+    whyItMatters: 'Quantum algorithms rely heavily on controlled operations.',
+    nextMystery: 'Can information travel between qubits?',
+    hints: [
+      'The active qubit should control the other one.',
+      'Use CX so the second qubit changes only when the control is active.',
+    ],
+    solutionExplanation:
+        'CX used the active qubit as a condition and flipped the other qubit, producing |11⟩.',
+    numQubits: 2,
+    initialQubitsStateString: '01',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Conditional Action',
+    taskDescription:
+        r'Can the same gate behave differently depending on the input? Use CX on \( |00\rangle \).',
+    targetStateExpression: 'CX|00⟩ = |00⟩',
+    mysteryTitle:
+        'Can the same gate behave differently depending on the input?',
+    mysteryText:
+        'A controlled operation does not always visibly change the bits. Its effect depends on the information already present.',
+    discoveryTitle: 'Conditional Action',
+    discoveryText:
+        'The controlled operation was applied, but the target did not flip because the control was inactive.',
+    keyInsight:
+        'The effect of a gate can depend on the state of another qubit.',
+    whyItMatters: 'Conditional logic is fundamental to quantum circuits.',
+    nextMystery: 'Can information move from one qubit to another?',
+    hints: [
+      'There is only one gate available.',
+      'Use CX and notice that the state can stay the same for a meaningful reason.',
+    ],
+    solutionExplanation:
+        'CX checks the control. When the control is 0, the target is left alone.',
+    numQubits: 2,
+    initialQubitsStateString: '00',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.one()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+      [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+      [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+      [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Information Transfer',
+    taskDescription:
+        r'Can information be transferred between qubits? Create information on one qubit, then propagate it to the other.',
+    targetStateExpression: '|11⟩',
+    mysteryTitle: 'Can information be transferred between qubits?',
+    mysteryText:
+        'A circuit can create information on one qubit and then let that information affect another qubit.',
+    discoveryTitle: 'Information Transfer',
+    discoveryText:
+        'The first change made one qubit active. The controlled step propagated that information across the two-qubit system.',
+    keyInsight: 'Information can be propagated through a quantum circuit.',
+    whyItMatters: 'Large algorithms coordinate information across many qubits.',
+    nextMystery: 'Can information move in both directions?',
+    hints: [
+      'First create an active control.',
+      'Then use CX to pass that information to the other qubit.',
+    ],
+    solutionExplanation:
+        'X creates the active qubit. CX then uses that information to flip the other qubit, producing |11⟩.',
+    numQubits: 2,
+    initialQubitsStateString: '00',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Swap Places',
+    taskDescription:
+        r'Can two qubits exchange their information? Build a reusable SWAP circuit using only CX. It should swap any two-qubit input, including \( |10\rangle \rightarrow |01\rangle \).',
+    targetStateExpression: 'SWAP gate',
+    mysteryTitle: 'Can two qubits exchange their information?',
+    mysteryText:
+        'A shortcut can solve one displayed input. A true SWAP circuit must exchange the two qubits for every possible input.',
+    discoveryTitle: 'Swap',
+    discoveryText:
+        'Three controlled steps build a reusable SWAP. Two CX gates can solve this one visible input, but the third step is what makes the exchange work as a general operation.',
+    keyInsight:
+        'A circuit can match one example without being the correct reusable operation.',
+    whyItMatters:
+        'Real quantum hardware often requires routing information between qubits.',
+    nextMystery: 'What happens when many qubits share information?',
+    hints: [
+      'Do not only solve |10⟩ → |01⟩. Build the operation that swaps both qubits for any input.',
+      'A full SWAP uses three CX gates: one direction, the other direction, then the first direction again.',
+    ],
+    solutionExplanation:
+        'The three-CX pattern performs the SWAP operation for the whole two-qubit register: |00⟩ stays |00⟩, |01⟩ becomes |10⟩, |10⟩ becomes |01⟩, and |11⟩ stays |11⟩.',
+    numQubits: 2,
+    initialQubitsStateString: '10',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()],
+      [Complex.zero()],
+      [Complex.zero()],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+      [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+      [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+      [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Information Flow',
+    taskDescription:
+        r'What have we actually learned? Create information on either qubit, then route it across the two-qubit system with the three-CX pattern.',
+    targetStateExpression: 'Information routed',
+    mysteryTitle: 'What have we actually learned?',
+    mysteryText:
+        'Controlled operations can move, redirect, and reshape information. Build a small circuit where information is created, then routed to the other qubit.',
+    discoveryTitle: 'Information Flow',
+    discoveryText:
+        'The circuit did more than place gates in a row. It created information, then directed it through interactions between qubits. Either mirrored direction shows the same idea.',
+    keyInsight:
+        'Quantum circuits direct information through interactions between qubits.',
+    whyItMatters:
+        'Entanglement, GHZ states, phase kickback, and quantum algorithms all depend on information flow.',
+    nextMystery: 'Can three qubits become one shared quantum system?',
+    hints: [
+      'First create information with X on either qubit.',
+      'Then use the three-CX routing pattern to move that information to the other qubit. The mirrored direction is valid too.',
+    ],
+    solutionExplanation:
+        'X creates the information, and the three-CX routing pattern moves it across the two-qubit system. The same routing idea works in either direction.',
+    numQubits: 2,
+    initialQubitsStateString: '00',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+      [Complex.zero()],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+      [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+      [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+      [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+    ],
+    alternateTargetUnitaries: [
+      [
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+        [Complex.zero(), Complex.one(), Complex.zero(), Complex.zero()],
+      ],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Three Qubits',
+    taskDescription:
+        r'What changes when we add a third qubit? Prepare the full-register outcome \( |111\rangle \).',
+    targetStateExpression: '|111⟩',
+    mysteryTitle: 'What changes when we add a third qubit?',
+    mysteryText:
+        'A third qubit widens the state label. Start simply: prepare one complete three-qubit outcome and read it as a whole register pattern.',
+    discoveryTitle: 'Three Qubits',
+    discoveryText:
+        'The state is now a complete register outcome. The meaningful label is the whole pattern |111⟩, not three unrelated symbols.',
+    keyInsight: 'A three-qubit register is described by full-system outcomes.',
+    whyItMatters: 'Useful quantum algorithms require many qubits.',
+    nextMystery: 'Can one observed part constrain the whole register?',
+    hints: [
+      'Each inactive qubit needs the same simple change.',
+      'Use X on all three wires.',
+    ],
+    solutionExplanation:
+        'Each X gate flips one qubit, preparing the full-register outcome |111⟩.',
+    numQubits: 3,
+    initialQubitsStateString: '000',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.x),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Shared Information',
+    taskDescription:
+        r'Can one part of a register constrain all the others? Prepare the globally consistent outcome \( |111\rangle \).',
+    targetStateExpression: '|111⟩',
+    mysteryTitle: 'Can one part of a register constrain all the others?',
+    mysteryText:
+        'A three-qubit register can be prepared so every observed part agrees with the whole outcome. If one part is 1, the complete pattern is fixed here.',
+    discoveryTitle: 'Shared Information',
+    discoveryText:
+        'The final register is globally consistent: each qubit agrees with the same full outcome. This prepares the idea of correlations across the entire register.',
+    keyInsight: 'A full-register outcome can constrain every qubit together.',
+    whyItMatters:
+        'Large quantum states are understood through full-system patterns.',
+    nextMystery: 'Can all three qubits share the same state?',
+    hints: [
+      'Q0 is already fixed as the active part of the register.',
+      'Use CX from Q0 to each other qubit so the whole register ends in one consistent pattern.',
+    ],
+    solutionExplanation:
+        'The fixed X prepares Q0 as the active part of the register. Two CX gates from Q0 prepare the consistent full-register outcome |111⟩.',
+    numQubits: 3,
+    initialQubitsStateString: '000',
+    preInsertedGates: (QuantumCircuit circuit) {
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.x),
+        0,
+        0,
+        isDeletable: false,
+      );
+    },
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+      [
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.one(),
+      ],
+      [
+        Complex.one(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+        Complex.zero(),
+      ],
+    ],
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'All Together',
+    taskDescription:
+        r'Can three qubits become one globally constrained system? Prepare \( (|000\rangle + |111\rangle)/\sqrt{2} \).',
+    targetStateLabel: '|GHZ+⟩',
+    targetStateExpression: '(|000⟩ + |111⟩)/√2',
+    mysteryTitle: 'Can three qubits become one globally constrained system?',
+    mysteryText:
+        'The register may have local uncertainty while still allowing only globally consistent outcomes. Try preparing a state with only |000⟩ and |111⟩ present.',
+    discoveryTitle: 'All Together',
+    discoveryText:
+        'The final state allows only two complete outcomes: |000⟩ and |111⟩. Individual qubits are uncertain, but the full register is tightly structured.',
+    keyInsight:
+        'Local uncertainty can exist inside a globally consistent structure.',
+    whyItMatters: 'This is the first step toward whole-register entanglement.',
+    nextMystery: 'Is this structure explained by pairs?',
+    hints: [
+      'Start by creating a split possibility on one qubit.',
+      'Use controlled operations so only the full-register outcomes |000⟩ and |111⟩ remain possible.',
+    ],
+    solutionExplanation:
+        'The first qubit enters a superposition, then CX gates create one three-qubit state whose only allowed full-register outcomes are |000⟩ and |111⟩.',
+    numQubits: 3,
+    initialQubitsStateString: '000',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: _ghzStarPlusTargetUnitary,
+  ),
+
+  ComposerLevel.fromBinaryString(
+    title: 'Beyond Bell States',
+    taskDescription:
+        r'Why is a GHZ state not explained by pairs? Prepare \( (|000\rangle + |111\rangle)/\sqrt{2} \).',
+    targetStateLabel: '|GHZ+⟩',
+    targetStateExpression: '(|000⟩ + |111⟩)/√2',
+    mysteryTitle: 'Why is a GHZ state not explained by pairs?',
+    mysteryText:
+        'Pairwise thinking is not enough here. The important object is the complete three-qubit register and its allowed global outcomes.',
+    discoveryTitle: 'GHZ State',
+    discoveryText:
+        'The state is not a collection of pair relationships. It is one full-register structure with only globally consistent outcomes.',
+    keyInsight:
+        'GHZ structure cannot be decomposed into separate pair explanations.',
+    whyItMatters:
+        'Real quantum algorithms manipulate constraints over whole registers.',
+    nextMystery: 'What is the full-register rule?',
+    hints: [
+      'Create a superposition first.',
+      'Then use control so the complete register has only the alternatives |000⟩ and |111⟩.',
+    ],
+    solutionExplanation:
+        'A superposition on one qubit is connected to the full register by two CX gates, producing a GHZ state whose structure belongs to all three qubits together.',
+    numQubits: 3,
+    initialQubitsStateString: '000',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+      Gate.fromIdentifier(SelectedGateType.cnot),
+    ],
+    solutionFinalVector: [
+      [Complex(math.sqrt1_2, 0)],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex(math.sqrt1_2, 0)],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: _ghzStarPlusTargetUnitary,
+  ),
+
+  ConceptCheckLevel(
+    title: 'One System, Three Qubits',
+    badgeLabel: 'Chapter Synthesis Check',
+    taskDescription:
+        r'A GHZ state has already been prepared: \( (|000\rangle + |111\rangle)/\sqrt{2} \). What does this state mean?',
+    conceptIntro:
+        'This time the circuit construction is finished. Focus on the state itself: a GHZ state is a rule over the whole register, not a pattern to build again.',
+    mysteryTitle: 'What have we actually discovered?',
+    mysteryText:
+        'The register is already in a GHZ state. The question is not which gate comes next, but which full-register outcomes the state allows.',
+    discoveryTitle: 'One System, Three Qubits',
+    discoveryText:
+        'The three qubits form one global constraint system. GHZ is not a circuit pattern by itself: it is a restriction on the entire state space of the register.',
+    keyInsight: 'GHZ is a restriction on allowed full-register outcomes.',
+    whyItMatters:
+        'Large-scale quantum computation relies on thinking about whole systems rather than isolated qubits or pairs.',
+    nextMystery: 'Can a full-register constraint carry hidden information?',
+    hints: [
+      'Read the state as a statement about complete register outcomes.',
+      'Only |000⟩ and |111⟩ have non-zero amplitude in this GHZ state.',
+    ],
+    solutionExplanation:
+        'The GHZ state is a global state-space constraint. The allowed measurement outcomes are |000⟩ and |111⟩; mixed outcomes such as |001⟩ or |010⟩ are forbidden because their amplitudes are zero.',
+    options: [
+      'Only the full-register outcomes |000⟩ and |111⟩ are allowed; mixed outcomes are forbidden.',
+      'Each qubit independently has a 50% chance of being 0 or 1, so all eight outcomes are possible.',
+      'Q0 is entangled with Q1, and Q2 is a separate qubit that can be measured independently.',
+      'The state means information moved from Q0 through Q1 to Q2.',
+    ],
+    correctOptionIndex: 0,
+  ),
 ];
+
+ComposerLevel _chapter4InterferenceFinale() {
+  return ComposerLevel.fromBinaryString(
+    title: 'What Is Interference?',
+    taskDescription:
+        r'The circuit already created and phase-marked two paths. Add the final gate that turns the hidden phase into \( |1\rangle \).',
+    targetStateExpression: '|1⟩',
+    mysteryTitle: 'What have we actually discovered?',
+    mysteryText:
+        'The pre-built H→Z has prepared |−⟩. One final basis change can make that hidden phase show up as a visible measurement result.',
+    discoveryTitle: 'Interference',
+    discoveryText:
+        'Interference happened when the final H recombined the phase-marked paths. The |0⟩ outcome cancelled, the |1⟩ outcome reinforced, and the hidden phase became visible.',
+    keyInsight:
+        'Interference turns hidden phase differences into visible probability changes.',
+    whyItMatters:
+        'Quantum algorithms use this pattern to make useful hidden structure measurable.',
+    nextMystery: 'Can two qubits become one quantum system?',
+    hints: [
+      'The pre-built gates already created |−⟩.',
+      'Use H to recombine the paths and reveal the phase as |1⟩.',
+    ],
+    solutionExplanation:
+        'The pre-built H creates two paths and Z changes their relative phase. The final H recombines them, making |0⟩ cancel and |1⟩ survive.',
+    numQubits: 1,
+    initialQubitsStateString: '0',
+    availableGates: [
+      Gate.fromIdentifier(SelectedGateType.hadamard),
+    ],
+    solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.one()],
+    ],
+    preInsertedGates: (QuantumCircuit circuit) {
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+        isDeletable: false,
+      );
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.z),
+        1,
+        0,
+        isDeletable: false,
+      );
+    },
+  );
+}
+
+final List<QQLevel> allQQLevels = _consolidatedQQLevels();
+
+List<QQLevel> _consolidatedQQLevels() {
+  final chapter1Information = _authoredQQLevels.sublist(83, 88);
+  final chapter2HiddenChange = _authoredQQLevels.sublist(88, 93);
+  final chapter3Superposition = _authoredQQLevels.sublist(93, 98);
+  final chapter4Interference = [
+    ..._authoredQQLevels.sublist(54, 58),
+    _chapter4InterferenceFinale(),
+  ];
+  final chapter5Entanglement = _authoredQQLevels.sublist(98, 103);
+  final chapter6InformationFlow = _authoredQQLevels.sublist(103, 108);
+  // TODO Chapter 7 readiness check:
+  // Validate GHZ introduction does not reuse SWAP routing mechanics.
+  // Ensure entanglement scaling is conceptually distinct from Chapter 5.
+  // Avoid overlapping incorrectly with Chapter 3 superposition foundations and
+  // Chapter 4 interference concepts.
+  final chapter7GhzStates = _authoredQQLevels.sublist(108, 113);
+  final chapter8PhaseKickback = _authoredQQLevels.sublist(58, 63);
+  final chapter9OracleThinking = _authoredQQLevels.sublist(63, 68);
+  final chapter10AmplitudeAmplification = _authoredQQLevels.sublist(68, 73);
+  final chapter11GroverLoopIntuition = _authoredQQLevels.sublist(73, 78);
+  final chapter12QuantumAlgorithmStructure = _authoredQQLevels.sublist(78, 83);
+  final masteryChallenges = _authoredQQLevels
+      .sublist(0, 54)
+      .asMap()
+      .entries
+      .map((entry) => _withMasteryMetadata(entry.value, entry.key))
+      .toList(growable: false);
+
+  return [
+    ...chapter1Information,
+    ...chapter2HiddenChange,
+    ...chapter3Superposition,
+    ...chapter4Interference,
+    ...chapter5Entanglement,
+    ...chapter6InformationFlow,
+    ...chapter7GhzStates,
+    ...chapter8PhaseKickback,
+    ...chapter9OracleThinking,
+    ...chapter10AmplitudeAmplification,
+    ...chapter11GroverLoopIntuition,
+    ...chapter12QuantumAlgorithmStructure,
+    ...masteryChallenges,
+  ];
+}
+
+QQLevel _withMasteryMetadata(QQLevel level, int challengeIndex) {
+  final concepts = _masteryConceptsFor(challengeIndex);
+  final difficulty = _masteryDifficultyFor(challengeIndex);
+  final relatedDiscoveries = _masteryRelatedDiscoveriesFor(challengeIndex);
+
+  switch (level) {
+    case ComposerLevel():
+      return ComposerLevel(
+        title: level.title,
+        taskDescription: level.taskDescription,
+        conceptIntro: level.conceptIntro,
+        solutionExplanation: level.solutionExplanation,
+        hints: level.hints,
+        targetStateLabel: level.targetStateLabel,
+        targetStateExpression: level.targetStateExpression,
+        mysteryTitle: level.mysteryTitle,
+        mysteryText: level.mysteryText,
+        discoveryTitle: level.discoveryTitle,
+        discoveryText: level.discoveryText,
+        keyInsight: level.keyInsight,
+        whyItMatters: level.whyItMatters,
+        nextMystery: level.nextMystery,
+        conceptsUsed: concepts,
+        difficulty: difficulty,
+        relatedDiscoveryTitles: relatedDiscoveries,
+        numQubits: level.numQubits,
+        initialQubitsStateStr: level.initialQubitsStateStr,
+        initialQubitsState: level.initialQubitsState,
+        availableGates: level.availableGates,
+        solutionFinalVector: level.solutionFinalVector,
+        validationMode: level.validationMode,
+        targetUnitary: level.targetUnitary,
+        alternateTargetUnitaries: level.alternateTargetUnitaries,
+        preInsertedGates: level.preInsertedGates,
+      );
+    case ConceptCheckLevel():
+      return ConceptCheckLevel(
+        title: level.title,
+        taskDescription: level.taskDescription,
+        conceptIntro: level.conceptIntro,
+        solutionExplanation: level.solutionExplanation,
+        hints: level.hints,
+        mysteryTitle: level.mysteryTitle,
+        mysteryText: level.mysteryText,
+        discoveryTitle: level.discoveryTitle,
+        discoveryText: level.discoveryText,
+        keyInsight: level.keyInsight,
+        whyItMatters: level.whyItMatters,
+        nextMystery: level.nextMystery,
+        conceptsUsed: concepts,
+        difficulty: difficulty,
+        relatedDiscoveryTitles: relatedDiscoveries,
+        options: level.options,
+        correctOptionIndex: level.correctOptionIndex,
+        badgeLabel: level.badgeLabel,
+      );
+    case McqLevel():
+      return McqLevel(
+        title: level.title,
+        taskDescription: level.taskDescription,
+        conceptIntro: level.conceptIntro,
+        solutionExplanation: level.solutionExplanation,
+        hints: level.hints,
+        mysteryTitle: level.mysteryTitle,
+        mysteryText: level.mysteryText,
+        discoveryTitle: level.discoveryTitle,
+        discoveryText: level.discoveryText,
+        keyInsight: level.keyInsight,
+        whyItMatters: level.whyItMatters,
+        nextMystery: level.nextMystery,
+        conceptsUsed: concepts,
+        difficulty: difficulty,
+        relatedDiscoveryTitles: relatedDiscoveries,
+        options: level.options,
+        correctOptionIndex: level.correctOptionIndex,
+      );
+    case FillTheGateLevel():
+      return FillTheGateLevel(
+        title: level.title,
+        taskDescription: level.taskDescription,
+        conceptIntro: level.conceptIntro,
+        solutionExplanation: level.solutionExplanation,
+        hints: level.hints,
+        mysteryTitle: level.mysteryTitle,
+        mysteryText: level.mysteryText,
+        discoveryTitle: level.discoveryTitle,
+        discoveryText: level.discoveryText,
+        keyInsight: level.keyInsight,
+        whyItMatters: level.whyItMatters,
+        nextMystery: level.nextMystery,
+        conceptsUsed: concepts,
+        difficulty: difficulty,
+        relatedDiscoveryTitles: relatedDiscoveries,
+        numQubits: level.numQubits,
+        initialQubitsStateString: level.initialQubitsStateString,
+        preBuiltGates: level.preBuiltGates,
+        correctGate: level.correctGate,
+        options: level.options,
+        solutionFinalVector: level.solutionFinalVector,
+      );
+    case CircuitReadingLevel():
+      return CircuitReadingLevel(
+        title: level.title,
+        taskDescription: level.taskDescription,
+        conceptIntro: level.conceptIntro,
+        solutionExplanation: level.solutionExplanation,
+        hints: level.hints,
+        mysteryTitle: level.mysteryTitle,
+        mysteryText: level.mysteryText,
+        discoveryTitle: level.discoveryTitle,
+        discoveryText: level.discoveryText,
+        keyInsight: level.keyInsight,
+        whyItMatters: level.whyItMatters,
+        nextMystery: level.nextMystery,
+        conceptsUsed: concepts,
+        difficulty: difficulty,
+        relatedDiscoveryTitles: relatedDiscoveries,
+        numQubits: level.numQubits,
+        initialQubitsStateString: level.initialQubitsStateString,
+        circuit: level.circuit,
+        options: level.options,
+        correctOptionIndex: level.correctOptionIndex,
+      );
+    case MeasurementLabLevel():
+      return MeasurementLabLevel(
+        title: level.title,
+        taskDescription: level.taskDescription,
+        conceptIntro: level.conceptIntro,
+        solutionExplanation: level.solutionExplanation,
+        hints: level.hints,
+        mysteryTitle: level.mysteryTitle,
+        mysteryText: level.mysteryText,
+        discoveryTitle: level.discoveryTitle,
+        discoveryText: level.discoveryText,
+        keyInsight: level.keyInsight,
+        whyItMatters: level.whyItMatters,
+        nextMystery: level.nextMystery,
+        conceptsUsed: concepts,
+        difficulty: difficulty,
+        relatedDiscoveryTitles: relatedDiscoveries,
+        numQubits: level.numQubits,
+        initialQubitsStateString: level.initialQubitsStateString,
+        preBuiltCircuit: level.preBuiltCircuit,
+        requiredMeasurements: level.requiredMeasurements,
+      );
+  }
+}
+
+List<String> _masteryConceptsFor(int index) {
+  if (index <= 4) {
+    return const ['Information', 'Reversibility', 'State Transformations'];
+  }
+  if (index <= 12) {
+    return const ['Superposition', 'Hidden Change', 'Phase Information'];
+  }
+  if (index <= 20) {
+    return const ['Control', 'Information Flow', 'Reversibility'];
+  }
+  if (index <= 26) {
+    return const ['Superposition', 'Entanglement', 'Interference'];
+  }
+  if (index <= 31) {
+    return const ['Interference', 'Phase Information', 'Information Flow'];
+  }
+  if (index <= 34) {
+    return const [
+      'Control',
+      'Information Flow',
+      'Role Separation in Quantum Algorithms'
+    ];
+  }
+  if (index <= 38) {
+    return const ['Entanglement', 'GHZ State', 'One System, Three Qubits'];
+  }
+  if (index <= 45) {
+    return const ['Hidden Change', 'Superposition', 'State Transformations'];
+  }
+  if (index <= 47) {
+    return const [
+      'Superposition',
+      'Entanglement',
+      'Quantum Algorithm Structure'
+    ];
+  }
+  if (index <= 49) {
+    return const ['Superposition', 'Entanglement', 'Amplitude Amplification'];
+  }
+  if (index <= 51) {
+    return const ['State Transformations', 'Superposition', 'Reversibility'];
+  }
+  return const ['Circuit Reading', 'Superposition', 'Entanglement'];
+}
+
+String _masteryDifficultyFor(int index) {
+  if (index <= 12) return 'Beginner';
+  if (index <= 31) return 'Intermediate';
+  if (index <= 45) return 'Advanced';
+  return 'Expert';
+}
+
+List<String> _masteryRelatedDiscoveriesFor(int index) {
+  return _masteryConceptsFor(index)
+      .where(notebookEntriesByDiscoveryTitle.containsKey)
+      .toList(growable: false);
+}
 
 int numberOfLevels = allQQLevels.length;
 
@@ -2131,107 +5035,104 @@ ComposerLevel getComposerAsLevel(int numQubits) {
   );
 }
 
+// Chapter structure rule:
+// - The last level of each chapter should be a ConceptCheckLevel when the goal
+//   is synthesis or interpretation rather than another construction puzzle.
+// - The second-to-last level should carry the final gameplay synthesis.
+// - Concept checks are first-class chapter components, not legacy quiz screens.
 final List<QQLevelsCategory> groupedLevels = [
   QQLevelsCategory(
-    groupName: 'Basic Gate Operations',
+    groupName: 'Chapter 1 - Information',
     from: 0,
     to: 4,
     categoryIntro:
-        'Quantum gates are reversible operations that transform qubit states. '
-        'Unlike classical logic gates, every quantum gate has an inverse — '
-        'applying the same gate twice returns to the original state.',
+        'Begin with the first mystery: what is a qubit? This chapter treats gates as tools for investigating information, not as vocabulary to memorize.',
   ),
   QQLevelsCategory(
-    groupName: 'Superposition and Phase Gates',
+    groupName: 'Chapter 2 - Hidden Change',
     from: 5,
-    to: 12,
+    to: 9,
     categoryIntro:
-        'The Hadamard gate puts a qubit in superposition — existing as both |0⟩ and |1⟩ '
-        'simultaneously until measured. Phase gates (S, T) rotate the |1⟩ amplitude on the '
-        'complex unit circle, changing the "angle" of the state without affecting measurement probabilities.',
+        'Not every quantum change shows up in measurement right away. This chapter follows the first hidden trail from invisible changes to phase.',
   ),
   QQLevelsCategory(
-    groupName: 'Controlled Gates',
-    from: 13,
-    to: 20,
+    groupName: 'Chapter 3 - Superposition',
+    from: 10,
+    to: 14,
     categoryIntro:
-        'Controlled gates apply an operation to a target qubit only when a control qubit is |1⟩. '
-        'The CNOT (Controlled-NOT) is the most important two-qubit gate and is universal '
-        'for quantum computing when combined with single-qubit gates.',
+        'A qubit is not limited to ordinary 0-or-1 behavior. This chapter lets players discover states that hold multiple possibilities at once.',
   ),
   QQLevelsCategory(
-    groupName: 'Entanglement & Disentanglement',
-    from: 21,
-    to: 26,
+    groupName: 'Chapter 4 - Interference',
+    from: 15,
+    to: 19,
     categoryIntro:
-        'Entanglement is a uniquely quantum correlation where the state of two qubits '
-        'cannot be described independently. Bell states are the simplest maximally-entangled states. '
-        'Measuring one qubit of an entangled pair instantly determines the other.',
+        'Phase can feel invisible because measurement probabilities do not always change right away. This chapter follows the trail from hidden phase to interference.',
   ),
   QQLevelsCategory(
-    groupName: 'Advanced 2-Qubit Puzzles',
-    from: 27,
-    to: 31,
-    categoryIntro: 'These puzzles combine multiple two-qubit operations. '
-        'Pay attention to which qubit is the control and which is the target — '
-        'the order matters.',
+    groupName: 'Chapter 5 - Entanglement',
+    from: 20,
+    to: 24,
+    categoryIntro:
+        'Two qubits can be more than two independent objects. This chapter introduces correlation, Bell states, and the first true multi-qubit quantum phenomenon.',
   ),
   QQLevelsCategory(
-    groupName: 'Toffoli Gate Logic',
-    from: 32,
+    groupName: 'Chapter 6 - Information Flow',
+    from: 25,
+    to: 29,
+    categoryIntro:
+        'Controlled operations let information influence, transfer, and route through a quantum system. This chapter prepares players for larger shared states.',
+  ),
+  QQLevelsCategory(
+    groupName: 'Chapter 7 - GHZ States',
+    from: 30,
     to: 34,
     categoryIntro:
-        'The Toffoli gate (CCX) has two control qubits: it flips the target only when BOTH '
-        'controls are |1⟩. This makes it a quantum AND gate and means it can simulate '
-        'any classical reversible computation.',
+        'Entanglement is not limited to pairs. This chapter widens the player\'s view from two-qubit connections to a shared three-qubit quantum system.',
   ),
   QQLevelsCategory(
-    groupName: 'Advanced Entanglement and Algorithms',
+    groupName: 'Chapter 8 - Phase Kickback',
     from: 35,
-    to: 38,
+    to: 39,
     categoryIntro:
-        'These levels build circuits that are stepping stones to real quantum algorithms. '
-        'The GHZ state, conditional phase shifts, and multi-qubit entanglement all appear '
-        'in Shor\'s algorithm, Grover\'s search, and quantum teleportation.',
+        'Phase kickback is the hidden mechanism that lets controlled operations write information into phase, then reveal it through interference.',
   ),
   QQLevelsCategory(
-    groupName: 'Rotation Gates',
-    from: 39,
-    to: 45,
+    groupName: 'Chapter 9 - Oracle Thinking',
+    from: 40,
+    to: 44,
     categoryIntro:
-        'Rx, Ry, and Rz rotate a qubit by an angle on the Bloch sphere around each axis. '
-        'Any single-qubit gate can be expressed as a combination of rotations. '
-        'These gates are essential for variational quantum algorithms.',
+        'An oracle is a black-box function. This chapter treats a circuit as a hidden rule that classifies inputs as valid or invalid without directly revealing the answer.',
   ),
   QQLevelsCategory(
-    groupName: 'Concept Checks',
-    from: 46,
-    to: 47,
-    categoryIntro:
-        'Quick questions to consolidate the key ideas you have encountered. '
-        'No circuits — just concepts.',
-  ),
-  QQLevelsCategory(
-    groupName: 'Measurement Labs',
-    from: 48,
+    groupName: 'Chapter 10 - Amplitude Amplification',
+    from: 45,
     to: 49,
     categoryIntro:
-        'Quantum measurement is probabilistic. Press Measure repeatedly and watch '
-        'the outcome distribution converge — this is the Born rule in action.',
+        'Amplitude amplification reshapes probability so a known valid state becomes more likely to be measured.',
   ),
   QQLevelsCategory(
-    groupName: 'Fill the Gate',
+    groupName: 'Chapter 11 - Grover Loop Intuition',
     from: 50,
-    to: 51,
+    to: 54,
     categoryIntro:
-        'A circuit is shown with one gate missing. Choose the correct gate to complete it. '
-        'This tests your ability to reason about gate effects without building from scratch.',
+        'Grover is an iterative computational pattern: repeated oracle and amplification abstractions increase the probability of success.',
   ),
   QQLevelsCategory(
-    groupName: 'Circuit Reading',
-    from: 52,
-    to: 53,
-    categoryIntro: 'Read a pre-built circuit and identify its output state. '
-        'Being able to analyse circuits is as important as building them.',
+    groupName: 'Chapter 12 - Quantum Algorithm Structure',
+    from: 55,
+    to: 59,
+    categoryIntro:
+        'Step back and unify the last three abstractions into a meta-level algorithm model: define valid solutions, bias toward them, and iterate the structure.',
+  ),
+  QQLevelsCategory(
+    groupName: 'Mastery Challenges',
+    from: 60,
+    to: 113,
+    categoryIntro:
+        'Phase 2 turns the guided discoveries into integrated practice. These advanced challenges combine earlier ideas so you can recognise and use them together.',
+    phaseTitle: 'Phase 2 - Mastery Challenges',
+    phasePurpose: 'Concept Integration',
+    isMasteryPhase: true,
   ),
 ];

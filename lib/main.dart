@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Import for orientation control
 import 'package:flutter_tex/flutter_tex.dart';
 import 'package:quantumquiz/screens/home_page.dart';
-import 'package:quantumquiz/screens/quantum_composer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,6 +9,8 @@ void main() async {
   await TeXRenderingServer.start();
 
   SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]).then((_) {
@@ -18,12 +19,15 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Quantum Composer',
       theme: ThemeData(
-        brightness: Brightness.dark, // Use dark theme for better contrast with white text
+        brightness: Brightness
+            .dark, // Use dark theme for better contrast with white text
         primarySwatch: Colors.blue,
         // Set default text color for various text styles to white
         textTheme: TextTheme(
@@ -59,7 +63,8 @@ class MyApp extends StatelessWidget {
         // Ensure text selection handles also use white (or a contrasting color)
         textSelectionTheme: TextSelectionThemeData(
           cursorColor: Colors.white,
-          selectionColor: Colors.blue.withOpacity(0.5), // Example selection color
+          selectionColor:
+              Colors.blue.withValues(alpha: 0.5), // Example selection color
           selectionHandleColor: Colors.white,
         ),
         visualDensity: VisualDensity.adaptivePlatformDensity,

@@ -1,21 +1,23 @@
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/level_header_router.dart';
 
 class MeasurementLabScreen extends StatefulWidget {
   final int levelId;
   final MeasurementLabLevel level;
   final Function(int)? onLevelUnlocked;
+  final bool isCompleted;
 
   const MeasurementLabScreen({
     super.key,
     required this.levelId,
     required this.level,
     required this.onLevelUnlocked,
+    this.isCompleted = false,
   });
 
   @override
@@ -28,10 +30,12 @@ class _MeasurementLabScreenState extends State<MeasurementLabScreen> {
   final Random _rng = Random();
   late QuantumCircuit _circuit;
   bool _unlocked = false;
+  late bool _isCompleted;
 
   @override
   void initState() {
     super.initState();
+    _isCompleted = widget.isCompleted;
     _circuit = QuantumCircuit(currentLevel: widget.level.toComposerLevel());
   }
 
@@ -63,6 +67,9 @@ class _MeasurementLabScreenState extends State<MeasurementLabScreen> {
       _total++;
       if (_total >= widget.level.requiredMeasurements && !_unlocked) {
         _unlocked = true;
+        if (LevelHeaderRouter.isMasteryLevel(widget.levelId)) {
+          _isCompleted = true;
+        }
         widget.onLevelUnlocked?.call(widget.levelId + 1);
       }
     });
@@ -75,26 +82,11 @@ class _MeasurementLabScreenState extends State<MeasurementLabScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF1E1E2C),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E1E2C),
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SvgPicture.asset(
-              'assets/images/logo_mini.svg',
-              height: 32,
-              colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Level ${widget.levelId}',
-              style: const TextStyle(
-                  color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+      appBar: LevelHeaderRouter.headerFor(
+        level: widget.level,
+        levelId: widget.levelId,
+        compact: false,
+        isCompleted: _isCompleted,
       ),
 
       // ── Fixed footer: action buttons ─────────────────────────────────────
@@ -147,138 +139,141 @@ class _MeasurementLabScreenState extends State<MeasurementLabScreen> {
         builder: (context, constraints) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          // Scrollable header: concept intro + task + progress bar
-          // ConstrainedBox gives it a bounded maxHeight so SingleChildScrollView
-          // actually scrolls instead of expanding to full content height.
-          ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: constraints.maxHeight * 0.42),
-            child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (widget.level.conceptIntro != null)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 20),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2D2E40),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF5D5FE6)),
+            // Scrollable header: concept intro + task + progress bar
+            // ConstrainedBox gives it a bounded maxHeight so SingleChildScrollView
+            // actually scrolls instead of expanding to full content height.
+            ConstrainedBox(
+              constraints:
+                  BoxConstraints(maxHeight: constraints.maxHeight * 0.42),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (widget.level.conceptIntro != null)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 20),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2D2E40),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF5D5FE6)),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.info_outline,
+                                color: Color(0xFF5D5FE6), size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                widget.level.conceptIntro!,
+                                style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                    height: 1.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    LatexText(
+                      math: widget.level.taskDescription,
+                      textStyle: const TextStyle(
+                          color: Colors.white, fontSize: 16, height: 1.5),
+                      inlineMathHeight: 18,
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(height: 24),
+                    Row(
                       children: [
-                        const Icon(Icons.info_outline,
-                            color: Color(0xFF5D5FE6), size: 20),
-                        const SizedBox(width: 10),
+                        Text(
+                          'Measurements: $_total / $required',
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 14),
+                        ),
+                        const SizedBox(width: 12),
                         Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: progress,
+                              backgroundColor: Colors.white12,
+                              color: _unlocked
+                                  ? Colors.green
+                                  : const Color(0xFF5D5FE6),
+                              minHeight: 8,
+                            ),
+                          ),
+                        ),
+                        if (_unlocked)
+                          const Padding(
+                            padding: EdgeInsets.only(left: 8),
+                            child: Icon(Icons.check_circle,
+                                color: Colors.green, size: 20),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ), // ConstrainedBox
+
+            // Histogram + solution explanation — scrollable so explanation
+            // never pushes content off-screen after unlock
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _counts.isEmpty
+                          ? SizedBox(
+                              height: 120,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.touch_app,
+                                        size: 48, color: Colors.white24),
+                                    const SizedBox(height: 12),
+                                    const Text(
+                                      'Press Measure to start',
+                                      style: TextStyle(
+                                          color: Colors.white38, fontSize: 16),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : _buildHistogram(),
+                      if (_unlocked && widget.level.solutionExplanation != null)
+                        Container(
+                          margin: const EdgeInsets.only(top: 16),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2D2E40),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white12),
+                          ),
                           child: Text(
-                            widget.level.conceptIntro!,
+                            widget.level.solutionExplanation!,
                             style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 14,
                                 height: 1.5),
                           ),
                         ),
-                      ],
-                    ),
+                      const SizedBox(height: 16),
+                    ],
                   ),
-                LatexText(
-                  math: widget.level.taskDescription,
-                  textStyle: const TextStyle(
-                      color: Colors.white, fontSize: 16, height: 1.5),
-                  inlineMathHeight: 18,
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Text(
-                      'Measurements: $_total / $required',
-                      style:
-                          const TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          backgroundColor: Colors.white12,
-                          color: _unlocked
-                              ? Colors.green
-                              : const Color(0xFF5D5FE6),
-                          minHeight: 8,
-                        ),
-                      ),
-                    ),
-                    if (_unlocked)
-                      const Padding(
-                        padding: EdgeInsets.only(left: 8),
-                        child: Icon(Icons.check_circle,
-                            color: Colors.green, size: 20),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
-          ), // ConstrainedBox
-
-          // Histogram + solution explanation — scrollable so explanation
-          // never pushes content off-screen after unlock
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _counts.isEmpty
-                        ? SizedBox(
-                            height: 120,
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.touch_app,
-                                      size: 48, color: Colors.white24),
-                                  const SizedBox(height: 12),
-                                  const Text(
-                                    'Press Measure to start',
-                                    style: TextStyle(
-                                        color: Colors.white38, fontSize: 16),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        : _buildHistogram(),
-                    if (_unlocked && widget.level.solutionExplanation != null)
-                      Container(
-                        margin: const EdgeInsets.only(top: 16),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2D2E40),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: Text(
-                          widget.level.solutionExplanation!,
-                          style: const TextStyle(
-                              color: Colors.white70, fontSize: 14, height: 1.5),
-                        ),
-                      ),
-                    const SizedBox(height: 16),
-                  ],
                 ),
               ),
-            ),
-          ),  // Expanded
-        ],
-      ),    // Column
-    ),      // LayoutBuilder
+            ), // Expanded
+          ],
+        ), // Column
+      ), // LayoutBuilder
     );
   }
 
@@ -364,5 +359,3 @@ class _MeasurementLabScreenState extends State<MeasurementLabScreen> {
     );
   }
 }
-
-

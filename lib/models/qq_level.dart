@@ -18,6 +18,18 @@ sealed class QQLevel {
   final String? conceptIntro; // shown BEFORE the puzzle
   final String? solutionExplanation; // shown AFTER success
   final List<String>? hints; // progressive hints revealed one at a time
+  final String? targetStateLabel; // display-only target notation
+  final String? targetStateExpression; // display-only target expression
+  final String? mysteryTitle;
+  final String? mysteryText;
+  final String? discoveryTitle;
+  final String? discoveryText;
+  final String? keyInsight;
+  final String? whyItMatters;
+  final String? nextMystery;
+  final List<String> conceptsUsed;
+  final String? difficulty;
+  final List<String> relatedDiscoveryTitles;
 
   const QQLevel({
     this.title,
@@ -25,7 +37,32 @@ sealed class QQLevel {
     this.conceptIntro,
     this.solutionExplanation,
     this.hints,
+    this.targetStateLabel,
+    this.targetStateExpression,
+    this.mysteryTitle,
+    this.mysteryText,
+    this.discoveryTitle,
+    this.discoveryText,
+    this.keyInsight,
+    this.whyItMatters,
+    this.nextMystery,
+    this.conceptsUsed = const [],
+    this.difficulty,
+    this.relatedDiscoveryTitles = const [],
   });
+
+  bool get hasMystery =>
+      (mysteryTitle?.trim().isNotEmpty ?? false) ||
+      (mysteryText?.trim().isNotEmpty ?? false);
+
+  bool get hasDiscovery =>
+      (discoveryTitle?.trim().isNotEmpty ?? false) ||
+      (discoveryText?.trim().isNotEmpty ?? false) ||
+      (keyInsight?.trim().isNotEmpty ?? false);
+
+  bool get hasWhyItMatters =>
+      (whyItMatters?.trim().isNotEmpty ?? false) ||
+      (nextMystery?.trim().isNotEmpty ?? false);
 }
 
 // ── Circuit Composer (all existing levels) ────────────────────────────────────
@@ -38,6 +75,7 @@ class ComposerLevel extends QQLevel {
   final List<List<Complex>> solutionFinalVector;
   final ValidationMode validationMode;
   final List<List<Complex>>? targetUnitary;
+  final List<List<List<Complex>>> alternateTargetUnitaries;
 
   const ComposerLevel({
     super.title,
@@ -45,6 +83,18 @@ class ComposerLevel extends QQLevel {
     super.conceptIntro,
     super.solutionExplanation,
     super.hints,
+    super.targetStateLabel,
+    super.targetStateExpression,
+    super.mysteryTitle,
+    super.mysteryText,
+    super.discoveryTitle,
+    super.discoveryText,
+    super.keyInsight,
+    super.whyItMatters,
+    super.nextMystery,
+    super.conceptsUsed,
+    super.difficulty,
+    super.relatedDiscoveryTitles,
     required this.numQubits,
     required this.initialQubitsStateStr,
     required this.initialQubitsState,
@@ -52,6 +102,7 @@ class ComposerLevel extends QQLevel {
     required this.solutionFinalVector,
     this.validationMode = ValidationMode.finalState,
     this.targetUnitary,
+    this.alternateTargetUnitaries = const [],
     this.preInsertedGates,
   });
 
@@ -61,6 +112,18 @@ class ComposerLevel extends QQLevel {
     String? conceptIntro,
     String? solutionExplanation,
     List<String>? hints,
+    String? targetStateLabel,
+    String? targetStateExpression,
+    String? mysteryTitle,
+    String? mysteryText,
+    String? discoveryTitle,
+    String? discoveryText,
+    String? keyInsight,
+    String? whyItMatters,
+    String? nextMystery,
+    List<String> conceptsUsed = const [],
+    String? difficulty,
+    List<String> relatedDiscoveryTitles = const [],
     int?
         numQubits, // kept for backward compat with existing levels; derived from string if null
     required String initialQubitsStateString,
@@ -68,6 +131,7 @@ class ComposerLevel extends QQLevel {
     required List<List<Complex>> solutionFinalVector,
     ValidationMode validationMode = ValidationMode.finalState,
     List<List<Complex>>? targetUnitary,
+    List<List<List<Complex>>> alternateTargetUnitaries = const [],
     Function(QuantumCircuit)? preInsertedGates,
   }) {
     final int resolvedNumQubits = initialQubitsStateString.length;
@@ -80,6 +144,18 @@ class ComposerLevel extends QQLevel {
       conceptIntro: conceptIntro,
       solutionExplanation: solutionExplanation,
       hints: hints,
+      targetStateLabel: targetStateLabel,
+      targetStateExpression: targetStateExpression,
+      mysteryTitle: mysteryTitle,
+      mysteryText: mysteryText,
+      discoveryTitle: discoveryTitle,
+      discoveryText: discoveryText,
+      keyInsight: keyInsight,
+      whyItMatters: whyItMatters,
+      nextMystery: nextMystery,
+      conceptsUsed: conceptsUsed,
+      difficulty: difficulty,
+      relatedDiscoveryTitles: relatedDiscoveryTitles,
       numQubits: resolvedNumQubits,
       initialQubitsStateStr: initialQubitsStateString,
       initialQubitsState: convertedInitialState,
@@ -87,6 +163,7 @@ class ComposerLevel extends QQLevel {
       solutionFinalVector: solutionFinalVector,
       validationMode: validationMode,
       targetUnitary: targetUnitary,
+      alternateTargetUnitaries: alternateTargetUnitaries,
       preInsertedGates: preInsertedGates,
     );
   }
@@ -129,7 +206,15 @@ class ComposerLevel extends QQLevel {
             return false;
           }
         }
-        return matrixClose(currentUnitary, targetUnitary!, eps: eps);
+        if (matrixClose(currentUnitary, targetUnitary!, eps: eps)) {
+          return true;
+        }
+        for (final alternateTargetUnitary in alternateTargetUnitaries) {
+          if (matrixClose(currentUnitary, alternateTargetUnitary, eps: eps)) {
+            return true;
+          }
+        }
+        return false;
     }
   }
 
@@ -164,6 +249,16 @@ class FillTheGateLevel extends QQLevel {
     super.conceptIntro,
     super.solutionExplanation,
     super.hints,
+    super.mysteryTitle,
+    super.mysteryText,
+    super.discoveryTitle,
+    super.discoveryText,
+    super.keyInsight,
+    super.whyItMatters,
+    super.nextMystery,
+    super.conceptsUsed,
+    super.difficulty,
+    super.relatedDiscoveryTitles,
     required this.numQubits,
     required this.initialQubitsStateString,
     required this.preBuiltGates,
@@ -204,6 +299,16 @@ class CircuitReadingLevel extends QQLevel {
     super.conceptIntro,
     super.solutionExplanation,
     super.hints,
+    super.mysteryTitle,
+    super.mysteryText,
+    super.discoveryTitle,
+    super.discoveryText,
+    super.keyInsight,
+    super.whyItMatters,
+    super.nextMystery,
+    super.conceptsUsed,
+    super.difficulty,
+    super.relatedDiscoveryTitles,
     required this.numQubits,
     required this.initialQubitsStateString,
     required this.circuit,
@@ -233,8 +338,46 @@ class McqLevel extends QQLevel {
     super.conceptIntro,
     super.solutionExplanation,
     super.hints,
+    super.mysteryTitle,
+    super.mysteryText,
+    super.discoveryTitle,
+    super.discoveryText,
+    super.keyInsight,
+    super.whyItMatters,
+    super.nextMystery,
+    super.conceptsUsed,
+    super.difficulty,
+    super.relatedDiscoveryTitles,
     required this.options,
     required this.correctOptionIndex,
+  });
+}
+
+// Concept checks are MCQ-style understanding checkpoints, not construction
+// puzzles. The final level of a chapter should use this shape when it is a
+// synthesis/interpretation checkpoint rather than another mechanics exercise.
+class ConceptCheckLevel extends McqLevel {
+  final String badgeLabel;
+
+  const ConceptCheckLevel({
+    super.title,
+    required super.taskDescription,
+    super.conceptIntro,
+    super.solutionExplanation,
+    super.hints,
+    super.mysteryTitle,
+    super.mysteryText,
+    super.discoveryTitle,
+    super.discoveryText,
+    super.keyInsight,
+    super.whyItMatters,
+    super.nextMystery,
+    super.conceptsUsed,
+    super.difficulty,
+    super.relatedDiscoveryTitles,
+    required super.options,
+    required super.correctOptionIndex,
+    this.badgeLabel = 'Concept Check',
   });
 }
 
@@ -252,6 +395,16 @@ class MeasurementLabLevel extends QQLevel {
     super.conceptIntro,
     super.solutionExplanation,
     super.hints,
+    super.mysteryTitle,
+    super.mysteryText,
+    super.discoveryTitle,
+    super.discoveryText,
+    super.keyInsight,
+    super.whyItMatters,
+    super.nextMystery,
+    super.conceptsUsed,
+    super.difficulty,
+    super.relatedDiscoveryTitles,
     required this.numQubits,
     required this.initialQubitsStateString,
     this.preBuiltCircuit,

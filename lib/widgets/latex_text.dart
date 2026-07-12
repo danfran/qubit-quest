@@ -17,6 +17,7 @@ import 'package:flutter_tex/flutter_tex.dart';
 class LatexText extends StatelessWidget {
   final String math;
   final TextStyle? textStyle;
+  final Color? inlineMathColor;
 
   /// Height for inline math glyphs (should match the surrounding font size).
   final double inlineMathHeight;
@@ -28,6 +29,7 @@ class LatexText extends StatelessWidget {
     super.key,
     required this.math,
     this.textStyle,
+    this.inlineMathColor,
     this.inlineMathHeight = 16.0,
     this.displayMathHeight = 24.0,
   });
@@ -55,8 +57,11 @@ class LatexText extends StatelessWidget {
       final inlineDollar = match.group(6);
       final inlineBracket = match.group(8);
 
-      final formula =
-          displayDollar ?? displayBracket ?? inlineDollar ?? inlineBracket ?? '';
+      final formula = displayDollar ??
+          displayBracket ??
+          inlineDollar ??
+          inlineBracket ??
+          '';
       final isDisplay = displayDollar != null || displayBracket != null;
 
       if (formula.isNotEmpty) {
@@ -79,6 +84,7 @@ class LatexText extends StatelessWidget {
     final defaultStyle = DefaultTextStyle.of(context).style;
     final effectiveStyle = defaultStyle.merge(textStyle);
     final color = effectiveStyle.color ?? Colors.white;
+    final inlineColor = inlineMathColor ?? color;
 
     final segments = _parse(math);
 
@@ -119,7 +125,7 @@ class LatexText extends StatelessWidget {
             math: seg.content,
             formulaWidgetBuilder: (ctx, svg) => SvgPicture.string(
               svg,
-              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+              colorFilter: ColorFilter.mode(inlineColor, BlendMode.srcIn),
               height: inlineMathHeight,
               fit: BoxFit.contain,
             ),
@@ -156,4 +162,3 @@ class _Segment {
         isText = false,
         isDisplay = isDisplay;
 }
-

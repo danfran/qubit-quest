@@ -1,0 +1,39 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Qubit Quest Atom Logo</title>
+  <desc>A clean cyan atom-style logo for Qubit Quest with three orbital paths and a central nucleus.</desc>
+  <defs>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.18 0 0 0 0 0.72 0 0 0 0 1 0 0 0 0.55 0" result="cyanGlow"/>
+      <feMerge>
+        <feMergeNode in="cyanGlow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <linearGradient id="orbitGradient" x1="44" y1="44" x2="212" y2="212" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8EEBFF"/>
+      <stop offset="0.52" stop-color="#46C7FF"/>
+      <stop offset="1" stop-color="#7B61FF"/>
+    </linearGradient>
+    <radialGradient id="nucleusGradient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(128 128) rotate(90) scale(24)">
+      <stop stop-color="#E8FCFF"/>
+      <stop offset="0.45" stop-color="#73E6FF"/>
+      <stop offset="1" stop-color="#3AA7FF"/>
+    </radialGradient>
+  </defs>
+
+  <g filter="url(#glow)" stroke="url(#orbitGradient)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="128" cy="128" rx="88" ry="34"/>
+    <ellipse cx="128" cy="128" rx="88" ry="34" transform="rotate(60 128 128)"/>
+    <ellipse cx="128" cy="128" rx="88" ry="34" transform="rotate(120 128 128)"/>
+  </g>
+
+  <circle cx="128" cy="128" r="18" fill="url(#nucleusGradient)"/>
+  <circle cx="128" cy="128" r="8" fill="#F3FEFF" opacity="0.95"/>
+
+  <g fill="#B7F3FF">
+    <circle cx="216" cy="128" r="7"/>
+    <circle cx="84" cy="52" r="7"/>
+    <circle cx="84" cy="204" r="7"/>
+  </g>
+</svg>
