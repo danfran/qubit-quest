@@ -6,10 +6,9 @@ import 'package:in_app_review/in_app_review.dart';
 import 'package:quantumquiz/screens/learning_map_screen.dart';
 import 'package:quantumquiz/screens/level_ui_router.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
+import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
-import 'package:quantumquiz/models/mastery_completion_progress.dart';
 import 'package:quantumquiz/models/progression_rules.dart';
-import 'package:quantumquiz/models/discovery_progress.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/screens/learning_flow_widgets.dart';
@@ -123,11 +122,11 @@ class _HomePageState extends State<HomePage> {
   static const int _guidedDiscoveryLevelCount =
       ProgressionRules.guidedDiscoveryLevelCount;
   static const int _journeyLevelCount = ProgressionRules.journeyLevelCount;
-  static const String _campaignProgressKey = 'maxUnlockedCampaignLevel';
 
-  // Placeholder for the maximum unlocked level.
-  // In a real app, this would be loaded from user data (e.g., preferences, database).
-  int _maxUnlockedLevel = 1; // Example: Levels 1 to 5 are unlocked initially
+  final CampaignProgressController _progressController =
+      CampaignProgressController.instance;
+  CampaignProgressState _progressState = CampaignProgressState.fresh();
+  int _maxUnlockedLevel = 1;
   bool _isLoadingLevels = true; // To show loading state
   Set<int> _completedMasteryLevels = {};
   bool _showMasteryCompleteDialogAfterReturn = false;
@@ -167,52 +166,55 @@ class _HomePageState extends State<HomePage> {
     ];
   }
 
-  // Load the max unlocked level from SharedPreferences
+  // Load campaign progression through the central controller.
   Future<void> _loadMaxUnlockedLevel() async {
-    final prefs = await SharedPreferences.getInstance();
-    final completedMasteryLevels =
-        await MasteryCompletionProgress.loadCompletedLevels();
+    final progressState = await _progressController.load();
     setState(() {
-      _maxUnlockedLevel = prefs.getInt(_campaignProgressKey) ?? 1;
-      _completedMasteryLevels = completedMasteryLevels;
+      _progressState = progressState;
+      _maxUnlockedLevel = progressState.maxUnlockedLevel;
+      _completedMasteryLevels = progressState.completedChallengeIds;
       _isLoadingLevels = false; // Loading complete
     });
     debugPrint('Loaded max unlocked level: $_maxUnlockedLevel');
   }
 
-  // Update and save the max unlocked level
+  // Preserve the existing completion callback contract while centralizing writes.
   Future<void> _updateMaxUnlockedLevel(int completedLevelNumber) async {
     final completedLevel = completedLevelNumber - 1;
     if (ProgressionRules.isMasteryLevel(completedLevel)) {
       final wasAlreadyCompleted =
-          _completedMasteryLevels.contains(completedLevel);
-      await MasteryCompletionProgress.markCompleted(completedLevel);
-      final updatedCompletedMasteryLevels = {
-        ..._completedMasteryLevels,
-        completedLevel,
-      };
+          _progressState.completedChallengeIds.contains(completedLevel);
+      await _progressController.completeChallenge(completedLevel);
+      final updatedProgressState = _progressController.state;
+      final updatedCompletedMasteryLevels =
+          updatedProgressState.completedChallengeIds;
       final masteryChallengeCount = _masteryChallengeCount;
       final shouldShowMasteryComplete = masteryChallengeCount > 0 &&
           !wasAlreadyCompleted &&
           updatedCompletedMasteryLevels.length >= masteryChallengeCount;
       if (shouldShowMasteryComplete &&
-          !await MasteryCompletionProgress.hasShownMasteryCompleteDialog()) {
-        await MasteryCompletionProgress.markMasteryCompleteDialogShown();
+          !updatedProgressState.masteryCompleteDialogShown) {
+        await _progressController.markMasteryCompleteDialogShown();
         _showMasteryCompleteDialogAfterReturn = true;
       }
       if (mounted) {
+        final progressState = _progressController.state;
         setState(() {
-          _completedMasteryLevels = updatedCompletedMasteryLevels;
+          _progressState = progressState;
+          _maxUnlockedLevel = progressState.maxUnlockedLevel;
+          _completedMasteryLevels = progressState.completedChallengeIds;
         });
       }
+      return;
     }
 
-    if (completedLevelNumber >= _maxUnlockedLevel) {
-      final newMaxLevel = completedLevelNumber;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_campaignProgressKey, newMaxLevel);
+    await _progressController.completeLesson(completedLevel);
+    if (mounted) {
+      final progressState = _progressController.state;
       setState(() {
-        _maxUnlockedLevel = newMaxLevel;
+        _progressState = progressState;
+        _maxUnlockedLevel = progressState.maxUnlockedLevel;
+        _completedMasteryLevels = progressState.completedChallengeIds;
       });
       debugPrint('Updated and saved max unlocked level: $_maxUnlockedLevel');
     }
@@ -680,7 +682,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   bool get _masteryChallengesUnlocked {
-    return ProgressionRules.masteryChallengesUnlocked(_maxUnlockedLevel);
+    return CampaignProgressPolicy.getMasteryChallengesUnlocked(_progressState);
   }
 
   int get _masteryChallengeCount {
@@ -691,14 +693,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   bool _isLevelUnlocked(int levelNumber) {
-    return ProgressionRules.isLevelUnlocked(
-      levelNumber: levelNumber,
-      maxUnlockedLevel: _maxUnlockedLevel,
-    );
+    return CampaignProgressPolicy.isLevelUnlocked(_progressState, levelNumber);
   }
 
   bool _isMasteryCompleted(int levelNumber) {
-    return _completedMasteryLevels.contains(levelNumber);
+    return CampaignProgressPolicy.isChallengeCompleted(
+      _progressState,
+      levelNumber,
+    );
   }
 
   bool _isMasteryCategoryName(String groupName) {
@@ -878,9 +880,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildPrimaryActionSection({required bool compact}) {
+    final continueDestination =
+        CampaignProgressPolicy.continueJourneyDestination(_progressState);
     final Widget continueCard = _buildActionCard(
       title: 'Continue Journey',
-      subtitle: _maxUnlockedLevel > _journeyLevelCount
+      subtitle: continueDestination.isJourneyComplete
           ? 'Review your completed learning journey'
           : _maxUnlockedLevel > _guidedDiscoveryLevelCount
               ? 'Next: Mastery Challenge ${_maxUnlockedLevel - _guidedDiscoveryLevelCount}'
@@ -889,11 +893,11 @@ class _HomePageState extends State<HomePage> {
       primary: true,
       compact: compact,
       onTap: () {
-        if (_maxUnlockedLevel > _journeyLevelCount) {
+        if (continueDestination.isJourneyComplete) {
           _showGameCompleteDialog();
           return;
         }
-        _playLevelSequence(_maxUnlockedLevel, context);
+        _playLevelSequence(continueDestination.levelNumber!, context);
       },
     );
     final Widget composerCard = _buildActionCard(
@@ -941,7 +945,7 @@ class _HomePageState extends State<HomePage> {
     Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (context) => LearningMapScreen(
-          maxUnlockedLevel: _maxUnlockedLevel,
+          progressState: _progressState,
           onStartChapter: (levelNumber) async {
             Navigator.of(context).pop();
             await _playLevelSequence(levelNumber, this.context);
@@ -1723,7 +1727,15 @@ class _HomePageState extends State<HomePage> {
 
     final String? discoveryTitle = level.discoveryTitle?.trim();
     if (discoveryTitle != null && discoveryTitle.isNotEmpty) {
-      await DiscoveryProgress.unlock(discoveryTitle);
+      await _progressController.unlockDiscovery(discoveryTitle);
+      if (mounted) {
+        final progressState = _progressController.state;
+        setState(() {
+          _progressState = progressState;
+          _maxUnlockedLevel = progressState.maxUnlockedLevel;
+          _completedMasteryLevels = progressState.completedChallengeIds;
+        });
+      }
     }
 
     if (!mounted) return;

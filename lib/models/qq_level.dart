@@ -11,6 +11,28 @@ enum ValidationMode {
   unitary,
 }
 
+class ComposerValidationResult {
+  final bool success;
+  final bool stateMatches;
+  final double tolerance;
+  final bool withinTolerance;
+  final bool globalPhaseMatches;
+  final bool explicitConstraintMatches;
+  final String explicitConstraint;
+  final String finalReason;
+
+  const ComposerValidationResult({
+    required this.success,
+    required this.stateMatches,
+    required this.tolerance,
+    required this.withinTolerance,
+    required this.globalPhaseMatches,
+    required this.explicitConstraintMatches,
+    required this.explicitConstraint,
+    required this.finalReason,
+  });
+}
+
 // ── Base sealed class ──────────────────────────────────────────────────────────
 sealed class QQLevel {
   final String? title; // shown in level grid; shows number if null
@@ -172,50 +194,180 @@ class ComposerLevel extends QQLevel {
     preInsertedGates?.call(quantumCircuit);
   }
 
-  bool validateCircuit(QuantumCircuit circuit, {double eps = 1e-9}) {
+  ComposerValidationResult evaluateCircuit(QuantumCircuit circuit,
+      {double eps = 1e-9}) {
+    final currentVector = circuit.currentState.state.toComplexList();
+    final bool stateMatches = matrixClose(
+      currentVector,
+      solutionFinalVector,
+      eps: eps,
+    );
+    final bool globalPhaseMatches =
+        _matrixCloseUpToGlobalPhase(currentVector, solutionFinalVector, eps);
+
     switch (validationMode) {
       case ValidationMode.finalState:
-        return matrixClose(
-          circuit.currentState.state.toComplexList(),
-          solutionFinalVector,
-          eps: eps,
+        return ComposerValidationResult(
+          success: stateMatches,
+          stateMatches: stateMatches,
+          tolerance: eps,
+          withinTolerance: stateMatches,
+          globalPhaseMatches: globalPhaseMatches,
+          explicitConstraintMatches: true,
+          explicitConstraint: 'none',
+          finalReason: stateMatches
+              ? 'final state matches target'
+              : 'final state mismatch',
         );
       case ValidationMode.unitary:
         if (targetUnitary == null) {
-          debugPrint(
-            'ComposerLevel "${title ?? taskDescription}" uses unitary validation but targetUnitary is null.',
+          return ComposerValidationResult(
+            success: false,
+            stateMatches: stateMatches,
+            tolerance: eps,
+            withinTolerance: stateMatches,
+            globalPhaseMatches: globalPhaseMatches,
+            explicitConstraintMatches: false,
+            explicitConstraint: 'unitary target',
+            finalReason: 'missing targetUnitary',
           );
-          return false;
         }
 
         final currentUnitary =
             circuit.getOverallCircuitMatrix().toComplexList();
         if (currentUnitary.length != targetUnitary!.length) {
-          debugPrint(
-            'ComposerLevel "${title ?? taskDescription}" unitary validation failed: row count mismatch '
-            '(${currentUnitary.length} vs ${targetUnitary!.length}).',
+          return ComposerValidationResult(
+            success: false,
+            stateMatches: stateMatches,
+            tolerance: eps,
+            withinTolerance: stateMatches,
+            globalPhaseMatches: globalPhaseMatches,
+            explicitConstraintMatches: false,
+            explicitConstraint: 'unitary target',
+            finalReason: 'unitary row count mismatch',
           );
-          return false;
         }
         for (int row = 0; row < currentUnitary.length; row++) {
           if (currentUnitary[row].length != targetUnitary![row].length) {
-            debugPrint(
-              'ComposerLevel "${title ?? taskDescription}" unitary validation failed: '
-              'column count mismatch at row $row (${currentUnitary[row].length} vs ${targetUnitary![row].length}).',
+            return ComposerValidationResult(
+              success: false,
+              stateMatches: stateMatches,
+              tolerance: eps,
+              withinTolerance: stateMatches,
+              globalPhaseMatches: globalPhaseMatches,
+              explicitConstraintMatches: false,
+              explicitConstraint: 'unitary target',
+              finalReason: 'unitary column count mismatch at row $row',
             );
+          }
+        }
+        bool unitaryMatches =
+            matrixClose(currentUnitary, targetUnitary!, eps: eps);
+        for (final alternateTargetUnitary in alternateTargetUnitaries) {
+          unitaryMatches = unitaryMatches ||
+              matrixClose(currentUnitary, alternateTargetUnitary, eps: eps);
+        }
+        return ComposerValidationResult(
+          success: unitaryMatches,
+          stateMatches: stateMatches,
+          tolerance: eps,
+          withinTolerance: stateMatches,
+          globalPhaseMatches: globalPhaseMatches,
+          explicitConstraintMatches: unitaryMatches,
+          explicitConstraint: 'unitary target',
+          finalReason: unitaryMatches
+              ? 'explicit unitary constraint matches'
+              : 'explicit unitary constraint mismatch',
+        );
+    }
+  }
+
+  bool validateCircuit(QuantumCircuit circuit, {double eps = 1e-9}) {
+    final result = evaluateCircuit(circuit, eps: eps);
+    if (!result.success) {
+      _debugLogValidationFailure(circuit, result);
+    }
+    return result.success;
+  }
+
+  void _debugLogValidationFailure(
+    QuantumCircuit circuit,
+    ComposerValidationResult result,
+  ) {
+    assert(() {
+      debugPrint(
+        'ComposerLevel validation failed for "${title ?? taskDescription}".\n'
+        'currentVector: ${circuit.currentState.state.toComplexList()}\n'
+        'targetVector: $solutionFinalVector\n'
+        'stateMatches: ${result.stateMatches}\n'
+        'tolerance: ${result.tolerance}\n'
+        'withinTolerance: ${result.withinTolerance}\n'
+        'globalPhaseMatches: ${result.globalPhaseMatches}\n'
+        'explicitConstraint: ${result.explicitConstraint}\n'
+        'explicitConstraintMatches: ${result.explicitConstraintMatches}\n'
+        'finalReason: ${result.finalReason}',
+      );
+      return true;
+    }());
+  }
+
+  static bool _matrixCloseUpToGlobalPhase(
+    List<List<Complex>> a,
+    List<List<Complex>> b,
+    double eps,
+  ) {
+    if (a.length != b.length) {
+      return false;
+    }
+
+    Complex? phase;
+    for (int row = 0; row < a.length; row++) {
+      if (a[row].length != b[row].length) {
+        return false;
+      }
+
+      for (int col = 0; col < a[row].length; col++) {
+        final target = b[row][col];
+        final current = a[row][col];
+        if (_complexMagnitudeSquared(target) <= eps * eps) {
+          if (!complexClose(current, Complex.zero(), eps: eps)) {
             return false;
           }
+          continue;
         }
-        if (matrixClose(currentUnitary, targetUnitary!, eps: eps)) {
-          return true;
+
+        phase ??= _complexDivide(current, target);
+        if (!complexClose(current, _complexMultiply(phase, target), eps: eps)) {
+          return false;
         }
-        for (final alternateTargetUnitary in alternateTargetUnitaries) {
-          if (matrixClose(currentUnitary, alternateTargetUnitary, eps: eps)) {
-            return true;
-          }
-        }
-        return false;
+      }
     }
+
+    return phase != null && (_complexMagnitudeSquared(phase) - 1).abs() < eps;
+  }
+
+  static double _complexMagnitudeSquared(Complex value) {
+    return (value.real * value.real + value.imaginary * value.imaginary)
+        .toDouble();
+  }
+
+  static Complex _complexMultiply(Complex a, Complex b) {
+    return Complex(
+      a.real * b.real - a.imaginary * b.imaginary,
+      a.real * b.imaginary + a.imaginary * b.real,
+    );
+  }
+
+  static Complex _complexDivide(Complex numerator, Complex denominator) {
+    final scale = _complexMagnitudeSquared(denominator);
+    return Complex(
+      (numerator.real * denominator.real +
+              numerator.imaginary * denominator.imaginary) /
+          scale,
+      (numerator.imaginary * denominator.real -
+              numerator.real * denominator.imaginary) /
+          scale,
+    );
   }
 
   static List<Complex> getZeroStateVector(int numQubits) {

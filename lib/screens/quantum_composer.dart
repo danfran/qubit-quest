@@ -17,6 +17,7 @@ import 'package:quantumquiz/screens/three_qubits_gate_target_qubits_selection_di
 import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
 import 'package:quantumquiz/utils/complex_formatter.dart';
 import 'package:quantumquiz/widgets/adaptive_learning_card.dart';
+import 'package:quantumquiz/widgets/circuit_canvas_metrics.dart';
 import 'package:quantumquiz/widgets/gate_visual_style.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
@@ -1048,6 +1049,10 @@ class _QuantumComposerState extends State<QuantumComposer>
             final Widget statePanel = _buildPortraitStateSection(short: short);
             final double contentTopPadding = short ? 3 : 5;
             final double contentBottomPadding = short ? 6 : (compact ? 8 : 10);
+            final double contentHeight = math.max(
+              0,
+              constraints.maxHeight - contentTopPadding - contentBottomPadding,
+            );
 
             return Padding(
               padding: EdgeInsets.fromLTRB(
@@ -1069,6 +1074,7 @@ class _QuantumComposerState extends State<QuantumComposer>
                         : _buildLandscapeComposerLayout(
                             circuitCard: circuitCard,
                             short: short,
+                            availableHeight: contentHeight,
                           ),
                   ),
                 ],
@@ -1097,18 +1103,16 @@ class _QuantumComposerState extends State<QuantumComposer>
     return LayoutBuilder(
       builder: (context, constraints) {
         final bool composer = runningAsQuantumComposer();
-        final Widget circuitSection = composer
-            ? SizedBox(
-                height: _composerPortraitCircuitHeight(
-                  constraints.maxHeight,
-                  short: short,
-                ),
-                child: circuitCard,
-              )
-            : Flexible(
-                flex: 2,
-                child: circuitCard,
-              );
+        final metrics = CircuitCanvasMetrics.calculate(
+          qubitCount: _numQubits,
+          orientation: Orientation.portrait,
+          availableHeight: constraints.maxHeight,
+          cardPadding: _circuitCardPadding(compact: short),
+        );
+        final Widget circuitSection = SizedBox(
+          height: metrics.height,
+          child: circuitCard,
+        );
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1130,20 +1134,6 @@ class _QuantumComposerState extends State<QuantumComposer>
         );
       },
     );
-  }
-
-  double _composerPortraitCircuitHeight(
-    double availableHeight, {
-    required bool short,
-  }) {
-    final double qubitDrawingHeight =
-        _numQubits * QuantumCircuitPainter.qubitSpacing +
-            QuantumCircuitPainter.padding * 2;
-    final double cardChromeHeight = (short ? 6 : 9) + (short ? 6 : 10);
-    final double contentHeight = qubitDrawingHeight + cardChromeHeight;
-    final double maxCircuitHeight = availableHeight * 0.45;
-
-    return math.min(contentHeight, maxCircuitHeight);
   }
 
   Widget _buildPortraitStateSection({required bool short}) {
@@ -1254,6 +1244,7 @@ class _QuantumComposerState extends State<QuantumComposer>
   Widget _buildLandscapeComposerLayout({
     required Widget circuitCard,
     required bool short,
+    required double availableHeight,
   }) {
     final double gap = short ? 6 : 10;
     final double toolbarHeight = short ? 76 : 116;
@@ -1261,6 +1252,17 @@ class _QuantumComposerState extends State<QuantumComposer>
     final List<Complex>? targetStateVector =
         runningAsQuantumComposer() ? null : _targetStateVector();
     final bool showGoal = !runningAsQuantumComposer();
+    final double goalHeight = showGoal ? (short ? 58 : 68) : 0;
+    final double circuitAvailableHeight = math.max(
+      0,
+      availableHeight - toolbarHeight - gap - (showGoal ? goalHeight + gap : 0),
+    );
+    final metrics = CircuitCanvasMetrics.calculate(
+      qubitCount: _numQubits,
+      orientation: Orientation.landscape,
+      availableHeight: circuitAvailableHeight,
+      cardPadding: _circuitCardPadding(compact: short),
+    );
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1272,12 +1274,15 @@ class _QuantumComposerState extends State<QuantumComposer>
             children: [
               if (showGoal) ...[
                 SizedBox(
-                  height: short ? 58 : 68,
+                  height: goalHeight,
                   child: _buildGoalBanner(compact: short),
                 ),
                 SizedBox(height: gap),
               ],
-              Expanded(child: circuitCard),
+              SizedBox(
+                height: metrics.height,
+                child: circuitCard,
+              ),
               SizedBox(height: gap),
               SizedBox(
                 height: toolbarHeight,
@@ -1657,12 +1662,7 @@ class _QuantumComposerState extends State<QuantumComposer>
             ),
         ],
       ),
-      padding: EdgeInsets.fromLTRB(
-        compact ? 8 : 12,
-        compact ? 6 : 9,
-        compact ? 8 : 12,
-        compact ? 6 : 10,
-      ),
+      padding: _circuitCardPadding(compact: compact),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1676,6 +1676,15 @@ class _QuantumComposerState extends State<QuantumComposer>
           Expanded(child: _buildCircuitDragTarget()),
         ],
       ),
+    );
+  }
+
+  EdgeInsets _circuitCardPadding({required bool compact}) {
+    return EdgeInsets.fromLTRB(
+      compact ? 8 : 12,
+      compact ? 6 : 9,
+      compact ? 8 : 12,
+      compact ? 6 : 10,
     );
   }
 
@@ -1999,8 +2008,7 @@ class _QuantumComposerState extends State<QuantumComposer>
         final double sizedBoxWidth =
             max(minRequiredWidth, availableContainerWidth);
         final double sizedBoxHeight =
-            _numQubits * QuantumCircuitPainter.qubitSpacing +
-                QuantumCircuitPainter.padding * 2;
+            QuantumCircuitPainter.requiredDrawingHeightFor(_numQubits);
         final double viewportHeight =
             max(sizedBoxHeight, constraints.maxHeight);
         final bool circuitIsEmpty = _circuit.isCircuitEmpty();
@@ -2778,8 +2786,7 @@ class _CircuitGuidePainter extends CustomPainter {
     }
 
     for (int qubit = 0; qubit < numQubits; qubit++) {
-      final double centerY = QuantumCircuitPainter.qubitSpacing * qubit +
-          QuantumCircuitPainter.qubitSpacing / 2;
+      final double centerY = QuantumCircuitPainter.qubitCenterYFor(qubit);
       final Rect laneRect = Rect.fromLTRB(
         0,
         centerY - QuantumCircuitPainter.hitTolerance,
@@ -2817,8 +2824,7 @@ class _CircuitGuidePainter extends CustomPainter {
 
   int? _qubitIndexForY(double y) {
     for (int qubit = 0; qubit < numQubits; qubit++) {
-      final double centerY = QuantumCircuitPainter.qubitSpacing * qubit +
-          QuantumCircuitPainter.qubitSpacing / 2;
+      final double centerY = QuantumCircuitPainter.qubitCenterYFor(qubit);
       if (y >= centerY - QuantumCircuitPainter.hitTolerance &&
           y <= centerY + QuantumCircuitPainter.hitTolerance) {
         return qubit;

@@ -21,6 +21,12 @@ class QuantumCircuitPainter extends CustomPainter {
   // *********************************************************
   static const double targetRadius = 12.0; // Radius of the CNOT target circle
   static const double controlDotRadius = 4.0; // Radius of the CNOT control dot
+  static const double gateShadowYOffset = 3.0;
+  static const double gateShadowBlurRadius = 8.0;
+  static const double firstWireY = qubitSpacing / 2;
+  static const double bottomExtent =
+      gateSize / 2 + gateShadowYOffset + gateShadowBlurRadius;
+  static const double topExtent = firstWireY;
 
   // Color constants
   static const Color gridLinesColor =
@@ -74,7 +80,23 @@ class QuantumCircuitPainter extends CustomPainter {
 
   // Helper getter to calculate the vertical center of a qubit line
   double getQubitCenterY(int qubitIndex) {
-    return qubitIndex * qubitSpacing + qubitSpacing / 2;
+    return qubitCenterYFor(qubitIndex);
+  }
+
+  static double qubitCenterYFor(int qubitIndex) {
+    return qubitIndex * qubitSpacing + firstWireY;
+  }
+
+  static double lastWireYFor(int qubitCount) {
+    return qubitCenterYFor(max(1, qubitCount) - 1);
+  }
+
+  static double wireSpanFor(int qubitCount) {
+    return (max(1, qubitCount) - 1) * qubitSpacing;
+  }
+
+  static double requiredDrawingHeightFor(int qubitCount) {
+    return topExtent + wireSpanFor(qubitCount) + bottomExtent;
   }
 
   @visibleForTesting

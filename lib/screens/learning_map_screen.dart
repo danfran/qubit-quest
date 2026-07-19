@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/qq_levels_category.dart';
@@ -23,7 +24,7 @@ class LearningMapConceptLink {
 class LearningMapScreen extends StatelessWidget {
   const LearningMapScreen({
     super.key,
-    required this.maxUnlockedLevel,
+    required this.progressState,
     required this.onStartChapter,
   });
 
@@ -60,7 +61,7 @@ class LearningMapScreen extends StatelessWidget {
     ),
   ];
 
-  final int maxUnlockedLevel;
+  final CampaignProgressState progressState;
   final Future<void> Function(int levelNumber) onStartChapter;
 
   @override
@@ -91,7 +92,7 @@ class LearningMapScreen extends StatelessWidget {
                         SizedBox(height: compact ? 18 : 24),
                         _LearningMapPath(
                           chapters: chapters,
-                          maxUnlockedLevel: maxUnlockedLevel,
+                          progressState: progressState,
                           compact: compact,
                           onStartChapter: onStartChapter,
                         ),
@@ -363,13 +364,13 @@ class _DependencyChip extends StatelessWidget {
 class _LearningMapPath extends StatelessWidget {
   const _LearningMapPath({
     required this.chapters,
-    required this.maxUnlockedLevel,
+    required this.progressState,
     required this.compact,
     required this.onStartChapter,
   });
 
   final List<QQLevelsCategory> chapters;
-  final int maxUnlockedLevel;
+  final CampaignProgressState progressState;
   final bool compact;
   final Future<void> Function(int levelNumber) onStartChapter;
 
@@ -415,8 +416,13 @@ class _LearningMapPath extends StatelessWidget {
   _ChapterMapStatus _statusFor(QQLevelsCategory category) {
     final firstLevel = category.from + 1;
     final lastLevel = category.to + 1;
-    if (maxUnlockedLevel > lastLevel) return _ChapterMapStatus.completed;
-    if (maxUnlockedLevel >= firstLevel) return _ChapterMapStatus.current;
+    final snapshot = CampaignProgressPolicy.chapterProgress(
+      progressState,
+      firstLevel: firstLevel,
+      lastLevel: lastLevel,
+    );
+    if (snapshot.completed) return _ChapterMapStatus.completed;
+    if (!snapshot.locked) return _ChapterMapStatus.current;
     return _ChapterMapStatus.locked;
   }
 }

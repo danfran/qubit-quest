@@ -1398,6 +1398,101 @@ void main() {
       expect(level.validateCircuit(circuit), isTrue);
     });
 
+    test('Lesson 17 HZH = X accepts H Z H as a final-state solution', () {
+      final level = getQQLevelById(17)!;
+      expect(level, isA<ComposerLevel>());
+
+      final composerLevel = level as ComposerLevel;
+      expect(composerLevel.title, 'HZH = X');
+      expect(composerLevel.initialQubitsStateStr, '0');
+      expect(
+        composerLevel.availableGates.map((gate) => gate.type),
+        equals([SelectedGateType.hadamard, SelectedGateType.z]),
+      );
+      expect(composerLevel.validationMode, ValidationMode.finalState);
+      expect(composerLevel.targetUnitary, isNull);
+
+      final circuit = simulate(composerLevel);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 1, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 2, 0);
+      circuit.runSimulation();
+
+      expect(
+        matrixClose(
+          circuit.currentState.state.toComplexList(),
+          composerLevel.solutionFinalVector,
+        ),
+        isTrue,
+      );
+      expect(composerLevel.validateCircuit(circuit), isTrue);
+    });
+
+    test(
+        'final-state validation accepts numerical differences within tolerance',
+        () {
+      final level = ComposerLevel.fromBinaryString(
+        title: 'Tolerance final-state validation',
+        taskDescription: 'Apply X to reach a numerically close |1> target.',
+        initialQubitsStateString: '0',
+        availableGates: [Gate.fromIdentifier(SelectedGateType.x)],
+        solutionFinalVector: [
+          [Complex(1e-10, 0)],
+          [Complex(1 - 1e-10, 0)],
+        ],
+      );
+
+      final circuit = simulate(level);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('global phase remains exact under current state comparison rule', () {
+      final level = ComposerLevel.fromBinaryString(
+        title: 'Exact global phase validation',
+        taskDescription: 'Reach |1> exactly.',
+        initialQubitsStateString: '0',
+        availableGates: [Gate.fromIdentifier(SelectedGateType.y)],
+        solutionFinalVector: [
+          [Complex.zero()],
+          [Complex.one()],
+        ],
+      );
+
+      final circuit = simulate(level);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.y), 0, 0);
+      circuit.runSimulation();
+
+      expect(
+        matrixClose(
+          circuit.currentState.state.toComplexList(),
+          level.solutionFinalVector,
+        ),
+        isFalse,
+        reason:
+            'The existing final-state rule compares displayed amplitudes exactly within tolerance.',
+      );
+      expect(level.validateCircuit(circuit), isFalse);
+    });
+
+    test('Lesson 17 incorrect circuits still fail', () {
+      final level = findComposerLevelByTitle('HZH = X');
+      final circuit = simulate(level);
+
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+      circuit.runSimulation();
+
+      expect(level.validateCircuit(circuit), isFalse);
+    });
+
     test('CNOT Fan-Out requires one control fanned out to two targets', () {
       final level = findComposerLevelByTitle('CNOT Fan-Out');
 
