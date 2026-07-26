@@ -33,7 +33,19 @@ class Gate {
   final String label;
   final double? angle;
 
-  Gate({required this.type, required this.color, required this.label, this.angle});
+  Gate(
+      {required this.type,
+      required this.color,
+      required this.label,
+      this.angle});
+
+  bool get requiresAngle =>
+      type == SelectedGateType.rx ||
+      type == SelectedGateType.ry ||
+      type == SelectedGateType.rz;
+
+  bool get hasValidRequiredParameters =>
+      !requiresAngle || (angle != null && angle!.isFinite);
 
   /// Factory constructor to create a gate instance from a SelectedGateType.
   /// This ensures that only valid gate types can be created via this factory.
@@ -41,7 +53,7 @@ class Gate {
     Color gateColor;
     GateLabelFunction gateLabel;
 
-    int _gcd(int a, int b) {
+    int gcdOf(int a, int b) {
       a = a.abs();
       b = b.abs();
       while (b != 0) {
@@ -52,7 +64,7 @@ class Gate {
       return a;
     }
 
-    String _formatAngle(double angle) {
+    String formatAngle(double angle) {
       if (angle == 0.0) {
         return '0';
       }
@@ -79,13 +91,13 @@ class Gate {
           if (n == 0) continue; // Skip zero angle, handled at the start
 
           // Simplify the fraction n/d
-          final int gcd = _gcd(n, d);
+          final int gcd = gcdOf(n, d);
           final int numerator = n ~/ gcd;
           final int denominator = d ~/ gcd;
 
           if (denominator == 1) {
             // e.g., 2*pi/2 -> 1*pi. 4*pi/2 -> 2*pi
-            if (numerator == 1) return '${sign}\u03c0';
+            if (numerator == 1) return '$sign\u03c0';
             return '$sign$numerator\u03c0';
           } else {
             // e.g., pi/2, 3*pi/4, 5*pi/8
@@ -136,15 +148,15 @@ class Gate {
         break;
       case SelectedGateType.rx:
         gateColor = Colors.blue.shade600;
-        gateLabel = () => angle == null ? 'Rx' : 'Rx\n${_formatAngle(angle)}';
+        gateLabel = () => angle == null ? 'Rx' : 'Rx\n${formatAngle(angle)}';
         break;
       case SelectedGateType.ry:
         gateColor = Colors.green.shade600;
-        gateLabel = () => angle == null ? 'Ry' : 'Ry\n${_formatAngle(angle)}';
+        gateLabel = () => angle == null ? 'Ry' : 'Ry\n${formatAngle(angle)}';
         break;
       case SelectedGateType.rz:
         gateColor = Colors.purple.shade600;
-        gateLabel = () => angle == null ? 'Rz' : 'Rz\n${_formatAngle(angle)}';
+        gateLabel = () => angle == null ? 'Rz' : 'Rz\n${formatAngle(angle)}';
         break;
       default:
         gateColor = Colors.transparent;

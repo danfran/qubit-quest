@@ -1767,7 +1767,7 @@ final List<QQLevel> _authoredQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'Rx Rotation Gate',
     taskDescription:
-        r"Transform the initial state \( |0\rangle \) to the 'plus' state \( |+\rangle \). This can be achieved with a single rotation gate.",
+        r"Transform the initial state \( |0\rangle \) to \( Rx(\pi/2)|0\rangle = (|0\rangle - i|1\rangle)/\sqrt{2} \). This can be achieved with a single rotation gate.",
     targetStateLabel: "Rx(π/2)|0⟩",
     targetStateExpression: "Rx(π/2)|0⟩ = (|0⟩ - i|1⟩)/√2",
     conceptIntro:
@@ -1787,7 +1787,7 @@ final List<QQLevel> _authoredQQLevels = [
     ],
     solutionExplanation: 'Rx(π/2)|0⟩ = (|0⟩−i|1⟩)/√2. '
         'The amplitude on |1⟩ is −i/√2, giving probability |−i/√2|²=1/2 — '
-        'equal to |+⟩, but the phase of |1⟩ differs. '
+        'the same measurement probability as |+⟩, but not the same quantum state because the phase of |1⟩ differs. '
         'Rx, Ry, Rz together can represent any single-qubit unitary. '
         'This is the Euler angle decomposition, fundamental to variational quantum circuits.',
     numQubits: 1,
@@ -1800,7 +1800,7 @@ final List<QQLevel> _authoredQQLevels = [
     solutionFinalVector: [
       [Complex(sqrt1_2, 0)],
       [Complex(0, -sqrt1_2)],
-    ], // Target: |+>
+    ], // Target: Rx(π/2)|0⟩ = (|0⟩ - i|1⟩)/√2
   ),
   ComposerLevel.fromBinaryString(
     title: 'Ry Rotation Gate',
@@ -1839,9 +1839,9 @@ final List<QQLevel> _authoredQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'Rz — Phase Rotation',
     taskDescription:
-        r"Apply a phase shift to the state \( |1\rangle \) to transform it to \( |i\rangle \). This requires an Rz gate.",
+        r"Apply a phase shift to the state \( |1\rangle \) to transform it to \( e^{i\pi/4}|1\rangle \). This requires an Rz gate.",
     targetStateLabel: "e^{iπ/4}|1⟩",
-    targetStateExpression: "e^{iπ/4}|1⟩",
+    targetStateExpression: "e^{iπ/4}|1⟩ = (1+i)|1⟩/√2",
     conceptIntro:
         'Rz(θ) rotates around the Z-axis: Rz(θ)|0⟩ = e^(−iθ/2)|0⟩ and Rz(θ)|1⟩ = e^(iθ/2)|1⟩. '
         'Since |0⟩ and |1⟩ get opposite phases, Rz only creates a relative phase — '
@@ -1860,7 +1860,7 @@ final List<QQLevel> _authoredQQLevels = [
         'Rz(π/2)|1⟩ = e^(iπ/4)|1⟩ = (cos(π/4)+i·sin(π/4))|1⟩ = (1+i)/√2·|1⟩. '
         'Rz(π/2) is the continuous-angle equivalent of the S gate (S = Rz(π/2) up to global phase). '
         'The Z-rotation family: T = Rz(π/4), S = Rz(π/2), Z = Rz(π). '
-        'All add phase exclusively to the |1⟩ component without touching |0⟩.',
+        'As phase gates they are equivalent up to global phase to changing the relative phase of the |1⟩ component.',
     numQubits: 1,
     initialQubitsStateString: "1",
     availableGates: [
@@ -1871,7 +1871,7 @@ final List<QQLevel> _authoredQQLevels = [
     solutionFinalVector: [
       [Complex.zero()],
       [Complex(sqrt1_2, sqrt1_2)],
-    ], // Target: |i>
+    ], // Target: e^{iπ/4}|1⟩ = (1+i)|1⟩/√2
   ),
   ComposerLevel.fromBinaryString(
     title: 'Inverse Rotation',
@@ -1967,8 +1967,7 @@ final List<QQLevel> _authoredQQLevels = [
         'Rotation gates can be applied to individual qubits of an entangled state. '
         'Rz(θ) on Q0 of Φ⁺=(|00⟩+|11⟩)/√2 adds e^(−iθ/2) when Q0=0 '
         'and e^(iθ/2) when Q0=1 — introducing a relative phase between the two entangled terms. '
-        'This "phase kickback" is the core mechanism of quantum phase estimation '
-        'and the quantum Fourier transform.',
+        'This is a local Z-axis phase rotation on one qubit of an entangled pair, preserving entanglement while changing the pair\'s relative phase.',
     hints: [
       'The pre-inserted H+CNOT created Φ⁺=(|00⟩+|11⟩)/√2. '
           'Rz(θ) on Q0 adds phase e^(−iθ/2) to the |00⟩ component '
@@ -2013,24 +2012,21 @@ final List<QQLevel> _authoredQQLevels = [
     ], // Target: (1/sqrt(2))|00> + (e^(i*pi/4)/sqrt(2))|11>
   ),
   ComposerLevel.fromBinaryString(
-    title: 'Precise Bloch Sphere Navigation',
+    title: 'Precise State-Vector Phase',
     taskDescription:
-        r"Transform the initial state to a specific point on the Bloch sphere. This requires precise rotations.",
-    targetStateLabel: "Precise phase state",
+        r"Transform the initial state to the exact state vector \( e^{-i\pi/8}(|0\rangle + |1\rangle)/\sqrt{2} \). This has the same physical Bloch-sphere point as \( |+\rangle \), but the displayed state vector includes a global phase.",
+    targetStateLabel: "Global-phase |+⟩",
     targetStateExpression: "e^{-iπ/8}(|0⟩ + |1⟩)/√2",
     conceptIntro:
-        'Any point on the Bloch sphere can be reached with at most two rotations around different axes — '
-        'the Euler angle decomposition. '
-        'The target state has equal-magnitude amplitudes with a specific complex phase: '
-        'it lives on the equatorial plane but offset from the X and Y axes. '
-        'Two rotations are needed to reach it from |0⟩: one to create the superposition '
-        'and another to introduce the right phase mix. '
-        'Inspect the available gates and think about what each axis of rotation contributes.',
+        'The Bloch sphere represents states up to global phase, so e^{-iπ/8}|+⟩ and |+⟩ are the same physical Bloch-sphere point. '
+        'This challenge asks for the exact displayed state vector, where both amplitudes share the same global phase e^{-iπ/8}. '
+        'Do not confuse equal measurement probabilities with matching the full complex state vector. '
+        'Inspect the available rotations and think about how each axis changes the complex amplitudes.',
     hints: [
-      'The target has both amplitudes equal in magnitude (1/√2) with a specific phase. '
+      'The target has both amplitudes equal in magnitude (1/√2) and both carry the same complex phase e^{-iπ/8}. '
           'Start with Rx(π/2) to create the superposition (|0⟩ − i|1⟩)/√2, '
           'then Ry(π/4) rotates the amplitudes, '
-          'and finally Rz(π/2) equalises the phases.',
+          'and finally Rz(π/2) makes the two displayed amplitudes equal.',
       'Rx(π/2)|0⟩ = (|0⟩ − i|1⟩)/√2. '
           'Ry(π/4) then gives amplitudes e^(iπ/8)/√2 and −i·e^(iπ/8)/√2. '
           'Rz(π/2) applies phases e^(−iπ/4) and e^(iπ/4): '
@@ -2041,7 +2037,8 @@ final List<QQLevel> _authoredQQLevels = [
         'Ry(π/4) rotates further: component 0 → e^(iπ/8)/√2, component 1 → −i·e^(iπ/8)/√2. '
         'Rz(π/2) applies phases e^(−iπ/4) and e^(iπ/4), making both components equal: '
         'e^(−iπ/8)/√2 = (cos(π/8) − i·sin(π/8))/√2. '
-        'The three-gate sequence Rx → Ry → Rz navigates the Bloch sphere along three axes; '
+        'The final vector is e^(−iπ/8)|+⟩: physically the same Bloch-sphere point as |+⟩, but with the exact global phase shown in the target. '
+        'The three-gate sequence Rx → Ry → Rz controls the displayed complex amplitudes; '
         'any single-qubit gate has an Euler decomposition Rz(α)·Ry(β)·Rz(γ), '
         'and Rx → Ry → Rz here is an alternative three-axis factorisation for this target. '
         'VQE and QAOA circuits use exactly this parameterised gate structure.',
@@ -2062,7 +2059,7 @@ final List<QQLevel> _authoredQQLevels = [
         Complex(
             sqrt1_2 * math.cos(math.pi / 8), -sqrt1_2 * math.sin(math.pi / 8))
       ],
-    ], // Target: a complex superposition
+    ], // Target: e^{-iπ/8}|+⟩
   ),
 
   // ── Concept Checks (MCQ) ──────────────────────────────────────────────────
@@ -4022,7 +4019,7 @@ final List<QQLevel> _authoredQQLevels = [
     title: 'The Bell State',
     taskDescription:
         r'Can two qubits become one quantum system? Transform \( |00\rangle \) into Bell State \( \Phi^+ \).',
-    targetStateLabel: '|Φ+⟩',
+    targetStateLabel: '|Φ⁺⟩',
     targetStateExpression: '(|00⟩ + |11⟩)/√2',
     mysteryTitle: 'Can two qubits become one quantum system?',
     mysteryText:
@@ -4039,7 +4036,7 @@ final List<QQLevel> _authoredQQLevels = [
       'Then connect q1 to q0 with CX.',
     ],
     solutionExplanation:
-        'The circuit creates a state where the pair is either |00⟩ or |11⟩ together. That shared state is the Bell state Φ+.',
+        'The circuit creates a state where the pair is either |00⟩ or |11⟩ together. That shared state is the Bell state Φ⁺.',
     numQubits: 2,
     initialQubitsStateString: '00',
     availableGates: [
@@ -4058,7 +4055,7 @@ final List<QQLevel> _authoredQQLevels = [
     title: 'More Than Correlation',
     taskDescription:
         r'Why is entanglement special? Create a Bell state from \( |10\rangle \).',
-    targetStateLabel: '|Ψ+⟩',
+    targetStateLabel: '|Ψ⁺⟩',
     targetStateExpression: '(|01⟩ + |10⟩)/√2',
     mysteryTitle: 'Why is entanglement special?',
     mysteryText:
@@ -4075,7 +4072,7 @@ final List<QQLevel> _authoredQQLevels = [
       'Then use CX to connect the second qubit to those possibilities.',
     ],
     solutionExplanation:
-        'The circuit creates a Bell state with a hidden sign difference. The state belongs to the two-qubit system, not to either qubit alone.',
+        'The circuit creates the Bell state Ψ⁺, where the possibilities |01⟩ and |10⟩ have the same positive phase. The state belongs to the two-qubit system, not to either qubit alone.',
     numQubits: 2,
     initialQubitsStateString: '10',
     availableGates: [
@@ -4094,7 +4091,7 @@ final List<QQLevel> _authoredQQLevels = [
     title: 'What Is Entanglement?',
     taskDescription:
         r'What have we actually discovered? Prepare the entangled state \( (|00\rangle - |11\rangle)/\sqrt{2} \).',
-    targetStateLabel: '|Φ-⟩',
+    targetStateLabel: '|Φ⁻⟩',
     targetStateExpression: '(|00⟩ - |11⟩)/√2',
     mysteryTitle: 'What have we actually discovered?',
     mysteryText:
@@ -4113,7 +4110,7 @@ final List<QQLevel> _authoredQQLevels = [
       'Create a split possibility on q0, then connect the qubits with CX.',
     ],
     solutionExplanation:
-        'The circuit prepares an entangled pair where the possibilities |01⟩ and |10⟩ belong to the whole system.',
+        'The circuit prepares the Bell state Φ⁻, where the possibilities |00⟩ and |11⟩ belong to the whole system with a relative minus sign.',
     numQubits: 2,
     initialQubitsStateString: '01',
     availableGates: [

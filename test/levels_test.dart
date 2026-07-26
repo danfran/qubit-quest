@@ -2315,6 +2315,95 @@ void main() {
     });
   });
 
+  group('Content accuracy 2.0.2', () {
+    test('Mastery Challenge 40 describes Rx(pi/2)|0> instead of |+>', () {
+      final level = getQQLevelById(100)! as ComposerLevel;
+
+      expect(level.title, equals('Rx Rotation Gate'));
+      expect(level.taskDescription, contains(r'Rx(\pi/2)|0\rangle'));
+      expect(level.taskDescription, isNot(contains("'plus' state")));
+      expect(level.taskDescription, isNot(contains(r'|+\rangle')));
+      expect(
+        level.targetStateExpression,
+        equals('Rx(π/2)|0⟩ = (|0⟩ - i|1⟩)/√2'),
+      );
+      expect(
+        level.solutionExplanation,
+        contains('not the same quantum state'),
+      );
+      expect(
+        level.solutionFinalVector[0][0],
+        equals(Complex(math.sqrt1_2, 0)),
+      );
+      expect(
+        level.solutionFinalVector[1][0],
+        equals(Complex(0, -math.sqrt1_2)),
+      );
+    });
+
+    test('Rz phase challenge labels e^(i*pi/4)|1> correctly', () {
+      final level = getQQLevelById(102)! as ComposerLevel;
+
+      expect(level.title, equals('Rz — Phase Rotation'));
+      expect(level.taskDescription, contains(r'e^{i\pi/4}|1\rangle'));
+      expect(level.taskDescription, isNot(contains(r'|i\rangle')));
+      expect(
+        level.targetStateExpression,
+        equals('e^{iπ/4}|1⟩ = (1+i)|1⟩/√2'),
+      );
+      expect(level.solutionFinalVector[0][0], equals(Complex.zero()));
+      expect(
+        level.solutionFinalVector[1][0],
+        equals(Complex(math.sqrt1_2, math.sqrt1_2)),
+      );
+    });
+
+    test('precise rotation challenge identifies global phase accurately', () {
+      final level = getQQLevelById(106)! as ComposerLevel;
+
+      expect(level.title, equals('Precise State-Vector Phase'));
+      expect(level.targetStateLabel, equals('Global-phase |+⟩'));
+      expect(level.conceptIntro, contains('same physical Bloch-sphere point'));
+      expect(level.conceptIntro, contains('global phase'));
+      expect(
+        level.solutionExplanation,
+        contains('physically the same Bloch-sphere point as |+⟩'),
+      );
+    });
+
+    test('guided Bell state text matches the configured Bell targets', () {
+      ComposerLevel composerByTitle(String title) {
+        return allQQLevels
+            .whereType<ComposerLevel>()
+            .firstWhere((level) => level.title == title);
+      }
+
+      final phiPlus = composerByTitle('The Bell State');
+      final psiPlus = composerByTitle('More Than Correlation');
+      final phiMinus = composerByTitle('What Is Entanglement?');
+
+      expect(phiPlus.targetStateLabel, equals('|Φ⁺⟩'));
+      expect(phiPlus.solutionExplanation, contains('Bell state Φ⁺'));
+      expect(psiPlus.targetStateLabel, equals('|Ψ⁺⟩'));
+      expect(psiPlus.solutionExplanation, contains('same positive phase'));
+      expect(psiPlus.solutionExplanation, isNot(contains('hidden sign')));
+      expect(phiMinus.targetStateLabel, equals('|Φ⁻⟩'));
+      expect(phiMinus.solutionExplanation, contains('|00⟩ and |11⟩'));
+      expect(phiMinus.solutionExplanation, isNot(contains('|01⟩ and |10⟩')));
+    });
+
+    test('Bell notebook uses the same Phi-plus notation as lessons', () {
+      final entry = notebookEntriesByDiscoveryTitle['Bell State']!;
+
+      expect(entry.quantumView!.body, contains('Φ⁺'));
+      expect(entry.quantumView!.body, isNot(contains('Φ+')));
+      expect(
+        entry.quantumView!.examples.map((example) => example.notation),
+        contains('|Φ⁺⟩ = (|00⟩ + |11⟩)/√2'),
+      );
+    });
+  });
+
   // ── Titles ─────────────────────────────────────────────────────────────────
   // All levels must have a non-null, non-empty title so the grid can
   // display it. Tests here cover: (1) exhaustive null/empty check, and

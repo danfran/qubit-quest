@@ -196,6 +196,20 @@ class ComposerLevel extends QQLevel {
 
   ComposerValidationResult evaluateCircuit(QuantumCircuit circuit,
       {double eps = 1e-9}) {
+    final malformedCircuit = circuit.lastSimulationError;
+    if (malformedCircuit != null) {
+      return ComposerValidationResult(
+        success: false,
+        stateMatches: false,
+        tolerance: eps,
+        withinTolerance: false,
+        globalPhaseMatches: false,
+        explicitConstraintMatches: false,
+        explicitConstraint: 'valid circuit metadata',
+        finalReason: malformedCircuit.userMessage,
+      );
+    }
+
     final currentVector = circuit.currentState.state.toComplexList();
     final bool stateMatches = matrixClose(
       currentVector,
@@ -233,8 +247,21 @@ class ComposerLevel extends QQLevel {
           );
         }
 
-        final currentUnitary =
-            circuit.getOverallCircuitMatrix().toComplexList();
+        final List<List<Complex>> currentUnitary;
+        try {
+          currentUnitary = circuit.getOverallCircuitMatrix().toComplexList();
+        } on MalformedCircuitException catch (error) {
+          return ComposerValidationResult(
+            success: false,
+            stateMatches: stateMatches,
+            tolerance: eps,
+            withinTolerance: stateMatches,
+            globalPhaseMatches: globalPhaseMatches,
+            explicitConstraintMatches: false,
+            explicitConstraint: 'valid circuit metadata',
+            finalReason: error.userMessage,
+          );
+        }
         if (currentUnitary.length != targetUnitary!.length) {
           return ComposerValidationResult(
             success: false,

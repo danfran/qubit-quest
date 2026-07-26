@@ -34,6 +34,11 @@ enum _MasteryChallengeCompletionAction {
   continueJourney,
 }
 
+@visibleForTesting
+bool requiresRotationAngleSelection(Gate gate) {
+  return gate.requiresAngle && gate.angle == null;
+}
+
 class QuantumComposer extends StatefulWidget {
   final int levelId;
   final ComposerLevel level;
@@ -256,6 +261,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     final droppedGateType = details.data.type;
     // final dropPosition = details.offset; // Use details.offset
     final dropPosition = localPosition; // Use details.offset
+    bool insertedGate = false;
 
     // Use the painter's logic to determine the qubit line and insertion position
     final painter = QuantumCircuitPainter(_circuit, _circuitWidthNotifier,
@@ -328,6 +334,7 @@ class _QuantumComposerState extends State<QuantumComposer>
             '$gateLabel placement (control line = $_cnotControlQubit and target line = $tappedQubitLine).');
         _circuit.insertDoublePlacedGateAt(
             droppedGate, insertionPosition, tappedQubitLine, controlQubitLine);
+        insertedGate = true;
         debugPrint(
             "Gate $gateLabel inserted at position $insertionPosition on qubits $tappedQubitLine and $controlQubitLine.");
       } else {
@@ -355,6 +362,7 @@ class _QuantumComposerState extends State<QuantumComposer>
             'CCNOT placement (control line 1 = $_ccnotControl1Qubit, control line 2 = $_ccnotControl2Qubit and target line = $tappedQubitLine).');
         _circuit.insertTriplePlacedGateAt(droppedGate, insertionPosition,
             tappedQubitLine, _ccnotControl1Qubit!, _ccnotControl2Qubit!);
+        insertedGate = true;
         debugPrint(
             "Gate CCNOT inserted at position $insertionPosition on qubits $tappedQubitLine, $_ccnotControl1Qubit and $_ccnotControl2Qubit.");
       } else {
@@ -363,28 +371,32 @@ class _QuantumComposerState extends State<QuantumComposer>
         // Optionally provide feedback
         return;
       }
-    } else if ((droppedGateType == SelectedGateType.rx ||
-            droppedGateType == SelectedGateType.ry ||
-            droppedGateType == SelectedGateType.rz) &&
-        widget.levelId == -1) {
-      // if in the composer screen >> widget.levelId == -1
+    } else if (requiresRotationAngleSelection(droppedGate)) {
       await _showRotationAngleSetDialog(context);
-      if (_rotationAngle != null) {
+      if (_rotationAngle == null) {
+        debugPrint(
+            'Rotation angle selection cancelled for $droppedGateType. Gate not inserted.');
+        return;
+      } else {
         Gate updatedRotationGate =
             Gate.fromIdentifier(droppedGateType, angle: _rotationAngle!);
         _circuit.insertSinglePlacedGateAt(
             updatedRotationGate, insertionPosition, tappedQubitLine);
+        insertedGate = true;
       }
       debugPrint(
           "Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
     } else if (droppedGateType != SelectedGateType.draggedGate) {
       _circuit.insertSinglePlacedGateAt(
           droppedGate, insertionPosition, tappedQubitLine);
+      insertedGate = true;
       debugPrint(
           "Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
     }
 
-    _runSimulation(); // Optionally run simulation after placing
+    if (insertedGate) {
+      _runSimulation(); // Optionally run simulation after placing
+    }
   }
 
   Future<void> _showCNOTTargetSelectionDialog(
@@ -412,6 +424,7 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   Future<void> _showRotationAngleSetDialog(BuildContext context) async {
+    _rotationAngle = null;
     // Ensure dialog is not already shown
     if (ModalRoute.of(context)?.isCurrent != true ||
         Navigator.of(context).canPop() == false) {
@@ -517,6 +530,14 @@ class _QuantumComposerState extends State<QuantumComposer>
     // This method executes the simulation and updates circuit.currentState internally.
     debugPrint(_circuit.toString());
     _circuit.runSimulation();
+    final simulationError = _circuit.lastSimulationError;
+    if (simulationError != null) {
+      if (manualCheck && !runningAsQuantumComposer()) {
+        _showInvalidCircuitMessage(simulationError.userMessage);
+      }
+      debugPrint("Simulation blocked by malformed circuit.");
+      return;
+    }
 
     // ** Access the updated circuit.currentState property to get the final state **
     // Now that runSimulation is complete, circuit.currentState holds the result.
@@ -542,6 +563,22 @@ class _QuantumComposerState extends State<QuantumComposer>
       });
     }
     debugPrint("Simulation finished.");
+  }
+
+  void _showInvalidCircuitMessage(String message) {
+    _setCheckFeedback(
+      success: false,
+      title: 'Circuit incomplete',
+      message: message,
+    );
+    ScaffoldMessenger.maybeOf(context)
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   void _handleCheckResultPressed() {

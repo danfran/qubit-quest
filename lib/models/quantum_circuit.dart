@@ -6,6 +6,32 @@ import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/qubit_state.dart'; // Assuming you have this class
 import 'package:quantumquiz/models/selected_gate_type.dart';
 
+class MalformedCircuitException implements Exception {
+  final SelectedGateType gateType;
+  final int columnIndex;
+  final int qubitIndex;
+  final String parameterName;
+
+  const MalformedCircuitException({
+    required this.gateType,
+    required this.columnIndex,
+    required this.qubitIndex,
+    required this.parameterName,
+  });
+
+  String get gateLabel => Gate.fromIdentifier(gateType).label;
+
+  String get userMessage {
+    return 'Choose an angle for the $gateLabel gate before checking the circuit.';
+  }
+
+  @override
+  String toString() {
+    return 'MalformedCircuitException(gate: $gateType, column: $columnIndex, '
+        'qubit: $qubitIndex, missing/invalid parameter: $parameterName)';
+  }
+}
+
 // Make QuantumCircuit extend ChangeNotifier
 class QuantumCircuit extends ChangeNotifier {
   // List to store the placed gate instances that define the circuit structure
@@ -17,17 +43,20 @@ class QuantumCircuit extends ChangeNotifier {
   // Property to hold the current/final quantum state vector (updated by simulation)
   final QubitState initialState;
   QubitState currentState;
+  MalformedCircuitException? lastSimulationError;
 
   // Constructor
-  QuantumCircuit({required this.currentLevel}):
-  // Initialize the currentState to the ground state |00...0>
-  // Assuming QubitState has a constructor or static method to create the initial state
+  QuantumCircuit({required this.currentLevel})
+      :
+        // Initialize the currentState to the ground state |00...0>
+        // Assuming QubitState has a constructor or static method to create the initial state
         initialState = QubitState.fromList(currentLevel.initialQubitsState),
         currentState = QubitState.fromList(currentLevel.initialQubitsState),
         placedGates = List.generate(currentLevel.numQubits, (index) => []) {
     currentLevel.preInsertGates(this);
-    runSimulation();    // Automatically calls the simulation method
-    debugPrint('QuantumCircuit initialized and simulation started automatically!');
+    runSimulation(); // Automatically calls the simulation method
+    debugPrint(
+        'QuantumCircuit initialized and simulation started automatically!');
   }
 
   int maxCircuitDepth() => placedGates.map((e) => e.length).reduce(max);
@@ -35,17 +64,27 @@ class QuantumCircuit extends ChangeNotifier {
   bool isCircuitEmpty() => maxCircuitDepth() == 0;
 
   // New method to insert a placed gate at a specific position
-  void insertSinglePlacedGateAt(Gate gate, int insertionPosition, int tappedQubitIndex, {bool isDeletable = true}) {
+  void insertSinglePlacedGateAt(
+      Gate gate, int insertionPosition, int tappedQubitIndex,
+      {bool isDeletable = true}) {
+    if (!gate.hasValidRequiredParameters) {
+      throw ArgumentError(
+        'Cannot insert ${gate.type} without a valid rotation angle.',
+      );
+    }
+
     PlacedQuantumGate gateToInsert = PlacedQuantumGate(
       gate: gate,
       isDeletable: isDeletable,
     );
 
     if (placedGates[tappedQubitIndex].length <= insertionPosition) {
-      insertionPosition = min(insertionPosition, placedGates[tappedQubitIndex].length);
+      insertionPosition =
+          min(insertionPosition, placedGates[tappedQubitIndex].length);
       placedGates[tappedQubitIndex].insert(insertionPosition, gateToInsert);
       return;
-    } else if (placedGates[tappedQubitIndex][insertionPosition].gate.type == SelectedGateType.none) {
+    } else if (placedGates[tappedQubitIndex][insertionPosition].gate.type ==
+        SelectedGateType.none) {
       placedGates[tappedQubitIndex][insertionPosition] = gateToInsert;
       return;
     }
@@ -70,7 +109,9 @@ class QuantumCircuit extends ChangeNotifier {
   }
 
   // currently specific to CNOT only
-  void insertDoublePlacedGateAt(Gate gate, int insertionPosition, int targetQubitIndex, int controlQubitIndex, {bool isDeletable = true}) {
+  void insertDoublePlacedGateAt(Gate gate, int insertionPosition,
+      int targetQubitIndex, int controlQubitIndex,
+      {bool isDeletable = true}) {
     // need to check if the area to place the gate is fully empty then,
     int from = min(controlQubitIndex, targetQubitIndex);
     int to = max(controlQubitIndex, targetQubitIndex);
@@ -81,7 +122,9 @@ class QuantumCircuit extends ChangeNotifier {
 
     bool allEmpty = true;
     for (int i = from; i <= to; i++) {
-      if(insertionPosition < placedGates[i].length && placedGates[i][insertionPosition].gate.type != SelectedGateType.none) {
+      if (insertionPosition < placedGates[i].length &&
+          placedGates[i][insertionPosition].gate.type !=
+              SelectedGateType.none) {
         allEmpty = false;
         break;
       }
@@ -140,7 +183,8 @@ class QuantumCircuit extends ChangeNotifier {
             isDeletable: isDeletable,
           );
           insertGateAt(targetGate, insertionPosition, i);
-        } else if (i > controlQubitIndex && i < targetQubitIndex || i < controlQubitIndex && i > targetQubitIndex) {
+        } else if (i > controlQubitIndex && i < targetQubitIndex ||
+            i < controlQubitIndex && i > targetQubitIndex) {
           PlacedQuantumGate linkGate = PlacedQuantumGate(
             gate: gate,
             isLink: true,
@@ -166,15 +210,23 @@ class QuantumCircuit extends ChangeNotifier {
   }
 
   // currently specific to CCNOT only
-  void insertTriplePlacedGateAt(Gate gate, int insertionPosition, int targetQubitIndex, int control1QubitIndex, int control2QubitIndex, {bool isDeletable = true}) {
+  void insertTriplePlacedGateAt(Gate gate, int insertionPosition,
+      int targetQubitIndex, int control1QubitIndex, int control2QubitIndex,
+      {bool isDeletable = true}) {
     // need to check if the area to place the gate is fully empty then,
-    List<int> controls = [control1QubitIndex, control2QubitIndex, targetQubitIndex];
+    List<int> controls = [
+      control1QubitIndex,
+      control2QubitIndex,
+      targetQubitIndex
+    ];
     int from = controls.reduce(min);
     int to = controls.reduce(max);
 
     bool allEmpty = true;
     for (int i = from; i <= to; i++) {
-      if(insertionPosition < placedGates[i].length && placedGates[i][insertionPosition].gate.type != SelectedGateType.none) {
+      if (insertionPosition < placedGates[i].length &&
+          placedGates[i][insertionPosition].gate.type !=
+              SelectedGateType.none) {
         allEmpty = false;
         break;
       }
@@ -258,7 +310,8 @@ class QuantumCircuit extends ChangeNotifier {
             isDeletable: isDeletable,
           );
           insertGateAt(control2Gate, insertionPosition, i);
-        } else if (i > control1QubitIndex && i < targetQubitIndex || i < control1QubitIndex && i > targetQubitIndex) {
+        } else if (i > control1QubitIndex && i < targetQubitIndex ||
+            i < control1QubitIndex && i > targetQubitIndex) {
           PlacedQuantumGate linkGate = PlacedQuantumGate(
             gate: gate,
             isLink: true,
@@ -289,26 +342,36 @@ class QuantumCircuit extends ChangeNotifier {
     PlacedQuantumGate gateToRemove = placedGates[qubitLine][gatePosition];
     if (gateToRemove.gate.type == SelectedGateType.none) {
       return false;
-    }
-    else if ((gateToRemove.gate.type == SelectedGateType.cnot || gateToRemove.gate.type == SelectedGateType.cz) && gateToRemove.isDeletable) {
-      List<int> controls = [gateToRemove.controlQubitIndex!, gateToRemove.targetQubitIndex!];
+    } else if ((gateToRemove.gate.type == SelectedGateType.cnot ||
+            gateToRemove.gate.type == SelectedGateType.cz) &&
+        gateToRemove.isDeletable) {
+      List<int> controls = [
+        gateToRemove.controlQubitIndex!,
+        gateToRemove.targetQubitIndex!
+      ];
       for (int i = controls.reduce(min); i <= controls.reduce(max); i++) {
         placedGates[i][gatePosition] = PlacedQuantumGate.emptyGate();
       }
-    }
-    else if (gateToRemove.gate.type == SelectedGateType.ccnot && gateToRemove.isDeletable) {
-      List<int> controls = [gateToRemove.controlQubitIndex!, gateToRemove.control2QubitIndex!, gateToRemove.targetQubitIndex!];
+    } else if (gateToRemove.gate.type == SelectedGateType.ccnot &&
+        gateToRemove.isDeletable) {
+      List<int> controls = [
+        gateToRemove.controlQubitIndex!,
+        gateToRemove.control2QubitIndex!,
+        gateToRemove.targetQubitIndex!
+      ];
       for (int i = controls.reduce(min); i <= controls.reduce(max); i++) {
         placedGates[i][gatePosition] = PlacedQuantumGate.emptyGate();
       }
     } else if (gateToRemove.isDeletable) {
       placedGates[qubitLine][gatePosition] = PlacedQuantumGate.emptyGate();
     } else {
-      debugPrint('Gate type [${gateToRemove.gate.type}] not deletable at qubit line: $qubitLine and gate position: $gatePosition');
+      debugPrint(
+          'Gate type [${gateToRemove.gate.type}] not deletable at qubit line: $qubitLine and gate position: $gatePosition');
       return false;
     }
 
-    debugPrint('Gate type [${gateToRemove.gate.type}] removed at qubit line: $qubitLine and gate position: $gatePosition');
+    debugPrint(
+        'Gate type [${gateToRemove.gate.type}] removed at qubit line: $qubitLine and gate position: $gatePosition');
 
     // Second phase, we need to scroll left what is scrollable.
     shiftLeft();
@@ -328,46 +391,60 @@ class QuantumCircuit extends ChangeNotifier {
       int maxDepth = maxCircuitDepth();
       int rightPosition = maxDepth - 1;
       int leftPosition = rightPosition - 1;
-      while(rightPosition >= 1) {
+      while (rightPosition >= 1) {
         for (int i = 0; i < currentLevel.numQubits; i++) {
-          if (rightPosition < placedGates[i].length && placedGates[i][rightPosition].gate.type != SelectedGateType.none) {
+          if (rightPosition < placedGates[i].length &&
+              placedGates[i][rightPosition].gate.type !=
+                  SelectedGateType.none) {
             var rightGate = placedGates[i][rightPosition];
-            if (rightGate.gate.type == SelectedGateType.cnot || rightGate.gate.type == SelectedGateType.cz) {
-              int endLine = rightGate.isTarget ? rightGate.controlQubitIndex! : rightGate.targetQubitIndex!;
+            if (rightGate.gate.type == SelectedGateType.cnot ||
+                rightGate.gate.type == SelectedGateType.cz) {
+              int endLine = rightGate.isTarget
+                  ? rightGate.controlQubitIndex!
+                  : rightGate.targetQubitIndex!;
               bool canBeMoved = true;
               for (int j = i; j <= endLine; j++) {
-                if (placedGates[j][rightPosition - 1].gate.type != SelectedGateType.none) {
+                if (placedGates[j][rightPosition - 1].gate.type !=
+                    SelectedGateType.none) {
                   canBeMoved = false;
                   break;
                 }
               }
               if (canBeMoved) {
                 for (int j = i; j <= endLine; j++) {
-                  placedGates[j][rightPosition - 1] = placedGates[j][rightPosition];
+                  placedGates[j][rightPosition - 1] =
+                      placedGates[j][rightPosition];
                   placedGates[j][rightPosition] = PlacedQuantumGate.emptyGate();
                   repeat = true;
                 }
               }
               i = max(i, endLine);
             } else if (rightGate.gate.type == SelectedGateType.ccnot) {
-              int endLine = [rightGate.controlQubitIndex!, rightGate.control2QubitIndex!, rightGate.targetQubitIndex!].reduce(max);
+              int endLine = [
+                rightGate.controlQubitIndex!,
+                rightGate.control2QubitIndex!,
+                rightGate.targetQubitIndex!
+              ].reduce(max);
               bool canBeMoved = true;
               for (int j = i; j <= endLine; j++) {
-                if (placedGates[j][rightPosition - 1].gate.type != SelectedGateType.none) {
+                if (placedGates[j][rightPosition - 1].gate.type !=
+                    SelectedGateType.none) {
                   canBeMoved = false;
                   break;
                 }
               }
               if (canBeMoved) {
                 for (int j = i; j <= endLine; j++) {
-                  placedGates[j][rightPosition - 1] = placedGates[j][rightPosition];
+                  placedGates[j][rightPosition - 1] =
+                      placedGates[j][rightPosition];
                   placedGates[j][rightPosition] = PlacedQuantumGate.emptyGate();
                 }
                 repeat = true;
               }
               i = max(i, endLine);
             } else {
-              if (placedGates[i][rightPosition - 1].gate.type == SelectedGateType.none) {
+              if (placedGates[i][rightPosition - 1].gate.type ==
+                  SelectedGateType.none) {
                 placedGates[i][rightPosition - 1] = rightGate;
                 placedGates[i][rightPosition] = PlacedQuantumGate.emptyGate();
                 repeat = true;
@@ -382,13 +459,17 @@ class QuantumCircuit extends ChangeNotifier {
           rightPosition = leftPosition - 1;
         }
       }
-    } while(repeat);
+    } while (repeat);
   }
 
-  void insertGateAt(PlacedQuantumGate gateToInsert, int insertionPosition, int targetQubitIndex) {
-    if (insertionPosition > placedGates[targetQubitIndex].length) { // Insert empty filler
-      final int lengthFiller = (placedGates[targetQubitIndex].length - insertionPosition).abs();
-      final fillerList = List<PlacedQuantumGate>.filled(lengthFiller, PlacedQuantumGate.emptyGate());
+  void insertGateAt(PlacedQuantumGate gateToInsert, int insertionPosition,
+      int targetQubitIndex) {
+    if (insertionPosition > placedGates[targetQubitIndex].length) {
+      // Insert empty filler
+      final int lengthFiller =
+          (placedGates[targetQubitIndex].length - insertionPosition).abs();
+      final fillerList = List<PlacedQuantumGate>.filled(
+          lengthFiller, PlacedQuantumGate.emptyGate());
       placedGates[targetQubitIndex].addAll(fillerList);
     }
     placedGates[targetQubitIndex].insert(insertionPosition, gateToInsert);
@@ -396,7 +477,8 @@ class QuantumCircuit extends ChangeNotifier {
 
   void trimCircuit() {
     for (int i = 0; i < currentLevel.numQubits; i++) {
-      while (placedGates[i].isNotEmpty && placedGates[i].last.gate.type == SelectedGateType.none) {
+      while (placedGates[i].isNotEmpty &&
+          placedGates[i].last.gate.type == SelectedGateType.none) {
         placedGates[i].removeLast();
       }
     }
@@ -409,18 +491,25 @@ class QuantumCircuit extends ChangeNotifier {
     // Reset the currentState back to the initial ground state
     currentState = QubitState.fromList(currentLevel.initialQubitsState);
     currentLevel.preInsertGates(this);
-    debugPrint("Circuit cleared. Total placed gates: ${placedGates.length}"); // Debug debugPrint
+    debugPrint(
+        "Circuit cleared. Total placed gates: ${placedGates.length}"); // Debug debugPrint
     // ** Notify listeners that the state has changed **
     notifyListeners();
   }
 
   List<List<PlacedQuantumGate>> clone(List<List<PlacedQuantumGate>> gates) =>
-      placedGates = gates.map((element) => List<PlacedQuantumGate>.from(element)).toList();
+      placedGates = gates
+          .map((element) => List<PlacedQuantumGate>.from(element))
+          .toList();
 
   // --- BACKEND MATRIX GENERATION LOGIC ---
 
   /// Builds the system matrix for a single placed quantum gate.
-  QuantumMatrix _buildSystemMatrixForPlacedGate(PlacedQuantumGate gate) {
+  QuantumMatrix _buildSystemMatrixForPlacedGate(
+    PlacedQuantumGate gate, {
+    required int columnIndex,
+    required int qubitIndex,
+  }) {
     switch (gate.gate.type) {
       case SelectedGateType.hadamard:
         return QuantumMatrix.hadamard();
@@ -435,31 +524,46 @@ class QuantumCircuit extends ChangeNotifier {
       case SelectedGateType.z:
         return QuantumMatrix.pauliZ();
       case SelectedGateType.rx:
+        _requireRotationAngle(gate, columnIndex, qubitIndex);
         return QuantumMatrix.rx(gate.gate.angle!);
       case SelectedGateType.ry:
+        _requireRotationAngle(gate, columnIndex, qubitIndex);
         return QuantumMatrix.ry(gate.gate.angle!);
       case SelectedGateType.rz:
+        _requireRotationAngle(gate, columnIndex, qubitIndex);
         return QuantumMatrix.rz(gate.gate.angle!);
-      case SelectedGateType.cz: // at this point we consider only CZ gates control
+      case SelectedGateType
+            .cz: // at this point we consider only CZ gates control
         return QuantumMatrix.cz(
-            control: gate.controlQubitIndex!,
-            target: gate.targetQubitIndex!
-        );
-      case SelectedGateType.cnot: // at this point we consider only CNOT gates control
+            control: gate.controlQubitIndex!, target: gate.targetQubitIndex!);
+      case SelectedGateType
+            .cnot: // at this point we consider only CNOT gates control
         return QuantumMatrix.cnot(
-            control: gate.controlQubitIndex!,
-            target: gate.targetQubitIndex!
-        );
+            control: gate.controlQubitIndex!, target: gate.targetQubitIndex!);
       case SelectedGateType.ccnot:
         return QuantumMatrix.ccnot(
             control1: gate.controlQubitIndex!,
             control2: gate.control2QubitIndex!,
-            target: gate.targetQubitIndex!
-        );
+            target: gate.targetQubitIndex!);
       case SelectedGateType.none:
         return QuantumMatrix.identity(2);
       default:
         throw UnimplementedError();
+    }
+  }
+
+  void _requireRotationAngle(
+    PlacedQuantumGate gate,
+    int columnIndex,
+    int qubitIndex,
+  ) {
+    if (gate.gate.angle == null || !gate.gate.angle!.isFinite) {
+      throw MalformedCircuitException(
+        gateType: gate.gate.type,
+        columnIndex: columnIndex,
+        qubitIndex: qubitIndex,
+        parameterName: 'angle',
+      );
     }
   }
 
@@ -484,18 +588,29 @@ class QuantumCircuit extends ChangeNotifier {
       // or (M_MSB_qubit) ⊗ (M_LSB_qubit).
       // Here, we accumulate by multiplying new gate matrix from the left.
       // For Q0 LSB convention, `overallMatrix = multiplyMatrices(gateSystemMatrix, overallMatrix)` is correct.
-      QuantumMatrix gateSystemMatrix = _buildSystemMatrixForPlacedGate(gate);
-      columnOverallMatrix = columnOverallMatrix == null ? gateSystemMatrix : gateSystemMatrix.tensorProduct(columnOverallMatrix);
+      QuantumMatrix gateSystemMatrix = _buildSystemMatrixForPlacedGate(
+        gate,
+        columnIndex: columnIndex,
+        qubitIndex: q,
+      );
+      columnOverallMatrix = columnOverallMatrix == null
+          ? gateSystemMatrix
+          : gateSystemMatrix.tensorProduct(columnOverallMatrix);
 
       debugPrint(gateSystemMatrix.toString());
 
-      if (gate.gate.type == SelectedGateType.cnot || gate.gate.type == SelectedGateType.cz) {
+      if (gate.gate.type == SelectedGateType.cnot ||
+          gate.gate.type == SelectedGateType.cz) {
         // skip to the next qubit after the CNOT/CZ
         q = max(gate.controlQubitIndex!, gate.targetQubitIndex!);
         continue;
       } else if (gate.gate.type == SelectedGateType.ccnot) {
         // skip to the next qubit after the CCNOT
-        q = [gate.controlQubitIndex!, gate.targetQubitIndex!, gate.control2QubitIndex!].reduce(max);
+        q = [
+          gate.controlQubitIndex!,
+          gate.targetQubitIndex!,
+          gate.control2QubitIndex!
+        ].reduce(max);
         continue;
       }
     }
@@ -505,12 +620,15 @@ class QuantumCircuit extends ChangeNotifier {
   /// Generates the overall unitary matrix representing the entire quantum circuit.
   /// This is the "transform operator".
   QuantumMatrix getOverallCircuitMatrix() {
+    lastSimulationError = null;
     int totalDepth = maxCircuitDepth();
     if (totalDepth == 0) {
-      return QuantumMatrix.identity(1 << currentLevel.numQubits); // Empty circuit is identity
+      return QuantumMatrix.identity(
+          1 << currentLevel.numQubits); // Empty circuit is identity
     }
 
-    QuantumMatrix overallMatrix = QuantumMatrix.identity(1 << currentLevel.numQubits);
+    QuantumMatrix overallMatrix =
+        QuantumMatrix.identity(1 << currentLevel.numQubits);
 
     // Iterate through each column (time step) from left to right
     for (int col = 0; col < totalDepth; col++) {
@@ -525,13 +643,21 @@ class QuantumCircuit extends ChangeNotifier {
 
   /// Runs the quantum simulation, updating the current state vector.
   void runSimulation() {
-    QuantumMatrix circuitMatrix = getOverallCircuitMatrix();
-    debugPrint("Initial state: $initialState");
-    currentState = initialState.applyMatrix(circuitMatrix);
-    debugPrint("Final state: $initialState");
+    try {
+      QuantumMatrix circuitMatrix = getOverallCircuitMatrix();
+      debugPrint("Initial state: $initialState");
+      currentState = initialState.applyMatrix(circuitMatrix);
+      debugPrint("Final state: $initialState");
+      lastSimulationError = null;
+    } on MalformedCircuitException catch (error) {
+      lastSimulationError = error;
+      assert(() {
+        debugPrint('Circuit simulation blocked: $error');
+        return true;
+      }());
+    }
     notifyListeners();
   }
-
 
 // Helper to visually represent the circuit state for debugging in tests
   @override
@@ -557,28 +683,40 @@ class QuantumCircuit extends ChangeNotifier {
           // Use a concise representation for each gate type
           String gateChar = "";
           if (gate.gate.type == SelectedGateType.cz) {
-            if (gate.isControl) gateChar = "C";
-            else if (gate.isTarget) gateChar = "Z";
-            else if (gate.isLink) gateChar = "|";
-            else gateChar = "?"; // Should not happen for CZ
+            if (gate.isControl) {
+              gateChar = "C";
+            } else if (gate.isTarget) {
+              gateChar = "Z";
+            } else if (gate.isLink) {
+              gateChar = "|";
+            } else {
+              gateChar = "?"; // Should not happen for CZ
+            }
           }
           if (gate.gate.type == SelectedGateType.cnot) {
+            if (gate.isControl) {
+              gateChar = "C";
+            } else if (gate.isTarget) {
+              gateChar = "X";
+            } else if (gate.isLink) {
+              gateChar = "|";
+            } else {
+              gateChar = "?"; // Should not happen for CNOT
+            }
+          } else if (gate.gate.type == SelectedGateType.ccnot) {
             if (gate.isControl) gateChar = "C";
-            else if (gate.isTarget) gateChar = "X";
-            else if (gate.isLink) gateChar = "|";
-            else gateChar = "?"; // Should not happen for CNOT
-          }
-          else if (gate.gate.type == SelectedGateType.ccnot) {
-            if (gate.isControl) gateChar = "C";
-            if (gate.isControl2) gateChar = "C";
-            else if (gate.isTarget) gateChar = "T";
-            else if (gate.isLink) gateChar = "|";
-            else gateChar = "?"; // Should not happen for CCNOT
-          }
-          else if (gate.gate.type == SelectedGateType.none) {
+            if (gate.isControl2) {
+              gateChar = "C";
+            } else if (gate.isTarget) {
+              gateChar = "T";
+            } else if (gate.isLink) {
+              gateChar = "|";
+            } else {
+              gateChar = "?"; // Should not happen for CCNOT
+            }
+          } else if (gate.gate.type == SelectedGateType.none) {
             gateChar = "-";
-          }
-          else {
+          } else {
             gateChar = gate.gate.label;
           }
           result += "$gateChar ";

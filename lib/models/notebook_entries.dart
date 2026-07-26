@@ -991,10 +991,10 @@ const List<NotebookEntry> notebookEntries = [
     quantumView: NotebookSection(
       title: 'Quantum View',
       body:
-          'The Bell state Φ+ is a superposition of two two-qubit basis states. It cannot be treated as one independent state for q0 and a separate independent state for q1.',
+          'The Bell state Φ⁺ is a superposition of two two-qubit basis states. It cannot be treated as one independent state for q0 and a separate independent state for q1.',
       examples: [
         NotebookExample(
-            label: 'Bell state', notation: '|Φ+⟩ = (|00⟩ + |11⟩)/√2'),
+            label: 'Bell state', notation: '|Φ⁺⟩ = (|00⟩ + |11⟩)/√2'),
         NotebookExample(
             label: 'Not independent', notation: 'not q0 state × q1 state'),
       ],
