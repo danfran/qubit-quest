@@ -26,6 +26,9 @@ import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
+import 'package:quantumquiz/models/circuit_editing.dart';
+import 'package:quantumquiz/models/gate_id.dart';
+import 'package:quantumquiz/widgets/circuit_geometry.dart';
 
 import '../models/qq_level.dart';
 
@@ -129,6 +132,10 @@ class _QuantumComposerState extends State<QuantumComposer>
   // State to manage the highlight box for drag-and-drop
   Offset? _draggingOffset;
   Gate _draggingGate = Gate.fromIdentifier(SelectedGateType.none);
+  GateId? _selectedGateId;
+  CircuitDragData? _activeDragData;
+  Offset? _latestPlacedDragPointerPosition;
+  bool _placedDragOutsideCircuit = false;
 
   String _currentInstructionMessage = "Drag a gate onto the circuit.";
   String? _checkFeedbackTitle;
@@ -243,7 +250,8 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   // Method to handle a gate being dropped onto the circuit area
-  Future<void> _handleGateDrop(DragTargetDetails<Gate> details) async {
+  Future<void> _handleGateDrop(
+      DragTargetDetails<CircuitDragData> details) async {
     // Corrected: Use details.offset for the local drop position
     debugPrint(
         'Gate dropped at local position: ${details.offset}'); // localPosition relative to the DragTarget
@@ -257,8 +265,8 @@ class _QuantumComposerState extends State<QuantumComposer>
       return;
     }
 
-    final droppedGate = details.data;
-    final droppedGateType = details.data.type;
+    final droppedGate = details.data.gate;
+    final droppedGateType = droppedGate.type;
     // final dropPosition = details.offset; // Use details.offset
     final dropPosition = localPosition; // Use details.offset
     bool insertedGate = false;
@@ -289,6 +297,23 @@ class _QuantumComposerState extends State<QuantumComposer>
 
     debugPrint(
         'Dropped on Qubit line: $tappedQubitLine at insertion position: $insertionPosition');
+
+    if (details.data.isPlaced) {
+      final sourceId = details.data.sourceId!;
+      final result = _circuit.moveSingleGate(
+        sourceId,
+        CircuitLocation(
+          qubit: tappedQubitLine,
+          column: insertionPosition,
+        ),
+      );
+      if (result == MoveResult.moved) {
+        _selectedGateId = sourceId;
+        _runSimulation();
+      }
+      if (mounted) setState(_validateSelection);
+      return;
+    }
 
     if (droppedGateType == SelectedGateType.cnot ||
         droppedGateType == SelectedGateType.cz) {
@@ -469,17 +494,6 @@ class _QuantumComposerState extends State<QuantumComposer>
     _ccnotControl2Qubit = selectedQubits?['control2'];
   }
 
-  void _initDeletion() {
-    setState(() {
-      _currentMode = SelectedGateType.delete;
-      _cnotControlQubit = null; // Reset CNOT control on new gate selection
-      _ccnotControl1Qubit = null;
-      _ccnotControl2Qubit = null;
-      _currentInstructionMessage = "Tap on a gate to delete it.";
-    });
-    debugPrint('Selected gate type for placement: $_currentMode');
-  }
-
   // ** Add a GlobalKey for the GestureDetector **
   final GlobalKey _gestureDetectorKey = GlobalKey();
   // *****************************************
@@ -491,14 +505,15 @@ class _QuantumComposerState extends State<QuantumComposer>
 
     debugPrint('Local tap position: $localPosition');
 
-    // Create a temporary painter instance for hit testing
-    final painter = QuantumCircuitPainter(
-        _circuit, _circuitWidthNotifier, _draggingOffset, _draggingGate);
-
     if (_currentMode == SelectedGateType.delete) {
       debugPrint('In delete mode.');
       // Use the painter's hit-testing method to find if a gate was tapped
-      bool gateRemoved = painter.removeGateAtTap(localPosition);
+      final hit = CircuitGeometry.hitTestGate(_circuit, localPosition);
+      bool gateRemoved = hit != null &&
+          _circuit.removePlacedGate(
+            hit.location.column,
+            hit.location.qubit,
+          );
 
       if (gateRemoved) {
         _runSimulation(); // Update simulation after deletion
@@ -519,8 +534,89 @@ class _QuantumComposerState extends State<QuantumComposer>
       return; // Exit _handleCircuitTap if in delete mode
     }
 
-    // If not in delete mode, taps on the circuit might be ignored or used for other interactions later
-    debugPrint('Tapped on circuit in non-delete mode. Ignoring for now.');
+    final hit = CircuitGeometry.hitTestGate(_circuit, localPosition);
+    setState(() {
+      _selectedGateId = hit?.id;
+      _currentInstructionMessage = hit == null
+          ? 'Drag a gate onto the circuit.'
+          : hit.isMovable
+              ? 'Selected gate. Drag to move.'
+              : 'Selected gate is fixed.';
+    });
+  }
+
+  void _validateSelection() {
+    final selected = _selectedGateId;
+    if (selected != null && !_circuit.containsGate(selected)) {
+      _selectedGateId = null;
+    }
+  }
+
+  void _startPlacedDrag(PlacedGateRef source) {
+    final pointerPosition = _latestPlacedDragPointerPosition;
+    setState(() {
+      _selectedGateId = source.id;
+      _activeDragData = CircuitDragData.placed(
+        sourceId: source.id,
+        gate: source.gate,
+      );
+      _placedDragOutsideCircuit = pointerPosition != null &&
+          _isClearlyOutsideCircuitForDeletion(pointerPosition);
+    });
+  }
+
+  void _finishPlacedDrag() {
+    if (!mounted) return;
+    setState(() {
+      _activeDragData = null;
+      _latestPlacedDragPointerPosition = null;
+      _placedDragOutsideCircuit = false;
+      _onDragLeaveStateOnly();
+    });
+  }
+
+  void _onDragLeaveStateOnly() {
+    _draggingOffset = null;
+    _draggingGate = Gate.fromIdentifier(SelectedGateType.none);
+  }
+
+  bool _isClearlyOutsideCircuitForDeletion(Offset pointerPosition) {
+    final renderBox =
+        _gestureDetectorKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.attached) return false;
+    final circuitRect = renderBox.localToGlobal(Offset.zero) & renderBox.size;
+    return CircuitGeometry.isClearlyOutsideCircuitForDeletion(
+      circuitBounds: circuitRect,
+      pointerPosition: pointerPosition,
+    );
+  }
+
+  void _updatePlacedDragPosition(Offset pointerPosition) {
+    if (!mounted) return;
+    _latestPlacedDragPointerPosition = pointerPosition;
+    if (!(_activeDragData?.isPlaced ?? false)) return;
+    final shouldShowDelete =
+        _isClearlyOutsideCircuitForDeletion(pointerPosition);
+    if (_placedDragOutsideCircuit == shouldShowDelete) return;
+    setState(() {
+      _placedDragOutsideCircuit = shouldShowDelete;
+    });
+  }
+
+  void _handlePlacedDragCancelled(PlacedGateRef source) {
+    final pointerPosition = _latestPlacedDragPointerPosition;
+    if (!mounted ||
+        pointerPosition == null ||
+        !_isClearlyOutsideCircuitForDeletion(pointerPosition)) {
+      _finishPlacedDrag();
+      return;
+    }
+    final result = _circuit.removeSingleGateById(source.id);
+    if (result == RemoveGateResult.removed) {
+      _selectedGateId = null;
+      _runSimulation();
+    }
+    _finishPlacedDrag();
   }
 
   void _runSimulation({bool manualCheck = false}) {
@@ -892,6 +988,7 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   void _clearCircuit() {
+    _selectedGateId = null;
     _circuit.clearPlacedGates(); // This calls notifyListeners()
     debugPrint('Circuit cleared.');
     _setInteractionMode(SelectedGateType.none); // Reset mode
@@ -983,7 +1080,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     );
   }
 
-  void _onDragEnter(Offset offset, Gate gate) {
+  void _onDragEnter(Offset offset, CircuitDragData data) {
     setState(() {
       final localPosition = _gatePositionToLocal(offset);
 
@@ -993,14 +1090,13 @@ class _QuantumComposerState extends State<QuantumComposer>
       }
 
       _draggingOffset = localPosition;
-      _draggingGate = gate;
+      _draggingGate = data.gate;
     });
   }
 
   void _onDragLeave() {
     setState(() {
-      _draggingOffset = null;
-      _draggingGate = Gate.fromIdentifier(SelectedGateType.none);
+      _onDragLeaveStateOnly();
     });
   }
 
@@ -1039,23 +1135,28 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   void _scroll(double offset) {
     if (!_gatesScrollController.hasClients) return;
+    final position = _gatesScrollController.position;
+    final target = (position.pixels + offset).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
     _gatesScrollController.animateTo(
-      _gatesScrollController.position.pixels + offset,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
+      target,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
     );
   }
 
   void _scrollLeft() {
     if (!_gatesScrollController.hasClients) return;
     double scrollAmount = _gatesScrollController.position.viewportDimension;
-    _scroll(-scrollAmount / 3);
+    _scroll(-scrollAmount);
   }
 
   void _scrollRight() {
     if (!_gatesScrollController.hasClients) return;
     double scrollAmount = _gatesScrollController.position.viewportDimension;
-    _scroll(scrollAmount / 3);
+    _scroll(scrollAmount);
   }
 
   @override
@@ -1071,7 +1172,7 @@ class _QuantumComposerState extends State<QuantumComposer>
           title: runningAsQuantumComposer()
               ? 'Composer'
               : LevelHeaderRouter.displayLabel(widget.levelId),
-          subtitle: _goalTitle(),
+          subtitle: runningAsQuantumComposer() ? '' : _goalTitle(),
           isCompleted: _isCompleted,
           actions: _buildAppBarActions(compactAppBar),
         ),
@@ -2052,7 +2153,7 @@ class _QuantumComposerState extends State<QuantumComposer>
         debugPrint(
             "  Calculated SizedBox size: Size($sizedBoxWidth, $sizedBoxHeight)");
 
-        return DragTarget<Gate>(
+        return DragTarget<CircuitDragData>(
           onAcceptWithDetails: (details) {
             _handleGateDrop(details);
             _onDragLeave();
@@ -2064,63 +2165,76 @@ class _QuantumComposerState extends State<QuantumComposer>
             _onDragEnter(data.offset, data.data);
           },
           onWillAcceptWithDetails: (details) {
-            Gate data = details.data;
             _onDragEnter(details.offset, details.data);
-            bool isNotDelete = data.type != SelectedGateType.delete;
+            bool isNotDelete =
+                details.data.gate.type != SelectedGateType.delete;
             return isNotDelete;
           },
           builder: (context, candidateData, rejectedData) {
-            return GestureDetector(
-              key: _gestureDetectorKey,
-              onTapDown: _handleCircuitTap,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                  width: max(sizedBoxWidth, _circuitWidthNotifier.value),
-                  height: viewportHeight,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      CustomPaint(
-                        painter: _CircuitGuidePainter(
-                          numQubits: _numQubits,
-                          columns: math.max(
-                            4,
-                            maxPosition + 4,
+            return KeyedSubtree(
+              key: const ValueKey('circuit-interaction-surface'),
+              child: GestureDetector(
+                key: _gestureDetectorKey,
+                onTapDown: _handleCircuitTap,
+                child: SingleChildScrollView(
+                  key: const ValueKey('circuit-horizontal-scroll'),
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: max(sizedBoxWidth, _circuitWidthNotifier.value),
+                    height: viewportHeight,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CustomPaint(
+                          painter: _CircuitGuidePainter(
+                            numQubits: _numQubits,
+                            columns: math.max(
+                              4,
+                              maxPosition + 4,
+                            ),
+                            isDragging: isDraggingGate,
+                            dragOffset: _draggingOffset,
                           ),
-                          isDragging: isDraggingGate,
-                          dragOffset: _draggingOffset,
                         ),
-                      ),
-                      CustomPaint(
-                        painter: QuantumCircuitPainter(
-                          _circuit,
-                          _circuitWidthNotifier,
-                          _draggingOffset,
-                          _draggingGate,
+                        CustomPaint(
+                          painter: QuantumCircuitPainter(
+                            _circuit,
+                            _circuitWidthNotifier,
+                            _draggingOffset,
+                            _draggingGate,
+                            selectedGateId: _selectedGateId,
+                          ),
+                          child: ListenableBuilder(
+                            listenable: _circuit,
+                            builder: (context, child) {
+                              debugPrint(
+                                  "ListenableBuilder rebuilding CustomPaint.");
+                              return const SizedBox.expand();
+                            },
+                          ),
                         ),
-                        child: ListenableBuilder(
-                          listenable: _circuit,
-                          builder: (context, child) {
-                            debugPrint(
-                                "ListenableBuilder rebuilding CustomPaint.");
-                            return const SizedBox.expand();
-                          },
-                        ),
-                      ),
-                      if (circuitIsEmpty)
-                        Align(
-                          alignment: const Alignment(0, -0.42),
-                          child:
-                              _EmptyCircuitPrompt(isDragging: isDraggingGate),
-                        ),
-                      if (isDraggingGate)
-                        const Positioned(
-                          right: 12,
-                          top: 10,
-                          child: _DropReadyPill(),
-                        ),
-                    ],
+                        if (circuitIsEmpty)
+                          Align(
+                            alignment: const Alignment(0, -0.42),
+                            child:
+                                _EmptyCircuitPrompt(isDragging: isDraggingGate),
+                          ),
+                        if (isDraggingGate)
+                          const Positioned(
+                            right: 12,
+                            top: 10,
+                            child: _DropReadyPill(),
+                          ),
+                        ..._buildPlacedGateDragOverlays(),
+                        if (_placedDragOutsideCircuit &&
+                            (_activeDragData?.isPlaced ?? false))
+                          const Positioned(
+                            right: 12,
+                            bottom: 10,
+                            child: _ReleaseToRemovePill(),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -2131,7 +2245,81 @@ class _QuantumComposerState extends State<QuantumComposer>
     );
   }
 
+  List<Widget> _buildPlacedGateDragOverlays() {
+    final movableGates = <PlacedGateRef>[];
+    final seenIds = <GateId>{};
+    for (final row in _circuit.placedGates) {
+      for (final cell in row) {
+        final id = cell.id;
+        if (id == null || !seenIds.add(id)) continue;
+        final gate = _circuit.placedGateById(id);
+        if (gate != null && gate.isMovable) movableGates.add(gate);
+      }
+    }
+
+    return movableGates.map((placed) {
+      final bounds = CircuitGeometry.singleGateBounds(placed.location);
+      final visual = _gateVisualFor(placed.gate);
+      final isSelected = placed.id == _selectedGateId;
+      return Positioned.fromRect(
+        rect: bounds.inflate(5),
+        child: Listener(
+          onPointerMove: (event) => _updatePlacedDragPosition(event.position),
+          child: Semantics(
+            label: isSelected
+                ? 'Selected gate ${placed.gate.label}'
+                : 'Gate ${placed.gate.label}',
+            hint: 'Drag to move. Drag outside circuit to remove.',
+            child: Draggable<CircuitDragData>(
+              key: ValueKey('placed-gate-drag-${placed.id.value}'),
+              data: CircuitDragData.placed(
+                sourceId: placed.id,
+                gate: placed.gate,
+              ),
+              dragAnchorStrategy: pointerDragAnchorStrategy,
+              onDragStarted: () => _startPlacedDrag(placed),
+              onDragUpdate: (details) =>
+                  _updatePlacedDragPosition(details.globalPosition),
+              onDragCompleted: _finishPlacedDrag,
+              onDraggableCanceled: (velocity, offset) =>
+                  _handlePlacedDragCancelled(placed),
+              feedback: Material(
+                color: Colors.transparent,
+                child: DecoratedBox(
+                  decoration: _flatGateButtonDecoration(visual),
+                  child: SizedBox(
+                    width: QuantumCircuitPainter.gateSize,
+                    height: QuantumCircuitPainter.gateSize,
+                    child: Center(
+                      child: Text(
+                        placed.gate.label,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              childWhenDragging: const SizedBox.expand(),
+              child: Tooltip(
+                message: isSelected
+                    ? 'Selected gate • Drag to move'
+                    : 'Drag gate to move',
+                child: const SizedBox.expand(),
+              ),
+            ),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
   Widget _buildPaletteUtilityButton({
+    required Key key,
     required IconData icon,
     required String tooltip,
     required VoidCallback? onPressed,
@@ -2142,6 +2330,7 @@ class _QuantumComposerState extends State<QuantumComposer>
         : Colors.white.withValues(alpha: 0.78);
 
     return IconButton(
+      key: key,
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
       constraints: BoxConstraints.tightFor(
@@ -2162,6 +2351,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     final Widget gateRow = Row(
       children: [
         _buildPaletteUtilityButton(
+          key: const ValueKey('palette-scroll-left'),
           icon: Icons.chevron_left_rounded,
           tooltip: 'Scroll gates left',
           onPressed: _canScrollLeft ? _scrollLeft : null,
@@ -2169,29 +2359,40 @@ class _QuantumComposerState extends State<QuantumComposer>
         ),
         SizedBox(width: dense ? 0 : 1),
         Expanded(
-          child: Scrollbar(
-            controller: _gatesScrollController,
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+          child: ScrollbarTheme(
+            data: ScrollbarThemeData(
+              thumbColor: WidgetStatePropertyAll(
+                Colors.white.withValues(alpha: 0.24),
+              ),
+              trackVisibility: const WidgetStatePropertyAll(false),
+            ),
+            child: Scrollbar(
+              key: const ValueKey('gate-palette-scrollbar'),
               controller: _gatesScrollController,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 1),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    ..._availableGates.map((gateType) {
-                      return Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: dense ? 1.0 : 2.0,
-                        ),
-                        child: _buildDraggableGateButton(
-                          gateType,
-                          dense: dense,
-                        ),
-                      );
-                    }),
-                  ],
+              thumbVisibility: true,
+              thickness: 2,
+              radius: const Radius.circular(99),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                controller: _gatesScrollController,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 13),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      ..._availableGates.map((gateType) {
+                        return Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: dense ? 1.0 : 2.0,
+                          ),
+                          child: _buildDraggableGateButton(
+                            gateType,
+                            dense: dense,
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -2199,6 +2400,7 @@ class _QuantumComposerState extends State<QuantumComposer>
         ),
         SizedBox(width: dense ? 0 : 1),
         _buildPaletteUtilityButton(
+          key: const ValueKey('palette-scroll-right'),
           icon: Icons.chevron_right_rounded,
           tooltip: 'Scroll gates right',
           onPressed: _canScrollRight ? _scrollRight : null,
@@ -2231,37 +2433,16 @@ class _QuantumComposerState extends State<QuantumComposer>
             children: [
               SizedBox(
                 height: dense ? 18 : 34,
-                child: Row(
-                  children: [
-                    Text(
-                      "Gates",
-                      style: TextStyle(
-                        fontSize: dense ? 11.5 : 14,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Gates",
+                    style: TextStyle(
+                      fontSize: dense ? 11.5 : 14,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const Spacer(),
-                    Tooltip(
-                      message: 'Delete gate mode',
-                      child: _HeaderActionShell(
-                        size: dense ? 18 : 34,
-                        subdued: true,
-                        child: IconButton(
-                          onPressed: _initDeletion,
-                          icon: const Icon(Icons.delete_outline),
-                          iconSize: dense ? 12 : 17,
-                          color: Colors.white.withValues(alpha: 0.72),
-                          padding: EdgeInsets.zero,
-                          constraints: BoxConstraints.tightFor(
-                            width: dense ? 18 : 34,
-                            height: dense ? 18 : 34,
-                          ),
-                          splashRadius: dense ? 10 : 18,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
               SizedBox(height: dense ? 0 : 3),
@@ -2348,9 +2529,9 @@ class _QuantumComposerState extends State<QuantumComposer>
     final double buttonSize = dense ? 38 : 52;
     final GateGradientStyle visual = _gateVisualFor(gate);
 
-    return Draggable<Gate>(
+    return Draggable<CircuitDragData>(
       // Draggable for Hadamard
-      data: gate, // Data carried by the drag
+      data: CircuitDragData.palette(gate), // Data carried by the drag
       feedback: Material(
         color: Colors.transparent,
         child: DecoratedBox(
@@ -2473,6 +2654,42 @@ class _DropReadyPill extends StatelessWidget {
   }
 }
 
+class _ReleaseToRemovePill extends StatelessWidget {
+  const _ReleaseToRemovePill();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      key: const ValueKey('release-to-remove'),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEF5350).withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: const Color(0xFFEF5350).withValues(alpha: 0.72),
+        ),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.delete_outline, color: Color(0xFFFFB4B1), size: 14),
+            SizedBox(width: 5),
+            Text(
+              'Release to remove',
+              style: TextStyle(
+                color: Color(0xFFFFDAD8),
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _EmptyCircuitPrompt extends StatelessWidget {
   final bool isDragging;
 
@@ -2523,12 +2740,10 @@ class _EmptyCircuitPrompt extends StatelessWidget {
 class _HeaderActionShell extends StatelessWidget {
   final Widget child;
   final double size;
-  final bool subdued;
 
   const _HeaderActionShell({
     required this.child,
     this.size = 34,
-    this.subdued = false,
   });
 
   @override
@@ -2537,14 +2752,10 @@ class _HeaderActionShell extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: subdued
-            ? _QuantumComposerState.qqInner2.withValues(alpha: 0.54)
-            : _QuantumComposerState.qqCard2,
+        color: _QuantumComposerState.qqCard2,
         shape: BoxShape.circle,
         border: Border.all(
-          color: subdued
-              ? _QuantumComposerState.qqComposerInnerBorder.color
-              : _QuantumComposerState.qqComposerCardBorder.color,
+          color: _QuantumComposerState.qqComposerCardBorder.color,
         ),
       ),
       alignment: Alignment.center,

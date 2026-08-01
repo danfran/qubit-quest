@@ -397,17 +397,18 @@ class _LevelHeaderTitleBlock extends StatelessWidget {
             height: 1.08,
           ),
         ),
-        Text(
-          subtitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: compact ? 11 : 12.5,
-            fontWeight: FontWeight.w700,
-            color: LevelHeaderTokens.purple,
-            height: 1.18,
+        if (subtitle.isNotEmpty)
+          Text(
+            subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: compact ? 11 : 12.5,
+              fontWeight: FontWeight.w700,
+              color: LevelHeaderTokens.purple,
+              height: 1.18,
+            ),
           ),
-        ),
       ],
     );
   }

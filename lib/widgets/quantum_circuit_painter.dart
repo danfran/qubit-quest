@@ -6,6 +6,7 @@ import 'package:quantumquiz/models/placed_quantum_gate.dart'; // Import PlacedQu
 import 'package:quantumquiz/models/quantum_circuit.dart'; // Import QuantumCircuit
 import 'package:quantumquiz/models/selected_gate_type.dart'; // Import SelectedGateType
 import 'package:quantumquiz/widgets/gate_visual_style.dart';
+import 'package:quantumquiz/models/gate_id.dart';
 
 class QuantumCircuitPainter extends CustomPainter {
   // Layout constants
@@ -39,15 +40,18 @@ class QuantumCircuitPainter extends CustomPainter {
 
   final QuantumCircuit
       circuit; // Painter needs the circuit (with List<PlacedQuantumGate> placedGates)
-  final QuantumCircuit
-      previewCircuit; // Painter needs the circuit (with List<PlacedQuantumGate> placedGates)
   final ValueNotifier<double> widthNotifier;
   final Offset? draggingOffset;
   final Gate? draggingGate; // New: Qubit index for highlight
+  final GateId? selectedGateId;
 
   QuantumCircuitPainter(
-      this.circuit, this.widthNotifier, this.draggingOffset, this.draggingGate)
-      : previewCircuit = QuantumCircuit(currentLevel: circuit.currentLevel);
+    this.circuit,
+    this.widthNotifier,
+    this.draggingOffset,
+    this.draggingGate, {
+    this.selectedGateId,
+  });
 
   GateGradientStyle _visualForGate(Gate gate) =>
       QubitQuestGateStyle.forGate(gate);
@@ -421,6 +425,19 @@ class QuantumCircuitPainter extends CustomPainter {
               canvas.drawRRect(highlightRect, highlightBorderPaint);
             } else {
               _drawCircuitGateTile(canvas, gateRect, placedGate.gate);
+              if (placedGate.id == selectedGateId) {
+                final selectionPaint = Paint()
+                  ..color = const Color(0xFF7CFFB2)
+                  ..style = PaintingStyle.stroke
+                  ..strokeWidth = 2.2;
+                canvas.drawRRect(
+                  RRect.fromRectAndRadius(
+                    gateRect.inflate(3),
+                    const Radius.circular(12),
+                  ),
+                  selectionPaint,
+                );
+              }
             }
 
             // Draw 'H' or 'S' or 'X', etc text centered in the square
@@ -451,7 +468,9 @@ class QuantumCircuitPainter extends CustomPainter {
         'Highlighting qubit line: $qubitLine and gate position: $gatePosition');
 
     if (qubitLine != null && gatePosition != null) {
-      localPlacedGates = previewCircuit.clone(circuit.placedGates);
+      localPlacedGates = circuit.placedGates
+          .map((row) => List<PlacedQuantumGate>.from(row))
+          .toList();
       gatePosition = circuit.isCircuitEmpty()
           ? 0
           : min(gatePosition, circuit.maxCircuitDepth());
@@ -478,9 +497,16 @@ class QuantumCircuitPainter extends CustomPainter {
           gateRow.insert(gatePosition, targetGate);
         }
       } else {
-        // from here should only be single gate
-        previewCircuit.insertSinglePlacedGateAt(
-            draggedGate, gatePosition, qubitLine);
+        final row = localPlacedGates[qubitLine];
+        while (row.length < gatePosition) {
+          row.add(PlacedQuantumGate.emptyGate());
+        }
+        if (gatePosition < row.length &&
+            row[gatePosition].gate.type == SelectedGateType.none) {
+          row[gatePosition] = targetGate;
+        } else {
+          row.insert(min(gatePosition, row.length), targetGate);
+        }
       }
     }
     return localPlacedGates;
@@ -505,22 +531,6 @@ class QuantumCircuitPainter extends CustomPainter {
         canvas,
         Offset(gateColumnCenterX - textPainter.width / 2,
             gateIconTop + gateSize / 2 - textPainter.height / 2));
-  }
-
-  bool removeGateAtTap(Offset tapPosition) {
-    int? qubitLine = getTappedQubitLine(tapPosition);
-    int? gatePosition = getInsertionPosition(tapPosition);
-
-    debugPrint(
-        'Gate remove tap qubit line: $qubitLine and gate position: $gatePosition');
-
-    if (qubitLine != null &&
-        gatePosition != null &&
-        gatePosition < circuit.placedGates[qubitLine].length) {
-      return circuit.removePlacedGate(gatePosition, qubitLine);
-    }
-
-    return false;
   }
 
   // Implement the hit-testing method to find a TAPPED QUBIT LINE (for placement)
