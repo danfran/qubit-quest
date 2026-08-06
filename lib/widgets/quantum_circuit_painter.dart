@@ -56,6 +56,29 @@ class QuantumCircuitPainter extends CustomPainter {
   GateGradientStyle _visualForGate(Gate gate) =>
       QubitQuestGateStyle.forGate(gate);
 
+  Rect? _controlledSelectionBounds(GateId id) {
+    final source = circuit.placedGateById(id);
+    if (source == null || source.isSingleQubit) return null;
+    final centers = <Offset>[];
+    for (final (qubit, row) in circuit.placedGates.indexed) {
+      for (final (column, gate) in row.indexed) {
+        if (gate.id != id) continue;
+        centers.add(Offset(
+          padding + column * gateSpacing + gateSpacing / 2,
+          qubitCenterYFor(qubit),
+        ));
+      }
+    }
+    if (centers.isEmpty) return null;
+    final extent = targetRadius + 4;
+    return Rect.fromLTRB(
+      centers.map((center) => center.dx).reduce(min) - extent,
+      centers.map((center) => center.dy).reduce(min) - extent,
+      centers.map((center) => center.dx).reduce(max) + extent,
+      centers.map((center) => center.dy).reduce(max) + extent,
+    );
+  }
+
   void _drawCircuitGateTile(
     Canvas canvas,
     Rect rect,
@@ -214,6 +237,26 @@ class QuantumCircuitPainter extends CustomPainter {
     }
 
     List<List<PlacedQuantumGate>> localPlacedGates = circuit.placedGates;
+
+    final selected = selectedGateId;
+    if (selected != null) {
+      final controlledBounds = _controlledSelectionBounds(selected);
+      if (controlledBounds != null) {
+        final selectionFill = Paint()
+          ..color = const Color(0xFF7CFFB2).withValues(alpha: 0.08)
+          ..style = PaintingStyle.fill;
+        final selectionBorder = Paint()
+          ..color = const Color(0xFF7CFFB2)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.2;
+        final selectionShape = RRect.fromRectAndRadius(
+          controlledBounds.inflate(3),
+          const Radius.circular(12),
+        );
+        canvas.drawRRect(selectionShape, selectionFill);
+        canvas.drawRRect(selectionShape, selectionBorder);
+      }
+    }
 
     debugPrint('Highlighting Offset: $draggingOffset');
 

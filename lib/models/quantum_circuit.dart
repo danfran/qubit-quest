@@ -180,10 +180,27 @@ class QuantumCircuit extends ChangeNotifier {
     final source = placedGateById(id);
     if (source == null) return RemoveGateResult.notFound;
     if (!source.isSingleQubit) return RemoveGateResult.notSingleQubit;
-    if (!source.isDeletable) return RemoveGateResult.notDeletable;
+    return removeLogicalGateById(id);
+  }
 
-    placedGates[source.location.qubit][source.location.column] =
-        PlacedQuantumGate.emptyGate();
+  RemoveGateResult removeLogicalGateById(GateId id) {
+    final fragments = <({int qubit, int column, PlacedQuantumGate gate})>[];
+    for (final (qubit, row) in placedGates.indexed) {
+      for (final (column, gate) in row.indexed) {
+        if (gate.id == id) {
+          fragments.add((qubit: qubit, column: column, gate: gate));
+        }
+      }
+    }
+    if (fragments.isEmpty) return RemoveGateResult.notFound;
+    if (fragments.any((fragment) => !fragment.gate.isDeletable)) {
+      return RemoveGateResult.notDeletable;
+    }
+
+    for (final fragment in fragments) {
+      placedGates[fragment.qubit][fragment.column] =
+          PlacedQuantumGate.emptyGate();
+    }
     shiftLeft();
     trimCircuit();
     notifyListeners();
@@ -438,6 +455,10 @@ class QuantumCircuit extends ChangeNotifier {
   // Method to remove a specific placed gate instance from the circuit
   bool removePlacedGate(int gatePosition, int qubitLine) {
     PlacedQuantumGate gateToRemove = placedGates[qubitLine][gatePosition];
+    final logicalId = gateToRemove.id;
+    if (logicalId != null) {
+      return removeLogicalGateById(logicalId) == RemoveGateResult.removed;
+    }
     if (gateToRemove.gate.type == SelectedGateType.none) {
       return false;
     } else if ((gateToRemove.gate.type == SelectedGateType.cnot ||

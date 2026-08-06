@@ -23,6 +23,7 @@ void main() {
     int placedGateCount = 1,
     int levelId = -1,
     String? levelTitle,
+    void Function(QuantumCircuit circuit)? preInsertGates,
   }) async {
     SharedPreferences.setMockInitialValues({});
     QuantumCircuit? capturedModel;
@@ -44,7 +45,9 @@ void main() {
               .toList(),
       preInsertedGates: (circuit) {
         capturedModel ??= circuit;
-        if (placedGate != null) {
+        if (preInsertGates != null) {
+          preInsertGates(circuit);
+        } else if (placedGate != null) {
           for (var column = 0; column < placedGateCount; column++) {
             circuit.insertSinglePlacedGateAt(
               placedGate,
@@ -96,6 +99,31 @@ void main() {
 
   Future<TestGesture> startSelectedGateDrag(WidgetTester tester) async {
     return tester.startGesture(circuitPoint(tester, 0, 0));
+  }
+
+  void insertControlledGate(
+    QuantumCircuit circuit,
+    SelectedGateType type, {
+    bool isDeletable = true,
+  }) {
+    if (type == SelectedGateType.ccnot) {
+      circuit.insertTriplePlacedGateAt(
+        Gate.fromIdentifier(type),
+        0,
+        2,
+        0,
+        1,
+        isDeletable: isDeletable,
+      );
+    } else {
+      circuit.insertDoublePlacedGateAt(
+        Gate.fromIdentifier(type),
+        0,
+        2,
+        0,
+        isDeletable: isDeletable,
+      );
+    }
   }
 
   testWidgets('sandbox omits duplicate title while lessons keep context',
@@ -297,6 +325,223 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
     expect(model.isCircuitEmpty(), isTrue);
+  });
+
+  testWidgets(
+      'controlled control, target, second control and link select one ID',
+      (tester) async {
+    final cnot = await pumpComposer(
+      tester,
+      qubits: 3,
+      preInsertGates: (circuit) =>
+          insertControlledGate(circuit, SelectedGateType.cnot),
+    );
+    final cnotId = cnot.placedGates[0][0].id!;
+    for (final qubit in [0, 2, 1]) {
+      await tester.tapAt(circuitPoint(tester, qubit, 0));
+      await tester.pump();
+      expect(
+        find.bySemanticsLabel(
+          'Selected gate ${Gate.fromIdentifier(SelectedGateType.cnot).label}',
+        ),
+        findsOneWidget,
+      );
+      expect(cnot.placedGateById(cnotId), isNotNull);
+      await tester.tapAt(circuitPoint(tester, 0, 2));
+      await tester.pump();
+    }
+
+    await pumpComposer(
+      tester,
+      qubits: 3,
+      preInsertGates: (circuit) =>
+          insertControlledGate(circuit, SelectedGateType.ccnot),
+    );
+    await tester.tapAt(circuitPoint(tester, 1, 0));
+    await tester.pump();
+    expect(
+      find.bySemanticsLabel(
+        'Selected gate ${Gate.fromIdentifier(SelectedGateType.ccnot).label}',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  for (final gateType in [
+    SelectedGateType.cnot,
+    SelectedGateType.cz,
+    SelectedGateType.ccnot,
+  ]) {
+    testWidgets('dragging $gateType outside deletes every logical fragment',
+        (tester) async {
+      final viewports = gateType == SelectedGateType.cnot
+          ? const [Size(430, 850), Size(1200, 800)]
+          : const [Size(1200, 800)];
+      for (final viewport in viewports) {
+        final model = await pumpComposer(
+          tester,
+          qubits: 3,
+          viewportSize: viewport,
+          preInsertGates: (circuit) {
+            insertControlledGate(circuit, gateType);
+            circuit.insertSinglePlacedGateAt(
+              Gate.fromIdentifier(SelectedGateType.hadamard),
+              1,
+              2,
+            );
+          },
+        );
+        final id = model.placedGates[0][0].id!;
+        final remainingId = model.placedGates[2]
+            .firstWhere((cell) => cell.gate.type == SelectedGateType.hadamard)
+            .id!;
+        final surface = circuitSurfaceRect(tester);
+        final gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
+        final outside = Offset(surface.left - 20, surface.center.dy);
+        await gesture.moveTo(outside + const Offset(1, 0));
+        await gesture.moveTo(outside);
+        await tester.pump();
+        expect(find.byKey(const ValueKey('release-to-remove')), findsOneWidget);
+        await gesture.up();
+        await tester.pumpAndSettle();
+
+        expect(model.placedGateById(id), isNull);
+        expect(
+          model.placedGates.expand((row) => row).where((cell) => cell.id == id),
+          isEmpty,
+        );
+        expect(model.placedGateById(remainingId), isNotNull);
+        expect(
+            find.bySemanticsLabel(
+                'Selected gate ${Gate.fromIdentifier(gateType).label}'),
+            findsNothing);
+      }
+    });
+  }
+
+  testWidgets('controlled internal drop and cancelled drag are non-destructive',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      qubits: 3,
+      preInsertGates: (circuit) =>
+          insertControlledGate(circuit, SelectedGateType.cnot),
+    );
+    final id = model.placedGates[0][0].id!;
+    List<(int, int)> fragmentLocations() => [
+          for (final (qubit, row) in model.placedGates.indexed)
+            for (final (column, cell) in row.indexed)
+              if (cell.id == id) (qubit, column),
+        ];
+    final original = fragmentLocations();
+    var notifications = 0;
+    model.addListener(() => notifications++);
+
+    var gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
+    await gesture.moveTo(circuitPoint(tester, 2, 2));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(fragmentLocations(), original);
+    expect(notifications, 0);
+
+    final surface = circuitSurfaceRect(tester);
+    gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
+    await gesture.moveTo(Offset(surface.left - 30, surface.center.dy));
+    await tester.pump();
+    await gesture.cancel();
+    await tester.pumpAndSettle();
+    expect(fragmentLocations(), original);
+    expect(notifications, 0);
+  });
+
+  testWidgets(
+      'protected controlled gate selects but has no deletion drag source',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      qubits: 3,
+      preInsertGates: (circuit) => insertControlledGate(
+        circuit,
+        SelectedGateType.cz,
+        isDeletable: false,
+      ),
+    );
+    final id = model.placedGates[0][0].id!;
+    await tester.tapAt(circuitPoint(tester, 2, 0));
+    await tester.pump();
+    expect(model.placedGateById(id), isNotNull);
+    expect(find.byKey(ValueKey('placed-gate-drag-${id.value}')), findsNothing);
+  });
+
+  testWidgets('controlled deletion uses visible bounds after horizontal scroll',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      qubits: 3,
+      viewportSize: const Size(900, 700),
+      preInsertGates: (circuit) {
+        for (var column = 0; column < 14; column++) {
+          circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard),
+            column,
+            0,
+          );
+        }
+        circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot),
+          14,
+          2,
+          0,
+        );
+      },
+    );
+    final id = model.placedGates
+        .expand((row) => row)
+        .firstWhere((cell) => cell.gate.type == SelectedGateType.cnot)
+        .id!;
+    final scrollable = find.descendant(
+      of: find.byKey(const ValueKey('circuit-horizontal-scroll')),
+      matching: find.byType(Scrollable),
+    );
+    final position = tester.state<ScrollableState>(scrollable).position;
+    position.jumpTo(position.maxScrollExtent);
+    await tester.pump();
+
+    final surface = circuitSurfaceRect(tester);
+    final source = surface.topLeft + Offset(40 + 14 * 40 - position.pixels, 20);
+    final outside = Offset(surface.left - 20, surface.center.dy);
+    final gesture = await tester.startGesture(source);
+    await gesture.moveTo(outside + const Offset(1, 0));
+    await gesture.moveTo(outside);
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(model.placedGateById(id), isNull);
+  });
+
+  testWidgets('Check Result remains functional after controlled deletion',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      qubits: 3,
+      levelId: 1,
+      levelTitle: 'Controlled deletion check',
+      preInsertGates: (circuit) =>
+          insertControlledGate(circuit, SelectedGateType.cnot),
+    );
+    final id = model.placedGates[0][0].id!;
+    final surface = circuitSurfaceRect(tester);
+    final outside = Offset(surface.left - 20, surface.center.dy);
+    final gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
+    await gesture.moveTo(outside + const Offset(1, 0));
+    await gesture.moveTo(outside);
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(model.placedGateById(id), isNull);
+
+    expect(find.text('Check Result'), findsOneWidget);
+    await tester.tap(find.text('Check Result'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('visible deletion bounds remain stable after horizontal scroll',

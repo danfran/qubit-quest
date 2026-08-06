@@ -136,6 +136,7 @@ class _QuantumComposerState extends State<QuantumComposer>
   CircuitDragData? _activeDragData;
   Offset? _latestPlacedDragPointerPosition;
   bool _placedDragOutsideCircuit = false;
+  bool _placedDragWasCancelled = false;
 
   String _currentInstructionMessage = "Drag a gate onto the circuit.";
   String? _checkFeedbackTitle;
@@ -556,6 +557,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     final pointerPosition = _latestPlacedDragPointerPosition;
     setState(() {
       _selectedGateId = source.id;
+      _placedDragWasCancelled = false;
       _activeDragData = CircuitDragData.placed(
         sourceId: source.id,
         gate: source.gate,
@@ -571,6 +573,7 @@ class _QuantumComposerState extends State<QuantumComposer>
       _activeDragData = null;
       _latestPlacedDragPointerPosition = null;
       _placedDragOutsideCircuit = false;
+      _placedDragWasCancelled = false;
       _onDragLeaveStateOnly();
     });
   }
@@ -606,12 +609,13 @@ class _QuantumComposerState extends State<QuantumComposer>
   void _handlePlacedDragCancelled(PlacedGateRef source) {
     final pointerPosition = _latestPlacedDragPointerPosition;
     if (!mounted ||
+        _placedDragWasCancelled ||
         pointerPosition == null ||
         !_isClearlyOutsideCircuitForDeletion(pointerPosition)) {
       _finishPlacedDrag();
       return;
     }
-    final result = _circuit.removeSingleGateById(source.id);
+    final result = _circuit.removeLogicalGateById(source.id);
     if (result == RemoveGateResult.removed) {
       _selectedGateId = null;
       _runSimulation();
@@ -1082,6 +1086,13 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   void _onDragEnter(Offset offset, CircuitDragData data) {
     setState(() {
+      if (data.isPlaced) {
+        final source = _circuit.placedGateById(data.sourceId!);
+        if (source == null || !source.isSingleQubit) {
+          _onDragLeaveStateOnly();
+          return;
+        }
+      }
       final localPosition = _gatePositionToLocal(offset);
 
       if (localPosition == null) {
@@ -2246,30 +2257,35 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   List<Widget> _buildPlacedGateDragOverlays() {
-    final movableGates = <PlacedGateRef>[];
+    final draggableGates = <PlacedGateRef>[];
     final seenIds = <GateId>{};
     for (final row in _circuit.placedGates) {
       for (final cell in row) {
         final id = cell.id;
         if (id == null || !seenIds.add(id)) continue;
         final gate = _circuit.placedGateById(id);
-        if (gate != null && gate.isMovable) movableGates.add(gate);
+        if (gate != null && gate.isDeletable) draggableGates.add(gate);
       }
     }
 
-    return movableGates.map((placed) {
-      final bounds = CircuitGeometry.singleGateBounds(placed.location);
+    return draggableGates.map((placed) {
+      final bounds = CircuitGeometry.logicalGateBounds(_circuit, placed.id);
+      if (bounds == null) return const SizedBox.shrink();
       final visual = _gateVisualFor(placed.gate);
       final isSelected = placed.id == _selectedGateId;
+      final isControlled = !placed.isSingleQubit;
       return Positioned.fromRect(
         rect: bounds.inflate(5),
         child: Listener(
           onPointerMove: (event) => _updatePlacedDragPosition(event.position),
+          onPointerCancel: (_) => _placedDragWasCancelled = true,
           child: Semantics(
             label: isSelected
                 ? 'Selected gate ${placed.gate.label}'
                 : 'Gate ${placed.gate.label}',
-            hint: 'Drag to move. Drag outside circuit to remove.',
+            hint: isControlled
+                ? 'Drag outside circuit to remove.'
+                : 'Drag to move. Drag outside circuit to remove.',
             child: Draggable<CircuitDragData>(
               key: ValueKey('placed-gate-drag-${placed.id.value}'),
               data: CircuitDragData.placed(
@@ -2307,8 +2323,12 @@ class _QuantumComposerState extends State<QuantumComposer>
               childWhenDragging: const SizedBox.expand(),
               child: Tooltip(
                 message: isSelected
-                    ? 'Selected gate • Drag to move'
-                    : 'Drag gate to move',
+                    ? isControlled
+                        ? 'Selected gate • Drag outside to remove'
+                        : 'Selected gate • Drag to move'
+                    : isControlled
+                        ? 'Drag outside to remove gate'
+                        : 'Drag gate to move',
                 child: const SizedBox.expand(),
               ),
             ),

@@ -47,6 +47,121 @@ void main() {
       expect(ids, hasLength(1));
       expect(ids.single, isNotNull);
     });
+
+    for (final gateType in [
+      SelectedGateType.cnot,
+      SelectedGateType.cz,
+      SelectedGateType.ccnot,
+    ]) {
+      test('$gateType fragments share exactly one logical identity', () {
+        final model = circuit(4);
+        if (gateType == SelectedGateType.ccnot) {
+          model.insertTriplePlacedGateAt(
+            Gate.fromIdentifier(gateType),
+            0,
+            3,
+            0,
+            1,
+          );
+        } else {
+          model.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(gateType),
+            0,
+            3,
+            0,
+          );
+        }
+        final fragments = model.placedGates
+            .expand((row) => row)
+            .where((cell) => cell.gate.type == gateType)
+            .toList();
+        expect(fragments, isNotEmpty);
+        expect(fragments.map((cell) => cell.id).toSet(), hasLength(1));
+        expect(fragments.first.id, isNotNull);
+      });
+    }
+  });
+
+  group('atomic logical gate deletion', () {
+    for (final gateType in [
+      SelectedGateType.cnot,
+      SelectedGateType.cz,
+      SelectedGateType.ccnot,
+    ]) {
+      test('removing $gateType by ID removes every fragment and notifies once',
+          () {
+        final model = circuit(4);
+        if (gateType == SelectedGateType.ccnot) {
+          model.insertTriplePlacedGateAt(
+            Gate.fromIdentifier(gateType),
+            0,
+            3,
+            0,
+            1,
+          );
+        } else {
+          model.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(gateType),
+            0,
+            3,
+            0,
+          );
+        }
+        final id = model.placedGates
+            .expand((row) => row)
+            .firstWhere((cell) => cell.gate.type == gateType)
+            .id!;
+        final before = model.placedGates
+            .expand((row) => row)
+            .where((cell) => cell.id == id)
+            .length;
+        expect(before, greaterThan(1));
+        var notifications = 0;
+        model.addListener(() => notifications++);
+
+        expect(
+          model.removeLogicalGateById(id),
+          RemoveGateResult.removed,
+        );
+        expect(
+          model.placedGates.expand((row) => row).where((cell) => cell.id == id),
+          isEmpty,
+        );
+        expect(notifications, 1);
+      });
+    }
+
+    test('protected controlled gate is unchanged and does not notify', () {
+      final model = circuit(3);
+      model.insertDoublePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.cnot),
+        0,
+        2,
+        0,
+        isDeletable: false,
+      );
+      final id = model.placedGates[0][0].id!;
+      final fragmentCount = model.placedGates
+          .expand((row) => row)
+          .where((cell) => cell.id == id)
+          .length;
+      var notifications = 0;
+      model.addListener(() => notifications++);
+
+      expect(
+        model.removeLogicalGateById(id),
+        RemoveGateResult.notDeletable,
+      );
+      expect(
+        model.removeSingleGateById(id),
+        RemoveGateResult.notSingleQubit,
+      );
+      expect(
+        model.placedGates.expand((row) => row).where((cell) => cell.id == id),
+        hasLength(fragmentCount),
+      );
+      expect(notifications, 0);
+    });
   });
 
   group('atomic single gate editing', () {
