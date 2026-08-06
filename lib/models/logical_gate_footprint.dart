@@ -48,6 +48,8 @@ class LogicalGateFootprint {
       targetQubit == null;
   bool get isControlled => !isSingleQubit;
   bool get isMovable => isSingleQubit && isDeletable;
+  bool get supportsParameterEditing => isSingleQubit && gate.requiresAngle;
+  bool get isParameterEditable => supportsParameterEditing && isDeletable;
 
   PlacedGateRef toPlacedGateRef() => PlacedGateRef(
         id: id,

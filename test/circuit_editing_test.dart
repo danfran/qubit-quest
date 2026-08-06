@@ -444,4 +444,153 @@ void main() {
       expect(model.logicalGateById(const GateId(999999)), isNull);
     });
   });
+
+  group('rotation parameter editing', () {
+    for (final gateType in [
+      SelectedGateType.rx,
+      SelectedGateType.ry,
+      SelectedGateType.rz,
+    ]) {
+      test('$gateType edit preserves identity and location and notifies once',
+          () {
+        final model = circuit(2);
+        final insertion = model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(gateType, angle: math.pi / 4),
+          1,
+          1,
+        );
+        final id = insertion.affectedGateId!;
+        final location = model.logicalGateById(id)!.anchor;
+        var notifications = 0;
+        model.addListener(() => notifications++);
+
+        final outcome = model.updateGateParametersWithOutcome(
+          id,
+          angle: -math.pi / 2,
+        );
+        final updated = model.logicalGateById(id)!;
+        expect(outcome.status, CircuitEditStatus.changed);
+        expect(updated.id, id);
+        expect(updated.anchor, location);
+        expect(updated.gate.angle, -math.pi / 2);
+        expect(notifications, 1);
+      });
+    }
+
+    test('same equivalent angle is a no-op', () {
+      final model = circuit(1);
+      final insertion = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2),
+        0,
+        0,
+      );
+      var notifications = 0;
+      model.addListener(() => notifications++);
+      expect(
+        model
+            .updateGateParametersWithOutcome(
+              insertion.affectedGateId!,
+              angle: math.pi / 2 + 1e-12,
+            )
+            .status,
+        CircuitEditStatus.same,
+      );
+      expect(notifications, 0);
+    });
+
+    test('invalid, unknown, unsupported, and protected edits are safe', () {
+      final model = circuit(2);
+      final ordinary = model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+      final protected = model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.rz, angle: 0), 0, 1,
+          isDeletable: false);
+      var notifications = 0;
+      model.addListener(() => notifications++);
+
+      expect(
+          model
+              .updateGateParametersWithOutcome(const GateId(9999), angle: 0)
+              .status,
+          CircuitEditStatus.notFound);
+      expect(
+          model
+              .updateGateParametersWithOutcome(ordinary.affectedGateId!,
+                  angle: 0)
+              .status,
+          CircuitEditStatus.unsupported);
+      expect(
+          model
+              .updateGateParametersWithOutcome(protected.affectedGateId!,
+                  angle: math.pi)
+              .status,
+          CircuitEditStatus.protected);
+      for (final invalidAngle in <double?>[null, double.nan, double.infinity]) {
+        final rotation = model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 4),
+          1,
+          0,
+        );
+        notifications = 0;
+        expect(
+            model
+                .updateGateParametersWithOutcome(rotation.affectedGateId!,
+                    angle: invalidAngle)
+                .status,
+            CircuitEditStatus.invalid);
+        expect(notifications, 0);
+        model.removeLogicalGateByIdWithOutcome(rotation.affectedGateId!);
+      }
+    });
+
+    test('edit leaves unrelated gates unchanged and survives move and delete',
+        () {
+      final model = circuit(2);
+      final unrelated = model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 1);
+      final rotation = model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.rz, angle: 0), 1, 0);
+      final unrelatedBefore = model.logicalGateById(unrelated.affectedGateId!)!;
+      expect(
+          model
+              .updateGateParametersWithOutcome(rotation.affectedGateId!,
+                  angle: math.pi)
+              .status,
+          CircuitEditStatus.changed);
+      final unrelatedAfter = model.logicalGateById(unrelated.affectedGateId!)!;
+      expect(unrelatedAfter.id, unrelatedBefore.id);
+      expect(unrelatedAfter.gate.type, unrelatedBefore.gate.type);
+      expect(
+          model
+              .moveSingleGateWithOutcome(rotation.affectedGateId!,
+                  const CircuitLocation(qubit: 1, column: 1))
+              .status,
+          CircuitEditStatus.changed);
+      expect(
+          model.logicalGateById(rotation.affectedGateId!)!.gate.angle, math.pi);
+      expect(
+          model
+              .removeLogicalGateByIdWithOutcome(rotation.affectedGateId!)
+              .status,
+          CircuitEditStatus.changed);
+      expect(model.logicalGateById(rotation.affectedGateId!), isNull);
+      expect(model.logicalGateById(unrelated.affectedGateId!), isNotNull);
+    });
+
+    test('malformed historical rotation can be repaired safely', () {
+      final model = circuit(1);
+      const id = GateId(700);
+      model.placedGates[0].add(PlacedQuantumGate(
+        id: id,
+        gate: Gate.fromIdentifier(SelectedGateType.rx),
+      ));
+      var notifications = 0;
+      model.addListener(() => notifications++);
+      expect(
+          model.updateGateParametersWithOutcome(id, angle: math.pi / 4).status,
+          CircuitEditStatus.changed);
+      expect(model.logicalGateById(id)!.gate.angle, math.pi / 4);
+      expect(notifications, 1);
+    });
+  });
 }

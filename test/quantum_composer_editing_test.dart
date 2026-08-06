@@ -621,6 +621,151 @@ void main() {
     expect(find.text('Select Rotation Angle'), findsNothing);
   });
 
+  for (final gateType in [
+    SelectedGateType.rx,
+    SelectedGateType.ry,
+    SelectedGateType.rz,
+  ]) {
+    testWidgets('selecting $gateType shows contextual Edit angle action',
+        (tester) async {
+      await pumpComposer(
+        tester,
+        placedGate: Gate.fromIdentifier(gateType, angle: math.pi / 4),
+      );
+      expect(find.text('Edit angle'), findsNothing);
+      await selectFirstGate(tester);
+      expect(find.text('Edit angle'), findsOneWidget);
+      expect(find.byType(Dialog), findsNothing);
+    });
+  }
+
+  testWidgets(
+      'non-rotation, controlled, empty, and protected selections hide edit',
+      (tester) async {
+    await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.hadamard),
+    );
+    await selectFirstGate(tester);
+    expect(find.text('Edit angle'), findsNothing);
+
+    await pumpComposer(
+      tester,
+      qubits: 3,
+      preInsertGates: (circuit) =>
+          insertControlledGate(circuit, SelectedGateType.cnot),
+    );
+    await tester.tapAt(circuitPoint(tester, 0, 0));
+    await tester.pump();
+    expect(find.text('Edit angle'), findsNothing);
+
+    await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 4),
+      isDeletable: false,
+    );
+    await selectFirstGate(tester);
+    expect(find.text('Edit angle'), findsNothing);
+  });
+
+  testWidgets('editing opens at current angle and commits once',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 4),
+    );
+    final id = model.placedGates[0][0].id!;
+    await selectFirstGate(tester);
+    await tester.tap(find.text('Edit angle'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Edit Rx'), findsOneWidget);
+    final numerator = tester.widget<TextField>(
+      find.byKey(const ValueKey('fractional-angle-numerator')),
+    );
+    final denominator = tester.widget<TextField>(
+      find.byKey(const ValueKey('fractional-angle-denominator')),
+    );
+    expect(numerator.controller!.text, '1');
+    expect(denominator.controller!.text, '4');
+
+    await tester.enterText(
+        find.byKey(const ValueKey('fractional-angle-denominator')), '2');
+    final simulationsBefore = model.simulationRunCount;
+    final stateBefore = List.of(model.currentState.stateVector);
+    var notifications = 0;
+    model.addListener(() => notifications++);
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+
+    final updated = model.logicalGateById(id)!;
+    expect(updated.gate.angle, closeTo(math.pi / 2, 1e-12));
+    expect(model.simulationRunCount, simulationsBefore + 1);
+    expect(model.currentState.stateVector, isNot(equals(stateBefore)));
+    expect(notifications, 2); // one structural and one simulation notification
+    expect(find.bySemanticsLabel('Selected gate ${updated.gate.label}'),
+        findsOneWidget);
+  });
+
+  testWidgets('cancel and same-angle confirmation are non-mutating',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.ry, angle: -math.pi / 2),
+    );
+    final id = model.placedGates[0][0].id!;
+    await selectFirstGate(tester);
+    final angleBefore = model.logicalGateById(id)!.gate.angle;
+    final simulationsBefore = model.simulationRunCount;
+    var notifications = 0;
+    model.addListener(() => notifications++);
+
+    await tester.tap(find.text('Edit angle'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(id)!.gate.angle, angleBefore);
+    expect(model.simulationRunCount, simulationsBefore);
+    expect(notifications, 0);
+
+    await tester.tap(find.text('Edit angle'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(id)!.gate.angle, angleBefore);
+    expect(model.simulationRunCount, simulationsBefore);
+    expect(notifications, 0);
+    expect(find.text('Edit angle'), findsOneWidget);
+  });
+
+  testWidgets('rotation gate remains directly draggable without opening editor',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 4),
+    );
+    final id = model.placedGates[0][0].id!;
+    final gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
+    await gesture.moveTo(circuitPoint(tester, 1, 1));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(id)!.anchor.qubit, 1);
+    expect(find.textContaining('Edit Rz'), findsNothing);
+    expect(find.text('Edit angle'), findsOneWidget);
+  });
+
+  testWidgets('Edit angle action remains accessible in compact portrait',
+      (tester) async {
+    await pumpComposer(
+      tester,
+      viewportSize: const Size(430, 850),
+      placedGate: Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 4),
+    );
+    await selectFirstGate(tester);
+    expect(
+        find.byKey(const ValueKey('edit-selected-gate-angle')), findsOneWidget);
+    expect(find.bySemanticsLabel('Edit angle'), findsOneWidget);
+  });
+
   testWidgets('palette remains a unified CircuitDragData source',
       (tester) async {
     await pumpComposer(tester);

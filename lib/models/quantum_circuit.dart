@@ -289,6 +289,54 @@ class QuantumCircuit extends ChangeNotifier {
     );
   }
 
+  CircuitEditOutcome updateGateParametersWithOutcome(
+    GateId id, {
+    required double? angle,
+  }) {
+    final footprint = logicalGateById(id);
+    if (footprint == null) return CircuitEditOutcome.notFound;
+    if (!footprint.supportsParameterEditing) {
+      return CircuitEditOutcome.unsupported;
+    }
+    if (!footprint.isParameterEditable) return CircuitEditOutcome.protected;
+    if (angle == null || !angle.isFinite) return CircuitEditOutcome.invalid;
+    final currentAngle = footprint.gate.angle;
+    if (currentAngle != null && _anglesEquivalent(currentAngle, angle)) {
+      return CircuitEditOutcome.same;
+    }
+
+    final updatedGate = Gate.fromIdentifier(footprint.type, angle: angle);
+    if (!updatedGate.hasValidRequiredParameters) {
+      return CircuitEditOutcome.invalid;
+    }
+    final fragment = footprint.fragments.single;
+    final existing = fragment.placedGate;
+    placedGates[fragment.location.qubit][fragment.location.column] =
+        PlacedQuantumGate(
+      id: existing.id,
+      gate: updatedGate,
+      controlQubitIndex: existing.controlQubitIndex,
+      control2QubitIndex: existing.control2QubitIndex,
+      targetQubitIndex: existing.targetQubitIndex,
+      isTarget: existing.isTarget,
+      isLink: existing.isLink,
+      isControl: existing.isControl,
+      isControl2: existing.isControl2,
+      isDeletable: existing.isDeletable,
+    );
+    notifyListeners();
+    return CircuitEditOutcome(
+      CircuitEditStatus.changed,
+      affectedGateId: id,
+      resultingLocation: footprint.anchor,
+    );
+  }
+
+  static bool _anglesEquivalent(double a, double b) {
+    const tolerance = 1e-9;
+    return (a - b).abs() <= tolerance * max(1.0, max(a.abs(), b.abs()));
+  }
+
   void insertDoublePlacedGateAt(Gate gate, int insertionPosition,
       int targetQubitIndex, int controlQubitIndex,
       {bool isDeletable = true}) {

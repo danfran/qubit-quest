@@ -3,11 +3,19 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
+import 'package:quantumquiz/models/selected_gate_type.dart';
 
 enum AngleInputMode { numerical, fractional }
 
 class RotationGateDialog extends StatefulWidget {
-  const RotationGateDialog({super.key});
+  final SelectedGateType? gateType;
+  final double? initialAngle;
+
+  const RotationGateDialog({
+    super.key,
+    this.gateType,
+    this.initialAngle,
+  });
 
   @override
   State<RotationGateDialog> createState() => _RotationGateDialogState();
@@ -24,14 +32,34 @@ class _RotationGateDialogState extends State<RotationGateDialog> {
   @override
   void initState() {
     super.initState();
-    _numeratorController.text = '1';
-    _denominatorController.text = '1';
+    _initialiseFields(widget.initialAngle);
 
     _numericalController.addListener(_updateAngle);
     _numeratorController.addListener(_updateAngle);
     _denominatorController.addListener(_updateAngle);
+  }
 
-    _updateAngle();
+  void _initialiseFields(double? angle) {
+    if (angle == null || !angle.isFinite) {
+      _numeratorController.text = '1';
+      _denominatorController.text = '1';
+      _calculatedAngle = math.pi;
+      return;
+    }
+    const denominators = [1, 2, 3, 4, 5, 6, 7, 8, 9, 16];
+    for (final denominator in denominators) {
+      final numerator = angle / math.pi * denominator;
+      if ((numerator - numerator.round()).abs() <= 1e-9) {
+        _inputMode = AngleInputMode.fractional;
+        _numeratorController.text = numerator.round().toString();
+        _denominatorController.text = denominator.toString();
+        _calculatedAngle = angle;
+        return;
+      }
+    }
+    _inputMode = AngleInputMode.numerical;
+    _numericalController.text = angle.toString();
+    _calculatedAngle = angle;
   }
 
   @override
@@ -82,7 +110,9 @@ class _RotationGateDialogState extends State<RotationGateDialog> {
   @override
   Widget build(BuildContext context) {
     return QubitQuestDialog(
-      title: 'Set Rotation Angle',
+      title: widget.gateType == null
+          ? 'Set Rotation Angle'
+          : 'Edit ${_gateName(widget.gateType!)} Angle',
       maxWidth: 500,
       actions: [
         QubitQuestDialogButton.secondary(
@@ -114,6 +144,13 @@ class _RotationGateDialogState extends State<RotationGateDialog> {
       ),
     );
   }
+
+  String _gateName(SelectedGateType type) => switch (type) {
+        SelectedGateType.rx => 'Rx',
+        SelectedGateType.ry => 'Ry',
+        SelectedGateType.rz => 'Rz',
+        _ => Gate.fromIdentifier(type).label,
+      };
 
   Widget _buildModeSelection() {
     return Container(
@@ -207,6 +244,7 @@ class _RotationGateDialogState extends State<RotationGateDialog> {
       children: [
         Expanded(
           child: TextField(
+            key: const ValueKey('fractional-angle-numerator'),
             controller: _numeratorController,
             keyboardType: const TextInputType.numberWithOptions(
               signed: true,
@@ -234,6 +272,7 @@ class _RotationGateDialogState extends State<RotationGateDialog> {
         ),
         Expanded(
           child: TextField(
+            key: const ValueKey('fractional-angle-denominator'),
             controller: _denominatorController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: _getFormatters(false),

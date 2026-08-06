@@ -123,8 +123,6 @@ class _QuantumComposerState extends State<QuantumComposer>
   int? _ccnotControl1Qubit;
   int? _ccnotControl2Qubit;
 
-  double? _rotationAngle;
-
   // Hints state
   List<String> _hints = [];
   int _currentHintIndex = -1;
@@ -382,14 +380,17 @@ class _QuantumComposerState extends State<QuantumComposer>
         return;
       }
     } else if (requiresRotationAngleSelection(droppedGate)) {
-      await _showRotationAngleSetDialog(context);
-      if (_rotationAngle == null) {
+      final selectedAngle = await _showRotationAngleSetDialog(
+        context,
+        gateType: droppedGateType,
+      );
+      if (selectedAngle == null) {
         debugPrint(
             'Rotation angle selection cancelled for $droppedGateType. Gate not inserted.');
         return;
       } else {
         Gate updatedRotationGate =
-            Gate.fromIdentifier(droppedGateType, angle: _rotationAngle!);
+            Gate.fromIdentifier(droppedGateType, angle: selectedAngle);
         editOutcome = _circuit.insertSingleGateWithOutcome(
             updatedRotationGate, insertionPosition, tappedQubitLine);
       }
@@ -429,25 +430,65 @@ class _QuantumComposerState extends State<QuantumComposer>
     _cnotControlQubit = selectedQubit?['control1'];
   }
 
-  Future<void> _showRotationAngleSetDialog(BuildContext context) async {
-    _rotationAngle = null;
+  Future<double?> _showRotationAngleSetDialog(
+    BuildContext context, {
+    SelectedGateType? gateType,
+    double? initialAngle,
+  }) async {
     // Ensure dialog is not already shown
-    if (ModalRoute.of(context)?.isCurrent != true ||
-        Navigator.of(context).canPop() == false) {
+    if (ModalRoute.of(context)?.isCurrent != true) {
       // This is a crude check to avoid showing multiple dialogs.
       // A more robust solution might involve a global boolean or state for dialog visibility.
-      return;
+      return null;
     }
 
     final Map<String, dynamic>? selectedAngle =
         await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (BuildContext dialogContext) {
-        return RotationGateDialog();
+        return RotationGateDialog(
+          gateType: gateType,
+          initialAngle: initialAngle,
+        );
       },
     );
+    return selectedAngle?['angle1'] as double?;
+  }
 
-    _rotationAngle = selectedAngle?['angle1'];
+  Future<void> _editSelectedRotationAngle() async {
+    final selectedId = _selectedGateId;
+    if (selectedId == null) return;
+    final footprint = _circuit.logicalGateById(selectedId);
+    if (footprint == null || !footprint.isParameterEditable) return;
+    if (footprint.gate.angle == null) {
+      assert(() {
+        debugPrint(
+          'Selected ${footprint.type} gate ${footprint.id} has no angle; '
+          'opening the picker so it can be repaired.',
+        );
+        return true;
+      }());
+    }
+
+    final selectedAngle = await _showRotationAngleSetDialog(
+      context,
+      gateType: footprint.type,
+      initialAngle: footprint.gate.angle,
+    );
+    if (!mounted || selectedAngle == null) return;
+    final outcome = _circuit.updateGateParametersWithOutcome(
+      selectedId,
+      angle: selectedAngle,
+    );
+    _handleCommittedCircuitEdit(outcome, selectionAfter: selectedId);
+    if (outcome.status == CircuitEditStatus.invalid && mounted) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text('Choose a valid rotation angle.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Future<void> _showCCNOTTargetSelectionDialog(
@@ -1516,11 +1557,61 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   List<Widget> _buildAppBarActions(bool compact) {
     return [
+      if (_selectedGateId != null &&
+          (_circuit.logicalGateById(_selectedGateId!)?.isParameterEditable ??
+              false)) ...[
+        _buildEditAngleHeaderAction(compact: compact),
+        SizedBox(width: compact ? 6 : 8),
+      ],
       _buildNotebookHeaderAction(compact: compact),
       SizedBox(width: compact ? 6 : 8),
       _buildMenuHeaderAction(compact: compact),
       SizedBox(width: compact ? 10 : 12),
     ];
+  }
+
+  Widget _buildEditAngleHeaderAction({required bool compact}) {
+    final content = compact
+        ? _HeaderActionShell(
+            size: 34,
+            child: Icon(Icons.tune_rounded, size: 18, color: qqCyan),
+          )
+        : SizedBox(
+            width: 62,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _HeaderActionShell(
+                  size: 32,
+                  child: Icon(Icons.tune_rounded, size: 17, color: qqCyan),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Edit angle',
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.78),
+                    fontSize: 9,
+                    height: 1,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          );
+    return Semantics(
+      label: 'Edit angle',
+      button: true,
+      child: Tooltip(
+        message: 'Edit angle',
+        child: InkWell(
+          key: const ValueKey('edit-selected-gate-angle'),
+          onTap: _editSelectedRotationAngle,
+          borderRadius: BorderRadius.circular(16),
+          child: content,
+        ),
+      ),
+    );
   }
 
   Widget _buildMenuHeaderAction({required bool compact}) {
