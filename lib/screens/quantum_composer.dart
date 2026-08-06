@@ -146,9 +146,6 @@ class _QuantumComposerState extends State<QuantumComposer>
   bool _levelSolved = false;
   late bool _isCompleted;
 
-  final ValueNotifier<double> _circuitWidthNotifier =
-      ValueNotifier<double>(0.0);
-
   late ScrollController _gatesScrollController;
   late AnimationController _notebookPulseController;
   late Animation<double> _notebookPulseScale;
@@ -270,14 +267,10 @@ class _QuantumComposerState extends State<QuantumComposer>
     final droppedGateType = droppedGate.type;
     // final dropPosition = details.offset; // Use details.offset
     final dropPosition = localPosition; // Use details.offset
-    bool insertedGate = false;
+    CircuitEditOutcome editOutcome = CircuitEditOutcome.same;
 
-    // Use the painter's logic to determine the qubit line and insertion position
-    final painter = QuantumCircuitPainter(_circuit, _circuitWidthNotifier,
-        _draggingOffset, _draggingGate); // Painter knows layout constants
-
-    // Determine the tapped qubit line based on the vertical drop position
-    final tappedQubitLine = painter.getTappedQubitLine(dropPosition);
+    final tappedQubitLine =
+        CircuitGeometry.qubitForPoint(dropPosition, _numQubits);
 
     if (tappedQubitLine == null) {
       debugPrint('Dropped outside qubit lines. Ignoring drop.');
@@ -286,33 +279,22 @@ class _QuantumComposerState extends State<QuantumComposer>
     }
 
     // Determine the horizontal insertion position based on the horizontal drop position
-    final insertionPosition = painter.getInsertionPosition(
-        dropPosition); // <-- Need to implement this in Painter
-
-    if (insertionPosition == null) {
-      debugPrint(
-          'Could not determine valid insertion position. Ignoring drop.');
-      // Optionally provide feedback
-      return;
-    }
+    final insertionPosition =
+        CircuitGeometry.insertionColumnForPoint(dropPosition);
 
     debugPrint(
         'Dropped on Qubit line: $tappedQubitLine at insertion position: $insertionPosition');
 
     if (details.data.isPlaced) {
       final sourceId = details.data.sourceId!;
-      final result = _circuit.moveSingleGate(
+      final result = _circuit.moveSingleGateWithOutcome(
         sourceId,
         CircuitLocation(
           qubit: tappedQubitLine,
           column: insertionPosition,
         ),
       );
-      if (result == MoveResult.moved) {
-        _selectedGateId = sourceId;
-        _runSimulation();
-      }
-      if (mounted) setState(_validateSelection);
+      _handleCommittedCircuitEdit(result, selectionAfter: sourceId);
       return;
     }
 
@@ -358,9 +340,8 @@ class _QuantumComposerState extends State<QuantumComposer>
       if (controlQubitLine != null && tappedQubitLine != controlQubitLine) {
         debugPrint(
             '$gateLabel placement (control line = $_cnotControlQubit and target line = $tappedQubitLine).');
-        _circuit.insertDoublePlacedGateAt(
+        editOutcome = _circuit.insertDoubleGateWithOutcome(
             droppedGate, insertionPosition, tappedQubitLine, controlQubitLine);
-        insertedGate = true;
         debugPrint(
             "Gate $gateLabel inserted at position $insertionPosition on qubits $tappedQubitLine and $controlQubitLine.");
       } else {
@@ -386,9 +367,12 @@ class _QuantumComposerState extends State<QuantumComposer>
           tappedQubitLine != _ccnotControl2Qubit) {
         debugPrint(
             'CCNOT placement (control line 1 = $_ccnotControl1Qubit, control line 2 = $_ccnotControl2Qubit and target line = $tappedQubitLine).');
-        _circuit.insertTriplePlacedGateAt(droppedGate, insertionPosition,
-            tappedQubitLine, _ccnotControl1Qubit!, _ccnotControl2Qubit!);
-        insertedGate = true;
+        editOutcome = _circuit.insertTripleGateWithOutcome(
+            droppedGate,
+            insertionPosition,
+            tappedQubitLine,
+            _ccnotControl1Qubit!,
+            _ccnotControl2Qubit!);
         debugPrint(
             "Gate CCNOT inserted at position $insertionPosition on qubits $tappedQubitLine, $_ccnotControl1Qubit and $_ccnotControl2Qubit.");
       } else {
@@ -406,23 +390,19 @@ class _QuantumComposerState extends State<QuantumComposer>
       } else {
         Gate updatedRotationGate =
             Gate.fromIdentifier(droppedGateType, angle: _rotationAngle!);
-        _circuit.insertSinglePlacedGateAt(
+        editOutcome = _circuit.insertSingleGateWithOutcome(
             updatedRotationGate, insertionPosition, tappedQubitLine);
-        insertedGate = true;
       }
       debugPrint(
           "Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
     } else if (droppedGateType != SelectedGateType.draggedGate) {
-      _circuit.insertSinglePlacedGateAt(
+      editOutcome = _circuit.insertSingleGateWithOutcome(
           droppedGate, insertionPosition, tappedQubitLine);
-      insertedGate = true;
       debugPrint(
           "Gate inserted at position $insertionPosition on qubit $tappedQubitLine.");
     }
 
-    if (insertedGate) {
-      _runSimulation(); // Optionally run simulation after placing
-    }
+    _handleCommittedCircuitEdit(editOutcome);
   }
 
   Future<void> _showCNOTTargetSelectionDialog(
@@ -510,14 +490,13 @@ class _QuantumComposerState extends State<QuantumComposer>
       debugPrint('In delete mode.');
       // Use the painter's hit-testing method to find if a gate was tapped
       final hit = CircuitGeometry.hitTestGate(_circuit, localPosition);
-      bool gateRemoved = hit != null &&
-          _circuit.removePlacedGate(
-            hit.location.column,
-            hit.location.qubit,
-          );
+      final outcome = hit == null
+          ? CircuitEditOutcome.notFound
+          : _circuit.removeLogicalGateByIdWithOutcome(hit.id);
+      final gateRemoved = outcome.changed;
 
       if (gateRemoved) {
-        _runSimulation(); // Update simulation after deletion
+        _handleCommittedCircuitEdit(outcome, clearSelection: true);
         setState(() {
           _currentMode =
               SelectedGateType.none; // Reset mode after successful deletion
@@ -551,6 +530,24 @@ class _QuantumComposerState extends State<QuantumComposer>
     if (selected != null && !_circuit.containsGate(selected)) {
       _selectedGateId = null;
     }
+  }
+
+  void _handleCommittedCircuitEdit(
+    CircuitEditOutcome outcome, {
+    GateId? selectionAfter,
+    bool clearSelection = false,
+  }) {
+    if (!outcome.changed) {
+      if (mounted) setState(_validateSelection);
+      return;
+    }
+    if (clearSelection) {
+      _selectedGateId = null;
+    } else if (selectionAfter != null) {
+      _selectedGateId = selectionAfter;
+    }
+    _runSimulation();
+    if (mounted) setState(_validateSelection);
   }
 
   void _startPlacedDrag(PlacedGateRef source) {
@@ -615,11 +612,8 @@ class _QuantumComposerState extends State<QuantumComposer>
       _finishPlacedDrag();
       return;
     }
-    final result = _circuit.removeLogicalGateById(source.id);
-    if (result == RemoveGateResult.removed) {
-      _selectedGateId = null;
-      _runSimulation();
-    }
+    final result = _circuit.removeLogicalGateByIdWithOutcome(source.id);
+    _handleCommittedCircuitEdit(result, clearSelection: true);
     _finishPlacedDrag();
   }
 
@@ -992,8 +986,11 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   void _clearCircuit() {
-    _selectedGateId = null;
-    _circuit.clearPlacedGates(); // This calls notifyListeners()
+    final outcome = _circuit.clearPlacedGatesWithOutcome();
+    if (!outcome.changed) {
+      _handleCommittedCircuitEdit(outcome, clearSelection: true);
+      return;
+    }
     debugPrint('Circuit cleared.');
     _setInteractionMode(SelectedGateType.none); // Reset mode
     _cnotControlQubit = null;
@@ -1005,8 +1002,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     _adaptiveInsight = null;
     _adaptiveInsightDismissed = false;
     _adaptiveInsightAutoDismissTimer?.cancel();
-    _runSimulation(); // Run simulation - empty circuit
-    _circuitWidthNotifier.value = 0; // Reset width notifier
+    _handleCommittedCircuitEdit(outcome, clearSelection: true);
   }
 
   Future<void> _openQuantumNotebook() async {
@@ -2150,9 +2146,7 @@ class _QuantumComposerState extends State<QuantumComposer>
         final int maxPosition = _circuit.isCircuitEmpty()
             ? -1
             : _circuit.placedGates.map((e) => e.length).reduce(max);
-        final double minRequiredWidth =
-            (maxPosition + 3) * QuantumCircuitPainter.gateSpacing +
-                QuantumCircuitPainter.padding * 2;
+        final double minRequiredWidth = CircuitGeometry.contentWidth(_circuit);
 
         final double sizedBoxWidth =
             max(minRequiredWidth, availableContainerWidth);
@@ -2191,7 +2185,7 @@ class _QuantumComposerState extends State<QuantumComposer>
                   key: const ValueKey('circuit-horizontal-scroll'),
                   scrollDirection: Axis.horizontal,
                   child: SizedBox(
-                    width: max(sizedBoxWidth, _circuitWidthNotifier.value),
+                    width: sizedBoxWidth,
                     height: viewportHeight,
                     child: Stack(
                       fit: StackFit.expand,
@@ -2210,9 +2204,13 @@ class _QuantumComposerState extends State<QuantumComposer>
                         CustomPaint(
                           painter: QuantumCircuitPainter(
                             _circuit,
-                            _circuitWidthNotifier,
-                            _draggingOffset,
-                            _draggingGate,
+                            previewGates: isDraggingGate
+                                ? CircuitGeometry.insertionPreview(
+                                    circuit: _circuit,
+                                    point: _draggingOffset!,
+                                    gate: _draggingGate,
+                                  )
+                                : null,
                             selectedGateId: _selectedGateId,
                           ),
                           child: ListenableBuilder(
@@ -2257,16 +2255,9 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   List<Widget> _buildPlacedGateDragOverlays() {
-    final draggableGates = <PlacedGateRef>[];
-    final seenIds = <GateId>{};
-    for (final row in _circuit.placedGates) {
-      for (final cell in row) {
-        final id = cell.id;
-        if (id == null || !seenIds.add(id)) continue;
-        final gate = _circuit.placedGateById(id);
-        if (gate != null && gate.isDeletable) draggableGates.add(gate);
-      }
-    }
+    final draggableGates = _circuit.logicalGates
+        .where((gate) => gate.isDeletable)
+        .map((gate) => gate.toPlacedGateRef());
 
     return draggableGates.map((placed) {
       final bounds = CircuitGeometry.logicalGateBounds(_circuit, placed.id);
@@ -3036,8 +3027,8 @@ class _CircuitGuidePainter extends CustomPainter {
     int? activeQubit;
     int? activeColumn;
     if (dragOffset != null) {
-      activeQubit = _qubitIndexForY(dragOffset!.dy);
-      activeColumn = _columnIndexForX(dragOffset!.dx);
+      activeQubit = CircuitGeometry.qubitForPoint(dragOffset!, numQubits);
+      activeColumn = CircuitGeometry.insertionColumnForPoint(dragOffset!);
     }
 
     if (isDragging) {
@@ -3088,25 +3079,6 @@ class _CircuitGuidePainter extends CustomPainter {
         }
       }
     }
-  }
-
-  int? _qubitIndexForY(double y) {
-    for (int qubit = 0; qubit < numQubits; qubit++) {
-      final double centerY = QuantumCircuitPainter.qubitCenterYFor(qubit);
-      if (y >= centerY - QuantumCircuitPainter.hitTolerance &&
-          y <= centerY + QuantumCircuitPainter.hitTolerance) {
-        return qubit;
-      }
-    }
-    return null;
-  }
-
-  int _columnIndexForX(double x) {
-    final double relativeX = x - QuantumCircuitPainter.padding;
-    return math.max(
-      0,
-      (relativeX / QuantumCircuitPainter.gateSpacing).floor(),
-    );
   }
 
   @override

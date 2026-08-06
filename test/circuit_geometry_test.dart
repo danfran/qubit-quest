@@ -67,4 +67,39 @@ void main() {
       expect(CircuitGeometry.hitTestGate(circuit, position)?.id, id);
     }
   });
+
+  test('pure row and insertion-column mapping preserves current geometry', () {
+    expect(CircuitGeometry.qubitForPoint(const Offset(40, 20), 3), 0);
+    expect(CircuitGeometry.qubitForPoint(const Offset(40, 60), 3), 1);
+    expect(CircuitGeometry.qubitForPoint(const Offset(40, 100), 3), 2);
+    expect(CircuitGeometry.qubitForPoint(const Offset(40, 121), 3), isNull);
+    expect(CircuitGeometry.insertionColumnForPoint(const Offset(0, 20)), 0);
+    expect(CircuitGeometry.insertionColumnForPoint(const Offset(59, 20)), 0);
+    expect(CircuitGeometry.insertionColumnForPoint(const Offset(60, 20)), 1);
+  });
+
+  test('content width and preview are computed without painting', () {
+    final circuit = QuantumCircuit(
+      currentLevel: ComposerLevel(
+        taskDescription: 'geometry',
+        numQubits: 2,
+        initialQubitsStateStr: '00',
+        initialQubitsState: ComposerLevel.getZeroStateVector(2),
+        availableGates: const [],
+        solutionFinalVector: const [],
+      ),
+    );
+    expect(CircuitGeometry.contentWidth(circuit), 120);
+    final preview = CircuitGeometry.insertionPreview(
+      circuit: circuit,
+      point: const Offset(40, 60),
+      gate: Gate.fromIdentifier(SelectedGateType.hadamard),
+    );
+    expect(preview[1].single.gate.type, SelectedGateType.draggedGate);
+    expect(circuit.isCircuitEmpty(), isTrue);
+
+    circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.hadamard), 0, 1);
+    expect(CircuitGeometry.contentWidth(circuit), 200);
+  });
 }

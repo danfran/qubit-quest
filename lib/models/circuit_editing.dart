@@ -38,6 +38,40 @@ class PlacedGateRef {
   bool get isMovable => isSingleQubit && isDeletable;
 }
 
+enum CircuitEditStatus {
+  changed,
+  same,
+  invalid,
+  notFound,
+  protected,
+  unsupported,
+  cancelled,
+}
+
+@immutable
+class CircuitEditOutcome {
+  final CircuitEditStatus status;
+  final GateId? affectedGateId;
+  final CircuitLocation? resultingLocation;
+  final String? detail;
+
+  const CircuitEditOutcome(
+    this.status, {
+    this.affectedGateId,
+    this.resultingLocation,
+    this.detail,
+  });
+
+  bool get changed => status == CircuitEditStatus.changed;
+
+  static const same = CircuitEditOutcome(CircuitEditStatus.same);
+  static const invalid = CircuitEditOutcome(CircuitEditStatus.invalid);
+  static const notFound = CircuitEditOutcome(CircuitEditStatus.notFound);
+  static const protected = CircuitEditOutcome(CircuitEditStatus.protected);
+  static const unsupported = CircuitEditOutcome(CircuitEditStatus.unsupported);
+  static const cancelled = CircuitEditOutcome(CircuitEditStatus.cancelled);
+}
+
 enum MoveResult { moved, sameSlot, invalid, notFound, notMovable }
 
 enum RemoveGateResult { removed, notFound, notDeletable, notSingleQubit }

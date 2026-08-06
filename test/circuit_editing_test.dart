@@ -300,4 +300,148 @@ void main() {
       expect(notifications, 1);
     });
   });
+
+  group('structured edit outcomes', () {
+    test('insert, move, delete, and clear report coherent outcomes', () {
+      final model = circuit(2);
+      var notifications = 0;
+      model.addListener(() => notifications++);
+
+      final inserted = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+      );
+      expect(inserted.status, CircuitEditStatus.changed);
+      expect(inserted.affectedGateId, isNotNull);
+      expect(notifications, 1);
+
+      final same = model.moveSingleGateWithOutcome(
+        inserted.affectedGateId!,
+        const CircuitLocation(qubit: 0, column: 0),
+      );
+      expect(same.status, CircuitEditStatus.same);
+      expect(notifications, 1);
+
+      final moved = model.moveSingleGateWithOutcome(
+        inserted.affectedGateId!,
+        const CircuitLocation(qubit: 1, column: 0),
+      );
+      expect(moved.status, CircuitEditStatus.changed);
+      expect(moved.affectedGateId, inserted.affectedGateId);
+      expect(notifications, 2);
+
+      final removed =
+          model.removeLogicalGateByIdWithOutcome(inserted.affectedGateId!);
+      expect(removed.status, CircuitEditStatus.changed);
+      expect(notifications, 3);
+
+      expect(
+          model.clearPlacedGatesWithOutcome().status, CircuitEditStatus.same);
+      expect(notifications, 3);
+    });
+
+    test('invalid and protected edits do not notify', () {
+      final model = circuit(2);
+      var notifications = 0;
+      model.addListener(() => notifications++);
+
+      expect(
+        model
+            .insertSingleGateWithOutcome(
+              Gate.fromIdentifier(SelectedGateType.none),
+              0,
+              0,
+            )
+            .status,
+        CircuitEditStatus.invalid,
+      );
+      expect(notifications, 0);
+
+      final inserted = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.x),
+        0,
+        0,
+        isDeletable: false,
+      );
+      expect(inserted.status, CircuitEditStatus.changed);
+      expect(notifications, 1);
+      expect(
+        model.removeLogicalGateByIdWithOutcome(inserted.affectedGateId!).status,
+        CircuitEditStatus.protected,
+      );
+      expect(notifications, 1);
+    });
+
+    test('clear reports changed once for a non-empty circuit', () {
+      final model = circuit(1);
+      model.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.x),
+        0,
+        0,
+      );
+      var notifications = 0;
+      model.addListener(() => notifications++);
+      expect(model.clearPlacedGatesWithOutcome().status,
+          CircuitEditStatus.changed);
+      expect(notifications, 1);
+      expect(model.isCircuitEmpty(), isTrue);
+    });
+  });
+
+  group('logical gate footprints', () {
+    test('single gate has one canonical occupied cell', () {
+      final model = circuit(2);
+      final outcome = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2),
+        0,
+        1,
+      );
+      final footprint = model.logicalGateById(outcome.affectedGateId!)!;
+      expect(footprint.fragments, hasLength(1));
+      expect(footprint.anchor, const CircuitLocation(qubit: 1, column: 0));
+      expect(footprint.isSingleQubit, isTrue);
+      expect(footprint.gate.angle, math.pi / 2);
+    });
+
+    for (final gateType in [
+      SelectedGateType.cnot,
+      SelectedGateType.cz,
+      SelectedGateType.ccnot,
+    ]) {
+      test('$gateType footprint exposes every fragment and metadata', () {
+        final model = circuit(4);
+        final outcome = gateType == SelectedGateType.ccnot
+            ? model.insertTripleGateWithOutcome(
+                Gate.fromIdentifier(gateType), 0, 3, 0, 1)
+            : model.insertDoubleGateWithOutcome(
+                Gate.fromIdentifier(gateType), 0, 3, 0);
+        final footprint = model.footprintForGateId(outcome.affectedGateId!)!;
+        expect(footprint.isControlled, isTrue);
+        expect(footprint.fragments, hasLength(4));
+        expect(
+            footprint.fragments
+                .every((fragment) => fragment.placedGate.id == footprint.id),
+            isTrue);
+        expect(footprint.controlQubit, 0);
+        expect(footprint.targetQubit, 3);
+        expect(footprint.secondControlQubit,
+            gateType == SelectedGateType.ccnot ? 1 : isNull);
+      });
+    }
+
+    test('compaction preserves footprint identity and unknown IDs are safe',
+        () {
+      final model = circuit(2);
+      final first = model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+      final second = model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 1, 0);
+      model.removeLogicalGateByIdWithOutcome(first.affectedGateId!);
+      final footprint = model.logicalGateById(second.affectedGateId!)!;
+      expect(footprint.id, second.affectedGateId);
+      expect(footprint.column, 0);
+      expect(model.logicalGateById(const GateId(999999)), isNull);
+    });
+  });
 }

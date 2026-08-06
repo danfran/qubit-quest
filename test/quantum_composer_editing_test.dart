@@ -216,6 +216,7 @@ void main() {
       placedGate: Gate.fromIdentifier(SelectedGateType.x),
     );
     final id = model.placedGates[0][0].id!;
+    final simulationsBefore = model.simulationRunCount;
     final gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
     await gesture.moveTo(circuitPoint(tester, 1, 1));
     await gesture.up();
@@ -225,6 +226,7 @@ void main() {
     expect(
         find.byKey(ValueKey('placed-gate-drag-${id.value}')), findsOneWidget);
     expect(find.bySemanticsLabel('Selected gate X'), findsOneWidget);
+    expect(model.simulationRunCount, simulationsBefore + 1);
   });
 
   testWidgets('same-slot drag is a no-op', (tester) async {
@@ -235,6 +237,7 @@ void main() {
     final id = model.placedGates[0][0].id!;
     var notifications = 0;
     model.addListener(() => notifications++);
+    final simulationsBefore = model.simulationRunCount;
     await selectFirstGate(tester);
     final gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
     await gesture.moveBy(const Offset(0, 19));
@@ -243,6 +246,7 @@ void main() {
     expect(model.placedGateById(id)!.location,
         const CircuitLocation(qubit: 0, column: 0));
     expect(notifications, 0);
+    expect(model.simulationRunCount, simulationsBefore);
   });
 
   testWidgets('drag clearly outside deletes a selected deletable gate',
@@ -252,6 +256,7 @@ void main() {
       placedGate: Gate.fromIdentifier(SelectedGateType.x),
     );
     final id = model.placedGates[0][0].id!;
+    final simulationsBefore = model.simulationRunCount;
     final gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
     await gesture.moveTo(const Offset(11, 10));
     await gesture.moveTo(const Offset(10, 10));
@@ -260,6 +265,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(model.placedGateById(id), isNull);
     expect(find.byKey(ValueKey('placed-gate-drag-${id.value}')), findsNothing);
+    expect(model.simulationRunCount, simulationsBefore + 1);
   });
 
   testWidgets('delete affordance exactly predicts placed drag release outcome',
@@ -436,6 +442,7 @@ void main() {
     final original = fragmentLocations();
     var notifications = 0;
     model.addListener(() => notifications++);
+    final simulationsBefore = model.simulationRunCount;
 
     var gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
     await gesture.moveTo(circuitPoint(tester, 2, 2));
@@ -452,6 +459,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(fragmentLocations(), original);
     expect(notifications, 0);
+    expect(model.simulationRunCount, simulationsBefore);
   });
 
   testWidgets(
