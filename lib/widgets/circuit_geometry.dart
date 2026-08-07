@@ -6,6 +6,32 @@ import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/widgets/circuit_layout_metrics.dart';
 
+@immutable
+class CircuitDropDestination {
+  final Offset contentPoint;
+  final CircuitLocation location;
+
+  const CircuitDropDestination({
+    required this.contentPoint,
+    required this.location,
+  });
+}
+
+class CircuitCoordinateMapper {
+  const CircuitCoordinateMapper._();
+
+  static Offset viewportToContent(
+    Offset viewportPoint, {
+    required double horizontalScrollOffset,
+  }) {
+    assert(horizontalScrollOffset >= 0);
+    return Offset(
+      viewportPoint.dx + horizontalScrollOffset,
+      viewportPoint.dy,
+    );
+  }
+}
+
 class CircuitGeometry {
   const CircuitGeometry._();
 
@@ -45,6 +71,25 @@ class CircuitGeometry {
         .clamp(0, 1 << 30);
   }
 
+  static CircuitDropDestination? dropDestinationForPoint({
+    required QuantumCircuit circuit,
+    required Offset contentPoint,
+  }) {
+    final qubit = qubitForPoint(
+      contentPoint,
+      circuit.currentLevel.numQubits,
+    );
+    if (qubit == null) return null;
+    final column = circuit.isCircuitEmpty()
+        ? 0
+        : insertionColumnForPoint(contentPoint)
+            .clamp(0, circuit.maxCircuitDepth());
+    return CircuitDropDestination(
+      contentPoint: contentPoint,
+      location: CircuitLocation(qubit: qubit, column: column),
+    );
+  }
+
   static double contentWidth(QuantumCircuit circuit,
       {int trailingColumns = 3}) {
     if (circuit.isCircuitEmpty()) {
@@ -59,17 +104,14 @@ class CircuitGeometry {
 
   static List<List<PlacedQuantumGate>> insertionPreview({
     required QuantumCircuit circuit,
-    required Offset point,
+    required CircuitDropDestination destination,
     required Gate gate,
   }) {
     final preview = circuit.placedGates
         .map((row) => List<PlacedQuantumGate>.from(row))
         .toList();
-    final qubit = qubitForPoint(point, circuit.currentLevel.numQubits);
-    if (qubit == null) return preview;
-    final column = circuit.isCircuitEmpty()
-        ? 0
-        : insertionColumnForPoint(point).clamp(0, circuit.maxCircuitDepth());
+    final qubit = destination.location.qubit;
+    final column = destination.location.column;
     final marker = PlacedQuantumGate(
       gate: Gate.fromIdentifier(SelectedGateType.draggedGate),
     );

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
+import 'package:quantumquiz/models/gate_id.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
@@ -320,6 +321,74 @@ void main() {
     );
   });
 
+  testWidgets('valid internal drag uses preview without Drop ready text',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.x),
+    );
+    final id = model.placedGates[0][0].id!;
+    final gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
+    await gesture.moveTo(circuitPoint(tester, 1, 1));
+    await tester.pump();
+
+    expect(find.text('Drop ready'), findsNothing);
+    expect(find.byKey(const ValueKey('release-to-remove')), findsNothing);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(model.placedGateById(id)?.location.qubit, 1);
+  });
+
+  testWidgets('delete affordance stays fixed to viewport while scrolled',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.x),
+      placedGateCount: 24,
+      viewportSize: const Size(900, 700),
+    );
+    final surface = circuitSurfaceRect(tester);
+    final outside = Offset(surface.left - 20, surface.center.dy);
+
+    Future<(Rect, TestGesture)> dragOutside(GateId id) async {
+      final source = tester.getCenter(
+        find.byKey(ValueKey('placed-gate-drag-${id.value}')),
+      );
+      final gesture = await tester.startGesture(source);
+      await gesture.moveTo(outside + const Offset(1, 0));
+      await gesture.moveTo(outside);
+      await tester.pump();
+      final pill = find.byKey(const ValueKey('release-to-remove'));
+      expect(pill, findsOneWidget);
+      return (tester.getRect(pill), gesture);
+    }
+
+    final leftId = model.placedGates[0].first.id!;
+    final (leftRect, leftGesture) = await dragOutside(leftId);
+    await leftGesture.moveTo(surface.center);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('release-to-remove')), findsNothing);
+    await leftGesture.cancel();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('release-to-remove')), findsNothing);
+
+    final scrollable = find.descendant(
+      of: find.byKey(const ValueKey('circuit-horizontal-scroll')),
+      matching: find.byType(Scrollable),
+    );
+    final position = tester.state<ScrollableState>(scrollable).position;
+    position.jumpTo(position.maxScrollExtent);
+    await tester.pump();
+
+    final rightId = model.placedGates[0].last.id!;
+    final (rightRect, rightGesture) = await dragOutside(rightId);
+    expect(rightRect.topLeft, leftRect.topLeft);
+    await rightGesture.cancel();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('release-to-remove')), findsNothing);
+  });
+
   testWidgets('palette drag outside never shows or performs placed deletion',
       (tester) async {
     final model = await pumpComposer(tester, placedGateCount: 0);
@@ -589,6 +658,53 @@ void main() {
       ),
       isTrue,
     );
+  });
+
+  testWidgets('palette preview and commit append at scrolled circuit end',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      viewportSize: const Size(700, 700),
+      palette: [Gate.fromIdentifier(SelectedGateType.x)],
+      preInsertGates: (circuit) {
+        for (var column = 0; column < 18; column++) {
+          circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard),
+            column,
+            0,
+          );
+        }
+      },
+    );
+    final scrollable = find.descendant(
+      of: find.byKey(const ValueKey('circuit-horizontal-scroll')),
+      matching: find.byType(Scrollable),
+    );
+    final position = tester.state<ScrollableState>(scrollable).position;
+    position.jumpTo(position.maxScrollExtent);
+    await tester.pump();
+
+    final paletteDrag = find.byWidgetPredicate(
+      (widget) =>
+          widget is Draggable<CircuitDragData> &&
+          widget.data?.isPlaced == false,
+    );
+    final viewport = tester.getRect(
+      find.byKey(const ValueKey('circuit-horizontal-scroll')),
+    );
+    final visibleGateId = model.placedGates[0].last.id!;
+    final visibleGate =
+        find.byKey(ValueKey('placed-gate-drag-${visibleGateId.value}'));
+    final desiredFeedbackOffset =
+        Offset(viewport.right - 30, tester.getCenter(visibleGate).dy);
+    final source = tester.getCenter(paletteDrag);
+    final childAnchor = source - tester.getTopLeft(paletteDrag);
+    final pointerDestination = desiredFeedbackOffset + childAnchor;
+    await tester.dragFrom(source, pointerDestination - source);
+    await tester.pumpAndSettle();
+    expect(model.placedGates[0], hasLength(19));
+    expect(model.placedGates[0].last.gate.type, SelectedGateType.x);
+    expect(position.maxScrollExtent, greaterThan(0));
   });
 
   testWidgets('fixed and controlled gates have no move drag source',
