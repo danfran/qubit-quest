@@ -301,6 +301,591 @@ void main() {
     });
   });
 
+  group('atomic controlled gate horizontal movement', () {
+    CircuitEditOutcome insertControlled(
+      QuantumCircuit model,
+      SelectedGateType type,
+    ) {
+      return type == SelectedGateType.ccnot
+          ? model.insertTripleGateWithOutcome(
+              Gate.fromIdentifier(type),
+              0,
+              3,
+              0,
+              1,
+            )
+          : model.insertDoubleGateWithOutcome(
+              Gate.fromIdentifier(type),
+              0,
+              3,
+              0,
+            );
+    }
+
+    for (final type in [
+      SelectedGateType.cnot,
+      SelectedGateType.cz,
+      SelectedGateType.ccnot,
+    ]) {
+      test('$type moves as one footprint and notifies once', () {
+        final model = circuit(5);
+        final inserted = insertControlled(model, type);
+        final id = inserted.affectedGateId!;
+        model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.hadamard),
+          0,
+          4,
+        );
+        final before = model.logicalGateById(id)!;
+        final fragmentRoles = before.fragments
+            .map((fragment) => (
+                  fragment.location.qubit,
+                  fragment.placedGate.isControl,
+                  fragment.placedGate.isControl2,
+                  fragment.placedGate.isTarget,
+                  fragment.placedGate.isLink,
+                ))
+            .toList();
+        var notifications = 0;
+        model.addListener(() => notifications++);
+
+        final outcome = model.moveLogicalGateHorizontallyWithOutcome(id, 1);
+        final after = model.logicalGateById(id)!;
+        expect(outcome.status, CircuitEditStatus.changed);
+        expect(after.id, id);
+        expect(after.column, 1);
+        expect(after.type, type);
+        expect(after.controlQubit, before.controlQubit);
+        expect(after.secondControlQubit, before.secondControlQubit);
+        expect(after.targetQubit, before.targetQubit);
+        expect(
+          after.fragments
+              .map((fragment) => (
+                    fragment.location.qubit,
+                    fragment.placedGate.isControl,
+                    fragment.placedGate.isControl2,
+                    fragment.placedGate.isTarget,
+                    fragment.placedGate.isLink,
+                  ))
+              .toList(),
+          fragmentRoles,
+        );
+        expect(
+            after.fragments.every((fragment) => fragment.location.column == 1),
+            isTrue);
+        expect(notifications, 1);
+      });
+    }
+
+    test('same, invalid, protected, and unsupported moves do not notify', () {
+      final model = circuit(4);
+      final controlled = model.insertDoubleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.cnot),
+        0,
+        3,
+        0,
+      );
+      final single = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.x),
+        1,
+        3,
+      );
+      model.insertDoubleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.cz),
+        2,
+        2,
+        0,
+        isDeletable: false,
+      );
+      final protected = model.logicalGates.firstWhere(
+        (gate) => gate.type == SelectedGateType.cz,
+      );
+      var notifications = 0;
+      model.addListener(() => notifications++);
+
+      expect(
+          model
+              .moveLogicalGateHorizontallyWithOutcome(
+                controlled.affectedGateId!,
+                0,
+              )
+              .status,
+          CircuitEditStatus.same);
+      expect(
+          model
+              .moveLogicalGateHorizontallyWithOutcome(
+                controlled.affectedGateId!,
+                -1,
+              )
+              .status,
+          CircuitEditStatus.invalid);
+      expect(
+          model.moveLogicalGateHorizontallyWithOutcome(protected.id, 1).status,
+          CircuitEditStatus.protected);
+      expect(
+          model
+              .moveLogicalGateHorizontallyWithOutcome(
+                single.affectedGateId!,
+                0,
+              )
+              .status,
+          CircuitEditStatus.unsupported);
+      expect(notifications, 0);
+    });
+
+    test('occupied destination shifts neighbours as one atomic proposal', () {
+      final model = circuit(4);
+      final controlled = model.insertDoubleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.cnot),
+        0,
+        3,
+        0,
+      );
+      model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.x),
+        1,
+        1,
+      );
+      model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.y),
+        2,
+        1,
+      );
+      final id = controlled.affectedGateId!;
+      final before = model.logicalGateById(id)!.occupiedLocations;
+      var notifications = 0;
+      model.addListener(() => notifications++);
+
+      expect(model.validateLogicalGateHorizontalMove(id, 1).status,
+          CircuitEditStatus.changed);
+      expect(model.previewLogicalGateHorizontalMove(id, 1), isNotNull);
+      expect(model.moveLogicalGateHorizontallyWithOutcome(id, 1).status,
+          CircuitEditStatus.changed);
+      expect(
+        model.logicalGateById(id)!.occupiedLocations,
+        isNot(equals(before)),
+      );
+      expect(model.logicalGateById(id)!.column, 1);
+      expect(notifications, 1);
+    });
+
+    test('parameter-edited neighbouring rotation is unaffected', () {
+      final model = circuit(5);
+      final controlled = insertControlled(model, SelectedGateType.cnot);
+      final rotation = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2),
+        0,
+        4,
+      );
+      expect(
+          model
+              .updateGateParametersWithOutcome(
+                rotation.affectedGateId!,
+                angle: math.pi / 4,
+              )
+              .status,
+          CircuitEditStatus.changed);
+      expect(
+          model
+              .moveLogicalGateHorizontallyWithOutcome(
+                controlled.affectedGateId!,
+                1,
+              )
+              .status,
+          CircuitEditStatus.changed);
+      final neighbour = model.logicalGateById(rotation.affectedGateId!)!;
+      expect(neighbour.id, rotation.affectedGateId);
+      expect(neighbour.gate.angle, closeTo(math.pi / 4, 1e-12));
+    });
+  });
+
+  group('unified logical move planning', () {
+    List<List<(GateId?, SelectedGateType, bool, bool, bool, bool)>> snapshot(
+      List<List<PlacedQuantumGate>> rows,
+    ) =>
+        rows
+            .map(
+              (row) => row
+                  .map(
+                    (cell) => (
+                      cell.id,
+                      cell.gate.type,
+                      cell.isControl,
+                      cell.isControl2,
+                      cell.isTarget,
+                      cell.isLink,
+                    ),
+                  )
+                  .toList(),
+            )
+            .toList();
+
+    test(
+        'single and controlled gates share occupied-column insertion semantics',
+        () {
+      final singleModel = circuit(2);
+      final h = singleModel.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+      );
+      final x = singleModel.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.x),
+        1,
+        0,
+      );
+      final z = singleModel.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.z),
+        2,
+        0,
+      );
+      final singlePlan = singleModel.planLogicalGateMove(
+        z.affectedGateId!,
+        const CircuitLocation(qubit: 0, column: 1),
+      );
+      expect(singlePlan.status, CircuitEditStatus.changed);
+      expect(
+        singlePlan.proposedRows![0]
+            .where((cell) => cell.id != null)
+            .map((cell) => cell.id),
+        [h.affectedGateId, z.affectedGateId, x.affectedGateId],
+      );
+
+      final controlledModel = circuit(3);
+      final first = controlledModel.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+      );
+      final second = controlledModel.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.x),
+        1,
+        0,
+      );
+      final cx = controlledModel.insertDoubleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.cnot),
+        2,
+        2,
+        0,
+      );
+      final controlledPlan = controlledModel.planLogicalGateMove(
+        cx.affectedGateId!,
+        const CircuitLocation(qubit: 2, column: 1),
+      );
+      expect(controlledPlan.status, CircuitEditStatus.changed);
+      final rowIds = controlledPlan.proposedRows![0]
+          .where((cell) => cell.id != null)
+          .map((cell) => cell.id)
+          .toList();
+      expect(rowIds,
+          [first.affectedGateId, cx.affectedGateId, second.affectedGateId]);
+      expect(rowIds.toSet(), hasLength(3));
+    });
+
+    for (final type in [
+      SelectedGateType.cnot,
+      SelectedGateType.cz,
+      SelectedGateType.ccnot,
+    ]) {
+      test('$type proposal is detached, rigid, and commit-exact', () {
+        final model = circuit(4);
+        model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.hadamard),
+          0,
+          0,
+        );
+        final neighbour = model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.x),
+          1,
+          0,
+        );
+        final controlled = type == SelectedGateType.ccnot
+            ? model.insertTripleGateWithOutcome(
+                Gate.fromIdentifier(type),
+                2,
+                3,
+                0,
+                1,
+              )
+            : model.insertDoubleGateWithOutcome(
+                Gate.fromIdentifier(type),
+                2,
+                3,
+                0,
+              );
+        final id = controlled.affectedGateId!;
+        final before = snapshot(model.placedGates);
+        final neighbourBefore =
+            model.logicalGateById(neighbour.affectedGateId!)!;
+        var notifications = 0;
+        model.addListener(() => notifications++);
+
+        final plan = model.planLogicalGateMove(
+          id,
+          const CircuitLocation(qubit: 3, column: 1),
+        );
+        expect(plan.status, CircuitEditStatus.changed);
+        expect(notifications, 0);
+        expect(snapshot(model.placedGates), before);
+        final proposedFragments = [
+          for (final (qubit, row) in plan.proposedRows!.indexed)
+            for (final (column, cell) in row.indexed)
+              if (cell.id == id) (qubit, column, cell),
+        ];
+        expect(proposedFragments, isNotEmpty);
+        expect(proposedFragments.every((fragment) => fragment.$2 == 1), isTrue);
+        expect(
+            proposedFragments.map((fragment) => fragment.$3.id).toSet(), {id});
+
+        expect(model.commitLogicalGateMovePlan(plan).status,
+            CircuitEditStatus.changed);
+        expect(notifications, 1);
+        expect(snapshot(model.placedGates), snapshot(plan.proposedRows!));
+        final moved = model.logicalGateById(id)!;
+        expect(moved.column, 1);
+        expect(moved.controlQubit, isNotNull);
+        expect(
+          model.logicalGateById(neighbour.affectedGateId!)!.id,
+          neighbourBefore.id,
+        );
+      });
+    }
+
+    test('protected obstacle rejects the entire detached proposal', () {
+      final model = circuit(3);
+      model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+      );
+      model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.x),
+        1,
+        0,
+        isDeletable: false,
+      );
+      final cx = model.insertDoubleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.cnot),
+        2,
+        2,
+        0,
+      );
+      final before = snapshot(model.placedGates);
+      var notifications = 0;
+      model.addListener(() => notifications++);
+
+      final plan = model.planLogicalGateMove(
+        cx.affectedGateId!,
+        const CircuitLocation(qubit: 2, column: 1),
+      );
+      expect(plan.status, CircuitEditStatus.protected);
+      expect(plan.proposedRows, isNull);
+      expect(model.commitLogicalGateMovePlan(plan).status,
+          CircuitEditStatus.protected);
+      expect(snapshot(model.placedGates), before);
+      expect(notifications, 0);
+    });
+  });
+
+  group('rigid two-dimensional logical movement', () {
+    CircuitEditOutcome insertDouble(
+      QuantumCircuit model,
+      SelectedGateType type, {
+      required int control,
+      required int target,
+      int column = 0,
+    }) =>
+        model.insertDoubleGateWithOutcome(
+          Gate.fromIdentifier(type),
+          column,
+          target,
+          control,
+        );
+
+    test('CX q2-q4 translates rigidly to q0-q2 and preserves identity', () {
+      final model = circuit(5);
+      final inserted = insertDouble(
+        model,
+        SelectedGateType.cnot,
+        control: 2,
+        target: 4,
+      );
+      final id = inserted.affectedGateId!;
+      final before = model.logicalGateById(id)!;
+      final offsets = before.fragments
+          .map((fragment) => fragment.location.qubit - before.anchor.qubit)
+          .toList();
+      var notifications = 0;
+      model.addListener(() => notifications++);
+
+      final plan = model.planLogicalGateMove(
+        id,
+        const CircuitLocation(qubit: 2, column: 0),
+      );
+      expect(plan.status, CircuitEditStatus.changed);
+      expect(notifications, 0);
+      expect(model.logicalGateById(id)!.controlQubit, 2);
+      expect(model.commitLogicalGateMovePlan(plan).status,
+          CircuitEditStatus.changed);
+      final moved = model.logicalGateById(id)!;
+      expect(moved.id, id);
+      expect(moved.controlQubit, 0);
+      expect(moved.targetQubit, 2);
+      expect(
+        moved.fragments
+            .map((fragment) => fragment.location.qubit - moved.anchor.qubit),
+        offsets,
+      );
+      expect(moved.fragments.map((fragment) => fragment.location.qubit),
+          [0, 1, 2]);
+      expect(notifications, 1);
+      expect(
+        [
+          for (final row in plan.proposedRows!)
+            for (final gate in row)
+              if (gate.id == id) gate,
+        ],
+        hasLength(3),
+      );
+    });
+
+    test('CX q0-q2 translates downward to q1-q3', () {
+      final model = circuit(4);
+      final inserted = insertDouble(
+        model,
+        SelectedGateType.cnot,
+        control: 0,
+        target: 2,
+      );
+      final outcome = model.moveSingleGateWithOutcome(
+        inserted.affectedGateId!,
+        const CircuitLocation(qubit: 3, column: 0),
+      );
+      expect(outcome.status, CircuitEditStatus.unsupported);
+      final plan = model.planLogicalGateMove(
+        inserted.affectedGateId!,
+        const CircuitLocation(qubit: 3, column: 0),
+      );
+      expect(model.commitLogicalGateMovePlan(plan).status,
+          CircuitEditStatus.changed);
+      final moved = model.logicalGateById(inserted.affectedGateId!)!;
+      expect(moved.controlQubit, 1);
+      expect(moved.targetQubit, 3);
+    });
+
+    test('CZ and CCNOT preserve every relative row offset', () {
+      final czModel = circuit(5);
+      final cz = insertDouble(
+        czModel,
+        SelectedGateType.cz,
+        control: 1,
+        target: 3,
+      );
+      expect(
+        czModel
+            .commitLogicalGateMovePlan(
+              czModel.planLogicalGateMove(
+                cz.affectedGateId!,
+                const CircuitLocation(qubit: 2, column: 0),
+              ),
+            )
+            .status,
+        CircuitEditStatus.changed,
+      );
+      expect(czModel.logicalGateById(cz.affectedGateId!)!.controlQubit, 0);
+      expect(czModel.logicalGateById(cz.affectedGateId!)!.targetQubit, 2);
+
+      final toffoliModel = circuit(6);
+      final toffoli = toffoliModel.insertTripleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.ccnot),
+        0,
+        4,
+        1,
+        3,
+      );
+      final before = toffoliModel.logicalGateById(toffoli.affectedGateId!)!;
+      final beforeOffsets = before.fragments
+          .map((fragment) => fragment.location.qubit - before.anchor.qubit)
+          .toList();
+      final plan = toffoliModel.planLogicalGateMove(
+        toffoli.affectedGateId!,
+        const CircuitLocation(qubit: 5, column: 1),
+      );
+      expect(plan.status, CircuitEditStatus.changed);
+      expect(toffoliModel.commitLogicalGateMovePlan(plan).status,
+          CircuitEditStatus.changed);
+      final moved = toffoliModel.logicalGateById(toffoli.affectedGateId!)!;
+      expect(moved.controlQubit, 2);
+      expect(moved.secondControlQubit, 4);
+      expect(moved.targetQubit, 5);
+      expect(
+        moved.fragments
+            .map((fragment) => fragment.location.qubit - moved.anchor.qubit),
+        beforeOffsets,
+      );
+      expect(moved.column, 0);
+    });
+
+    test('top and bottom boundary failures are detached and atomic', () {
+      final model = circuit(5);
+      final cx = insertDouble(
+        model,
+        SelectedGateType.cnot,
+        control: 2,
+        target: 4,
+      );
+      final before = model.logicalGateById(cx.affectedGateId!)!;
+      var notifications = 0;
+      model.addListener(() => notifications++);
+
+      final above = model.planLogicalGateMove(
+        before.id,
+        const CircuitLocation(qubit: 1, column: 0),
+      );
+      final below = model.planLogicalGateMove(
+        before.id,
+        const CircuitLocation(qubit: 5, column: 0),
+      );
+      expect(above.status, CircuitEditStatus.invalid);
+      expect(below.status, CircuitEditStatus.invalid);
+      expect(above.proposedRows, isNull);
+      expect(below.proposedRows, isNull);
+      expect(model.logicalGateById(before.id)!.occupiedLocations,
+          before.occupiedLocations);
+      expect(notifications, 0);
+    });
+
+    test('diagonal occupied move shifts neighbours without retargeting', () {
+      final model = circuit(5);
+      final neighbour = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+      );
+      final cx = insertDouble(
+        model,
+        SelectedGateType.cnot,
+        control: 2,
+        target: 4,
+        column: 1,
+      );
+      final plan = model.planLogicalGateMove(
+        cx.affectedGateId!,
+        const CircuitLocation(qubit: 2, column: 0),
+      );
+      expect(plan.status, CircuitEditStatus.changed);
+      expect(model.logicalGateById(cx.affectedGateId!)!.controlQubit, 2);
+      expect(model.commitLogicalGateMovePlan(plan).status,
+          CircuitEditStatus.changed);
+      final moved = model.logicalGateById(cx.affectedGateId!)!;
+      expect(moved.controlQubit, 0);
+      expect(moved.targetQubit, 2);
+      expect(moved.column, 0);
+      expect(model.logicalGateById(neighbour.affectedGateId!)!.id,
+          neighbour.affectedGateId);
+    });
+  });
+
   group('structured edit outcomes', () {
     test('insert, move, delete, and clear report coherent outcomes', () {
       final model = circuit(2);
@@ -780,7 +1365,7 @@ void main() {
           model
               .moveSingleGateWithOutcome(
                 id,
-                const CircuitLocation(qubit: 0, column: 2),
+                const CircuitLocation(qubit: 1, column: 0),
               )
               .status,
           CircuitEditStatus.changed);

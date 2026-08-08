@@ -213,45 +213,383 @@ class QuantumCircuit extends ChangeNotifier {
 
   CircuitEditOutcome moveSingleGateWithOutcome(
       GateId id, CircuitLocation destination) {
-    final source = placedGateById(id);
-    if (source == null) return CircuitEditOutcome.notFound;
-    if (!source.isDeletable) return CircuitEditOutcome.protected;
-    if (!source.isSingleQubit) return CircuitEditOutcome.unsupported;
-    if (destination.qubit < 0 ||
-        destination.qubit >= currentLevel.numQubits ||
-        destination.column < 0) {
-      return CircuitEditOutcome.invalid;
+    final source = logicalGateById(id);
+    if (source != null && !source.isSingleQubit) {
+      return CircuitEditOutcome.unsupported;
     }
-    if (source.location == destination) return CircuitEditOutcome.same;
+    return commitLogicalGateMovePlan(planLogicalGateMove(id, destination));
+  }
 
-    final original = placedGates;
-    final proposal =
-        original.map((row) => List<PlacedQuantumGate>.from(row)).toList();
+  CircuitEditOutcome validateLogicalGateHorizontalMove(
+    GateId id,
+    int destinationColumn,
+  ) {
+    final footprint = logicalGateById(id);
+    if (footprint == null) return CircuitEditOutcome.notFound;
+    return planLogicalGateMove(
+      id,
+      CircuitLocation(
+        qubit: footprint.anchor.qubit,
+        column: destinationColumn,
+      ),
+    ).outcome;
+  }
 
-    try {
-      placedGates = proposal;
-      placedGates[source.location.qubit][source.location.column] =
+  List<List<PlacedQuantumGate>>? previewLogicalGateHorizontalMove(
+    GateId id,
+    int destinationColumn,
+  ) {
+    final footprint = logicalGateById(id);
+    if (footprint == null) return null;
+    return planLogicalGateMove(
+      id,
+      CircuitLocation(
+        qubit: footprint.anchor.qubit,
+        column: destinationColumn,
+      ),
+    ).proposedRows;
+  }
+
+  CircuitEditOutcome moveLogicalGateHorizontallyWithOutcome(
+    GateId id,
+    int destinationColumn,
+  ) {
+    final footprint = logicalGateById(id);
+    if (footprint == null) return CircuitEditOutcome.notFound;
+    if (footprint.isSingleQubit) return CircuitEditOutcome.unsupported;
+    return commitLogicalGateMovePlan(
+      planLogicalGateMove(
+        id,
+        CircuitLocation(
+          qubit: footprint.anchor.qubit,
+          column: destinationColumn,
+        ),
+      ),
+    );
+  }
+
+  LogicalMovePlan planLogicalGateMove(
+    GateId id,
+    CircuitLocation destination,
+  ) {
+    final baseRows = _copyRows(placedGates);
+    LogicalMovePlan rejected(CircuitEditStatus status, String reason) =>
+        LogicalMovePlan(
+          status: status,
+          sourceId: id,
+          baseRows: baseRows,
+          reason: reason,
+        );
+
+    final footprint = logicalGateById(id);
+    if (footprint == null) {
+      return rejected(CircuitEditStatus.notFound, 'Source GateId not found.');
+    }
+    if (!footprint.isDeletable) {
+      return rejected(CircuitEditStatus.protected, 'Source gate is protected.');
+    }
+    if (!footprint.canTranslateRigidly) {
+      return rejected(
+        CircuitEditStatus.unsupported,
+        'Logical gate does not support movement.',
+      );
+    }
+    if (destination.column < 0 || destination.column > maxCircuitDepth()) {
+      return rejected(CircuitEditStatus.invalid, 'Column is outside circuit.');
+    }
+    final rowDelta = destination.qubit - footprint.anchor.qubit;
+    final translatedRows = footprint.fragments
+        .map((fragment) => fragment.location.qubit + rowDelta)
+        .toList(growable: false);
+    if (translatedRows.any(
+      (qubit) => qubit < 0 || qubit >= currentLevel.numQubits,
+    )) {
+      return rejected(
+        CircuitEditStatus.invalid,
+        'Translated footprint is outside the circuit qubit bounds.',
+      );
+    }
+    final requestedLocation = CircuitLocation(
+      qubit: destination.qubit,
+      column: destination.column,
+    );
+    if (requestedLocation == footprint.anchor) {
+      return rejected(
+          CircuitEditStatus.same, 'Destination is the source slot.');
+    }
+
+    final proposal = _copyRows(placedGates);
+    for (final fragment in footprint.fragments) {
+      proposal[fragment.location.qubit][fragment.location.column] =
           PlacedQuantumGate.emptyGate();
-      shiftLeft();
-      trimCircuit();
-      insertSingleGateWithOutcome(
-        source.gate,
-        destination.column,
-        destination.qubit,
-        isDeletable: source.isDeletable,
-        gateId: id,
-        notifyChange: false,
-      );
-      notifyListeners();
-      return CircuitEditOutcome(
-        CircuitEditStatus.changed,
-        affectedGateId: id,
-        resultingLocation: logicalGateById(id)?.anchor,
-      );
-    } catch (_) {
-      placedGates = original;
-      return CircuitEditOutcome.invalid;
     }
+    final compacted = _compactDetachedRows(proposal);
+    if (compacted == null) {
+      return rejected(
+        CircuitEditStatus.invalid,
+        'Existing logical footprint is malformed.',
+      );
+    }
+    _trimDetachedRows(compacted);
+
+    final resolvedColumn = min(destination.column, _maxDepthOf(compacted));
+    final resultingLocation = CircuitLocation(
+      qubit: requestedLocation.qubit,
+      column: resolvedColumn,
+    );
+    if (resultingLocation == footprint.anchor) {
+      return rejected(
+        CircuitEditStatus.same,
+        'Compaction resolves to the source slot.',
+      );
+    }
+
+    final destinationQubits = translatedRows;
+    final collision = destinationQubits.any(
+      (qubit) =>
+          _cellAt(compacted, qubit, resolvedColumn).gate.type !=
+          SelectedGateType.none,
+    );
+    if (collision) {
+      final displacedProtected = _detachedLogicalFragments(compacted)
+          .values
+          .any((fragments) =>
+              fragments.first.$3 >= resolvedColumn &&
+              fragments.any((fragment) => !fragment.$2.isDeletable));
+      if (displacedProtected) {
+        return rejected(
+          CircuitEditStatus.protected,
+          'Making room would displace a protected logical gate.',
+        );
+      }
+      for (final row in compacted) {
+        while (row.length < resolvedColumn) {
+          row.add(PlacedQuantumGate.emptyGate());
+        }
+        row.insert(resolvedColumn, PlacedQuantumGate.emptyGate());
+      }
+    } else {
+      for (final row in compacted) {
+        while (row.length <= resolvedColumn) {
+          row.add(PlacedQuantumGate.emptyGate());
+        }
+      }
+    }
+
+    for (final fragment in footprint.fragments) {
+      final translatedQubit = fragment.location.qubit + rowDelta;
+      compacted[translatedQubit][resolvedColumn] = _translatePlacedGate(
+        fragment.placedGate,
+        rowDelta,
+      );
+    }
+    _trimDetachedRows(compacted);
+    if (!_isValidLogicalGrid(
+      compacted,
+      baseRows,
+      movedId: id,
+      rowDelta: rowDelta,
+    )) {
+      return rejected(
+        CircuitEditStatus.invalid,
+        'Proposal would corrupt a logical footprint.',
+      );
+    }
+
+    return LogicalMovePlan(
+      status: CircuitEditStatus.changed,
+      sourceId: id,
+      baseRows: baseRows,
+      proposedRows: compacted,
+      resultingLocation: resultingLocation,
+    );
+  }
+
+  CircuitEditOutcome commitLogicalGateMovePlan(LogicalMovePlan plan) {
+    if (!plan.changed || plan.proposedRows == null) return plan.outcome;
+    if (!_sameGridIdentity(placedGates, plan.baseRows)) {
+      return const CircuitEditOutcome(
+        CircuitEditStatus.cancelled,
+        detail: 'Circuit changed after the move was planned.',
+      );
+    }
+    placedGates = _copyRows(plan.proposedRows!);
+    notifyListeners();
+    return plan.outcome;
+  }
+
+  static List<List<PlacedQuantumGate>> _copyRows(
+    List<List<PlacedQuantumGate>> rows,
+  ) =>
+      rows
+          .map((row) => List<PlacedQuantumGate>.from(row))
+          .toList(growable: false);
+
+  static PlacedQuantumGate _translatePlacedGate(
+    PlacedQuantumGate gate,
+    int rowDelta,
+  ) {
+    int? translated(int? qubit) => qubit == null ? null : qubit + rowDelta;
+    return PlacedQuantumGate(
+      id: gate.id,
+      gate: gate.gate,
+      controlQubitIndex: translated(gate.controlQubitIndex),
+      control2QubitIndex: translated(gate.control2QubitIndex),
+      targetQubitIndex: translated(gate.targetQubitIndex),
+      isTarget: gate.isTarget,
+      isLink: gate.isLink,
+      isControl: gate.isControl,
+      isControl2: gate.isControl2,
+      isDeletable: gate.isDeletable,
+    );
+  }
+
+  static int _maxDepthOf(List<List<PlacedQuantumGate>> rows) =>
+      rows.fold<int>(0, (depth, row) => max(depth, row.length));
+
+  static PlacedQuantumGate _cellAt(
+    List<List<PlacedQuantumGate>> rows,
+    int qubit,
+    int column,
+  ) {
+    final row = rows[qubit];
+    return column < row.length ? row[column] : PlacedQuantumGate.emptyGate();
+  }
+
+  static void _trimDetachedRows(List<List<PlacedQuantumGate>> rows) {
+    for (final row in rows) {
+      while (row.isNotEmpty && row.last.gate.type == SelectedGateType.none) {
+        row.removeLast();
+      }
+    }
+  }
+
+  static Map<GateId, List<(int, PlacedQuantumGate, int)>>
+      _detachedLogicalFragments(List<List<PlacedQuantumGate>> rows) {
+    final fragments = <GateId, List<(int, PlacedQuantumGate, int)>>{};
+    for (final (qubit, row) in rows.indexed) {
+      for (final (column, gate) in row.indexed) {
+        final id = gate.id;
+        if (id == null) continue;
+        fragments.putIfAbsent(id, () => []).add((qubit, gate, column));
+      }
+    }
+    return fragments;
+  }
+
+  static List<List<PlacedQuantumGate>>? _compactDetachedRows(
+    List<List<PlacedQuantumGate>> rows,
+  ) {
+    var moved = true;
+    while (moved) {
+      moved = false;
+      final footprints = _detachedLogicalFragments(rows).entries.toList()
+        ..sort((a, b) => a.value.first.$3.compareTo(b.value.first.$3));
+      for (final entry in footprints) {
+        final fragments = entry.value;
+        final columns = fragments.map((fragment) => fragment.$3).toSet();
+        if (columns.length != 1) return null;
+        final column = columns.single;
+        if (column == 0 ||
+            fragments.any((fragment) => !fragment.$2.isDeletable)) {
+          continue;
+        }
+        final canMove = fragments.every(
+          (fragment) =>
+              _cellAt(rows, fragment.$1, column - 1).gate.type ==
+              SelectedGateType.none,
+        );
+        if (!canMove) continue;
+        for (final fragment in fragments) {
+          rows[fragment.$1][column] = PlacedQuantumGate.emptyGate();
+        }
+        for (final fragment in fragments) {
+          rows[fragment.$1][column - 1] = fragment.$2;
+        }
+        moved = true;
+      }
+    }
+    return rows;
+  }
+
+  static bool _isValidLogicalGrid(
+    List<List<PlacedQuantumGate>> proposed,
+    List<List<PlacedQuantumGate>> original, {
+    required GateId movedId,
+    required int rowDelta,
+  }) {
+    final proposedFootprints = _detachedLogicalFragments(proposed);
+    final originalFootprints = _detachedLogicalFragments(original);
+    if (proposedFootprints.length != originalFootprints.length ||
+        !proposedFootprints.keys.toSet().containsAll(originalFootprints.keys)) {
+      return false;
+    }
+    for (final entry in originalFootprints.entries) {
+      final result = proposedFootprints[entry.key];
+      if (result == null || result.length != entry.value.length) return false;
+      if (result.map((fragment) => fragment.$3).toSet().length != 1) {
+        return false;
+      }
+      if (entry.key == movedId) {
+        for (final originalFragment in entry.value) {
+          final translatedQubit = originalFragment.$1 + rowDelta;
+          final matching = result.where(
+            (fragment) =>
+                fragment.$1 == translatedQubit &&
+                fragment.$2.gate == originalFragment.$2.gate &&
+                fragment.$2.isControl == originalFragment.$2.isControl &&
+                fragment.$2.isControl2 == originalFragment.$2.isControl2 &&
+                fragment.$2.isTarget == originalFragment.$2.isTarget &&
+                fragment.$2.isLink == originalFragment.$2.isLink &&
+                fragment.$2.isDeletable == originalFragment.$2.isDeletable &&
+                fragment.$2.controlQubitIndex ==
+                    _translatedQubit(
+                      originalFragment.$2.controlQubitIndex,
+                      rowDelta,
+                    ) &&
+                fragment.$2.control2QubitIndex ==
+                    _translatedQubit(
+                      originalFragment.$2.control2QubitIndex,
+                      rowDelta,
+                    ) &&
+                fragment.$2.targetQubitIndex ==
+                    _translatedQubit(
+                      originalFragment.$2.targetQubitIndex,
+                      rowDelta,
+                    ),
+          );
+          if (matching.length != 1) return false;
+        }
+      } else {
+        final originalCells =
+            entry.value.map((fragment) => fragment.$2).toSet();
+        final resultCells = result.map((fragment) => fragment.$2).toSet();
+        if (originalCells.length != resultCells.length ||
+            !resultCells.containsAll(originalCells)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  static int? _translatedQubit(int? qubit, int rowDelta) =>
+      qubit == null ? null : qubit + rowDelta;
+
+  static bool _sameGridIdentity(
+    List<List<PlacedQuantumGate>> current,
+    List<List<PlacedQuantumGate>> plannedBase,
+  ) {
+    if (current.length != plannedBase.length) return false;
+    for (var qubit = 0; qubit < current.length; qubit++) {
+      if (current[qubit].length != plannedBase[qubit].length) return false;
+      for (var column = 0; column < current[qubit].length; column++) {
+        if (!identical(current[qubit][column], plannedBase[qubit][column])) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   RemoveGateResult removeSingleGateById(GateId id) {

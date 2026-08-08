@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:quantumquiz/models/gate_id.dart';
+import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 
 @immutable
@@ -26,6 +27,7 @@ class PlacedGateRef {
   final CircuitLocation location;
   final bool isDeletable;
   final bool isSingleQubit;
+  final bool canMoveHorizontally;
 
   const PlacedGateRef({
     required this.id,
@@ -33,9 +35,10 @@ class PlacedGateRef {
     required this.location,
     required this.isDeletable,
     required this.isSingleQubit,
+    required this.canMoveHorizontally,
   });
 
-  bool get isMovable => isSingleQubit && isDeletable;
+  bool get isMovable => canMoveHorizontally && isDeletable;
 }
 
 enum CircuitEditStatus {
@@ -70,6 +73,34 @@ class CircuitEditOutcome {
   static const protected = CircuitEditOutcome(CircuitEditStatus.protected);
   static const unsupported = CircuitEditOutcome(CircuitEditStatus.unsupported);
   static const cancelled = CircuitEditOutcome(CircuitEditStatus.cancelled);
+}
+
+@immutable
+class LogicalMovePlan {
+  final CircuitEditStatus status;
+  final GateId sourceId;
+  final CircuitLocation? resultingLocation;
+  final List<List<PlacedQuantumGate>> baseRows;
+  final List<List<PlacedQuantumGate>>? proposedRows;
+  final String? reason;
+
+  const LogicalMovePlan({
+    required this.status,
+    required this.sourceId,
+    required this.baseRows,
+    this.resultingLocation,
+    this.proposedRows,
+    this.reason,
+  });
+
+  bool get changed => status == CircuitEditStatus.changed;
+
+  CircuitEditOutcome get outcome => CircuitEditOutcome(
+        status,
+        affectedGateId: sourceId,
+        resultingLocation: resultingLocation,
+        detail: reason,
+      );
 }
 
 enum MoveResult { moved, sameSlot, invalid, notFound, notMovable }

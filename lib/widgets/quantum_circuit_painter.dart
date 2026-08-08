@@ -41,21 +41,26 @@ class QuantumCircuitPainter extends CustomPainter {
       circuit; // Painter needs the circuit (with List<PlacedQuantumGate> placedGates)
   final List<List<PlacedQuantumGate>>? previewGates;
   final GateId? selectedGateId;
+  final GateId? ghostedGateId;
 
   QuantumCircuitPainter(
     this.circuit, {
     this.previewGates,
     this.selectedGateId,
+    this.ghostedGateId,
   });
 
   GateGradientStyle _visualForGate(Gate gate) =>
       QubitQuestGateStyle.forGate(gate);
 
-  Rect? _controlledSelectionBounds(GateId id) {
+  Rect? _controlledSelectionBounds(
+    GateId id,
+    List<List<PlacedQuantumGate>> renderedGates,
+  ) {
     final source = circuit.placedGateById(id);
     if (source == null || source.isSingleQubit) return null;
     final centers = <Offset>[];
-    for (final (qubit, row) in circuit.placedGates.indexed) {
+    for (final (qubit, row) in renderedGates.indexed) {
       for (final (column, gate) in row.indexed) {
         if (gate.id != id) continue;
         centers.add(Offset(
@@ -119,6 +124,87 @@ class QuantumCircuitPainter extends CustomPainter {
 
   static double requiredDrawingHeightFor(int qubitCount) {
     return CircuitLayoutMetrics.drawingHeight(qubitCount);
+  }
+
+  void _drawSourceGhost(Canvas canvas) {
+    final id = ghostedGateId;
+    if (id == null) return;
+    final footprint = circuit.logicalGateById(id);
+    if (footprint == null) return;
+
+    final ghostStroke = Paint()
+      ..color = const Color(0xFF7CFFB2).withValues(alpha: 0.34)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    final ghostFill = Paint()
+      ..color = const Color(0xFF7CFFB2).withValues(alpha: 0.045)
+      ..style = PaintingStyle.fill;
+    final centerX = CircuitLayoutMetrics.slotCenter(footprint.anchor).dx;
+
+    if (footprint.isSingleQubit) {
+      final centerY = qubitCenterYFor(footprint.anchor.qubit);
+      final rect = Rect.fromCenter(
+        center: Offset(centerX, centerY),
+        width: gateSize,
+        height: gateSize,
+      );
+      final shape = RRect.fromRectAndRadius(rect, const Radius.circular(10));
+      canvas.drawRRect(shape, ghostFill);
+      canvas.drawRRect(shape, ghostStroke);
+      final label = TextPainter(
+        text: TextSpan(
+          text: footprint.gate.label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.22),
+            fontSize: footprint.gate.requiresAngle ? 10 : 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      label.paint(
+        canvas,
+        Offset(centerX - label.width / 2, centerY - label.height / 2),
+      );
+      return;
+    }
+
+    final rows = footprint.fragments
+        .map((fragment) => fragment.location.qubit)
+        .toSet()
+        .toList()
+      ..sort();
+    canvas.drawLine(
+      Offset(centerX, qubitCenterYFor(rows.first)),
+      Offset(centerX, qubitCenterYFor(rows.last)),
+      ghostStroke,
+    );
+    for (final fragment in footprint.fragments) {
+      final gate = fragment.placedGate;
+      if (!gate.isControl && !gate.isControl2 && !gate.isTarget) continue;
+      final center = Offset(
+        centerX,
+        qubitCenterYFor(fragment.location.qubit),
+      );
+      final radius = gate.isTarget && footprint.type != SelectedGateType.cz
+          ? targetRadius
+          : controlDotRadius;
+      canvas.drawCircle(center, radius, ghostFill);
+      canvas.drawCircle(center, radius, ghostStroke);
+      if (gate.isTarget && footprint.type != SelectedGateType.cz) {
+        const arm = 6.0;
+        canvas.drawLine(
+          center.translate(-arm, 0),
+          center.translate(arm, 0),
+          ghostStroke,
+        );
+        canvas.drawLine(
+          center.translate(0, -arm),
+          center.translate(0, arm),
+          ghostStroke,
+        );
+      }
+    }
   }
 
   @visibleForTesting
@@ -235,8 +321,10 @@ class QuantumCircuitPainter extends CustomPainter {
         previewGates ?? circuit.placedGates;
 
     final selected = selectedGateId;
-    if (selected != null) {
-      final controlledBounds = _controlledSelectionBounds(selected);
+    if (selected != null &&
+        (selected != ghostedGateId || previewGates != null)) {
+      final controlledBounds =
+          _controlledSelectionBounds(selected, localPlacedGates);
       if (controlledBounds != null) {
         final selectionFill = Paint()
           ..color = const Color(0xFF7CFFB2).withValues(alpha: 0.08)
@@ -262,6 +350,10 @@ class QuantumCircuitPainter extends CustomPainter {
       debugPrint(
           'Drawing qubit line $primaryDrawingQubit with ${row.length} gates');
       for (final (currentX, placedGate) in row.indexed) {
+        if (previewGates == null && placedGate.id == ghostedGateId) {
+          gateXPosititionPerQubit[primaryDrawingQubit] += 1;
+          continue;
+        }
         // Calculate the top-left corner of the gate icon square
         if (placedGate.gate.type == SelectedGateType.cnot ||
             placedGate.gate.type == SelectedGateType.cz) {
@@ -479,6 +571,7 @@ class QuantumCircuitPainter extends CustomPainter {
         }
       }
     }
+    _drawSourceGhost(canvas);
   }
 
   void gateTextPainter(String gateText, double gateTextSize, Canvas canvas,

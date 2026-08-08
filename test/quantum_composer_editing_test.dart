@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/gate_id.dart';
+import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 import 'package:quantumquiz/widgets/circuit_geometry.dart';
+import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -494,6 +496,74 @@ void main() {
     });
   }
 
+  testWidgets('controlled move composes with neighbour edits and deletion',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      qubits: 4,
+      palette: [
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        Gate.fromIdentifier(SelectedGateType.rx),
+      ],
+      preInsertGates: (circuit) {
+        insertControlledGate(circuit, SelectedGateType.cnot);
+        circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard),
+          0,
+          3,
+        );
+      },
+    );
+    final cxId = model.logicalGates
+        .firstWhere((gate) => gate.type == SelectedGateType.cnot)
+        .id;
+    final neighbourId = model.logicalGates
+        .firstWhere((gate) => gate.type == SelectedGateType.hadamard)
+        .id;
+
+    var gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
+    await gesture.moveTo(circuitPoint(tester, 0, 1));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(cxId)!.column, 1);
+
+    await tester.tapAt(circuitPoint(tester, 3, 0));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('replace-selected-gate')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('replacement-gate-rx')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const ValueKey('fractional-angle-denominator')), '2');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(neighbourId)!.type, SelectedGateType.rx);
+
+    await tester.tap(find.byKey(const ValueKey('edit-selected-gate-angle')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const ValueKey('fractional-angle-denominator')), '4');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(neighbourId)!.gate.angle,
+        closeTo(math.pi / 4, 1e-12));
+
+    final surface = circuitSurfaceRect(tester);
+    gesture = await tester.startGesture(circuitPoint(tester, 0, 1));
+    final outside = Offset(surface.left - 30, surface.center.dy);
+    await gesture.moveTo(outside + const Offset(1, 0));
+    await gesture.moveTo(outside);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('release-to-remove')), findsOneWidget);
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(model.logicalGateById(cxId), isNull);
+    final neighbour = model.logicalGateById(neighbourId)!;
+    expect(neighbour.type, SelectedGateType.rx);
+    expect(neighbour.gate.angle, closeTo(math.pi / 4, 1e-12));
+  });
+
   testWidgets('controlled internal drop and cancelled drag are non-destructive',
       (tester) async {
     final model = await pumpComposer(
@@ -529,6 +599,562 @@ void main() {
     expect(fragmentLocations(), original);
     expect(notifications, 0);
     expect(model.simulationRunCount, simulationsBefore);
+  });
+
+  testWidgets('dense CX preview is the exact full circuit committed on drop',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      qubits: 3,
+      preInsertGates: (circuit) {
+        for (final (column, type) in [
+          SelectedGateType.hadamard,
+          SelectedGateType.t,
+          SelectedGateType.hadamard,
+          SelectedGateType.z,
+          SelectedGateType.x,
+        ].indexed) {
+          circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(type),
+            column,
+            0,
+          );
+        }
+        circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot),
+          5,
+          2,
+          0,
+        );
+      },
+    );
+    final cx = model.logicalGates.firstWhere(
+      (gate) => gate.type == SelectedGateType.cnot,
+    );
+    final beforeTypes = model.logicalGates
+        .where((gate) => gate.controlQubit == 0 || gate.anchor.qubit == 0)
+        .toList()
+      ..sort((a, b) => a.column.compareTo(b.column));
+    expect(
+      beforeTypes.map((gate) => gate.type),
+      [
+        SelectedGateType.hadamard,
+        SelectedGateType.t,
+        SelectedGateType.hadamard,
+        SelectedGateType.z,
+        SelectedGateType.x,
+        SelectedGateType.cnot,
+      ],
+    );
+    var notifications = 0;
+    model.addListener(() => notifications++);
+    final simulationsBefore = model.simulationRunCount;
+
+    final gesture = await tester.startGesture(circuitPoint(tester, 0, 5));
+    final destination = circuitPoint(tester, 0, 2);
+    await gesture.moveTo(destination + const Offset(1, 0));
+    await gesture.moveTo(destination);
+    await tester.pump();
+
+    final previewPainter = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter)
+        .whereType<QuantumCircuitPainter>()
+        .firstWhere((painter) => painter.previewGates != null);
+    final preview = previewPainter.previewGates!;
+    List<SelectedGateType> firstRowLogicalTypes(
+      List<List<PlacedQuantumGate>> rows,
+    ) {
+      final seen = <GateId>{};
+      return [
+        for (final cell in rows[0])
+          if (cell.id != null && seen.add(cell.id!)) cell.gate.type,
+      ];
+    }
+
+    expect(
+      firstRowLogicalTypes(preview),
+      [
+        SelectedGateType.hadamard,
+        SelectedGateType.t,
+        SelectedGateType.cnot,
+        SelectedGateType.hadamard,
+        SelectedGateType.z,
+        SelectedGateType.x,
+      ],
+    );
+    expect(model.logicalGateById(cx.id)!.column, 5);
+    expect(notifications, 0);
+    expect(model.simulationRunCount, simulationsBefore);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(cx.id)!.column, 2);
+    expect(
+        firstRowLogicalTypes(model.placedGates), firstRowLogicalTypes(preview));
+    expect(notifications, 2); // structural edit and simulation result
+    expect(model.simulationRunCount, simulationsBefore + 1);
+    expect(
+      find.bySemanticsLabel('Selected gate ${cx.gate.label}'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('CX translates rigidly from q2-q4 to q0-q2 before commit',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      qubits: 5,
+      preInsertGates: (circuit) {
+        circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot),
+          1,
+          4,
+          2,
+        );
+        circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard),
+          0,
+          0,
+        );
+      },
+    );
+    final id = model.logicalGates
+        .firstWhere((gate) => gate.type == SelectedGateType.cnot)
+        .id;
+    var notifications = 0;
+    model.addListener(() => notifications++);
+    final simulationsBefore = model.simulationRunCount;
+
+    final gesture = await tester.startGesture(circuitPoint(tester, 2, 0));
+    final destination = circuitPoint(tester, 0, 0);
+    await gesture.moveTo(destination + const Offset(1, 0));
+    await gesture.moveTo(destination);
+    await tester.pump();
+    final previewPainter = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter)
+        .whereType<QuantumCircuitPainter>()
+        .firstWhere((painter) => painter.previewGates != null);
+    final previewFragments = [
+      for (final (qubit, row) in previewPainter.previewGates!.indexed)
+        for (final cell in row)
+          if (cell.id == id) (qubit, cell),
+    ];
+    expect(previewFragments.map((fragment) => fragment.$1), [0, 1, 2]);
+    expect(
+      previewFragments.firstWhere((fragment) => fragment.$2.isControl).$1,
+      0,
+    );
+    expect(
+      previewFragments.firstWhere((fragment) => fragment.$2.isTarget).$1,
+      2,
+    );
+    expect(model.logicalGateById(id)!.controlQubit, 2);
+    expect(model.logicalGateById(id)!.targetQubit, 4);
+    expect(notifications, 0);
+    expect(model.simulationRunCount, simulationsBefore);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+    final moved = model.logicalGateById(id)!;
+    expect(moved.controlQubit, 0);
+    expect(moved.targetQubit, 2);
+    expect(moved.column, 0);
+    expect(notifications, 2); // structural edit and simulation result
+    expect(model.simulationRunCount, simulationsBefore + 1);
+
+    final back = await tester.startGesture(circuitPoint(tester, 2, 0));
+    await back.moveTo(circuitPoint(tester, 4, 1));
+    await back.up();
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(id)!.controlQubit, 2);
+    expect(model.logicalGateById(id)!.targetQubit, 4);
+    expect(model.logicalGateById(id)!.column, 1);
+  });
+
+  for (final type in [SelectedGateType.cz, SelectedGateType.ccnot]) {
+    testWidgets(
+        '$type translates from a connector/control grab without reshaping',
+        (tester) async {
+      final model = await pumpComposer(
+        tester,
+        qubits: 6,
+        preInsertGates: (circuit) {
+          if (type == SelectedGateType.ccnot) {
+            circuit.insertTriplePlacedGateAt(
+              Gate.fromIdentifier(type),
+              0,
+              4,
+              1,
+              3,
+            );
+          } else {
+            circuit.insertDoublePlacedGateAt(
+              Gate.fromIdentifier(type),
+              0,
+              4,
+              2,
+            );
+          }
+        },
+      );
+      final before = model.logicalGates.firstWhere((gate) => gate.type == type);
+      final offsets = before.fragments
+          .map((fragment) => fragment.location.qubit - before.anchor.qubit)
+          .toList();
+      const grabbedRow = 3;
+      final destinationGrabRow = grabbedRow - 1;
+
+      final gesture =
+          await tester.startGesture(circuitPoint(tester, grabbedRow, 0));
+      await gesture.moveTo(circuitPoint(tester, destinationGrabRow, 1));
+      await tester.pump();
+      final previewPainter = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((paint) => paint.painter)
+          .whereType<QuantumCircuitPainter>()
+          .firstWhere((painter) => painter.previewGates != null);
+      final previewRows = [
+        for (final (qubit, row) in previewPainter.previewGates!.indexed)
+          if (row.any((gate) => gate.id == before.id)) qubit,
+      ];
+      expect(
+        previewRows,
+        before.fragments
+            .map((fragment) => fragment.location.qubit - 1)
+            .toList(),
+      );
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+      final moved = model.logicalGateById(before.id)!;
+      expect(moved.column, 0);
+      expect(
+        moved.fragments
+            .map((fragment) => fragment.location.qubit - moved.anchor.qubit),
+        offsets,
+      );
+      expect(moved.controlQubit, before.controlQubit! - 1);
+      expect(moved.targetQubit, before.targetQubit! - 1);
+      if (type == SelectedGateType.ccnot) {
+        expect(moved.secondControlQubit, before.secondControlQubit! - 1);
+      }
+    });
+  }
+
+  testWidgets(
+      'controlled translation beyond row bounds has no preview or commit',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      qubits: 5,
+      preInsertGates: (circuit) => circuit.insertDoublePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.cnot),
+        0,
+        4,
+        2,
+      ),
+    );
+    final footprint = model.logicalGates.single;
+    final original = footprint.occupiedLocations;
+    var notifications = 0;
+    model.addListener(() => notifications++);
+    final simulationsBefore = model.simulationRunCount;
+
+    var gesture = await tester.startGesture(circuitPoint(tester, 4, 0));
+    await gesture.moveTo(circuitPoint(tester, 0, 1));
+    await tester.pump();
+    expect(
+      tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((paint) => paint.painter)
+          .whereType<QuantumCircuitPainter>()
+          .where((painter) => painter.previewGates != null),
+      isEmpty,
+    );
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(footprint.id)!.occupiedLocations, original);
+
+    gesture = await tester.startGesture(circuitPoint(tester, 2, 0));
+    await gesture.moveTo(circuitPoint(tester, 4, 1));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(footprint.id)!.occupiedLocations, original);
+    expect(notifications, 0);
+    expect(model.simulationRunCount, simulationsBefore);
+  });
+
+  testWidgets('placed drag uses source ghost and transparent pointer feedback',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.hadamard),
+      viewportSize: const Size(430, 850),
+    );
+    final id = model.logicalGates.single.id;
+    final gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
+    await gesture.moveTo(circuitPoint(tester, 1, 1));
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('placed-drag-transparent-feedback')),
+      findsOneWidget,
+    );
+    final dragPainter = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter)
+        .whereType<QuantumCircuitPainter>()
+        .firstWhere((painter) => painter.ghostedGateId == id);
+    expect(dragPainter.previewGates, isNotNull);
+    expect(
+      dragPainter.previewGates!
+          .expand((row) => row)
+          .where((gate) => gate.id == id),
+      hasLength(1),
+    );
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('placed-drag-transparent-feedback')),
+      findsNothing,
+    );
+    expect(
+      tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((paint) => paint.painter)
+          .whereType<QuantumCircuitPainter>()
+          .where((painter) => painter.ghostedGateId != null),
+      isEmpty,
+    );
+  });
+
+  testWidgets('source ghost survives invalid drag and disappears on cancel',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      qubits: 5,
+      preInsertGates: (circuit) => circuit.insertDoublePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.cnot),
+        0,
+        4,
+        2,
+      ),
+    );
+    final id = model.logicalGates.single.id;
+    final gesture = await tester.startGesture(circuitPoint(tester, 4, 0));
+    await gesture.moveTo(circuitPoint(tester, 0, 1));
+    await tester.pump();
+
+    final invalidPainter = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter)
+        .whereType<QuantumCircuitPainter>()
+        .firstWhere((painter) => painter.ghostedGateId == id);
+    expect(invalidPainter.previewGates, isNull);
+    expect(
+      find.byKey(const ValueKey('placed-drag-transparent-feedback')),
+      findsOneWidget,
+    );
+
+    await gesture.cancel();
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(id), isNotNull);
+    expect(
+      find.byKey(const ValueKey('placed-drag-transparent-feedback')),
+      findsNothing,
+    );
+    expect(
+      tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((paint) => paint.painter)
+          .whereType<QuantumCircuitPainter>()
+          .where((painter) => painter.ghostedGateId != null),
+      isEmpty,
+    );
+  });
+
+  testWidgets('controlled source ghost disappears after outside deletion',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      qubits: 4,
+      viewportSize: const Size(1200, 800),
+      preInsertGates: (circuit) =>
+          insertControlledGate(circuit, SelectedGateType.ccnot),
+    );
+    final id = model.logicalGates.single.id;
+    final surface = circuitSurfaceRect(tester);
+    final gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
+    final outside = Offset(surface.left - 30, surface.center.dy);
+    await gesture.moveTo(outside + const Offset(1, 0));
+    await gesture.moveTo(outside);
+    await tester.pump();
+    expect(
+      tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((paint) => paint.painter)
+          .whereType<QuantumCircuitPainter>()
+          .any((painter) => painter.ghostedGateId == id),
+      isTrue,
+    );
+    expect(find.byKey(const ValueKey('release-to-remove')), findsOneWidget);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(id), isNull);
+    expect(
+      find.byKey(const ValueKey('placed-drag-transparent-feedback')),
+      findsNothing,
+    );
+    expect(
+      tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((paint) => paint.painter)
+          .whereType<QuantumCircuitPainter>()
+          .where((painter) => painter.ghostedGateId != null),
+      isEmpty,
+    );
+  });
+
+  for (final gateType in [
+    SelectedGateType.cnot,
+    SelectedGateType.cz,
+    SelectedGateType.ccnot,
+  ]) {
+    testWidgets('$gateType moves horizontally as one selected footprint',
+        (tester) async {
+      final viewport = gateType == SelectedGateType.cnot
+          ? const Size(430, 850)
+          : const Size(1200, 800);
+      final model = await pumpComposer(
+        tester,
+        qubits: 4,
+        viewportSize: viewport,
+        preInsertGates: (circuit) {
+          insertControlledGate(circuit, gateType);
+          circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard),
+            0,
+            3,
+          );
+        },
+      );
+      final footprint = model.logicalGates.firstWhere(
+        (gate) => gate.type == gateType,
+      );
+      final id = footprint.id;
+      final rolesBefore = footprint.fragments
+          .map((fragment) => (
+                fragment.location.qubit,
+                fragment.placedGate.isControl,
+                fragment.placedGate.isControl2,
+                fragment.placedGate.isTarget,
+                fragment.placedGate.isLink,
+              ))
+          .toList();
+      var notifications = 0;
+      model.addListener(() => notifications++);
+      final simulationsBefore = model.simulationRunCount;
+
+      final gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
+      final destination = circuitPoint(tester, 0, 1);
+      await gesture.moveTo(destination + const Offset(1, 0));
+      await gesture.moveTo(destination);
+      await tester.pump();
+      final previewPainter = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((paint) => paint.painter)
+          .whereType<QuantumCircuitPainter>()
+          .firstWhere((painter) => painter.previewGates != null);
+      final previewFragments = previewPainter.previewGates!
+          .expand((row) => row)
+          .where((gate) => gate.id == id);
+      expect(previewFragments, hasLength(footprint.fragments.length));
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+      final moved = model.logicalGateById(id)!;
+      expect(moved.id, id);
+      expect(moved.column, 1);
+      expect(
+        moved.fragments
+            .map((fragment) => (
+                  fragment.location.qubit,
+                  fragment.placedGate.isControl,
+                  fragment.placedGate.isControl2,
+                  fragment.placedGate.isTarget,
+                  fragment.placedGate.isLink,
+                ))
+            .toList(),
+        rolesBefore,
+      );
+      expect(notifications, 2); // structural edit and simulation result
+      expect(model.simulationRunCount, simulationsBefore + 1);
+      expect(
+        find.bySemanticsLabel('Selected gate ${moved.gate.label}'),
+        findsOneWidget,
+      );
+    });
+  }
+
+  testWidgets('controlled horizontal movement uses scrolled content columns',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      qubits: 4,
+      viewportSize: const Size(430, 850),
+      preInsertGates: (circuit) {
+        for (var column = 0; column < 10; column++) {
+          circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard),
+            column,
+            1,
+          );
+        }
+        circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot),
+          10,
+          2,
+          1,
+        );
+        for (var column = 0; column < 12; column++) {
+          circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard),
+            column,
+            3,
+          );
+        }
+      },
+    );
+    final id = model.logicalGates
+        .firstWhere((gate) => gate.type == SelectedGateType.cnot)
+        .id;
+    final scrollable = find.descendant(
+      of: find.byKey(const ValueKey('circuit-horizontal-scroll')),
+      matching: find.byType(Scrollable),
+    );
+    final position = tester.state<ScrollableState>(scrollable).position;
+    position.jumpTo(position.maxScrollExtent);
+    await tester.pump();
+    final surface = circuitSurfaceRect(tester);
+    Offset visiblePoint(int qubit, int column) =>
+        surface.topLeft +
+        Offset(
+          40 + column * 40 - position.pixels,
+          20 + qubit * 40,
+        );
+
+    final gesture = await tester.startGesture(visiblePoint(1, 10));
+    await gesture.moveTo(visiblePoint(1, 11));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(model.logicalGateById(id)!.column, 11);
+    expect(model.logicalGateById(id)!.controlQubit, 1);
+    expect(model.logicalGateById(id)!.targetQubit, 2);
   });
 
   testWidgets(

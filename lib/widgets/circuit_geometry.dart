@@ -138,6 +138,17 @@ class CircuitGeometry {
     return preview;
   }
 
+  static List<List<PlacedQuantumGate>>? logicalGateMovePreview({
+    required QuantumCircuit circuit,
+    required GateId gateId,
+    required int destinationColumn,
+  }) {
+    return circuit.previewLogicalGateHorizontalMove(
+      gateId,
+      destinationColumn,
+    );
+  }
+
   static Rect? logicalGateBounds(QuantumCircuit circuit, GateId id) {
     final footprint = circuit.logicalGateById(id);
     if (footprint == null) return null;

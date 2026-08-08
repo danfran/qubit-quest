@@ -48,7 +48,14 @@ class LogicalGateFootprint {
       targetQubit == null;
   bool get isControlled => !isSingleQubit;
   bool get isEditable => isSingleQubit && isDeletable;
-  bool get isMovable => isSingleQubit && isDeletable;
+  bool get supportsControlledHorizontalMovement =>
+      type == SelectedGateType.cnot ||
+      type == SelectedGateType.cz ||
+      type == SelectedGateType.ccnot;
+  bool get canMoveHorizontally =>
+      isSingleQubit || supportsControlledHorizontalMovement;
+  bool get canTranslateRigidly => canMoveHorizontally;
+  bool get isMovable => canMoveHorizontally && isDeletable;
   bool get supportsParameterEditing => isSingleQubit && gate.requiresAngle;
   bool get isParameterEditable => supportsParameterEditing && isEditable;
 
@@ -58,5 +65,6 @@ class LogicalGateFootprint {
         location: anchor,
         isDeletable: isDeletable,
         isSingleQubit: isSingleQubit,
+        canMoveHorizontally: canMoveHorizontally,
       );
 }

@@ -7,6 +7,7 @@ import 'package:quantumquiz/models/adaptive_learning.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
+import 'package:quantumquiz/models/logical_gate_footprint.dart';
 import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
@@ -131,11 +132,13 @@ class _QuantumComposerState extends State<QuantumComposer>
   // State to manage the highlight box for drag-and-drop
   Offset? _draggingOffset;
   CircuitDropDestination? _draggingDestination;
+  LogicalMovePlan? _draggingMovePlan;
   Offset? _latestCircuitDragGlobalPosition;
   Gate _draggingGate = Gate.fromIdentifier(SelectedGateType.none);
   GateId? _selectedGateId;
   CircuitDragData? _activeDragData;
   Offset? _latestPlacedDragPointerPosition;
+  int _placedDragAnchorRowOffset = 0;
   bool _placedDragOutsideCircuit = false;
   bool _placedDragWasCancelled = false;
   Rect? _circuitViewportBounds;
@@ -296,8 +299,11 @@ class _QuantumComposerState extends State<QuantumComposer>
 
     // DragTarget move/accept share this resolved content-space destination.
     // Falling back keeps programmatic drops safe if no move event was delivered.
-    final destination =
-        _draggingDestination ?? _resolveCircuitDrop(details.offset);
+    final fallbackDestination = _resolveCircuitDrop(details.offset);
+    final destination = _draggingDestination ??
+        (fallbackDestination == null
+            ? null
+            : _logicalMoveDestination(fallbackDestination, details.data));
 
     if (destination == null) {
       debugPrint('Error: Could not convert global position to local.');
@@ -315,13 +321,15 @@ class _QuantumComposerState extends State<QuantumComposer>
 
     if (details.data.isPlaced) {
       final sourceId = details.data.sourceId!;
-      final result = _circuit.moveSingleGateWithOutcome(
-        sourceId,
-        CircuitLocation(
-          qubit: tappedQubitLine,
-          column: insertionPosition,
-        ),
-      );
+      final plan = _draggingMovePlan ??
+          _circuit.planLogicalGateMove(
+            sourceId,
+            CircuitLocation(
+              qubit: tappedQubitLine,
+              column: insertionPosition,
+            ),
+          );
+      final result = _circuit.commitLogicalGateMovePlan(plan);
       _handleCommittedCircuitEdit(result, selectionAfter: sourceId);
       return;
     }
@@ -688,6 +696,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     setState(() {
       _activeDragData = null;
       _latestPlacedDragPointerPosition = null;
+      _placedDragAnchorRowOffset = 0;
       _placedDragOutsideCircuit = false;
       _placedDragWasCancelled = false;
       _onDragLeaveStateOnly();
@@ -697,8 +706,36 @@ class _QuantumComposerState extends State<QuantumComposer>
   void _onDragLeaveStateOnly() {
     _draggingOffset = null;
     _draggingDestination = null;
+    _draggingMovePlan = null;
     _latestCircuitDragGlobalPosition = null;
     _draggingGate = Gate.fromIdentifier(SelectedGateType.none);
+  }
+
+  void _capturePlacedDragOrigin(
+    PointerDownEvent event,
+    LogicalGateFootprint footprint,
+  ) {
+    _latestPlacedDragPointerPosition = event.position;
+    final contentPosition = _gatePositionToContent(event.position);
+    final grabbedRow = contentPosition == null
+        ? null
+        : CircuitGeometry.qubitForPoint(contentPosition, _numQubits);
+    _placedDragAnchorRowOffset =
+        grabbedRow == null ? 0 : footprint.anchor.qubit - grabbedRow;
+  }
+
+  CircuitDropDestination _logicalMoveDestination(
+    CircuitDropDestination destination,
+    CircuitDragData data,
+  ) {
+    if (!data.isPlaced) return destination;
+    return CircuitDropDestination(
+      contentPoint: destination.contentPoint,
+      location: CircuitLocation(
+        qubit: destination.location.qubit + _placedDragAnchorRowOffset,
+        column: destination.location.column,
+      ),
+    );
   }
 
   bool _isClearlyOutsideCircuitForDeletion(Offset pointerPosition) {
@@ -1202,27 +1239,33 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   void _onDragEnter(Offset offset, CircuitDragData data) {
-    setState(() {
-      if (data.isPlaced) {
-        final source = _circuit.placedGateById(data.sourceId!);
-        if (source == null || !source.isSingleQubit) {
-          _onDragLeaveStateOnly();
-          return;
-        }
-      }
-      final localPosition = _gatePositionToContent(offset);
-
-      if (localPosition == null) {
-        debugPrint('Error: Could not convert global position to local.');
+    if (data.isPlaced) {
+      final source = _circuit.logicalGateById(data.sourceId!);
+      if (source == null || !source.isMovable) {
+        setState(_onDragLeaveStateOnly);
         return;
       }
-
+    }
+    final localPosition = _gatePositionToContent(offset);
+    if (localPosition == null) {
+      debugPrint('Error: Could not convert global position to local.');
+      return;
+    }
+    final rawDestination = CircuitGeometry.dropDestinationForPoint(
+      circuit: _circuit,
+      contentPoint: localPosition,
+    );
+    final destination = rawDestination == null
+        ? null
+        : _logicalMoveDestination(rawDestination, data);
+    final movePlan = data.isPlaced && destination != null
+        ? _circuit.planLogicalGateMove(data.sourceId!, destination.location)
+        : null;
+    setState(() {
       _latestCircuitDragGlobalPosition = offset;
       _draggingOffset = localPosition;
-      _draggingDestination = CircuitGeometry.dropDestinationForPoint(
-        circuit: _circuit,
-        contentPoint: localPosition,
-      );
+      _draggingDestination = destination;
+      _draggingMovePlan = movePlan;
       _draggingGate = data.gate;
     });
   }
@@ -1236,12 +1279,24 @@ class _QuantumComposerState extends State<QuantumComposer>
     }
     final contentPosition = _gatePositionToContent(pointer);
     if (contentPosition == null) return;
+    final rawDestination = CircuitGeometry.dropDestinationForPoint(
+      circuit: _circuit,
+      contentPoint: contentPosition,
+    );
+    final dragData = _activeDragData;
+    final destination = rawDestination == null || dragData == null
+        ? rawDestination
+        : _logicalMoveDestination(rawDestination, dragData);
+    final movePlan = dragData?.isPlaced == true && destination != null
+        ? _circuit.planLogicalGateMove(
+            dragData!.sourceId!,
+            destination.location,
+          )
+        : null;
     setState(() {
       _draggingOffset = contentPosition;
-      _draggingDestination = CircuitGeometry.dropDestinationForPoint(
-        circuit: _circuit,
-        contentPoint: contentPosition,
-      );
+      _draggingDestination = destination;
+      _draggingMovePlan = movePlan;
     });
   }
 
@@ -2463,13 +2518,12 @@ class _QuantumComposerState extends State<QuantumComposer>
                                 _circuit,
                                 previewGates: isDraggingGate &&
                                         _draggingDestination != null
-                                    ? CircuitGeometry.insertionPreview(
-                                        circuit: _circuit,
-                                        destination: _draggingDestination!,
-                                        gate: _draggingGate,
-                                      )
+                                    ? _buildCircuitDragPreview()
                                     : null,
                                 selectedGateId: _selectedGateId,
+                                ghostedGateId: _activeDragData?.isPlaced == true
+                                    ? _activeDragData!.sourceId
+                                    : null,
                               ),
                               child: ListenableBuilder(
                                 listenable: _circuit,
@@ -2509,19 +2563,19 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   List<Widget> _buildPlacedGateDragOverlays() {
-    final draggableGates = _circuit.logicalGates
-        .where((gate) => gate.isDeletable)
-        .map((gate) => gate.toPlacedGateRef());
+    final draggableGates =
+        _circuit.logicalGates.where((gate) => gate.isDeletable);
 
-    return draggableGates.map((placed) {
+    return draggableGates.map((footprint) {
+      final placed = footprint.toPlacedGateRef();
       final bounds = CircuitGeometry.logicalGateBounds(_circuit, placed.id);
       if (bounds == null) return const SizedBox.shrink();
-      final visual = _gateVisualFor(placed.gate);
       final isSelected = placed.id == _selectedGateId;
       final isControlled = !placed.isSingleQubit;
       return Positioned.fromRect(
         rect: bounds.inflate(5),
         child: Listener(
+          onPointerDown: (event) => _capturePlacedDragOrigin(event, footprint),
           onPointerMove: (event) => _updatePlacedDragPosition(event.position),
           onPointerCancel: (_) => _placedDragWasCancelled = true,
           child: Semantics(
@@ -2529,7 +2583,7 @@ class _QuantumComposerState extends State<QuantumComposer>
                 ? 'Selected gate ${placed.gate.label}'
                 : 'Gate ${placed.gate.label}',
             hint: isControlled
-                ? 'Drag outside circuit to remove.'
+                ? 'Drag to move. Drag outside circuit to remove.'
                 : 'Drag to move. Drag outside circuit to remove.',
             child: Draggable<CircuitDragData>(
               key: ValueKey('placed-gate-drag-${placed.id.value}'),
@@ -2544,35 +2598,19 @@ class _QuantumComposerState extends State<QuantumComposer>
               onDragCompleted: _finishPlacedDrag,
               onDraggableCanceled: (velocity, offset) =>
                   _handlePlacedDragCancelled(placed),
-              feedback: Material(
-                color: Colors.transparent,
-                child: DecoratedBox(
-                  decoration: _flatGateButtonDecoration(visual),
-                  child: SizedBox(
-                    width: QuantumCircuitPainter.gateSize,
-                    height: QuantumCircuitPainter.gateSize,
-                    child: Center(
-                      child: Text(
-                        placed.gate.label,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+              feedback: const SizedBox(
+                key: ValueKey('placed-drag-transparent-feedback'),
+                width: 1,
+                height: 1,
               ),
               childWhenDragging: const SizedBox.expand(),
               child: Tooltip(
                 message: isSelected
                     ? isControlled
-                        ? 'Selected gate • Drag outside to remove'
+                        ? 'Selected gate • Drag to move'
                         : 'Selected gate • Drag to move'
                     : isControlled
-                        ? 'Drag outside to remove gate'
+                        ? 'Drag gate to move'
                         : 'Drag gate to move',
                 child: const SizedBox.expand(),
               ),
@@ -2581,6 +2619,20 @@ class _QuantumComposerState extends State<QuantumComposer>
         ),
       );
     }).toList();
+  }
+
+  List<List<PlacedQuantumGate>>? _buildCircuitDragPreview() {
+    final destination = _draggingDestination;
+    if (destination == null) return null;
+    final dragData = _activeDragData;
+    if (dragData?.isPlaced ?? false) {
+      return _draggingMovePlan?.proposedRows;
+    }
+    return CircuitGeometry.insertionPreview(
+      circuit: _circuit,
+      destination: destination,
+      gate: _draggingGate,
+    );
   }
 
   Widget _buildPaletteUtilityButton({
