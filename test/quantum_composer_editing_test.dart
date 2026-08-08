@@ -882,6 +882,235 @@ void main() {
     expect(find.bySemanticsLabel('Edit angle'), findsOneWidget);
   });
 
+  testWidgets('selection exposes replacement actions only for editable singles',
+      (tester) async {
+    await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.hadamard),
+      palette: [
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        Gate.fromIdentifier(SelectedGateType.x),
+      ],
+    );
+    expect(find.byKey(const ValueKey('replace-selected-gate')), findsNothing);
+    await selectFirstGate(tester);
+    expect(find.byKey(const ValueKey('replace-selected-gate')), findsOneWidget);
+    expect(find.text('Edit angle'), findsNothing);
+
+    await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 4),
+      palette: [
+        Gate.fromIdentifier(SelectedGateType.rx),
+        Gate.fromIdentifier(SelectedGateType.x),
+      ],
+    );
+    await selectFirstGate(tester);
+    expect(find.byKey(const ValueKey('replace-selected-gate')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('edit-selected-gate-angle')), findsOneWidget);
+
+    await pumpComposer(
+      tester,
+      qubits: 3,
+      palette: [Gate.fromIdentifier(SelectedGateType.x)],
+      preInsertGates: (circuit) =>
+          insertControlledGate(circuit, SelectedGateType.cnot),
+    );
+    await tester.tapAt(circuitPoint(tester, 0, 0));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('replace-selected-gate')), findsNothing);
+
+    await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.hadamard),
+      isDeletable: false,
+      palette: [Gate.fromIdentifier(SelectedGateType.x)],
+    );
+    await selectFirstGate(tester);
+    expect(find.byKey(const ValueKey('replace-selected-gate')), findsNothing);
+  });
+
+  testWidgets('replacement picker contains only permitted single gates',
+      (tester) async {
+    await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.hadamard),
+      palette: [
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        Gate.fromIdentifier(SelectedGateType.x),
+        Gate.fromIdentifier(SelectedGateType.rx),
+        Gate.fromIdentifier(SelectedGateType.cnot),
+      ],
+    );
+    await selectFirstGate(tester);
+    await tester.tap(find.byKey(const ValueKey('replace-selected-gate')));
+    await tester.pumpAndSettle();
+    expect(find.text('Replace gate'), findsOneWidget);
+    expect(find.byKey(const ValueKey('replacement-gate-x')), findsOneWidget);
+    expect(find.byKey(const ValueKey('replacement-gate-rx')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('replacement-gate-hadamard')), findsNothing);
+    expect(find.byKey(const ValueKey('replacement-gate-cnot')), findsNothing);
+    expect(find.byKey(const ValueKey('replacement-gate-z')), findsNothing);
+  });
+
+  testWidgets('H to X replaces atomically, simulates once, and keeps selection',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.hadamard),
+      palette: [
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        Gate.fromIdentifier(SelectedGateType.x),
+      ],
+    );
+    final id = model.placedGates[0][0].id!;
+    await selectFirstGate(tester);
+    final simulationsBefore = model.simulationRunCount;
+    var notifications = 0;
+    model.addListener(() => notifications++);
+    await tester.tap(find.byKey(const ValueKey('replace-selected-gate')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('replacement-gate-x')));
+    await tester.pumpAndSettle();
+
+    final replacement = model.logicalGateById(id)!;
+    expect(replacement.type, SelectedGateType.x);
+    expect(replacement.id, id);
+    expect(model.simulationRunCount, simulationsBefore + 1);
+    expect(notifications, 2); // structural edit and simulation result
+    expect(find.bySemanticsLabel('Selected gate X'), findsOneWidget);
+  });
+
+  testWidgets('rotation replacement requires an explicit angle and can cancel',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.hadamard),
+      palette: [
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        Gate.fromIdentifier(SelectedGateType.rx),
+      ],
+    );
+    final id = model.placedGates[0][0].id!;
+    await selectFirstGate(tester);
+    final simulationsBefore = model.simulationRunCount;
+
+    await tester.tap(find.byKey(const ValueKey('replace-selected-gate')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('replacement-gate-rx')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Rx Angle'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(id)!.type, SelectedGateType.hadamard);
+    expect(model.simulationRunCount, simulationsBefore);
+
+    await tester.tap(find.byKey(const ValueKey('replace-selected-gate')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('replacement-gate-rx')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const ValueKey('fractional-angle-denominator')), '2');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+    final replacement = model.logicalGateById(id)!;
+    expect(replacement.type, SelectedGateType.rx);
+    expect(replacement.gate.angle, closeTo(math.pi / 2, 1e-12));
+    expect(replacement.id, id);
+    expect(
+        find.byKey(const ValueKey('edit-selected-gate-angle')), findsOneWidget);
+  });
+
+  testWidgets('rotation-to-rotation replacement does not carry old angle',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2),
+      palette: [
+        Gate.fromIdentifier(SelectedGateType.rx),
+        Gate.fromIdentifier(SelectedGateType.ry),
+      ],
+    );
+    final id = model.placedGates[0][0].id!;
+    await selectFirstGate(tester);
+    await tester.tap(find.byKey(const ValueKey('replace-selected-gate')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('replacement-gate-ry')));
+    await tester.pumpAndSettle();
+    final denominator = tester.widget<TextField>(
+      find.byKey(const ValueKey('fractional-angle-denominator')),
+    );
+    expect(denominator.controller!.text, '1');
+    await tester.enterText(
+        find.byKey(const ValueKey('fractional-angle-denominator')), '4');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(id)!.type, SelectedGateType.ry);
+    expect(model.logicalGateById(id)!.gate.angle, closeTo(math.pi / 4, 1e-12));
+  });
+
+  testWidgets('replacement composes with angle edit, move, and deletion',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.hadamard),
+      palette: [
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        Gate.fromIdentifier(SelectedGateType.rx),
+      ],
+    );
+    final id = model.placedGates[0][0].id!;
+    await selectFirstGate(tester);
+
+    var simulations = model.simulationRunCount;
+    await tester.tap(find.byKey(const ValueKey('replace-selected-gate')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('replacement-gate-rx')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const ValueKey('fractional-angle-denominator')), '2');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+    expect(model.simulationRunCount, ++simulations);
+    expect(model.logicalGateById(id)!.id, id);
+    expect(model.logicalGateById(id)!.gate.angle, closeTo(math.pi / 2, 1e-12));
+
+    await tester.tap(find.byKey(const ValueKey('edit-selected-gate-angle')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const ValueKey('fractional-angle-denominator')), '4');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+    expect(model.simulationRunCount, ++simulations);
+    expect(model.logicalGateById(id)!.id, id);
+    expect(model.logicalGateById(id)!.gate.angle, closeTo(math.pi / 4, 1e-12));
+
+    final move = await tester.startGesture(circuitPoint(tester, 0, 0));
+    await move.moveTo(circuitPoint(tester, 1, 1));
+    await move.up();
+    await tester.pumpAndSettle();
+    expect(model.simulationRunCount, ++simulations);
+    expect(model.logicalGateById(id)!.id, id);
+    expect(model.logicalGateById(id)!.anchor.qubit, 1);
+    expect(model.logicalGateById(id)!.gate.angle, closeTo(math.pi / 4, 1e-12));
+
+    final surface = circuitSurfaceRect(tester);
+    final deletion = await tester.startGesture(circuitPoint(tester, 1, 0));
+    final outside = surface.bottomRight + const Offset(90, 90);
+    await deletion.moveTo(outside + const Offset(1, 0));
+    await deletion.moveTo(outside);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('release-to-remove')), findsOneWidget);
+    await deletion.up();
+    await tester.pumpAndSettle();
+    expect(model.simulationRunCount, ++simulations);
+    expect(model.logicalGateById(id), isNull);
+    expect(
+        find.byKey(const ValueKey('edit-selected-gate-angle')), findsNothing);
+  });
+
   testWidgets('palette remains a unified CircuitDragData source',
       (tester) async {
     await pumpComposer(tester);

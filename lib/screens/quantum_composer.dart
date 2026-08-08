@@ -13,6 +13,7 @@ import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/screens/learning_flow_widgets.dart';
 import 'package:quantumquiz/screens/operator_matrix_dialog.dart';
 import 'package:quantumquiz/screens/rotation_gate_dialog.dart';
+import 'package:quantumquiz/screens/gate_replacement_dialog.dart';
 import 'package:quantumquiz/screens/three_qubits_gate_target_qubits_selection_dialog.dart';
 import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
 import 'package:quantumquiz/utils/complex_formatter.dart';
@@ -514,6 +515,49 @@ class _QuantumComposerState extends State<QuantumComposer>
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         const SnackBar(
           content: Text('Choose a valid rotation angle.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _replaceSelectedGate() async {
+    final selectedId = _selectedGateId;
+    if (selectedId == null) return;
+    final footprint = _circuit.logicalGateById(selectedId);
+    if (footprint == null || !footprint.isEditable) return;
+
+    final candidates = _circuit.availableSingleQubitReplacementTypes
+        .where((type) => type != footprint.type)
+        .toList(growable: false);
+    if (candidates.isEmpty) return;
+    final replacementType = await showDialog<SelectedGateType>(
+      context: context,
+      builder: (dialogContext) => GateReplacementDialog(
+        gateTypes: candidates,
+      ),
+    );
+    if (!mounted || replacementType == null) return;
+
+    double? angle;
+    final unconfiguredReplacement = Gate.fromIdentifier(replacementType);
+    if (unconfiguredReplacement.requiresAngle) {
+      angle = await _showRotationAngleSetDialog(
+        context,
+        gateType: replacementType,
+      );
+      if (!mounted || angle == null) return;
+    }
+
+    final outcome = _circuit.replaceSingleGateWithOutcome(
+      selectedId,
+      Gate.fromIdentifier(replacementType, angle: angle),
+    );
+    _handleCommittedCircuitEdit(outcome, selectionAfter: selectedId);
+    if (outcome.status == CircuitEditStatus.invalid && mounted) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text('That gate cannot replace the selected gate.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -1617,6 +1661,14 @@ class _QuantumComposerState extends State<QuantumComposer>
   List<Widget> _buildAppBarActions(bool compact) {
     return [
       if (_selectedGateId != null &&
+          (_circuit.logicalGateById(_selectedGateId!)?.isEditable ?? false) &&
+          _circuit.availableSingleQubitReplacementTypes.any(
+            (type) => type != _circuit.logicalGateById(_selectedGateId!)?.type,
+          )) ...[
+        _buildReplaceGateHeaderAction(compact: compact),
+        SizedBox(width: compact ? 6 : 8),
+      ],
+      if (_selectedGateId != null &&
           (_circuit.logicalGateById(_selectedGateId!)?.isParameterEditable ??
               false)) ...[
         _buildEditAngleHeaderAction(compact: compact),
@@ -1627,6 +1679,54 @@ class _QuantumComposerState extends State<QuantumComposer>
       _buildMenuHeaderAction(compact: compact),
       SizedBox(width: compact ? 10 : 12),
     ];
+  }
+
+  Widget _buildReplaceGateHeaderAction({required bool compact}) {
+    final content = compact
+        ? _HeaderActionShell(
+            size: 34,
+            child: Icon(Icons.swap_horiz_rounded, size: 19, color: qqPurple),
+          )
+        : SizedBox(
+            width: 54,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _HeaderActionShell(
+                  size: 32,
+                  child: Icon(
+                    Icons.swap_horiz_rounded,
+                    size: 18,
+                    color: qqPurple,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Replace',
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.78),
+                    fontSize: 9,
+                    height: 1,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          );
+    return Semantics(
+      label: 'Replace gate',
+      button: true,
+      child: Tooltip(
+        message: 'Replace gate',
+        child: InkWell(
+          key: const ValueKey('replace-selected-gate'),
+          onTap: _replaceSelectedGate,
+          borderRadius: BorderRadius.circular(16),
+          child: content,
+        ),
+      ),
+    );
   }
 
   Widget _buildEditAngleHeaderAction({required bool compact}) {

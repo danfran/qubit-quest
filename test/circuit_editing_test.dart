@@ -593,4 +593,225 @@ void main() {
       expect(notifications, 1);
     });
   });
+
+  group('single-qubit gate replacement', () {
+    QuantumCircuit replacementCircuit({int qubits = 2}) => QuantumCircuit(
+          currentLevel: ComposerLevel(
+            taskDescription: 'replacement test',
+            numQubits: qubits,
+            initialQubitsStateStr: '0' * qubits,
+            initialQubitsState: ComposerLevel.getZeroStateVector(qubits),
+            availableGates: [
+              Gate.fromIdentifier(SelectedGateType.hadamard),
+              Gate.fromIdentifier(SelectedGateType.x),
+              Gate.fromIdentifier(SelectedGateType.y),
+              Gate.fromIdentifier(SelectedGateType.rx),
+              Gate.fromIdentifier(SelectedGateType.ry),
+            ],
+            solutionFinalVector: const [],
+          ),
+        );
+
+    test('H to X is atomic and preserves identity, location, and policy', () {
+      final model = replacementCircuit();
+      final insertion = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        1,
+        1,
+      );
+      final id = insertion.affectedGateId!;
+      final before = model.logicalGateById(id)!;
+      var notifications = 0;
+      model.addListener(() => notifications++);
+
+      final outcome = model.replaceSingleGateWithOutcome(
+        id,
+        Gate.fromIdentifier(SelectedGateType.x),
+      );
+      final after = model.logicalGateById(id)!;
+      expect(outcome.status, CircuitEditStatus.changed);
+      expect(after.id, id);
+      expect(after.anchor, before.anchor);
+      expect(after.isDeletable, before.isDeletable);
+      expect(after.type, SelectedGateType.x);
+      expect(notifications, 1);
+    });
+
+    test('same configuration is a no-op and configured rotations are valid',
+        () {
+      final model = replacementCircuit();
+      final insertion = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2),
+        0,
+        0,
+      );
+      var notifications = 0;
+      model.addListener(() => notifications++);
+      expect(
+        model
+            .replaceSingleGateWithOutcome(
+              insertion.affectedGateId!,
+              Gate.fromIdentifier(
+                SelectedGateType.rx,
+                angle: math.pi / 2 + 1e-12,
+              ),
+            )
+            .status,
+        CircuitEditStatus.same,
+      );
+      expect(notifications, 0);
+      expect(
+        model
+            .replaceSingleGateWithOutcome(
+              insertion.affectedGateId!,
+              Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 4),
+            )
+            .status,
+        CircuitEditStatus.changed,
+      );
+      expect(model.logicalGateById(insertion.affectedGateId!)!.gate.angle,
+          math.pi / 4);
+      expect(notifications, 1);
+    });
+
+    test('invalid, unsupported, unknown, protected, and forbidden are safe',
+        () {
+      final model = replacementCircuit(qubits: 3);
+      final ordinary = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+      );
+      final protected = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        1,
+        isDeletable: false,
+      );
+      final controlled = model.insertDoubleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.cnot),
+        1,
+        2,
+        0,
+      );
+      var notifications = 0;
+      model.addListener(() => notifications++);
+
+      expect(
+          model
+              .replaceSingleGateWithOutcome(
+                const GateId(99999),
+                Gate.fromIdentifier(SelectedGateType.x),
+              )
+              .status,
+          CircuitEditStatus.notFound);
+      expect(
+          model
+              .replaceSingleGateWithOutcome(
+                controlled.affectedGateId!,
+                Gate.fromIdentifier(SelectedGateType.x),
+              )
+              .status,
+          CircuitEditStatus.unsupported);
+      expect(
+          model
+              .replaceSingleGateWithOutcome(
+                protected.affectedGateId!,
+                Gate.fromIdentifier(SelectedGateType.x),
+              )
+              .status,
+          CircuitEditStatus.protected);
+      expect(
+          model
+              .replaceSingleGateWithOutcome(
+                ordinary.affectedGateId!,
+                Gate.fromIdentifier(SelectedGateType.cnot),
+              )
+              .status,
+          CircuitEditStatus.unsupported);
+      expect(
+          model
+              .replaceSingleGateWithOutcome(
+                ordinary.affectedGateId!,
+                Gate.fromIdentifier(SelectedGateType.rx),
+              )
+              .status,
+          CircuitEditStatus.invalid);
+      expect(
+          model
+              .replaceSingleGateWithOutcome(
+                ordinary.affectedGateId!,
+                Gate.fromIdentifier(SelectedGateType.z),
+              )
+              .status,
+          CircuitEditStatus.protected);
+      expect(model.logicalGateById(ordinary.affectedGateId!)!.type,
+          SelectedGateType.hadamard);
+      expect(notifications, 0);
+    });
+
+    test('replacement keeps unrelated cells and supports chained edits', () {
+      final model = replacementCircuit();
+      final unrelated = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.x),
+        0,
+        1,
+      );
+      final edited = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        1,
+        0,
+      );
+      final id = edited.affectedGateId!;
+      final unrelatedGate = model.logicalGateById(unrelated.affectedGateId!)!;
+
+      expect(
+          model
+              .replaceSingleGateWithOutcome(
+                id,
+                Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2),
+              )
+              .status,
+          CircuitEditStatus.changed);
+      expect(
+          model.updateGateParametersWithOutcome(id, angle: math.pi / 4).status,
+          CircuitEditStatus.changed);
+      expect(
+          model
+              .moveSingleGateWithOutcome(
+                id,
+                const CircuitLocation(qubit: 0, column: 2),
+              )
+              .status,
+          CircuitEditStatus.changed);
+      expect(model.logicalGateById(id)!.id, id);
+      expect(model.logicalGateById(id)!.gate.angle, math.pi / 4);
+      expect(model.logicalGateById(unrelatedGate.id)!.type, unrelatedGate.type);
+      expect(model.removeLogicalGateByIdWithOutcome(id).status,
+          CircuitEditStatus.changed);
+      expect(model.logicalGateById(id), isNull);
+    });
+
+    test('repeated replacement retains one unique GateId', () {
+      final model = replacementCircuit();
+      final insertion = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+      );
+      final id = insertion.affectedGateId!;
+      for (final type in [
+        SelectedGateType.x,
+        SelectedGateType.y,
+        SelectedGateType.hadamard,
+      ]) {
+        expect(
+            model
+                .replaceSingleGateWithOutcome(id, Gate.fromIdentifier(type))
+                .status,
+            CircuitEditStatus.changed);
+      }
+      expect(model.logicalGates.map((gate) => gate.id), [id]);
+    });
+  });
 }

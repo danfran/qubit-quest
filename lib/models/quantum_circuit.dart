@@ -337,6 +337,81 @@ class QuantumCircuit extends ChangeNotifier {
     return (a - b).abs() <= tolerance * max(1.0, max(a.abs(), b.abs()));
   }
 
+  static const Set<SelectedGateType> supportedSingleQubitReplacementTypes = {
+    SelectedGateType.hadamard,
+    SelectedGateType.s,
+    SelectedGateType.t,
+    SelectedGateType.x,
+    SelectedGateType.y,
+    SelectedGateType.z,
+    SelectedGateType.rx,
+    SelectedGateType.ry,
+    SelectedGateType.rz,
+  };
+
+  List<SelectedGateType> get availableSingleQubitReplacementTypes {
+    final available = <SelectedGateType>[];
+    for (final gate in currentLevel.availableGates) {
+      if (supportedSingleQubitReplacementTypes.contains(gate.type) &&
+          !available.contains(gate.type)) {
+        available.add(gate.type);
+      }
+    }
+    return List.unmodifiable(available);
+  }
+
+  bool _isReplacementTypeAvailable(SelectedGateType type) =>
+      availableSingleQubitReplacementTypes.contains(type);
+
+  CircuitEditOutcome replaceSingleGateWithOutcome(
+    GateId id,
+    Gate replacement,
+  ) {
+    final footprint = logicalGateById(id);
+    if (footprint == null) return CircuitEditOutcome.notFound;
+    if (!footprint.isSingleQubit) return CircuitEditOutcome.unsupported;
+    if (!footprint.isEditable) return CircuitEditOutcome.protected;
+    if (!supportedSingleQubitReplacementTypes.contains(replacement.type)) {
+      return CircuitEditOutcome.unsupported;
+    }
+    if (!_isReplacementTypeAvailable(replacement.type)) {
+      return CircuitEditOutcome.protected;
+    }
+    if (!replacement.hasValidRequiredParameters) {
+      return CircuitEditOutcome.invalid;
+    }
+
+    final current = footprint.gate;
+    final sameConfiguration = current.type == replacement.type &&
+        (!current.requiresAngle ||
+            (current.angle != null &&
+                replacement.angle != null &&
+                _anglesEquivalent(current.angle!, replacement.angle!)));
+    if (sameConfiguration) return CircuitEditOutcome.same;
+
+    final fragment = footprint.fragments.single;
+    final existing = fragment.placedGate;
+    placedGates[fragment.location.qubit][fragment.location.column] =
+        PlacedQuantumGate(
+      id: existing.id,
+      gate: replacement,
+      controlQubitIndex: existing.controlQubitIndex,
+      control2QubitIndex: existing.control2QubitIndex,
+      targetQubitIndex: existing.targetQubitIndex,
+      isTarget: existing.isTarget,
+      isLink: existing.isLink,
+      isControl: existing.isControl,
+      isControl2: existing.isControl2,
+      isDeletable: existing.isDeletable,
+    );
+    notifyListeners();
+    return CircuitEditOutcome(
+      CircuitEditStatus.changed,
+      affectedGateId: id,
+      resultingLocation: footprint.anchor,
+    );
+  }
+
   void insertDoublePlacedGateAt(Gate gate, int insertionPosition,
       int targetQubitIndex, int controlQubitIndex,
       {bool isDeletable = true}) {
