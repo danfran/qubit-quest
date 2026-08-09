@@ -351,28 +351,28 @@ class QuantumCircuit extends ChangeNotifier {
           SelectedGateType.none,
     );
     if (collision) {
-      final displacedProtected = _detachedLogicalFragments(compacted)
-          .values
-          .any((fragments) =>
-              fragments.first.$3 >= resolvedColumn &&
-              fragments.any((fragment) => !fragment.$2.isDeletable));
-      if (displacedProtected) {
+      final makeRoomStatus = _shiftConflictingLogicalGatesRight(
+        compacted,
+        destinationQubits: destinationQubits,
+        destinationColumn: resolvedColumn,
+      );
+      if (makeRoomStatus == CircuitEditStatus.protected) {
         return rejected(
           CircuitEditStatus.protected,
           'Making room would displace a protected logical gate.',
         );
       }
-      for (final row in compacted) {
-        while (row.length < resolvedColumn) {
-          row.add(PlacedQuantumGate.emptyGate());
-        }
-        row.insert(resolvedColumn, PlacedQuantumGate.emptyGate());
+      if (makeRoomStatus != CircuitEditStatus.changed) {
+        return rejected(
+          CircuitEditStatus.invalid,
+          'Conflicting logical footprints could not be displaced safely.',
+        );
       }
-    } else {
-      for (final row in compacted) {
-        while (row.length <= resolvedColumn) {
-          row.add(PlacedQuantumGate.emptyGate());
-        }
+    }
+    for (final qubit in destinationQubits) {
+      final row = compacted[qubit];
+      while (row.length <= resolvedColumn) {
+        row.add(PlacedQuantumGate.emptyGate());
       }
     }
 
@@ -475,6 +475,67 @@ class QuantumCircuit extends ChangeNotifier {
       }
     }
     return fragments;
+  }
+
+  static CircuitEditStatus _shiftConflictingLogicalGatesRight(
+    List<List<PlacedQuantumGate>> rows, {
+    required List<int> destinationQubits,
+    required int destinationColumn,
+  }) {
+    final footprints = _detachedLogicalFragments(rows);
+    final pending = <GateId>[];
+    final required = <GateId>{};
+
+    void requireGateAt(int qubit, int column) {
+      final id = _cellAt(rows, qubit, column).id;
+      if (id != null && required.add(id)) pending.add(id);
+    }
+
+    for (final qubit in destinationQubits) {
+      requireGateAt(qubit, destinationColumn);
+    }
+
+    while (pending.isNotEmpty) {
+      final id = pending.removeLast();
+      final fragments = footprints[id];
+      if (fragments == null || fragments.isEmpty) {
+        return CircuitEditStatus.invalid;
+      }
+      if (fragments.any((fragment) => !fragment.$2.isDeletable)) {
+        return CircuitEditStatus.protected;
+      }
+      final columns = fragments.map((fragment) => fragment.$3).toSet();
+      if (columns.length != 1) return CircuitEditStatus.invalid;
+      final nextColumn = columns.single + 1;
+      for (final fragment in fragments) {
+        requireGateAt(fragment.$1, nextColumn);
+      }
+    }
+
+    final ordered = required.toList()
+      ..sort((a, b) {
+        final aColumn = footprints[a]!.first.$3;
+        final bColumn = footprints[b]!.first.$3;
+        return bColumn.compareTo(aColumn);
+      });
+    for (final id in ordered) {
+      final fragments = footprints[id]!;
+      for (final fragment in fragments) {
+        rows[fragment.$1][fragment.$3] = PlacedQuantumGate.emptyGate();
+      }
+      for (final fragment in fragments) {
+        final destination = fragment.$3 + 1;
+        final row = rows[fragment.$1];
+        while (row.length <= destination) {
+          row.add(PlacedQuantumGate.emptyGate());
+        }
+        if (row[destination].gate.type != SelectedGateType.none) {
+          return CircuitEditStatus.invalid;
+        }
+        row[destination] = fragment.$2;
+      }
+    }
+    return CircuitEditStatus.changed;
   }
 
   static List<List<PlacedQuantumGate>>? _compactDetachedRows(

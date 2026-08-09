@@ -685,6 +685,133 @@ void main() {
       expect(snapshot(model.placedGates), before);
       expect(notifications, 0);
     });
+
+    test('moving S before T leaves an aligned lower-row Z stationary', () {
+      final model = circuit(4);
+      final upper = <CircuitEditOutcome>[];
+      for (final type in [
+        SelectedGateType.z,
+        SelectedGateType.t,
+        SelectedGateType.s,
+        SelectedGateType.z,
+      ]) {
+        upper.add(model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(type),
+          upper.length,
+          2,
+        ));
+      }
+      model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.z),
+        0,
+        3,
+      );
+      final unaffected = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.z),
+        1,
+        3,
+      );
+      final unaffectedId = unaffected.affectedGateId!;
+      final beforeRows = snapshot(model.placedGates);
+      var notifications = 0;
+      model.addListener(() => notifications++);
+
+      final plan = model.planLogicalGateMove(
+        upper[2].affectedGateId!,
+        const CircuitLocation(qubit: 2, column: 1),
+      );
+      expect(plan.status, CircuitEditStatus.changed);
+      expect(notifications, 0);
+      expect(snapshot(model.placedGates), beforeRows);
+      expect(
+        plan.proposedRows![2]
+            .where((gate) => gate.id != null)
+            .map((gate) => gate.gate.type),
+        [
+          SelectedGateType.z,
+          SelectedGateType.s,
+          SelectedGateType.t,
+          SelectedGateType.z,
+        ],
+      );
+      final proposedUnaffectedLocations = [
+        for (final (qubit, row) in plan.proposedRows!.indexed)
+          for (final (column, gate) in row.indexed)
+            if (gate.id == unaffectedId)
+              CircuitLocation(qubit: qubit, column: column),
+      ];
+      expect(
+        proposedUnaffectedLocations,
+        [const CircuitLocation(qubit: 3, column: 1)],
+      );
+
+      expect(model.commitLogicalGateMovePlan(plan).status,
+          CircuitEditStatus.changed);
+      expect(model.logicalGateById(unaffectedId)!.anchor,
+          const CircuitLocation(qubit: 3, column: 1));
+      expect(snapshot(model.placedGates), snapshot(plan.proposedRows!));
+      expect(notifications, 1);
+    });
+
+    test('controlled collision shifts the complete conflicting footprint only',
+        () {
+      final model = circuit(5);
+      model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        4,
+      );
+      model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        1,
+      );
+      model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+      );
+      model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.x),
+        1,
+        0,
+      );
+      final unaffected = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.z),
+        1,
+        4,
+      );
+      final cz = model.insertDoubleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.cz),
+        1,
+        3,
+        1,
+      );
+      final cx = model.insertDoubleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.cnot),
+        2,
+        2,
+        0,
+      );
+      final czBefore = model.logicalGateById(cz.affectedGateId!)!;
+      final plan = model.planLogicalGateMove(
+        cx.affectedGateId!,
+        const CircuitLocation(qubit: 2, column: 1),
+      );
+      expect(plan.status, CircuitEditStatus.changed);
+
+      expect(model.commitLogicalGateMovePlan(plan).status,
+          CircuitEditStatus.changed);
+      final movedCx = model.logicalGateById(cx.affectedGateId!)!;
+      final displacedCz = model.logicalGateById(cz.affectedGateId!)!;
+      expect(movedCx.column, 1);
+      expect(displacedCz.column, 2);
+      expect(displacedCz.id, czBefore.id);
+      expect(displacedCz.controlQubit, czBefore.controlQubit);
+      expect(displacedCz.targetQubit, czBefore.targetQubit);
+      expect(model.logicalGateById(unaffected.affectedGateId!)!.anchor,
+          const CircuitLocation(qubit: 4, column: 1));
+    });
   });
 
   group('rigid two-dimensional logical movement', () {

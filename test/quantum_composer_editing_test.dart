@@ -700,6 +700,84 @@ void main() {
     );
   });
 
+  testWidgets('move preview shifts only the colliding row in independent rows',
+      (tester) async {
+    late GateId movedId;
+    late GateId unaffectedId;
+    final model = await pumpComposer(
+      tester,
+      qubits: 4,
+      preInsertGates: (circuit) {
+        final upper = <CircuitEditOutcome>[];
+        for (final type in [
+          SelectedGateType.z,
+          SelectedGateType.t,
+          SelectedGateType.s,
+          SelectedGateType.z,
+        ]) {
+          upper.add(circuit.insertSingleGateWithOutcome(
+            Gate.fromIdentifier(type),
+            upper.length,
+            2,
+          ));
+        }
+        movedId = upper[2].affectedGateId!;
+        circuit.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.z),
+          0,
+          3,
+        );
+        unaffectedId = circuit
+            .insertSingleGateWithOutcome(
+              Gate.fromIdentifier(SelectedGateType.z),
+              1,
+              3,
+            )
+            .affectedGateId!;
+      },
+    );
+    var notifications = 0;
+    model.addListener(() => notifications++);
+    final simulationsBefore = model.simulationRunCount;
+    final gesture = await tester.startGesture(circuitPoint(tester, 2, 2));
+    await gesture.moveTo(circuitPoint(tester, 2, 1));
+    await tester.pump();
+
+    final previewPainter = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter)
+        .whereType<QuantumCircuitPainter>()
+        .firstWhere((painter) => painter.previewGates != null);
+    final preview = previewPainter.previewGates!;
+    expect(
+      preview[2].where((gate) => gate.id != null).map((gate) => gate.gate.type),
+      [
+        SelectedGateType.z,
+        SelectedGateType.s,
+        SelectedGateType.t,
+        SelectedGateType.z,
+      ],
+    );
+    expect(preview[3][1].id, unaffectedId);
+    expect(model.logicalGateById(unaffectedId)!.column, 1);
+    expect(model.logicalGateById(movedId)!.column, 2);
+    expect(notifications, 0);
+    expect(model.simulationRunCount, simulationsBefore);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(movedId)!.column, 1);
+    expect(model.logicalGateById(unaffectedId)!.column, 1);
+    expect(
+      model.placedGates
+          .map((row) => row.map((gate) => gate.id).toList())
+          .toList(),
+      preview.map((row) => row.map((gate) => gate.id).toList()).toList(),
+    );
+    expect(notifications, 2); // structural edit and simulation result
+    expect(model.simulationRunCount, simulationsBefore + 1);
+  });
+
   testWidgets('CX translates rigidly from q2-q4 to q0-q2 before commit',
       (tester) async {
     final model = await pumpComposer(
