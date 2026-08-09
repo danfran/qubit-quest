@@ -103,6 +103,36 @@ class LogicalMovePlan {
       );
 }
 
+@immutable
+class LogicalDuplicationPlan {
+  final CircuitEditStatus status;
+  final GateId sourceId;
+  final GateId? duplicateId;
+  final CircuitLocation? resultingLocation;
+  final List<List<PlacedQuantumGate>> baseRows;
+  final List<List<PlacedQuantumGate>>? proposedRows;
+  final String? reason;
+
+  const LogicalDuplicationPlan({
+    required this.status,
+    required this.sourceId,
+    required this.baseRows,
+    this.duplicateId,
+    this.resultingLocation,
+    this.proposedRows,
+    this.reason,
+  });
+
+  bool get changed => status == CircuitEditStatus.changed;
+
+  CircuitEditOutcome get outcome => CircuitEditOutcome(
+        status,
+        affectedGateId: changed ? duplicateId : sourceId,
+        resultingLocation: resultingLocation,
+        detail: reason,
+      );
+}
+
 enum MoveResult { moved, sameSlot, invalid, notFound, notMovable }
 
 enum RemoveGateResult { removed, notFound, notDeletable, notSingleQubit }

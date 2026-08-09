@@ -418,6 +418,179 @@ class QuantumCircuit extends ChangeNotifier {
     return plan.outcome;
   }
 
+  static const Set<SelectedGateType> supportedLogicalDuplicationTypes = {
+    SelectedGateType.hadamard,
+    SelectedGateType.s,
+    SelectedGateType.t,
+    SelectedGateType.x,
+    SelectedGateType.y,
+    SelectedGateType.z,
+    SelectedGateType.rx,
+    SelectedGateType.ry,
+    SelectedGateType.rz,
+    SelectedGateType.cnot,
+    SelectedGateType.cz,
+    SelectedGateType.ccnot,
+  };
+
+  bool _isGateTypeAvailable(SelectedGateType type) =>
+      currentLevel.availableGates.any((gate) => gate.type == type);
+
+  bool canDuplicateLogicalGate(GateId id) {
+    final footprint = logicalGateById(id);
+    return footprint != null &&
+        footprint.isDeletable &&
+        supportedLogicalDuplicationTypes.contains(footprint.type) &&
+        _isGateTypeAvailable(footprint.type);
+  }
+
+  GateId _nextAvailableGateIdCandidate() {
+    var value = _nextGateId;
+    final existing = logicalGates.map((gate) => gate.id).toSet();
+    while (existing.contains(GateId(value))) {
+      value++;
+    }
+    return GateId(value);
+  }
+
+  LogicalDuplicationPlan planLogicalGateDuplication(GateId sourceId) {
+    final baseRows = _copyRows(placedGates);
+    LogicalDuplicationPlan rejected(
+      CircuitEditStatus status,
+      String reason,
+    ) =>
+        LogicalDuplicationPlan(
+          status: status,
+          sourceId: sourceId,
+          baseRows: baseRows,
+          reason: reason,
+        );
+
+    final source = logicalGateById(sourceId);
+    if (source == null) {
+      return rejected(CircuitEditStatus.notFound, 'Source GateId not found.');
+    }
+    if (!source.isDeletable) {
+      return rejected(CircuitEditStatus.protected, 'Source gate is protected.');
+    }
+    if (!supportedLogicalDuplicationTypes.contains(source.type)) {
+      return rejected(
+        CircuitEditStatus.unsupported,
+        'Logical gate does not support duplication.',
+      );
+    }
+    if (!_isGateTypeAvailable(source.type)) {
+      return rejected(
+        CircuitEditStatus.protected,
+        'Gate is unavailable under the current level policy.',
+      );
+    }
+    if (!source.gate.hasValidRequiredParameters) {
+      return rejected(
+        CircuitEditStatus.invalid,
+        'Source gate configuration is invalid.',
+      );
+    }
+
+    final duplicateId = _nextAvailableGateIdCandidate();
+    final destinationColumn = source.column + 1;
+    final proposal = _copyRows(placedGates);
+    final destinationQubits = source.fragments
+        .map((fragment) => fragment.location.qubit)
+        .toList(growable: false);
+    final collision = destinationQubits.any(
+      (qubit) =>
+          _cellAt(proposal, qubit, destinationColumn).gate.type !=
+          SelectedGateType.none,
+    );
+    if (collision) {
+      final makeRoomStatus = _shiftConflictingLogicalGatesRight(
+        proposal,
+        destinationQubits: destinationQubits,
+        destinationColumn: destinationColumn,
+      );
+      if (makeRoomStatus == CircuitEditStatus.protected) {
+        return rejected(
+          CircuitEditStatus.protected,
+          'Making room would displace a protected logical gate.',
+        );
+      }
+      if (makeRoomStatus != CircuitEditStatus.changed) {
+        return rejected(
+          CircuitEditStatus.invalid,
+          'Conflicting logical footprints could not be displaced safely.',
+        );
+      }
+    }
+
+    for (final fragment in source.fragments) {
+      final row = proposal[fragment.location.qubit];
+      while (row.length <= destinationColumn) {
+        row.add(PlacedQuantumGate.emptyGate());
+      }
+      if (row[destinationColumn].gate.type != SelectedGateType.none) {
+        return rejected(
+          CircuitEditStatus.invalid,
+          'Duplicate destination remains occupied.',
+        );
+      }
+      row[destinationColumn] = _copyPlacedGateWithId(
+        fragment.placedGate,
+        duplicateId,
+      );
+    }
+    _trimDetachedRows(proposal);
+    if (!_isValidDuplicatedLogicalGrid(
+      proposal,
+      baseRows,
+      source: source,
+      duplicateId: duplicateId,
+    )) {
+      return rejected(
+        CircuitEditStatus.invalid,
+        'Proposal would corrupt a logical footprint.',
+      );
+    }
+
+    return LogicalDuplicationPlan(
+      status: CircuitEditStatus.changed,
+      sourceId: sourceId,
+      duplicateId: duplicateId,
+      baseRows: baseRows,
+      proposedRows: proposal,
+      resultingLocation: CircuitLocation(
+        qubit: source.anchor.qubit,
+        column: destinationColumn,
+      ),
+    );
+  }
+
+  CircuitEditOutcome commitLogicalGateDuplicationPlan(
+    LogicalDuplicationPlan plan,
+  ) {
+    if (!plan.changed ||
+        plan.proposedRows == null ||
+        plan.duplicateId == null) {
+      return plan.outcome;
+    }
+    if (!_sameGridIdentity(placedGates, plan.baseRows) ||
+        containsGate(plan.duplicateId!)) {
+      return const CircuitEditOutcome(
+        CircuitEditStatus.cancelled,
+        detail: 'Circuit changed after duplication was planned.',
+      );
+    }
+    placedGates = _copyRows(plan.proposedRows!);
+    _nextGateId = max(_nextGateId, plan.duplicateId!.value + 1);
+    notifyListeners();
+    return plan.outcome;
+  }
+
+  CircuitEditOutcome duplicateLogicalGateWithOutcome(GateId sourceId) =>
+      commitLogicalGateDuplicationPlan(
+        planLogicalGateDuplication(sourceId),
+      );
+
   static List<List<PlacedQuantumGate>> _copyRows(
     List<List<PlacedQuantumGate>> rows,
   ) =>
@@ -443,6 +616,23 @@ class QuantumCircuit extends ChangeNotifier {
       isDeletable: gate.isDeletable,
     );
   }
+
+  static PlacedQuantumGate _copyPlacedGateWithId(
+    PlacedQuantumGate gate,
+    GateId id,
+  ) =>
+      PlacedQuantumGate(
+        id: id,
+        gate: gate.gate,
+        controlQubitIndex: gate.controlQubitIndex,
+        control2QubitIndex: gate.control2QubitIndex,
+        targetQubitIndex: gate.targetQubitIndex,
+        isTarget: gate.isTarget,
+        isLink: gate.isLink,
+        isControl: gate.isControl,
+        isControl2: gate.isControl2,
+        isDeletable: gate.isDeletable,
+      );
 
   static int _maxDepthOf(List<List<PlacedQuantumGate>> rows) =>
       rows.fold<int>(0, (depth, row) => max(depth, row.length));
@@ -630,6 +820,61 @@ class QuantumCircuit extends ChangeNotifier {
           return false;
         }
       }
+    }
+    return true;
+  }
+
+  static bool _isValidDuplicatedLogicalGrid(
+    List<List<PlacedQuantumGate>> proposed,
+    List<List<PlacedQuantumGate>> original, {
+    required LogicalGateFootprint source,
+    required GateId duplicateId,
+  }) {
+    final proposedFootprints = _detachedLogicalFragments(proposed);
+    final originalFootprints = _detachedLogicalFragments(original);
+    if (proposedFootprints.length != originalFootprints.length + 1 ||
+        !proposedFootprints.keys.toSet().containsAll(originalFootprints.keys)) {
+      return false;
+    }
+    for (final entry in originalFootprints.entries) {
+      final result = proposedFootprints[entry.key];
+      if (result == null || result.length != entry.value.length) return false;
+      if (result.map((fragment) => fragment.$3).toSet().length != 1) {
+        return false;
+      }
+      final originalCells = entry.value.map((fragment) => fragment.$2).toSet();
+      final resultCells = result.map((fragment) => fragment.$2).toSet();
+      if (originalCells.length != resultCells.length ||
+          !resultCells.containsAll(originalCells)) {
+        return false;
+      }
+    }
+
+    final duplicate = proposedFootprints[duplicateId];
+    if (duplicate == null || duplicate.length != source.fragments.length) {
+      return false;
+    }
+    if (duplicate.map((fragment) => fragment.$3).toSet().length != 1) {
+      return false;
+    }
+    for (final sourceFragment in source.fragments) {
+      final matching = duplicate.where(
+        (fragment) =>
+            fragment.$1 == sourceFragment.location.qubit &&
+            fragment.$2.gate == sourceFragment.placedGate.gate &&
+            fragment.$2.isControl == sourceFragment.placedGate.isControl &&
+            fragment.$2.isControl2 == sourceFragment.placedGate.isControl2 &&
+            fragment.$2.isTarget == sourceFragment.placedGate.isTarget &&
+            fragment.$2.isLink == sourceFragment.placedGate.isLink &&
+            fragment.$2.isDeletable == sourceFragment.placedGate.isDeletable &&
+            fragment.$2.controlQubitIndex ==
+                sourceFragment.placedGate.controlQubitIndex &&
+            fragment.$2.control2QubitIndex ==
+                sourceFragment.placedGate.control2QubitIndex &&
+            fragment.$2.targetQubitIndex ==
+                sourceFragment.placedGate.targetQubitIndex,
+      );
+      if (matching.length != 1) return false;
     }
     return true;
   }

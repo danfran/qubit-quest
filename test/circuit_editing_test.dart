@@ -1526,4 +1526,285 @@ void main() {
       expect(model.logicalGates.map((gate) => gate.id), [id]);
     });
   });
+
+  group('logical gate duplication', () {
+    QuantumCircuit duplicationCircuit({int qubits = 4}) => QuantumCircuit(
+          currentLevel: ComposerLevel(
+            taskDescription: 'duplication test',
+            numQubits: qubits,
+            initialQubitsStateStr: '0' * qubits,
+            initialQubitsState: ComposerLevel.getZeroStateVector(qubits),
+            availableGates: [
+              for (final type in [
+                SelectedGateType.hadamard,
+                SelectedGateType.x,
+                SelectedGateType.y,
+                SelectedGateType.z,
+                SelectedGateType.s,
+                SelectedGateType.t,
+                SelectedGateType.rx,
+                SelectedGateType.ry,
+                SelectedGateType.rz,
+                SelectedGateType.cnot,
+                SelectedGateType.cz,
+                SelectedGateType.ccnot,
+              ])
+                Gate.fromIdentifier(type),
+            ],
+            solutionFinalVector: const [],
+          ),
+        );
+
+    CircuitEditOutcome insertControlled(
+      QuantumCircuit model,
+      SelectedGateType type, {
+      int column = 0,
+      bool isDeletable = true,
+    }) {
+      if (type == SelectedGateType.ccnot) {
+        return model.insertTripleGateWithOutcome(
+          Gate.fromIdentifier(type),
+          column,
+          3,
+          0,
+          1,
+          isDeletable: isDeletable,
+        );
+      }
+      return model.insertDoubleGateWithOutcome(
+        Gate.fromIdentifier(type),
+        column,
+        3,
+        0,
+        isDeletable: isDeletable,
+      );
+    }
+
+    test('duplicate H uses a new identity and commits exactly once', () {
+      final model = duplicationCircuit();
+      final source = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+      );
+      final sourceId = source.affectedGateId!;
+      final plan = model.planLogicalGateDuplication(sourceId);
+      expect(plan.status, CircuitEditStatus.changed);
+      expect(plan.duplicateId, isNot(sourceId));
+      expect(model.logicalGates, hasLength(1));
+
+      var notifications = 0;
+      model.addListener(() => notifications++);
+      final outcome = model.commitLogicalGateDuplicationPlan(plan);
+      expect(outcome.status, CircuitEditStatus.changed);
+      expect(outcome.affectedGateId, plan.duplicateId);
+      expect(model.logicalGateById(sourceId)!.type, SelectedGateType.hadamard);
+      expect(model.logicalGateById(plan.duplicateId!)!.type,
+          SelectedGateType.hadamard);
+      expect(model.logicalGateById(plan.duplicateId!)!.column, 1);
+      expect(model.logicalGates.map((gate) => gate.id).toSet(), hasLength(2));
+      expect(notifications, 1);
+    });
+
+    test('rotation duplication preserves configuration independently', () {
+      final model = duplicationCircuit();
+      final source = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 4),
+        0,
+        1,
+      );
+      final duplicate = model.duplicateLogicalGateWithOutcome(
+        source.affectedGateId!,
+      );
+      expect(duplicate.status, CircuitEditStatus.changed);
+      expect(model.logicalGateById(duplicate.affectedGateId!)!.gate.angle,
+          math.pi / 4);
+      expect(
+        model
+            .updateGateParametersWithOutcome(
+              duplicate.affectedGateId!,
+              angle: math.pi / 2,
+            )
+            .status,
+        CircuitEditStatus.changed,
+      );
+      expect(model.logicalGateById(source.affectedGateId!)!.gate.angle,
+          math.pi / 4);
+      expect(model.logicalGateById(duplicate.affectedGateId!)!.gate.angle,
+          math.pi / 2);
+    });
+
+    for (final type in [
+      SelectedGateType.cnot,
+      SelectedGateType.cz,
+      SelectedGateType.ccnot,
+    ]) {
+      test('duplicate $type preserves its complete topology with one new ID',
+          () {
+        final model = duplicationCircuit();
+        final sourceOutcome = insertControlled(model, type);
+        final source = model.logicalGateById(sourceOutcome.affectedGateId!)!;
+        final outcome = model.duplicateLogicalGateWithOutcome(source.id);
+        final duplicate = model.logicalGateById(outcome.affectedGateId!)!;
+
+        expect(outcome.status, CircuitEditStatus.changed);
+        expect(duplicate.id, isNot(source.id));
+        expect(duplicate.fragments, hasLength(source.fragments.length));
+        expect(duplicate.fragments.map((part) => part.placedGate.id).toSet(),
+            {duplicate.id});
+        expect(duplicate.controlQubit, source.controlQubit);
+        expect(duplicate.secondControlQubit, source.secondControlQubit);
+        expect(duplicate.targetQubit, source.targetQubit);
+        expect(duplicate.occupiedLocations.map((cell) => cell.qubit),
+            source.occupiedLocations.map((cell) => cell.qubit));
+        expect(duplicate.column, source.column + 1);
+      });
+    }
+
+    test('occupied destination shifts only conflicting logical operations', () {
+      final model = duplicationCircuit(qubits: 2);
+      final source = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+      );
+      final blocker = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.t),
+        1,
+        0,
+      );
+      final unrelated = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.z),
+        1,
+        1,
+      );
+      final unrelatedBefore = model.logicalGateById(unrelated.affectedGateId!)!;
+
+      final plan = model.planLogicalGateDuplication(source.affectedGateId!);
+      expect(plan.status, CircuitEditStatus.changed);
+      expect(model.logicalGateById(blocker.affectedGateId!)!.column, 1);
+      expect(model.logicalGateById(unrelated.affectedGateId!)!.anchor,
+          unrelatedBefore.anchor);
+      model.commitLogicalGateDuplicationPlan(plan);
+      expect(model.logicalGateById(blocker.affectedGateId!)!.column, 2);
+      expect(model.logicalGateById(unrelated.affectedGateId!)!.anchor,
+          unrelatedBefore.anchor);
+      expect(model.logicalGateById(unrelated.affectedGateId!)!.id,
+          unrelatedBefore.id);
+    });
+
+    test('protected, unavailable, unknown, and protected obstacle are atomic',
+        () {
+      final model = duplicationCircuit(qubits: 2);
+      final protected = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+        isDeletable: false,
+      );
+      final source = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.x),
+        0,
+        1,
+      );
+      model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.z),
+        1,
+        1,
+        isDeletable: false,
+      );
+      var notifications = 0;
+      model.addListener(() => notifications++);
+      expect(model.planLogicalGateDuplication(const GateId(9999)).status,
+          CircuitEditStatus.notFound);
+      expect(
+          model
+              .duplicateLogicalGateWithOutcome(protected.affectedGateId!)
+              .status,
+          CircuitEditStatus.protected);
+      expect(
+          model.duplicateLogicalGateWithOutcome(source.affectedGateId!).status,
+          CircuitEditStatus.protected);
+      expect(model.logicalGates, hasLength(3));
+      expect(notifications, 0);
+
+      final restricted = circuit(1);
+      final unavailable = restricted.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+      );
+      expect(
+          restricted
+              .duplicateLogicalGateWithOutcome(unavailable.affectedGateId!)
+              .status,
+          CircuitEditStatus.protected);
+    });
+
+    test('chained duplicate edits preserve independent identities', () {
+      final model = duplicationCircuit();
+      final sourceRx = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 4),
+        0,
+        0,
+      );
+      final duplicateRx = model.duplicateLogicalGateWithOutcome(
+        sourceRx.affectedGateId!,
+      );
+      expect(
+          model
+              .updateGateParametersWithOutcome(
+                duplicateRx.affectedGateId!,
+                angle: math.pi / 2,
+              )
+              .status,
+          CircuitEditStatus.changed);
+      expect(
+          model
+              .moveSingleGateWithOutcome(
+                duplicateRx.affectedGateId!,
+                const CircuitLocation(qubit: 1, column: 1),
+              )
+              .status,
+          CircuitEditStatus.changed);
+      expect(
+          model
+              .replaceSingleGateWithOutcome(
+                sourceRx.affectedGateId!,
+                Gate.fromIdentifier(SelectedGateType.hadamard),
+              )
+              .status,
+          CircuitEditStatus.changed);
+
+      final sourceCx = insertControlled(model, SelectedGateType.cnot,
+          column: model.maxCircuitDepth());
+      final duplicateCx = model.duplicateLogicalGateWithOutcome(
+        sourceCx.affectedGateId!,
+      );
+      expect(
+          model
+              .commitLogicalGateMovePlan(
+                model.planLogicalGateMove(
+                  duplicateCx.affectedGateId!,
+                  const CircuitLocation(qubit: 3, column: 0),
+                ),
+              )
+              .status,
+          CircuitEditStatus.changed);
+      expect(
+          model
+              .removeLogicalGateByIdWithOutcome(duplicateCx.affectedGateId!)
+              .status,
+          CircuitEditStatus.changed);
+
+      expect(model.logicalGateById(sourceRx.affectedGateId!)!.type,
+          SelectedGateType.hadamard);
+      expect(model.logicalGateById(duplicateRx.affectedGateId!)!.gate.angle,
+          math.pi / 2);
+      expect(model.logicalGateById(sourceCx.affectedGateId!), isNotNull);
+      expect(model.logicalGateById(duplicateCx.affectedGateId!), isNull);
+      expect(model.logicalGates.map((gate) => gate.id).toSet(),
+          hasLength(model.logicalGates.length));
+    });
+  });
 }

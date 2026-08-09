@@ -572,6 +572,16 @@ class _QuantumComposerState extends State<QuantumComposer>
     }
   }
 
+  void _duplicateSelectedGate() {
+    final selectedId = _selectedGateId;
+    if (selectedId == null) return;
+    final outcome = _circuit.duplicateLogicalGateWithOutcome(selectedId);
+    _handleCommittedCircuitEdit(
+      outcome,
+      selectionAfter: outcome.changed ? outcome.affectedGateId : selectedId,
+    );
+  }
+
   Future<void> _showCCNOTTargetSelectionDialog(
       BuildContext context, int targetQubit, int numQubits) async {
     // Ensure dialog is not already shown
@@ -1729,6 +1739,11 @@ class _QuantumComposerState extends State<QuantumComposer>
         _buildEditAngleHeaderAction(compact: compact),
         SizedBox(width: compact ? 6 : 8),
       ],
+      if (_selectedGateId != null &&
+          _circuit.canDuplicateLogicalGate(_selectedGateId!)) ...[
+        _buildDuplicateGateHeaderAction(compact: compact),
+        SizedBox(width: compact ? 6 : 8),
+      ],
       _buildNotebookHeaderAction(compact: compact),
       SizedBox(width: compact ? 6 : 8),
       _buildMenuHeaderAction(compact: compact),
@@ -1821,6 +1836,50 @@ class _QuantumComposerState extends State<QuantumComposer>
         child: InkWell(
           key: const ValueKey('edit-selected-gate-angle'),
           onTap: _editSelectedRotationAngle,
+          borderRadius: BorderRadius.circular(16),
+          child: content,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDuplicateGateHeaderAction({required bool compact}) {
+    final content = compact
+        ? _HeaderActionShell(
+            size: 34,
+            child: Icon(Icons.copy_rounded, size: 17, color: qqCyan),
+          )
+        : SizedBox(
+            width: 58,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _HeaderActionShell(
+                  size: 32,
+                  child: Icon(Icons.copy_rounded, size: 16, color: qqCyan),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Duplicate',
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.78),
+                    fontSize: 9,
+                    height: 1,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          );
+    return Semantics(
+      label: 'Duplicate gate',
+      button: true,
+      child: Tooltip(
+        message: 'Duplicate gate',
+        child: InkWell(
+          key: const ValueKey('duplicate-selected-gate'),
+          onTap: _duplicateSelectedGate,
           borderRadius: BorderRadius.circular(16),
           child: content,
         ),

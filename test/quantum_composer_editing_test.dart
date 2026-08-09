@@ -1892,4 +1892,160 @@ void main() {
       expect(tester.takeException(), isNull);
     }
   });
+
+  testWidgets('Duplicate is contextual and respects editability policy',
+      (tester) async {
+    await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.hadamard),
+      palette: [Gate.fromIdentifier(SelectedGateType.hadamard)],
+    );
+    expect(find.byKey(const ValueKey('duplicate-selected-gate')), findsNothing);
+    await selectFirstGate(tester);
+    expect(
+        find.byKey(const ValueKey('duplicate-selected-gate')), findsOneWidget);
+    expect(find.text('Duplicate'), findsOneWidget);
+
+    await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 4),
+      palette: [
+        Gate.fromIdentifier(SelectedGateType.rx),
+        Gate.fromIdentifier(SelectedGateType.x),
+      ],
+    );
+    await selectFirstGate(tester);
+    expect(
+        find.byKey(const ValueKey('duplicate-selected-gate')), findsOneWidget);
+    expect(find.byKey(const ValueKey('replace-selected-gate')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('edit-selected-gate-angle')), findsOneWidget);
+
+    await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.hadamard),
+      isDeletable: false,
+      palette: [Gate.fromIdentifier(SelectedGateType.hadamard)],
+    );
+    await selectFirstGate(tester);
+    expect(find.byKey(const ValueKey('duplicate-selected-gate')), findsNothing);
+  });
+
+  testWidgets('Duplicate H selects new copy and commits/simulates once',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.hadamard),
+      palette: [
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        Gate.fromIdentifier(SelectedGateType.x),
+      ],
+    );
+    final sourceId = model.placedGates[0][0].id!;
+    await selectFirstGate(tester);
+    final simulationsBefore = model.simulationRunCount;
+    var notifications = 0;
+    model.addListener(() => notifications++);
+
+    await tester.tap(find.byKey(const ValueKey('duplicate-selected-gate')));
+    await tester.pumpAndSettle();
+
+    expect(model.logicalGates, hasLength(2));
+    final duplicate = model.logicalGates.singleWhere(
+      (gate) => gate.id != sourceId,
+    );
+    expect(duplicate.type, SelectedGateType.hadamard);
+    expect(duplicate.column, 1);
+    expect(model.simulationRunCount, simulationsBefore + 1);
+    expect(notifications, 2); // one structural and one simulation notification
+    expect(find.bySemanticsLabel('Selected gate H'), findsOneWidget);
+
+    final gesture = await tester.startGesture(circuitPoint(tester, 0, 1));
+    await gesture.moveTo(circuitPoint(tester, 1, 1));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(duplicate.id)!.anchor.qubit, 1);
+  });
+
+  testWidgets('rotation duplicate keeps angle and can be edited independently',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 4),
+      palette: [
+        Gate.fromIdentifier(SelectedGateType.rx),
+        Gate.fromIdentifier(SelectedGateType.x),
+      ],
+    );
+    final sourceId = model.placedGates[0][0].id!;
+    await selectFirstGate(tester);
+    await tester.tap(find.byKey(const ValueKey('duplicate-selected-gate')));
+    await tester.pumpAndSettle();
+    final duplicate = model.logicalGates.singleWhere(
+      (gate) => gate.id != sourceId,
+    );
+    expect(duplicate.gate.angle, math.pi / 4);
+    expect(find.text('Select Rotation Angle'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('edit-selected-gate-angle')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const ValueKey('fractional-angle-denominator')), '2');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+    expect(model.logicalGateById(sourceId)!.gate.angle, math.pi / 4);
+    expect(model.logicalGateById(duplicate.id)!.gate.angle, math.pi / 2);
+  });
+
+  for (final type in [
+    SelectedGateType.cnot,
+    SelectedGateType.cz,
+    SelectedGateType.ccnot,
+  ]) {
+    testWidgets('selected $type exposes Duplicate and copies full footprint',
+        (tester) async {
+      final model = await pumpComposer(
+        tester,
+        qubits: 3,
+        palette: [Gate.fromIdentifier(type)],
+        preInsertGates: (circuit) => insertControlledGate(circuit, type),
+      );
+      final sourceId = model.logicalGates.single.id;
+      await tester.tapAt(circuitPoint(tester, 0, 0));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('duplicate-selected-gate')),
+          findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('duplicate-selected-gate')));
+      await tester.pumpAndSettle();
+      final duplicate = model.logicalGates.singleWhere(
+        (gate) => gate.id != sourceId,
+      );
+      expect(duplicate.fragments,
+          hasLength(model.logicalGateById(sourceId)!.fragments.length));
+      expect(duplicate.fragments.map((part) => part.placedGate.id).toSet(),
+          {duplicate.id});
+      expect(find.bySemanticsLabel('Selected gate ${duplicate.gate.label}'),
+          findsWidgets);
+    });
+  }
+
+  testWidgets('Duplicate action remains layout-safe in portrait and landscape',
+      (tester) async {
+    for (final viewport in const [Size(430, 850), Size(900, 500)]) {
+      await pumpComposer(
+        tester,
+        viewportSize: viewport,
+        placedGate:
+            Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 4),
+        palette: [
+          Gate.fromIdentifier(SelectedGateType.rx),
+          Gate.fromIdentifier(SelectedGateType.x),
+        ],
+      );
+      await selectFirstGate(tester);
+      expect(find.byKey(const ValueKey('duplicate-selected-gate')),
+          findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+  });
 }
