@@ -3,6 +3,7 @@ import 'package:quantumquiz/models/discovery_progress.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/qq_level.dart';
+import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 
 class ChapterIntroScreen extends StatelessWidget {
@@ -1074,15 +1075,7 @@ class _RelatedDiscoveryChip extends StatelessWidget {
 }
 
 String _formatNotebookDisplayText(String value) {
-  return value
-      .replaceAllMapped(
-        RegExp(r'\|([01+\-−]+)>'),
-        (match) => '|${match.group(1)!.replaceAll('-', '−')}⟩',
-      )
-      .replaceAll(r'\sqrt{2}', '√2')
-      .replaceAll('sqrt(2)', '√2')
-      .replaceAll('sqrt2', '√2')
-      .replaceAll('->', '→');
+  return formatQuantumNotationForPlainText(value);
 }
 
 class DiscoveryPrototypeChapter {

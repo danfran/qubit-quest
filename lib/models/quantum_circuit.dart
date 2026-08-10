@@ -25,6 +25,9 @@ class MalformedCircuitException implements Exception {
   String get gateLabel => Gate.fromIdentifier(gateType).label;
 
   String get userMessage {
+    if (parameterName != 'angle') {
+      return 'The $gateLabel gate is incomplete. Remove it and place it again.';
+    }
     return 'Choose an angle for the $gateLabel gate before checking the circuit.';
   }
 
@@ -38,6 +41,7 @@ class MalformedCircuitException implements Exception {
 // Make QuantumCircuit extend ChangeNotifier
 class QuantumCircuit extends ChangeNotifier {
   int _nextGateId = 1;
+  bool _suppressStructuralNotifications = false;
 
   GateId _allocateGateId() => GateId(_nextGateId++);
   // List to store the placed gate instances that define the circuit structure
@@ -132,7 +136,7 @@ class QuantumCircuit extends ChangeNotifier {
       trimCircuit();
     }
 
-    if (notifyChange) notifyListeners();
+    if (notifyChange && !_suppressStructuralNotifications) notifyListeners();
     return CircuitEditOutcome(
       CircuitEditStatus.changed,
       affectedGateId: resolvedId,
@@ -288,6 +292,12 @@ class QuantumCircuit extends ChangeNotifier {
     if (!footprint.isDeletable) {
       return rejected(CircuitEditStatus.protected, 'Source gate is protected.');
     }
+    if (!footprint.hasValidTopology(currentLevel.numQubits)) {
+      return rejected(
+        CircuitEditStatus.invalid,
+        'Source logical footprint is malformed.',
+      );
+    }
     if (!footprint.canTranslateRigidly) {
       return rejected(
         CircuitEditStatus.unsupported,
@@ -414,7 +424,7 @@ class QuantumCircuit extends ChangeNotifier {
       );
     }
     placedGates = _copyRows(plan.proposedRows!);
-    notifyListeners();
+    if (!_suppressStructuralNotifications) notifyListeners();
     return plan.outcome;
   }
 
@@ -472,6 +482,12 @@ class QuantumCircuit extends ChangeNotifier {
     }
     if (!source.isDeletable) {
       return rejected(CircuitEditStatus.protected, 'Source gate is protected.');
+    }
+    if (!source.hasValidTopology(currentLevel.numQubits)) {
+      return rejected(
+        CircuitEditStatus.invalid,
+        'Source logical footprint is malformed.',
+      );
     }
     if (!supportedLogicalDuplicationTypes.contains(source.type)) {
       return rejected(
@@ -582,7 +598,7 @@ class QuantumCircuit extends ChangeNotifier {
     }
     placedGates = _copyRows(plan.proposedRows!);
     _nextGateId = max(_nextGateId, plan.duplicateId!.value + 1);
-    notifyListeners();
+    if (!_suppressStructuralNotifications) notifyListeners();
     return plan.outcome;
   }
 
@@ -1182,7 +1198,7 @@ class QuantumCircuit extends ChangeNotifier {
     trimCircuit();
 
     // Notify listeners that the state has changed
-    notifyListeners();
+    if (!_suppressStructuralNotifications) notifyListeners();
     return CircuitEditOutcome(
       CircuitEditStatus.changed,
       affectedGateId: gateId,
@@ -1322,8 +1338,7 @@ class QuantumCircuit extends ChangeNotifier {
             isDeletable: isDeletable,
           );
           insertGateAt(control2Gate, insertionPosition, i);
-        } else if (i > control1QubitIndex && i < targetQubitIndex ||
-            i < control1QubitIndex && i > targetQubitIndex) {
+        } else if (i > from && i < to) {
           PlacedQuantumGate linkGate = PlacedQuantumGate(
             id: gateId,
             gate: gate,
@@ -1347,7 +1362,7 @@ class QuantumCircuit extends ChangeNotifier {
     trimCircuit();
 
     // Notify listeners that the state has changed
-    notifyListeners();
+    if (!_suppressStructuralNotifications) notifyListeners();
     return CircuitEditOutcome(
       CircuitEditStatus.changed,
       affectedGateId: gateId,
@@ -1517,7 +1532,12 @@ class QuantumCircuit extends ChangeNotifier {
     placedGates = List.generate(currentLevel.numQubits, (index) => []);
     // Reset the currentState back to the initial ground state
     currentState = QubitState.fromList(currentLevel.initialQubitsState);
-    currentLevel.preInsertGates(this);
+    _suppressStructuralNotifications = true;
+    try {
+      currentLevel.preInsertGates(this);
+    } finally {
+      _suppressStructuralNotifications = false;
+    }
     debugPrint(
         "Circuit cleared. Total placed gates: ${placedGates.length}"); // Debug debugPrint
     // ** Notify listeners that the state has changed **
@@ -1649,6 +1669,16 @@ class QuantumCircuit extends ChangeNotifier {
   /// This is the "transform operator".
   QuantumMatrix getOverallCircuitMatrix() {
     lastSimulationError = null;
+    for (final footprint in logicalGates) {
+      if (!footprint.hasValidTopology(currentLevel.numQubits)) {
+        throw MalformedCircuitException(
+          gateType: footprint.type,
+          columnIndex: footprint.anchor.column,
+          qubitIndex: footprint.anchor.qubit,
+          parameterName: 'logical footprint',
+        );
+      }
+    }
     int totalDepth = maxCircuitDepth();
     if (totalDepth == 0) {
       return QuantumMatrix.identity(

@@ -2349,7 +2349,7 @@ void main() {
       expect(level.taskDescription, isNot(contains(r'|i\rangle')));
       expect(
         level.targetStateExpression,
-        equals('e^{iπ/4}|1⟩ = (1+i)|1⟩/√2'),
+        equals('e^{iπ/4}|1⟩ = ((1+i)/√2)|1⟩'),
       );
       expect(level.solutionFinalVector[0][0], equals(Complex.zero()));
       expect(

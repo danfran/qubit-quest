@@ -1841,7 +1841,7 @@ final List<QQLevel> _authoredQQLevels = [
     taskDescription:
         r"Apply a phase shift to the state \( |1\rangle \) to transform it to \( e^{i\pi/4}|1\rangle \). This requires an Rz gate.",
     targetStateLabel: "e^{iπ/4}|1⟩",
-    targetStateExpression: "e^{iπ/4}|1⟩ = (1+i)|1⟩/√2",
+    targetStateExpression: "e^{iπ/4}|1⟩ = ((1+i)/√2)|1⟩",
     conceptIntro:
         'Rz(θ) rotates around the Z-axis: Rz(θ)|0⟩ = e^(−iθ/2)|0⟩ and Rz(θ)|1⟩ = e^(iθ/2)|1⟩. '
         'Since |0⟩ and |1⟩ get opposite phases, Rz only creates a relative phase — '
@@ -1918,7 +1918,7 @@ final List<QQLevel> _authoredQQLevels = [
     taskDescription:
         r"Combine two different rotation gates to get a specific final state. The first rotation is given.",
     targetStateLabel: "Complex equator state",
-    targetStateExpression: "((1+i)|0⟩ + (1-i)|1⟩)/2",
+    targetStateExpression: "((1+i)/2)|0⟩ + ((1-i)/2)|1⟩",
     conceptIntro:
         'Combining rotations around different axes creates states unreachable by either axis alone. '
         'The Bloch sphere shows why: a single axis can only reach a circle of states, '
@@ -1962,7 +1962,7 @@ final List<QQLevel> _authoredQQLevels = [
     taskDescription:
         r"Use a rotation gate to apply a very specific phase shift on a multi-qubit state. The initial state is a superposition.",
     targetStateLabel: "Phased Bell pair",
-    targetStateExpression: "(e^{-iπ/8}|00⟩ + e^{iπ/8}|11⟩)/√2",
+    targetStateExpression: "(e^{-iπ/8}/√2)|00⟩ + (e^{iπ/8}/√2)|11⟩",
     conceptIntro:
         'Rotation gates can be applied to individual qubits of an entangled state. '
         'Rz(θ) on Q0 of Φ⁺=(|00⟩+|11⟩)/√2 adds e^(−iθ/2) when Q0=0 '
