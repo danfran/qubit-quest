@@ -1112,7 +1112,7 @@ void main() {
           initialQubitsStateStr: '10',
           numQubits: 2,
         ),
-        equals(['|1⟩', '|0⟩']),
+        equals(['|0⟩', '|1⟩']),
       );
     });
 

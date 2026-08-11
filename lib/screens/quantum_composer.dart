@@ -39,6 +39,46 @@ enum _MasteryChallengeCompletionAction {
   continueJourney,
 }
 
+typedef _ComposerInsertCallback = CircuitEditOutcome Function({
+  required Gate gate,
+  required CircuitLocation location,
+  int? controlQubit,
+  int? secondControlQubit,
+});
+
+/// Drives the Composer's normal insertion pipeline without exposing its live
+/// circuit or its completion/validation internals.
+class QuantumComposerController {
+  _ComposerInsertCallback? _insert;
+
+  bool get isAttached => _insert != null;
+
+  CircuitEditOutcome insertGate({
+    required Gate gate,
+    required CircuitLocation location,
+    int? controlQubit,
+    int? secondControlQubit,
+  }) {
+    final insert = _insert;
+    if (insert == null) {
+      return const CircuitEditOutcome(
+        CircuitEditStatus.notFound,
+        detail: 'QuantumComposerController is not attached.',
+      );
+    }
+    return insert(
+      gate: gate,
+      location: location,
+      controlQubit: controlQubit,
+      secondControlQubit: secondControlQubit,
+    );
+  }
+
+  void _attach(_ComposerInsertCallback insert) => _insert = insert;
+
+  void _detach() => _insert = null;
+}
+
 @visibleForTesting
 bool requiresRotationAngleSelection(Gate gate) {
   return gate.requiresAngle && gate.angle == null;
@@ -49,6 +89,7 @@ class QuantumComposer extends StatefulWidget {
   final ComposerLevel level;
   final Function(int unlockedLevel)? onLevelUnlocked;
   final bool isCompleted;
+  final QuantumComposerController? controller;
 
   const QuantumComposer({
     super.key,
@@ -56,6 +97,7 @@ class QuantumComposer extends StatefulWidget {
     required this.level,
     required this.onLevelUnlocked,
     this.isCompleted = false,
+    this.controller,
   });
 
   @override
@@ -210,6 +252,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     _availableGates = widget.level.availableGates;
     _solutionVector = widget.level.solutionFinalVector;
     _circuit = QuantumCircuit(currentLevel: widget.level);
+    widget.controller?._attach(_insertGateFromController);
 
     debugPrint('Task: $_taskDescription');
     debugPrint('Number of qubits: $_numQubits');
@@ -220,6 +263,7 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   @override
   void dispose() {
+    widget.controller?._detach();
     _adaptiveInsightAutoDismissTimer?.cancel();
     _gatesScrollController.removeListener(_updateScrollButtonStates);
     _gatesScrollController.dispose(); // Dispose the controller
@@ -228,6 +272,60 @@ class _QuantumComposerState extends State<QuantumComposer>
       ..dispose();
     _notebookPulseController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant QuantumComposer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) return;
+    oldWidget.controller?._detach();
+    widget.controller?._attach(_insertGateFromController);
+  }
+
+  CircuitEditOutcome _insertGateFromController({
+    required Gate gate,
+    required CircuitLocation location,
+    int? controlQubit,
+    int? secondControlQubit,
+  }) {
+    final CircuitEditOutcome outcome;
+    if (gate.type == SelectedGateType.ccnot) {
+      if (controlQubit == null || secondControlQubit == null) {
+        return const CircuitEditOutcome(
+          CircuitEditStatus.invalid,
+          detail: 'CCNOT requires two controls.',
+        );
+      }
+      outcome = _circuit.insertTripleGateWithOutcome(
+        gate,
+        location.column,
+        location.qubit,
+        controlQubit,
+        secondControlQubit,
+      );
+    } else if (gate.type == SelectedGateType.cnot ||
+        gate.type == SelectedGateType.cz) {
+      if (controlQubit == null) {
+        return const CircuitEditOutcome(
+          CircuitEditStatus.invalid,
+          detail: 'Controlled gate requires a control.',
+        );
+      }
+      outcome = _circuit.insertDoubleGateWithOutcome(
+        gate,
+        location.column,
+        location.qubit,
+        controlQubit,
+      );
+    } else {
+      outcome = _circuit.insertSingleGateWithOutcome(
+        gate,
+        location.column,
+        location.qubit,
+      );
+    }
+    _handleCommittedCircuitEdit(outcome);
+    return outcome;
   }
 
   void _setInteractionMode(SelectedGateType mode) {
@@ -1663,8 +1761,11 @@ class _QuantumComposerState extends State<QuantumComposer>
     if (runningAsQuantumComposer()) {
       return 0;
     }
+    if (_adaptiveInsight != null && !_adaptiveInsightDismissed) {
+      return short ? 176 : 196;
+    }
     if (_checkFeedbackTitle != null) {
-      return short ? 82 : 92;
+      return short ? 98 : 108;
     }
     return short ? 40 : 44;
   }

@@ -223,7 +223,10 @@ class QuantumCircuitPainter extends CustomPainter {
     }
 
     if (RegExp(r'^[01]+$').hasMatch(label) && label.length == numQubits) {
-      return label.split('').map((bit) => '|$bit⟩').toList();
+      // Kets are written |q(n-1)...q0>, while circuit wires are ordered
+      // top-to-bottom as Q0, Q1, ... . Reverse the authored ket bits so each
+      // wire label agrees with the simulator's little-endian qubit indexing.
+      return label.split('').reversed.map((bit) => '|$bit⟩').toList();
     }
 
     return List<String>.generate(
