@@ -405,6 +405,66 @@ void main() {
   });
 
   testWidgets(
+      'one-qubit palette drag uses one candidate for wire preview and commit',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      qubits: 1,
+      placedGateCount: 0,
+      palette: [Gate.fromIdentifier(SelectedGateType.hadamard)],
+    );
+    final paletteDrag = find.byType(Draggable<CircuitDragData>).first;
+    final surface = circuitSurfaceRect(tester);
+    final destination = Offset(surface.center.dx, surface.bottom - 3);
+    final gesture = await tester.startGesture(tester.getCenter(paletteDrag));
+    await gesture.moveTo(destination);
+    await tester.pump();
+
+    final painter = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter)
+        .whereType<QuantumCircuitPainter>()
+        .firstWhere((candidate) => candidate.previewGates != null);
+    expect(painter.highlightedQubit, 0);
+    expect(painter.previewGates![0].single.gate.type,
+        SelectedGateType.draggedGate);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(model.logicalGates, hasLength(1));
+    expect(model.logicalGates.single.anchor.qubit, 0);
+    expect(model.logicalGates.single.type, SelectedGateType.hadamard);
+  });
+
+  testWidgets(
+      'outside horizontal area shows no wire candidate and does not insert',
+      (tester) async {
+    final model = await pumpComposer(
+      tester,
+      qubits: 1,
+      placedGateCount: 0,
+      palette: [Gate.fromIdentifier(SelectedGateType.hadamard)],
+    );
+    final paletteDrag = find.byType(Draggable<CircuitDragData>).first;
+    final surface = circuitSurfaceRect(tester);
+    final gesture = await tester.startGesture(tester.getCenter(paletteDrag));
+    await gesture.moveTo(Offset(surface.left - 4, surface.center.dy));
+    await tester.pump();
+
+    final painters = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter)
+        .whereType<QuantumCircuitPainter>();
+    expect(
+        painters.every((painter) => painter.highlightedQubit == null), isTrue);
+    expect(painters.every((painter) => painter.previewGates == null), isTrue);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(model.isCircuitEmpty(), isTrue);
+  });
+
+  testWidgets(
       'controlled control, target, second control and link select one ID',
       (tester) async {
     final cnot = await pumpComposer(

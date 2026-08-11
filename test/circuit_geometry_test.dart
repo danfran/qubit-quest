@@ -79,6 +79,41 @@ void main() {
     expect(CircuitGeometry.insertionColumnForPoint(const Offset(60, 20)), 1);
   });
 
+  group('nearest-wire drop resolution', () {
+    QuantumCircuit circuit(int qubits) => QuantumCircuit(
+          currentLevel: ComposerLevel(
+            taskDescription: 'nearest wire',
+            numQubits: qubits,
+            initialQubitsStateStr: '0' * qubits,
+            initialQubitsState: ComposerLevel.getZeroStateVector(qubits),
+            availableGates: const [],
+            solutionFinalVector: const [],
+          ),
+        );
+
+    test('one-qubit active area has no vertical dead zone', () {
+      final candidateCircuit = circuit(1);
+      for (final y in [-100.0, 0.0, 20.0, 80.0, 500.0]) {
+        final destination = CircuitGeometry.dropDestinationForPoint(
+          circuit: candidateCircuit,
+          contentPoint: Offset(40, y),
+        );
+        expect(
+            destination?.location, const CircuitLocation(qubit: 0, column: 0));
+      }
+    });
+
+    test('multi-qubit bands resolve to nearest wire with upper tie-break', () {
+      expect(CircuitGeometry.nearestQubitForPoint(const Offset(40, -20), 3), 0);
+      expect(CircuitGeometry.nearestQubitForPoint(const Offset(40, 39), 3), 0);
+      expect(CircuitGeometry.nearestQubitForPoint(const Offset(40, 40), 3), 0);
+      expect(CircuitGeometry.nearestQubitForPoint(const Offset(40, 41), 3), 1);
+      expect(CircuitGeometry.nearestQubitForPoint(const Offset(40, 80), 3), 1);
+      expect(CircuitGeometry.nearestQubitForPoint(const Offset(40, 81), 3), 2);
+      expect(CircuitGeometry.nearestQubitForPoint(const Offset(40, 400), 3), 2);
+    });
+  });
+
   test('viewport-to-content mapping includes horizontal scroll offset', () {
     expect(
       CircuitCoordinateMapper.viewportToContent(

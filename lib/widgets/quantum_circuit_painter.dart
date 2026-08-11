@@ -42,12 +42,14 @@ class QuantumCircuitPainter extends CustomPainter {
   final List<List<PlacedQuantumGate>>? previewGates;
   final GateId? selectedGateId;
   final GateId? ghostedGateId;
+  final int? highlightedQubit;
 
   QuantumCircuitPainter(
     this.circuit, {
     this.previewGates,
     this.selectedGateId,
     this.ghostedGateId,
+    this.highlightedQubit,
   });
 
   GateGradientStyle _visualForGate(Gate gate) =>
@@ -285,6 +287,21 @@ class QuantumCircuitPainter extends CustomPainter {
             lineY), // End line before padding on the right
         linePaint,
       );
+      if (highlightedQubit == i) {
+        final glowPaint = Paint()
+          ..color = const Color(0xFF56CCF2).withValues(alpha: 0.30)
+          ..strokeWidth = 7
+          ..strokeCap = StrokeCap.round
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+        final activeWirePaint = Paint()
+          ..color = const Color(0xFF7DE3FF)
+          ..strokeWidth = 2.6
+          ..strokeCap = StrokeCap.round;
+        final start = Offset(padding, lineY);
+        final end = Offset(size.width - padding, lineY);
+        canvas.drawLine(start, end, glowPaint);
+        canvas.drawLine(start, end, activeWirePaint);
+      }
 
       // ** Draw the debug hit area for this qubit line **
       final Rect qubitHitRect = Rect.fromLTRB(

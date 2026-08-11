@@ -846,6 +846,10 @@ class _QuantumComposerState extends State<QuantumComposer>
     );
   }
 
+  bool _isValidMovePlan(LogicalMovePlan plan) =>
+      plan.status == CircuitEditStatus.changed ||
+      plan.status == CircuitEditStatus.same;
+
   bool _isClearlyOutsideCircuitForDeletion(Offset pointerPosition) {
     final renderBox =
         _gestureDetectorKey.currentContext?.findRenderObject() as RenderBox?;
@@ -1363,12 +1367,15 @@ class _QuantumComposerState extends State<QuantumComposer>
       circuit: _circuit,
       contentPoint: localPosition,
     );
-    final destination = rawDestination == null
+    var destination = rawDestination == null
         ? null
         : _logicalMoveDestination(rawDestination, data);
     final movePlan = data.isPlaced && destination != null
         ? _circuit.planLogicalGateMove(data.sourceId!, destination.location)
         : null;
+    if (movePlan != null && !_isValidMovePlan(movePlan)) {
+      destination = null;
+    }
     setState(() {
       _latestCircuitDragGlobalPosition = offset;
       _draggingOffset = localPosition;
@@ -1392,15 +1399,20 @@ class _QuantumComposerState extends State<QuantumComposer>
       contentPoint: contentPosition,
     );
     final dragData = _activeDragData;
-    final destination = rawDestination == null || dragData == null
+    var destination = dragData == null
         ? rawDestination
-        : _logicalMoveDestination(rawDestination, dragData);
+        : rawDestination == null
+            ? null
+            : _logicalMoveDestination(rawDestination, dragData);
     final movePlan = dragData?.isPlaced == true && destination != null
         ? _circuit.planLogicalGateMove(
             dragData!.sourceId!,
             destination.location,
           )
         : null;
+    if (movePlan != null && !_isValidMovePlan(movePlan)) {
+      destination = null;
+    }
     setState(() {
       _draggingOffset = contentPosition;
       _draggingDestination = destination;
@@ -2254,22 +2266,13 @@ class _QuantumComposerState extends State<QuantumComposer>
       decoration: BoxDecoration(
         color: qqCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDraggingGate ? qqCyan : qqComposerCardBorder.color,
-          width: isDraggingGate ? 1.5 : qqComposerCardBorder.width,
-        ),
+        border: Border.all(color: qqComposerCardBorder.color),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.28),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
-          if (isDraggingGate)
-            BoxShadow(
-              color: qqCyan.withValues(alpha: 0.16),
-              blurRadius: 24,
-              spreadRadius: 1,
-            ),
         ],
       ),
       padding: _circuitCardPadding(compact: compact),
@@ -2592,16 +2595,11 @@ class _QuantumComposerState extends State<QuantumComposer>
       decoration: BoxDecoration(
         color: const Color(0xFF020713),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDraggingGate ? qqCyan : qqComposerInnerBorder.color,
-          width: isDraggingGate ? 1.5 : qqComposerInnerBorder.width,
-        ),
+        border: Border.all(color: qqComposerInnerBorder.color),
         boxShadow: [
           BoxShadow(
-            color: isDraggingGate
-                ? qqCyan.withValues(alpha: 0.13)
-                : Colors.black.withValues(alpha: 0.18),
-            blurRadius: isDraggingGate ? 18 : 10,
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 10,
             offset: const Offset(0, 8),
           ),
         ],
@@ -2670,7 +2668,7 @@ class _QuantumComposerState extends State<QuantumComposer>
                                   maxPosition + 4,
                                 ),
                                 isDragging: isDraggingGate,
-                                dragOffset: _draggingOffset,
+                                destination: _draggingDestination,
                               ),
                             ),
                             CustomPaint(
@@ -2684,6 +2682,8 @@ class _QuantumComposerState extends State<QuantumComposer>
                                 ghostedGateId: _activeDragData?.isPlaced == true
                                     ? _activeDragData!.sourceId
                                     : null,
+                                highlightedQubit:
+                                    _draggingDestination?.location.qubit,
                               ),
                               child: ListenableBuilder(
                                 listenable: _circuit,
@@ -3433,13 +3433,13 @@ class _CircuitGuidePainter extends CustomPainter {
   final int numQubits;
   final int columns;
   final bool isDragging;
-  final Offset? dragOffset;
+  final CircuitDropDestination? destination;
 
   const _CircuitGuidePainter({
     required this.numQubits,
     required this.columns,
     required this.isDragging,
-    required this.dragOffset,
+    required this.destination,
   });
 
   @override
@@ -3462,12 +3462,8 @@ class _CircuitGuidePainter extends CustomPainter {
       ..color = _QuantumComposerState.qqCyan.withValues(alpha: 0.06)
       ..style = PaintingStyle.fill;
 
-    int? activeQubit;
-    int? activeColumn;
-    if (dragOffset != null) {
-      activeQubit = CircuitGeometry.qubitForPoint(dragOffset!, numQubits);
-      activeColumn = CircuitGeometry.insertionColumnForPoint(dragOffset!);
-    }
+    final activeQubit = destination?.location.qubit;
+    final activeColumn = destination?.location.column;
 
     if (isDragging) {
       for (int column = 0; column < columns; column++) {
@@ -3524,6 +3520,6 @@ class _CircuitGuidePainter extends CustomPainter {
     return oldDelegate.numQubits != numQubits ||
         oldDelegate.columns != columns ||
         oldDelegate.isDragging != isDragging ||
-        oldDelegate.dragOffset != dragOffset;
+        oldDelegate.destination != destination;
   }
 }

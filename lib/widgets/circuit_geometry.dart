@@ -64,6 +64,25 @@ class CircuitGeometry {
     return null;
   }
 
+  /// Resolves every vertical point in the active circuit surface to its
+  /// nearest wire. Equal-distance midpoints consistently prefer the upper
+  /// (lower-indexed) wire.
+  static int? nearestQubitForPoint(Offset point, int qubitCount) {
+    if (qubitCount <= 0) return null;
+    var nearestQubit = 0;
+    var nearestDistance =
+        (point.dy - CircuitLayoutMetrics.wireCenterY(0)).abs();
+    for (var qubit = 1; qubit < qubitCount; qubit++) {
+      final distance =
+          (point.dy - CircuitLayoutMetrics.wireCenterY(qubit)).abs();
+      if (distance < nearestDistance) {
+        nearestQubit = qubit;
+        nearestDistance = distance;
+      }
+    }
+    return nearestQubit;
+  }
+
   static int insertionColumnForPoint(Offset point) {
     final relativeX = point.dx - CircuitLayoutMetrics.padding;
     return (relativeX / CircuitLayoutMetrics.gateSpacing)
@@ -75,7 +94,7 @@ class CircuitGeometry {
     required QuantumCircuit circuit,
     required Offset contentPoint,
   }) {
-    final qubit = qubitForPoint(
+    final qubit = nearestQubitForPoint(
       contentPoint,
       circuit.currentLevel.numQubits,
     );
