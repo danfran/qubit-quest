@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
-import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
@@ -31,8 +30,6 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
   late bool _isCompleted;
   late QuantumCircuit _circuit;
 
-  final ValueNotifier<double> _circuitWidthNotifier = ValueNotifier(0.0);
-
   bool get _isCorrect => _selected == widget.level.correctOptionIndex;
 
   @override
@@ -45,7 +42,6 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
   @override
   void dispose() {
     _circuit.dispose();
-    _circuitWidthNotifier.dispose();
     super.dispose();
   }
 
@@ -136,12 +132,7 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
                         child: SizedBox(
                           width: w,
                           child: CustomPaint(
-                            painter: QuantumCircuitPainter(
-                              _circuit,
-                              _circuitWidthNotifier,
-                              null,
-                              Gate.fromIdentifier(SelectedGateType.none),
-                            ),
+                            painter: QuantumCircuitPainter(_circuit),
                           ),
                         ),
                       );

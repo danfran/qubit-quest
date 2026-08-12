@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/foundation.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
+import 'package:quantumquiz/models/canonical_composer_solution.dart';
+import 'package:quantumquiz/models/canonical_solution_catalog.dart';
 import 'package:quantumquiz/models/qq_levels_category.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
@@ -122,6 +124,12 @@ final List<QQLevel> _authoredQQLevels = [
       Gate.fromIdentifier(SelectedGateType.hadamard),
       Gate.fromIdentifier(SelectedGateType.y)
     ],
+    canonicalSolution: CanonicalComposerSolution([
+      const CanonicalCircuitStep.single(
+        SelectedGateType.x,
+        targetQubit: 0,
+      ),
+    ]),
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.one()]
@@ -557,7 +565,7 @@ final List<QQLevel> _authoredQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'CNOT Gate',
     taskDescription:
-        r"From \( |10\rangle \), create a circuit where Qubit 1 will 'mirror' the state of Qubit 0. The final state should be \( |11\rangle \).",
+        r"From \( |10\rangle \), create a circuit where Qubit 0 will 'mirror' the state of Qubit 1. The final state should be \( |11\rangle \).",
     targetStateExpression: "|11⟩",
     conceptIntro:
         'The CNOT (Controlled-NOT, CX) gate is the fundamental two-qubit gate. '
@@ -567,12 +575,12 @@ final List<QQLevel> _authoredQQLevels = [
         'Before applying it, identify which qubit should be the control and which the target '
         'based on the current state and the desired outcome.',
     hints: [
-      'In |10⟩, Q0=1 and Q1=0. You want Q1 to flip to 1. Which qubit should be the control?',
-      'Use CNOT with Q0 as control and Q1 as target. Q0=1 satisfies the condition, so Q1 flips: 0→1, giving |11⟩.',
+      'Kets are written |Q1 Q0⟩, so in |10⟩, Q1=1 and Q0=0. You want Q0 to flip to 1.',
+      'Use CNOT with Q1 as control and Q0 as target. Q1=1 triggers the condition, so Q0 flips: 0→1, giving |11⟩.',
     ],
-    solutionExplanation: 'CNOT(Q0→Q1)|10⟩ = |11⟩. '
-        'Q0=1 triggers the flip: Q1 goes from 0 to 1. '
-        'Equivalently: Q1_new = Q1 ⊕ Q0 = 0 ⊕ 1 = 1. '
+    solutionExplanation: 'CNOT(Q1→Q0)|10⟩ = |11⟩. '
+        'Q1=1 triggers the flip: Q0 goes from 0 to 1. '
+        'Equivalently: Q0_new = Q0 ⊕ Q1 = 0 ⊕ 1 = 1. '
         'CNOT combined with single-qubit gates forms a universal gate set for quantum computing.',
     numQubits: 2,
     initialQubitsStateString: "10",
@@ -581,6 +589,13 @@ final List<QQLevel> _authoredQQLevels = [
       Gate.fromIdentifier(SelectedGateType.y),
       Gate.fromIdentifier(SelectedGateType.z)
     ],
+    canonicalSolution: CanonicalComposerSolution([
+      const CanonicalCircuitStep.controlled(
+        SelectedGateType.cnot,
+        controlQubit: 1,
+        targetQubit: 0,
+      ),
+    ]),
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.zero()],
@@ -602,14 +617,14 @@ final List<QQLevel> _authoredQQLevels = [
         'Getting the control and target assignment wrong means the condition is never met '
         'and the circuit leaves the state unchanged.',
     hints: [
-      'In |01⟩, Q0=0 and Q1=1. You need Q0 to flip to 1.',
-      'Use CNOT with Q1 as control (Q1=1 triggers the condition) and Q0 as target. '
-          'CNOT(Q1→Q0)|01⟩ = |11⟩.',
+      'Kets are written |Q1 Q0⟩, so in |01⟩, Q1=0 and Q0=1. You need Q1 to flip to 1.',
+      'Use CNOT with Q0 as control (Q0=1 triggers the condition) and Q1 as target. '
+          'CNOT(Q0→Q1)|01⟩ = |11⟩.',
     ],
-    solutionExplanation: 'CNOT(Q1→Q0)|01⟩ = |11⟩. '
-        'Q1=1 is the control, so Q0 flips: 0→1. '
+    solutionExplanation: 'CNOT(Q0→Q1)|01⟩ = |11⟩. '
+        'Q0=1 is the control, so Q1 flips: 0→1. '
         'Compare with level 14 where the roles were reversed. '
-        'Note: CNOT(Q0→Q1) on |01⟩ would give |01⟩ unchanged (Q0=0 does not trigger).',
+        'Note: CNOT(Q1→Q0) on |01⟩ would give |01⟩ unchanged (Q1=0 does not trigger).',
     numQubits: 2,
     initialQubitsStateString: "01",
     availableGates: [
@@ -632,14 +647,14 @@ final List<QQLevel> _authoredQQLevels = [
     conceptIntro:
         'CNOT can connect any two qubits in a multi-qubit register — they do not need to be adjacent. '
         'A 3-qubit system has a state vector with 2³=8 entries. '
-        'Here |101⟩ means Q0=1, Q1=0, Q2=1. '
+        'Here |101⟩ means Q2=1, Q1=0, Q0=1. '
         'Applying CNOT to non-adjacent qubits is a key building block for multi-qubit algorithms.',
     hints: [
-      'Q0=1 and Q2=1 in |101⟩. You want to flip Q2 from 1 to 0. Which qubit is active enough to be the control?',
-      'Use CNOT with Q0 as control and Q2 as target. Q0=1 triggers the flip: Q2 goes 1→0, giving |100⟩.',
+      'Q2=1 and Q0=1 in |101⟩. You want to flip Q0 from 1 to 0. Which qubit can be the control?',
+      'Use CNOT with Q2 as control and Q0 as target. Q2=1 triggers the flip: Q0 goes 1→0, giving |100⟩.',
     ],
-    solutionExplanation: 'CNOT(Q0→Q2)|101⟩ = |100⟩. '
-        'Q0=1 is the control, so Q2 flips: 1→0. Q1 is untouched. '
+    solutionExplanation: 'CNOT(Q2→Q0)|101⟩ = |100⟩. '
+        'Q2=1 is the control, so Q0 flips: 1→0. Q1 is untouched. '
         'In the 8-entry state vector (|000⟩…|111⟩), |100⟩ is index 4 (big-endian). '
         'This level shows that CNOT works over any qubit distance.',
     numQubits: 3,
@@ -670,13 +685,13 @@ final List<QQLevel> _authoredQQLevels = [
         'Think carefully about which qubit needs to change first and what the intermediate '
         'state looks like after each gate.',
     hints: [
-      'Try CNOT(Q0→Q1) on |11⟩ first: Q0=1 flips Q1: 1→0, giving |10⟩. Now you only need to fix Q0.',
-      'After CNOT gives |10⟩, apply X on Q0: 1→0. Final state: |00⟩. Total: CNOT(Q0→Q1) then X on Q0.',
+      'Try CNOT(Q0→Q1) on |11⟩ first: Q0=1 flips Q1: 1→0, giving |01⟩. Now you only need to fix Q0.',
+      'After CNOT gives |01⟩, apply X on Q0: 1→0. Final state: |00⟩. Total: CNOT(Q0→Q1) then X on Q0.',
     ],
-    solutionExplanation: 'CNOT(Q0→Q1)|11⟩ = |10⟩ (Q0=1 flips Q1: 1→0). '
-        'X on Q0: |10⟩ → |00⟩. '
+    solutionExplanation: 'CNOT(Q0→Q1)|11⟩ = |01⟩ (Q0=1 flips Q1: 1→0). '
+        'X on Q0: |01⟩ → |00⟩. '
         'Two gates are sufficient. Note the alternative order does NOT work: '
-        'X on Q0 first gives |01⟩, then CNOT(Q0→Q1) leaves it as |01⟩ (Q0=0, condition never triggers — wrong!). '
+        'X on Q0 first gives |10⟩, then CNOT(Q0→Q1) leaves it as |10⟩ (Q0=0, condition never triggers — wrong!). '
         'So CNOT first is the correct order here.',
     numQubits: 2,
     initialQubitsStateString: "11",
@@ -722,6 +737,13 @@ final List<QQLevel> _authoredQQLevels = [
       Gate.fromIdentifier(SelectedGateType.ccnot),
       Gate.fromIdentifier(SelectedGateType.z),
     ],
+    canonicalSolution: CanonicalComposerSolution([
+      const CanonicalCircuitStep.toffoli(
+        controlQubit: 0,
+        secondControlQubit: 2,
+        targetQubit: 1,
+      ),
+    ]),
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.zero()],
@@ -829,12 +851,12 @@ final List<QQLevel> _authoredQQLevels = [
         '(both must be |1⟩) and which qubit needs to be flipped. '
         'Compare the initial state with the target to determine the correct qubit assignments.',
     hints: [
-      'In |011⟩: Q0=0, Q1=1, Q2=1. The two |1⟩ qubits are Q1 and Q2. Q0 needs to flip to 1.',
-      'Set Q1 and Q2 as controls, Q0 as target. Both controls are 1, so Q0 flips: 0→1. '
-          'CCX(ctrl:Q1,Q2; target:Q0)|011⟩ = |111⟩.',
+      'In |011⟩: Q2=0, Q1=1, Q0=1. The two |1⟩ qubits are Q0 and Q1. Q2 needs to flip to 1.',
+      'Set Q0 and Q1 as controls, Q2 as target. Both controls are 1, so Q2 flips: 0→1. '
+          'CCX(ctrl:Q0,Q1; target:Q2)|011⟩ = |111⟩.',
     ],
-    solutionExplanation: 'CCX(ctrl:Q1,Q2; target:Q0)|011⟩ = |111⟩. '
-        'Q1=1 AND Q2=1 → Q0 flips: 0→1. '
+    solutionExplanation: 'CCX(ctrl:Q0,Q1; target:Q2)|011⟩ = |111⟩. '
+        'Q0=1 AND Q1=1 → Q2 flips: 0→1. '
         'Compare with level 18 (controls Q0,Q2; target Q1) — same gate type, different qubit assignment. '
         'Choosing controls flexibly is essential for implementing quantum arithmetic circuits.',
     numQubits: 3,
@@ -868,15 +890,15 @@ final List<QQLevel> _authoredQQLevels = [
     conceptIntro:
         'Like X and CNOT, the Toffoli gate is its own inverse: CCX·CCX = I. '
         'Applying CCX twice in a row restores the original state, because flipping a bit twice returns it to its start. '
-        'The pre-inserted CCX has already taken |110⟩ → |111⟩. '
+        'The pre-inserted CCX has controls Q1 and Q2 and target Q0; it has already taken |110⟩ → |111⟩. '
         'Your task demonstrates a fundamental property: every quantum gate is unitary and reversible.',
     hints: [
-      'The pre-inserted CCX(Q0,Q1→Q2) flipped Q2: 0→1, giving |111⟩. You start from |111⟩.',
-      'Since CCX is self-inverse, applying the same CCX once more will flip Q2 back: 1→0. Result: |110⟩.',
+      'The pre-inserted CCX(Q1,Q2→Q0) flipped Q0: 0→1, giving |111⟩. You start from |111⟩.',
+      'Since CCX is self-inverse, applying the same CCX once more will flip Q0 back: 1→0. Result: |110⟩.',
     ],
     solutionExplanation:
         'CCX is self-inverse: applying it again with the same qubit assignment undoes the previous flip. '
-        'CCX(ctrl:Q0,Q1; target:Q2)|111⟩ = |110⟩ (Q0=1 AND Q1=1 → Q2 flips: 1→0). '
+        'CCX(ctrl:Q1,Q2; target:Q0)|111⟩ = |110⟩ (Q1=1 AND Q2=1 → Q0 flips: 1→0). '
         'This reversibility is not optional in quantum computing — all gates must be unitary (reversible). '
         'It distinguishes quantum from classical computation, where AND and OR are irreversible.',
     numQubits: 3,
@@ -917,10 +939,10 @@ final List<QQLevel> _authoredQQLevels = [
     hints: [
       'CCX flips the target only when BOTH controls are |1⟩. '
           'In |010⟩ only Q1=1 — you need a second qubit to also be |1⟩ first.',
-      'Apply X on Q0: |010⟩ → |110⟩. Now CCX with Q0 and Q1 as controls, Q2 as target: '
+      'Apply X on Q0: |010⟩ → |011⟩. Now CCX with Q0 and Q1 as controls, Q2 as target: '
           'both controls are 1, so Q2 flips: 0→1, giving |111⟩.',
     ],
-    solutionExplanation: 'X flips Q0: |010⟩ → |110⟩. '
+    solutionExplanation: 'X flips Q0: |010⟩ → |011⟩. '
         'CCX(ctrl:Q0,Q1; target:Q2): Q0∧Q1 = 1∧1 = 1, so Q2 flips: 0→1. '
         'Result: |111⟩. '
         'This is the quantum AND circuit: Q2 stores Q0 AND Q1, '
@@ -1218,19 +1240,35 @@ final List<QQLevel> _authoredQQLevels = [
         'This identity holds for any input state, including superpositions and entangled states.',
     hints: [
       'Three CNOTs are needed for a general SWAP. '
-          'Step 1: CNOT(Q0→Q1) on |10⟩: Q0=1, flip Q1: 0→1 → |11⟩.',
-      'Step 2: CNOT(Q1→Q0) on |11⟩: Q1=1, flip Q0: 1→0 → |01⟩. '
-          'At this point |01⟩ is already the target — one more CNOT(Q0→Q1) completes '
-          'the full SWAP decomposition (Q0=0, no flip, stays |01⟩).',
+          'In |10⟩, Q1=1 and Q0=0. Step 1, CNOT(Q0→Q1), does not trigger, so the state remains |10⟩.',
+      'Step 2, CNOT(Q1→Q0), gives |11⟩. Step 3, CNOT(Q0→Q1), then gives |01⟩ and completes the SWAP.',
     ],
-    solutionExplanation: 'CNOT(Q0→Q1)|10⟩=|11⟩. CNOT(Q1→Q0)|11⟩=|01⟩. '
-        'The third CNOT(Q0→Q1) leaves |01⟩ unchanged (Q0=0). '
+    solutionExplanation: 'Kets are written |Q1 Q0⟩. Therefore '
+        'CNOT(Q0→Q1)|10⟩=|10⟩, CNOT(Q1→Q0)|10⟩=|11⟩, and '
+        'CNOT(Q0→Q1)|11⟩=|01⟩. '
         'The general SWAP identity SWAP = CNOT(0→1)·CNOT(1→0)·CNOT(0→1) '
         'works for any input, including superpositions — '
         'this is how SWAP is implemented in real quantum hardware.',
     numQubits: 2,
     initialQubitsStateString: "10",
     availableGates: [Gate.fromIdentifier(SelectedGateType.cnot)], // Only CNOTs
+    canonicalSolution: CanonicalComposerSolution([
+      const CanonicalCircuitStep.controlled(
+        SelectedGateType.cnot,
+        controlQubit: 0,
+        targetQubit: 1,
+      ),
+      const CanonicalCircuitStep.controlled(
+        SelectedGateType.cnot,
+        controlQubit: 1,
+        targetQubit: 0,
+      ),
+      const CanonicalCircuitStep.controlled(
+        SelectedGateType.cnot,
+        controlQubit: 0,
+        targetQubit: 1,
+      ),
+    ]),
     validationMode: ValidationMode.unitary,
     targetUnitary: [
       [Complex.one(), Complex.zero(), Complex.zero(), Complex.zero()],
@@ -1305,8 +1343,8 @@ final List<QQLevel> _authoredQQLevels = [
     hints: [
       'To reach Ψ⁺=(|01⟩+|10⟩)/√2 from |00⟩, you need one qubit to be |1⟩ before the '
           'H+CNOT circuit. Apply X to one qubit first.',
-      'X on Q1: |00⟩→|01⟩. H on Q0: (|0⟩+|1⟩)/√2 ⊗ |1⟩ = (|01⟩+|11⟩)/√2. '
-          'CNOT(Q0→Q1): |01⟩→|01⟩ (Q0=0), |11⟩→|10⟩ (Q0=1, flip Q1). '
+      'X on Q1: |00⟩→|10⟩. H on Q0 gives (|10⟩+|11⟩)/√2. '
+          'CNOT(Q0→Q1): |10⟩→|10⟩ (Q0=0), |11⟩→|01⟩ (Q0=1, flip Q1). '
           'Result: (|01⟩+|10⟩)/√2 = Ψ⁺.',
     ],
     solutionExplanation:
@@ -1424,18 +1462,18 @@ final List<QQLevel> _authoredQQLevels = [
     targetStateExpression: "|101⟩",
     conceptIntro: 'In a 3-qubit register CNOT can connect any two qubits — '
         'they do not need to be adjacent. '
-        'Here Q2=1 is the only available control. '
-        'Using it to flip Q0 (skipping Q1 entirely) is called a "long-range" CNOT. '
+        'Here Q0=1 is the only available control. '
+        'Using it to flip Q2 (skipping Q1 entirely) is called a "long-range" CNOT. '
         'On real hardware non-adjacent CNOTs are compiled into a sequence of '
         'adjacent gates, but logically they work the same way.',
     hints: [
-      'In |001⟩: Q0=0, Q1=0, Q2=1. Only Q2 is |1⟩ and can serve as a control. '
+      'In |001⟩: Q2=0, Q1=0, Q0=1. Only Q0 is |1⟩ and can serve as a control. '
           'Which qubit needs to flip to reach |101⟩?',
-      'Q0 must flip from 0→1. Use CNOT with Q2 as control and Q0 as target. '
-          'Q2=1 → flip Q0: 0→1 → |101⟩. One gate is enough.',
+      'Q2 must flip from 0→1. Use CNOT with Q0 as control and Q2 as target. '
+          'Q0=1 → flip Q2: 0→1 → |101⟩. One gate is enough.',
     ],
-    solutionExplanation: 'CNOT(Q2→Q0)|001⟩ = |101⟩. '
-        'Q2=1 is the control; Q0 flips: 0→1. Q1 is untouched. '
+    solutionExplanation: 'CNOT(Q0→Q2)|001⟩ = |101⟩. '
+        'Q0=1 is the control; Q2 flips: 0→1. Q1 is untouched. '
         'In the 8-entry state vector, |101⟩ is index 5. '
         'This long-range CNOT is the basic building block for '
         'multi-qubit fan-out and quantum error-correction circuits.',
@@ -1693,6 +1731,21 @@ final List<QQLevel> _authoredQQLevels = [
       Gate.fromIdentifier(SelectedGateType.t),
       Gate.fromIdentifier(SelectedGateType.y)
     ],
+    canonicalSolution: CanonicalComposerSolution([
+      const CanonicalCircuitStep.single(
+        SelectedGateType.hadamard,
+        targetQubit: 0,
+      ),
+      const CanonicalCircuitStep.single(
+        SelectedGateType.hadamard,
+        targetQubit: 1,
+      ),
+      const CanonicalCircuitStep.controlled(
+        SelectedGateType.cz,
+        controlQubit: 0,
+        targetQubit: 1,
+      ),
+    ]),
     solutionFinalVector: [
       [Complex(0.5, 0)], // Amplitude for |00>
       [Complex(0.5, 0)], // Amplitude for |01>
@@ -1841,7 +1894,7 @@ final List<QQLevel> _authoredQQLevels = [
     taskDescription:
         r"Apply a phase shift to the state \( |1\rangle \) to transform it to \( e^{i\pi/4}|1\rangle \). This requires an Rz gate.",
     targetStateLabel: "e^{iπ/4}|1⟩",
-    targetStateExpression: "e^{iπ/4}|1⟩ = (1+i)|1⟩/√2",
+    targetStateExpression: "e^{iπ/4}|1⟩ = ((1+i)/√2)|1⟩",
     conceptIntro:
         'Rz(θ) rotates around the Z-axis: Rz(θ)|0⟩ = e^(−iθ/2)|0⟩ and Rz(θ)|1⟩ = e^(iθ/2)|1⟩. '
         'Since |0⟩ and |1⟩ get opposite phases, Rz only creates a relative phase — '
@@ -1868,6 +1921,13 @@ final List<QQLevel> _authoredQQLevels = [
       Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2),
       Gate.fromIdentifier(SelectedGateType.ry)
     ],
+    canonicalSolution: CanonicalComposerSolution([
+      const CanonicalCircuitStep.single(
+        SelectedGateType.rz,
+        targetQubit: 0,
+        angle: math.pi / 2,
+      ),
+    ]),
     solutionFinalVector: [
       [Complex.zero()],
       [Complex(sqrt1_2, sqrt1_2)],
@@ -1908,6 +1968,13 @@ final List<QQLevel> _authoredQQLevels = [
       Gate.fromIdentifier(SelectedGateType.ry, angle: -math.pi / 2),
       Gate.fromIdentifier(SelectedGateType.hadamard)
     ],
+    canonicalSolution: CanonicalComposerSolution([
+      const CanonicalCircuitStep.single(
+        SelectedGateType.ry,
+        targetQubit: 0,
+        angle: -math.pi / 2,
+      ),
+    ]),
     solutionFinalVector: [
       [Complex.one()],
       [Complex.zero()],
@@ -1918,7 +1985,7 @@ final List<QQLevel> _authoredQQLevels = [
     taskDescription:
         r"Combine two different rotation gates to get a specific final state. The first rotation is given.",
     targetStateLabel: "Complex equator state",
-    targetStateExpression: "((1+i)|0⟩ + (1-i)|1⟩)/2",
+    targetStateExpression: "((1+i)/2)|0⟩ + ((1-i)/2)|1⟩",
     conceptIntro:
         'Combining rotations around different axes creates states unreachable by either axis alone. '
         'The Bloch sphere shows why: a single axis can only reach a circle of states, '
@@ -1962,7 +2029,7 @@ final List<QQLevel> _authoredQQLevels = [
     taskDescription:
         r"Use a rotation gate to apply a very specific phase shift on a multi-qubit state. The initial state is a superposition.",
     targetStateLabel: "Phased Bell pair",
-    targetStateExpression: "(e^{-iπ/8}|00⟩ + e^{iπ/8}|11⟩)/√2",
+    targetStateExpression: "(e^{-iπ/8}/√2)|00⟩ + (e^{iπ/8}/√2)|11⟩",
     conceptIntro:
         'Rotation gates can be applied to individual qubits of an entangled state. '
         'Rz(θ) on Q0 of Φ⁺=(|00⟩+|11⟩)/√2 adds e^(−iθ/2) when Q0=0 '
@@ -2391,6 +2458,20 @@ final List<QQLevel> _authoredQQLevels = [
       Gate.fromIdentifier(SelectedGateType.hadamard),
       Gate.fromIdentifier(SelectedGateType.z),
     ],
+    canonicalSolution: CanonicalComposerSolution([
+      const CanonicalCircuitStep.single(
+        SelectedGateType.hadamard,
+        targetQubit: 0,
+      ),
+      const CanonicalCircuitStep.single(
+        SelectedGateType.z,
+        targetQubit: 0,
+      ),
+      const CanonicalCircuitStep.single(
+        SelectedGateType.hadamard,
+        targetQubit: 0,
+      ),
+    ]),
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.one()],
@@ -3448,6 +3529,12 @@ final List<QQLevel> _authoredQQLevels = [
     availableGates: [
       Gate.fromIdentifier(SelectedGateType.x),
     ],
+    canonicalSolution: CanonicalComposerSolution([
+      const CanonicalCircuitStep.single(
+        SelectedGateType.x,
+        targetQubit: 0,
+      ),
+    ]),
     solutionFinalVector: [
       [Complex.zero()],
       [Complex.one()],
@@ -3992,16 +4079,16 @@ final List<QQLevel> _authoredQQLevels = [
         'One qubit is already active. Can it act as a condition that changes the other qubit?',
     discoveryTitle: 'Correlation',
     discoveryText:
-        'The second qubit changed only because the first qubit was set to 1. CNOT made one qubit control whether another qubit flipped.',
+        'Q0 changed only because Q1 was set to 1. CNOT made Q1 control whether Q0 flipped.',
     keyInsight: 'The state of one qubit can influence another.',
     whyItMatters: 'Correlation is the first step toward entanglement.',
     nextMystery: 'Is correlation the same as entanglement?',
     hints: [
-      'Use the qubit that is already 1 as the control.',
-      'CNOT flips the target only when the control is 1.',
+      'Kets are written |Q1 Q0⟩, so in |10⟩, Q1=1 and Q0=0. Use Q1 as the control.',
+      'CNOT(Q1→Q0) flips Q0 because control Q1 is 1.',
     ],
     solutionExplanation:
-        'CNOT(Q0→Q1)|10⟩ = |11⟩. The first qubit is 1, so it triggers a flip on the second qubit.',
+        'CNOT(Q1→Q0)|10⟩ = |11⟩. Q1=1, so it triggers a flip on Q0.',
     numQubits: 2,
     initialQubitsStateString: '10',
     availableGates: [
@@ -4043,6 +4130,17 @@ final List<QQLevel> _authoredQQLevels = [
       Gate.fromIdentifier(SelectedGateType.hadamard),
       Gate.fromIdentifier(SelectedGateType.cnot),
     ],
+    canonicalSolution: CanonicalComposerSolution([
+      const CanonicalCircuitStep.single(
+        SelectedGateType.hadamard,
+        targetQubit: 0,
+      ),
+      const CanonicalCircuitStep.controlled(
+        SelectedGateType.cnot,
+        controlQubit: 0,
+        targetQubit: 1,
+      ),
+    ]),
     solutionFinalVector: [
       [Complex(math.sqrt1_2, 0)],
       [Complex.zero()],
@@ -4521,6 +4619,22 @@ final List<QQLevel> _authoredQQLevels = [
       Gate.fromIdentifier(SelectedGateType.hadamard),
       Gate.fromIdentifier(SelectedGateType.cnot),
     ],
+    canonicalSolution: CanonicalComposerSolution([
+      const CanonicalCircuitStep.single(
+        SelectedGateType.hadamard,
+        targetQubit: 0,
+      ),
+      const CanonicalCircuitStep.controlled(
+        SelectedGateType.cnot,
+        controlQubit: 0,
+        targetQubit: 1,
+      ),
+      const CanonicalCircuitStep.controlled(
+        SelectedGateType.cnot,
+        controlQubit: 0,
+        targetQubit: 2,
+      ),
+    ]),
     solutionFinalVector: [
       [Complex(math.sqrt1_2, 0)],
       [Complex.zero()],
@@ -4690,7 +4804,7 @@ List<QQLevel> _consolidatedQQLevels() {
       .map((entry) => _withMasteryMetadata(entry.value, entry.key))
       .toList(growable: false);
 
-  return [
+  final levels = <QQLevel>[
     ...chapter1Information,
     ...chapter2HiddenChange,
     ...chapter3Superposition,
@@ -4705,7 +4819,51 @@ List<QQLevel> _consolidatedQQLevels() {
     ...chapter12QuantumAlgorithmStructure,
     ...masteryChallenges,
   ];
+  return levels.indexed.map((entry) {
+    final id = entry.$1 + 1;
+    final level = entry.$2;
+    if (level is! ComposerLevel || level.canonicalSolution != null) {
+      return level;
+    }
+    final canonical = canonicalComposerSolutionCatalog[id];
+    if (canonical == null) return level;
+    return _withCanonicalSolution(level, canonical);
+  }).toList(growable: false);
 }
+
+ComposerLevel _withCanonicalSolution(
+  ComposerLevel level,
+  CanonicalComposerSolution canonicalSolution,
+) =>
+    ComposerLevel(
+      title: level.title,
+      taskDescription: level.taskDescription,
+      conceptIntro: level.conceptIntro,
+      solutionExplanation: level.solutionExplanation,
+      hints: level.hints,
+      targetStateLabel: level.targetStateLabel,
+      targetStateExpression: level.targetStateExpression,
+      mysteryTitle: level.mysteryTitle,
+      mysteryText: level.mysteryText,
+      discoveryTitle: level.discoveryTitle,
+      discoveryText: level.discoveryText,
+      keyInsight: level.keyInsight,
+      whyItMatters: level.whyItMatters,
+      nextMystery: level.nextMystery,
+      conceptsUsed: level.conceptsUsed,
+      difficulty: level.difficulty,
+      relatedDiscoveryTitles: level.relatedDiscoveryTitles,
+      numQubits: level.numQubits,
+      initialQubitsStateStr: level.initialQubitsStateStr,
+      initialQubitsState: level.initialQubitsState,
+      availableGates: level.availableGates,
+      solutionFinalVector: level.solutionFinalVector,
+      validationMode: level.validationMode,
+      targetUnitary: level.targetUnitary,
+      alternateTargetUnitaries: level.alternateTargetUnitaries,
+      canonicalSolution: canonicalSolution,
+      preInsertedGates: level.preInsertedGates,
+    );
 
 QQLevel _withMasteryMetadata(QQLevel level, int challengeIndex) {
   final concepts = _masteryConceptsFor(challengeIndex);
@@ -4740,6 +4898,7 @@ QQLevel _withMasteryMetadata(QQLevel level, int challengeIndex) {
         validationMode: level.validationMode,
         targetUnitary: level.targetUnitary,
         alternateTargetUnitaries: level.alternateTargetUnitaries,
+        canonicalSolution: level.canonicalSolution,
         preInsertedGates: level.preInsertedGates,
       );
     case ConceptCheckLevel():

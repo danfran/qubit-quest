@@ -3,6 +3,7 @@
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/foundation.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
+import 'package:quantumquiz/models/canonical_composer_solution.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/utils/math_utils.dart';
 
@@ -98,6 +99,7 @@ class ComposerLevel extends QQLevel {
   final ValidationMode validationMode;
   final List<List<Complex>>? targetUnitary;
   final List<List<List<Complex>>> alternateTargetUnitaries;
+  final CanonicalComposerSolution? canonicalSolution;
 
   const ComposerLevel({
     super.title,
@@ -125,6 +127,7 @@ class ComposerLevel extends QQLevel {
     this.validationMode = ValidationMode.finalState,
     this.targetUnitary,
     this.alternateTargetUnitaries = const [],
+    this.canonicalSolution,
     this.preInsertedGates,
   });
 
@@ -154,6 +157,7 @@ class ComposerLevel extends QQLevel {
     ValidationMode validationMode = ValidationMode.finalState,
     List<List<Complex>>? targetUnitary,
     List<List<List<Complex>>> alternateTargetUnitaries = const [],
+    CanonicalComposerSolution? canonicalSolution,
     Function(QuantumCircuit)? preInsertedGates,
   }) {
     final int resolvedNumQubits = initialQubitsStateString.length;
@@ -186,6 +190,7 @@ class ComposerLevel extends QQLevel {
       validationMode: validationMode,
       targetUnitary: targetUnitary,
       alternateTargetUnitaries: alternateTargetUnitaries,
+      canonicalSolution: canonicalSolution,
       preInsertedGates: preInsertedGates,
     );
   }

@@ -7,27 +7,26 @@ import 'package:quantumquiz/models/quantum_circuit.dart'; // Import QuantumCircu
 import 'package:quantumquiz/models/selected_gate_type.dart'; // Import SelectedGateType
 import 'package:quantumquiz/widgets/gate_visual_style.dart';
 import 'package:quantumquiz/models/gate_id.dart';
+import 'package:quantumquiz/widgets/circuit_layout_metrics.dart';
 
 class QuantumCircuitPainter extends CustomPainter {
   // Layout constants
-  static const double qubitSpacing = 40.0; // Vertical space between qubit lines
-  static const double gateSpacing =
-      40.0; // Horizontal space allocated per gate position (column)
-  static const double gateSize =
-      30.0; // Size of the square gate icon (e.g., Hadamard)
-  static const double padding = 20.0; // Padding around the circuit drawing area
+  static const double qubitSpacing = CircuitLayoutMetrics.qubitSpacing;
+  static const double gateSpacing = CircuitLayoutMetrics.gateSpacing;
+  static const double gateSize = CircuitLayoutMetrics.gateSize;
+  static const double padding = CircuitLayoutMetrics.padding;
   // ** Temporarily increased hitTolerance for easier testing **
-  static const double hitTolerance =
-      20.0; // Extra padding for tap detection area around gates/lines
+  static const double hitTolerance = CircuitLayoutMetrics.hitTolerance;
   // *********************************************************
-  static const double targetRadius = 12.0; // Radius of the CNOT target circle
-  static const double controlDotRadius = 4.0; // Radius of the CNOT control dot
-  static const double gateShadowYOffset = 3.0;
-  static const double gateShadowBlurRadius = 8.0;
-  static const double firstWireY = qubitSpacing / 2;
-  static const double bottomExtent =
-      gateSize / 2 + gateShadowYOffset + gateShadowBlurRadius;
-  static const double topExtent = firstWireY;
+  static const double targetRadius = CircuitLayoutMetrics.targetRadius;
+  static const double controlDotRadius = CircuitLayoutMetrics.controlDotRadius;
+  static const double gateShadowYOffset =
+      CircuitLayoutMetrics.gateShadowYOffset;
+  static const double gateShadowBlurRadius =
+      CircuitLayoutMetrics.gateShadowBlurRadius;
+  static const double firstWireY = CircuitLayoutMetrics.firstWireY;
+  static const double bottomExtent = CircuitLayoutMetrics.bottomExtent;
+  static const double topExtent = CircuitLayoutMetrics.topExtent;
 
   // Color constants
   static const Color gridLinesColor =
@@ -40,27 +39,30 @@ class QuantumCircuitPainter extends CustomPainter {
 
   final QuantumCircuit
       circuit; // Painter needs the circuit (with List<PlacedQuantumGate> placedGates)
-  final ValueNotifier<double> widthNotifier;
-  final Offset? draggingOffset;
-  final Gate? draggingGate; // New: Qubit index for highlight
+  final List<List<PlacedQuantumGate>>? previewGates;
   final GateId? selectedGateId;
+  final GateId? ghostedGateId;
+  final int? highlightedQubit;
 
   QuantumCircuitPainter(
-    this.circuit,
-    this.widthNotifier,
-    this.draggingOffset,
-    this.draggingGate, {
+    this.circuit, {
+    this.previewGates,
     this.selectedGateId,
+    this.ghostedGateId,
+    this.highlightedQubit,
   });
 
   GateGradientStyle _visualForGate(Gate gate) =>
       QubitQuestGateStyle.forGate(gate);
 
-  Rect? _controlledSelectionBounds(GateId id) {
+  Rect? _controlledSelectionBounds(
+    GateId id,
+    List<List<PlacedQuantumGate>> renderedGates,
+  ) {
     final source = circuit.placedGateById(id);
     if (source == null || source.isSingleQubit) return null;
     final centers = <Offset>[];
-    for (final (qubit, row) in circuit.placedGates.indexed) {
+    for (final (qubit, row) in renderedGates.indexed) {
       for (final (column, gate) in row.indexed) {
         if (gate.id != id) continue;
         centers.add(Offset(
@@ -111,7 +113,7 @@ class QuantumCircuitPainter extends CustomPainter {
   }
 
   static double qubitCenterYFor(int qubitIndex) {
-    return qubitIndex * qubitSpacing + firstWireY;
+    return CircuitLayoutMetrics.wireCenterY(qubitIndex);
   }
 
   static double lastWireYFor(int qubitCount) {
@@ -119,11 +121,92 @@ class QuantumCircuitPainter extends CustomPainter {
   }
 
   static double wireSpanFor(int qubitCount) {
-    return (max(1, qubitCount) - 1) * qubitSpacing;
+    return CircuitLayoutMetrics.wireSpan(qubitCount);
   }
 
   static double requiredDrawingHeightFor(int qubitCount) {
-    return topExtent + wireSpanFor(qubitCount) + bottomExtent;
+    return CircuitLayoutMetrics.drawingHeight(qubitCount);
+  }
+
+  void _drawSourceGhost(Canvas canvas) {
+    final id = ghostedGateId;
+    if (id == null) return;
+    final footprint = circuit.logicalGateById(id);
+    if (footprint == null) return;
+
+    final ghostStroke = Paint()
+      ..color = const Color(0xFF7CFFB2).withValues(alpha: 0.34)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    final ghostFill = Paint()
+      ..color = const Color(0xFF7CFFB2).withValues(alpha: 0.045)
+      ..style = PaintingStyle.fill;
+    final centerX = CircuitLayoutMetrics.slotCenter(footprint.anchor).dx;
+
+    if (footprint.isSingleQubit) {
+      final centerY = qubitCenterYFor(footprint.anchor.qubit);
+      final rect = Rect.fromCenter(
+        center: Offset(centerX, centerY),
+        width: gateSize,
+        height: gateSize,
+      );
+      final shape = RRect.fromRectAndRadius(rect, const Radius.circular(10));
+      canvas.drawRRect(shape, ghostFill);
+      canvas.drawRRect(shape, ghostStroke);
+      final label = TextPainter(
+        text: TextSpan(
+          text: footprint.gate.label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.22),
+            fontSize: footprint.gate.requiresAngle ? 10 : 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      label.paint(
+        canvas,
+        Offset(centerX - label.width / 2, centerY - label.height / 2),
+      );
+      return;
+    }
+
+    final rows = footprint.fragments
+        .map((fragment) => fragment.location.qubit)
+        .toSet()
+        .toList()
+      ..sort();
+    canvas.drawLine(
+      Offset(centerX, qubitCenterYFor(rows.first)),
+      Offset(centerX, qubitCenterYFor(rows.last)),
+      ghostStroke,
+    );
+    for (final fragment in footprint.fragments) {
+      final gate = fragment.placedGate;
+      if (!gate.isControl && !gate.isControl2 && !gate.isTarget) continue;
+      final center = Offset(
+        centerX,
+        qubitCenterYFor(fragment.location.qubit),
+      );
+      final radius = gate.isTarget && footprint.type != SelectedGateType.cz
+          ? targetRadius
+          : controlDotRadius;
+      canvas.drawCircle(center, radius, ghostFill);
+      canvas.drawCircle(center, radius, ghostStroke);
+      if (gate.isTarget && footprint.type != SelectedGateType.cz) {
+        const arm = 6.0;
+        canvas.drawLine(
+          center.translate(-arm, 0),
+          center.translate(arm, 0),
+          ghostStroke,
+        );
+        canvas.drawLine(
+          center.translate(0, -arm),
+          center.translate(0, arm),
+          ghostStroke,
+        );
+      }
+    }
   }
 
   @visibleForTesting
@@ -142,7 +225,10 @@ class QuantumCircuitPainter extends CustomPainter {
     }
 
     if (RegExp(r'^[01]+$').hasMatch(label) && label.length == numQubits) {
-      return label.split('').map((bit) => '|$bit⟩').toList();
+      // Kets are written |q(n-1)...q0>, while circuit wires are ordered
+      // top-to-bottom as Q0, Q1, ... . Reverse the authored ket bits so each
+      // wire label agrees with the simulator's little-endian qubit indexing.
+      return label.split('').reversed.map((bit) => '|$bit⟩').toList();
     }
 
     return List<String>.generate(
@@ -201,6 +287,21 @@ class QuantumCircuitPainter extends CustomPainter {
             lineY), // End line before padding on the right
         linePaint,
       );
+      if (highlightedQubit == i) {
+        final glowPaint = Paint()
+          ..color = const Color(0xFF56CCF2).withValues(alpha: 0.30)
+          ..strokeWidth = 7
+          ..strokeCap = StrokeCap.round
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+        final activeWirePaint = Paint()
+          ..color = const Color(0xFF7DE3FF)
+          ..strokeWidth = 2.6
+          ..strokeCap = StrokeCap.round;
+        final start = Offset(padding, lineY);
+        final end = Offset(size.width - padding, lineY);
+        canvas.drawLine(start, end, glowPaint);
+        canvas.drawLine(start, end, activeWirePaint);
+      }
 
       // ** Draw the debug hit area for this qubit line **
       final Rect qubitHitRect = Rect.fromLTRB(
@@ -236,11 +337,14 @@ class QuantumCircuitPainter extends CustomPainter {
       textPainter.paint(canvas, Offset(labelX, labelY));
     }
 
-    List<List<PlacedQuantumGate>> localPlacedGates = circuit.placedGates;
+    final List<List<PlacedQuantumGate>> localPlacedGates =
+        previewGates ?? circuit.placedGates;
 
     final selected = selectedGateId;
-    if (selected != null) {
-      final controlledBounds = _controlledSelectionBounds(selected);
+    if (selected != null &&
+        (selected != ghostedGateId || previewGates != null)) {
+      final controlledBounds =
+          _controlledSelectionBounds(selected, localPlacedGates);
       if (controlledBounds != null) {
         final selectionFill = Paint()
           ..color = const Color(0xFF7CFFB2).withValues(alpha: 0.08)
@@ -258,14 +362,6 @@ class QuantumCircuitPainter extends CustomPainter {
       }
     }
 
-    debugPrint('Highlighting Offset: $draggingOffset');
-
-    // **** HIGHLIGHT BOX
-    // Draw the highlight box if a cell is highlighted
-    if (draggingOffset != null) {
-      localPlacedGates = initLocalPlacedGatesMap(localPlacedGates);
-    }
-
     List<int> gateXPosititionPerQubit =
         List<int>.filled(circuit.currentLevel.numQubits, 0);
 
@@ -274,6 +370,10 @@ class QuantumCircuitPainter extends CustomPainter {
       debugPrint(
           'Drawing qubit line $primaryDrawingQubit with ${row.length} gates');
       for (final (currentX, placedGate) in row.indexed) {
+        if (previewGates == null && placedGate.id == ghostedGateId) {
+          gateXPosititionPerQubit[primaryDrawingQubit] += 1;
+          continue;
+        }
         // Calculate the top-left corner of the gate icon square
         if (placedGate.gate.type == SelectedGateType.cnot ||
             placedGate.gate.type == SelectedGateType.cz) {
@@ -349,9 +449,6 @@ class QuantumCircuitPainter extends CustomPainter {
                   controlDotRadius, targetPaint);
             }
           }
-
-          widthNotifier.value = max(
-              widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
         } else if (placedGate.gate.type == SelectedGateType.ccnot) {
           // Drawing logic for CCNOT not target
           // int currentX = gateXPosititionPerQubit.reduce(max);
@@ -434,9 +531,6 @@ class QuantumCircuitPainter extends CustomPainter {
                 Offset(gateColumnCenterX - plusPainter.width / 2,
                     targetY - plusPainter.height / 2));
           }
-
-          widthNotifier.value = max(
-              widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
         } else {
           // Use the helper for the vertical center of the primary qubit line
           final double gateCenterY = getQubitCenterY(primaryDrawingQubit);
@@ -494,65 +588,10 @@ class QuantumCircuitPainter extends CustomPainter {
             gateTextPainter(
                 gateText, gateTextSize, canvas, gateColumnCenterX, gateIconTop);
           }
-
-          widthNotifier.value = max(
-              widthNotifier.value, gateColumnCenterX + gateSize + 2 * padding);
         }
       }
     }
-  }
-
-  List<List<PlacedQuantumGate>> initLocalPlacedGatesMap(
-      List<List<PlacedQuantumGate>> localPlacedGates) {
-    int? qubitLine = getTappedQubitLine(draggingOffset!);
-    int? gatePosition = getInsertionPosition(draggingOffset!);
-
-    debugPrint(
-        'Highlighting qubit line: $qubitLine and gate position: $gatePosition');
-
-    if (qubitLine != null && gatePosition != null) {
-      localPlacedGates = circuit.placedGates
-          .map((row) => List<PlacedQuantumGate>.from(row))
-          .toList();
-      gatePosition = circuit.isCircuitEmpty()
-          ? 0
-          : min(gatePosition, circuit.maxCircuitDepth());
-
-      Gate draggedGate = Gate.fromIdentifier(SelectedGateType.draggedGate);
-      PlacedQuantumGate targetGate = PlacedQuantumGate(
-        gate: draggedGate,
-      );
-
-      if (draggingGate!.type == SelectedGateType.cnot ||
-          draggingGate!.type == SelectedGateType.cz ||
-          draggingGate!.type == SelectedGateType.ccnot) {
-        // this needs to be the minimum across the whole
-        debugPrint(
-            'Place ${draggingGate!.label} box at Highlighting qubit line: $qubitLine and gate position: $gatePosition');
-        // verify length of the vertical filler always '1'
-        for (List<PlacedQuantumGate> gateRow in localPlacedGates) {
-          if (gatePosition > gateRow.length) {
-            final int lengthFiller = (gateRow.length - gatePosition).abs();
-            final fillerList = List<PlacedQuantumGate>.filled(
-                lengthFiller, PlacedQuantumGate.emptyGate());
-            gateRow.addAll(fillerList);
-          }
-          gateRow.insert(gatePosition, targetGate);
-        }
-      } else {
-        final row = localPlacedGates[qubitLine];
-        while (row.length < gatePosition) {
-          row.add(PlacedQuantumGate.emptyGate());
-        }
-        if (gatePosition < row.length &&
-            row[gatePosition].gate.type == SelectedGateType.none) {
-          row[gatePosition] = targetGate;
-        } else {
-          row.insert(min(gatePosition, row.length), targetGate);
-        }
-      }
-    }
-    return localPlacedGates;
+    _drawSourceGhost(canvas);
   }
 
   void gateTextPainter(String gateText, double gateTextSize, Canvas canvas,
@@ -574,54 +613,6 @@ class QuantumCircuitPainter extends CustomPainter {
         canvas,
         Offset(gateColumnCenterX - textPainter.width / 2,
             gateIconTop + gateSize / 2 - textPainter.height / 2));
-  }
-
-  // Implement the hit-testing method to find a TAPPED QUBIT LINE (for placement)
-  // This method is also called from _handleCircuitTap and receives the local tap position.
-  int? getTappedQubitLine(Offset tapPosition) {
-    const double hitTolerance = QuantumCircuitPainter.hitTolerance;
-    // Iterate through each possible qubit line
-    // Assuming circuit.numQubits is available (e.g., passed in constructor or from circuit)
-    for (int i = 0; i < circuit.currentLevel.numQubits; i++) {
-      // Use the helper for the vertical center of the qubit line
-      final double qubitLineCenterY = getQubitCenterY(i);
-      debugPrint(
-          "  Checking Qubit $i. Center Y: $qubitLineCenterY. Hit range: ${qubitLineCenterY - hitTolerance} to ${qubitLineCenterY + hitTolerance}"); // Debug line position and range
-
-      // Check if the tap's y-coordinate is close to this qubit line center within tolerance
-      if (tapPosition.dy >= qubitLineCenterY - hitTolerance &&
-          tapPosition.dy <= qubitLineCenterY + hitTolerance) {
-        debugPrint(
-            "  Tap position ${tapPosition.dy} is within range for Qubit $i. Returning $i."); // Debug hit
-        return i; // Return the index of the tapped qubit line
-      }
-      debugPrint(
-          "  Tap position ${tapPosition.dy} is outside range for Qubit $i."); // Debug miss
-    }
-    debugPrint("No qubit line tapped. Returning null."); // Debug null return
-    return null; // If no qubit line was tapped within tolerance
-  }
-
-  // New method to calculate the horizontal insertion position (column index)
-  int? getInsertionPosition(Offset dropPosition) {
-    // Calculate the horizontal position based on the drop position's x-coordinate
-    // Subtract padding to get position relative to the circuit grid start
-    final double dropXRelativeToGrid = dropPosition.dx - padding;
-
-    // Calculate the potential column index
-    // Divide by gateSpacing to get the column index, then round to the nearest integer
-    // Add 0.5 before casting to int for proper rounding
-    final int potentialPosition = ((dropXRelativeToGrid / gateSpacing))
-        .floor(); // Use round() for standard rounding
-
-    // Ensure the potential position is not negative
-    if (potentialPosition < 0) {
-      return 0; // Assume insertion at the first position if dropped before it
-    }
-
-    // For drag and drop, the horizontal position directly maps to a column.
-    // The insertion logic in QuantumCircuit will handle shifting existing gates.
-    return potentialPosition; // Return the calculated column index
   }
 
   @override

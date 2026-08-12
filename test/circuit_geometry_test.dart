@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
@@ -66,5 +67,133 @@ void main() {
       expect(bounds.contains(position), isTrue);
       expect(CircuitGeometry.hitTestGate(circuit, position)?.id, id);
     }
+  });
+
+  test('pure row and insertion-column mapping preserves current geometry', () {
+    expect(CircuitGeometry.qubitForPoint(const Offset(40, 20), 3), 0);
+    expect(CircuitGeometry.qubitForPoint(const Offset(40, 60), 3), 1);
+    expect(CircuitGeometry.qubitForPoint(const Offset(40, 100), 3), 2);
+    expect(CircuitGeometry.qubitForPoint(const Offset(40, 121), 3), isNull);
+    expect(CircuitGeometry.insertionColumnForPoint(const Offset(0, 20)), 0);
+    expect(CircuitGeometry.insertionColumnForPoint(const Offset(59, 20)), 0);
+    expect(CircuitGeometry.insertionColumnForPoint(const Offset(60, 20)), 1);
+  });
+
+  group('nearest-wire drop resolution', () {
+    QuantumCircuit circuit(int qubits) => QuantumCircuit(
+          currentLevel: ComposerLevel(
+            taskDescription: 'nearest wire',
+            numQubits: qubits,
+            initialQubitsStateStr: '0' * qubits,
+            initialQubitsState: ComposerLevel.getZeroStateVector(qubits),
+            availableGates: const [],
+            solutionFinalVector: const [],
+          ),
+        );
+
+    test('one-qubit active area has no vertical dead zone', () {
+      final candidateCircuit = circuit(1);
+      for (final y in [-100.0, 0.0, 20.0, 80.0, 500.0]) {
+        final destination = CircuitGeometry.dropDestinationForPoint(
+          circuit: candidateCircuit,
+          contentPoint: Offset(40, y),
+        );
+        expect(
+            destination?.location, const CircuitLocation(qubit: 0, column: 0));
+      }
+    });
+
+    test('multi-qubit bands resolve to nearest wire with upper tie-break', () {
+      expect(CircuitGeometry.nearestQubitForPoint(const Offset(40, -20), 3), 0);
+      expect(CircuitGeometry.nearestQubitForPoint(const Offset(40, 39), 3), 0);
+      expect(CircuitGeometry.nearestQubitForPoint(const Offset(40, 40), 3), 0);
+      expect(CircuitGeometry.nearestQubitForPoint(const Offset(40, 41), 3), 1);
+      expect(CircuitGeometry.nearestQubitForPoint(const Offset(40, 80), 3), 1);
+      expect(CircuitGeometry.nearestQubitForPoint(const Offset(40, 81), 3), 2);
+      expect(CircuitGeometry.nearestQubitForPoint(const Offset(40, 400), 3), 2);
+    });
+  });
+
+  test('viewport-to-content mapping includes horizontal scroll offset', () {
+    expect(
+      CircuitCoordinateMapper.viewportToContent(
+        const Offset(80, 20),
+        horizontalScrollOffset: 0,
+      ),
+      const Offset(80, 20),
+    );
+    expect(
+      CircuitCoordinateMapper.viewportToContent(
+        const Offset(80, 20),
+        horizontalScrollOffset: 240,
+      ),
+      const Offset(320, 20),
+    );
+    expect(CircuitGeometry.insertionColumnForPoint(const Offset(-20, 20)), 0);
+  });
+
+  test('far-right content point resolves to the append destination', () {
+    final circuit = QuantumCircuit(
+      currentLevel: ComposerLevel(
+        taskDescription: 'append geometry',
+        numQubits: 1,
+        initialQubitsStateStr: '0',
+        initialQubitsState: ComposerLevel.getZeroStateVector(1),
+        availableGates: const [],
+        solutionFinalVector: const [],
+      ),
+    );
+    for (var column = 0; column < 12; column++) {
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        column,
+        0,
+      );
+    }
+
+    final contentPoint = CircuitCoordinateMapper.viewportToContent(
+      const Offset(140, 20),
+      horizontalScrollOffset: 400,
+    );
+    final destination = CircuitGeometry.dropDestinationForPoint(
+      circuit: circuit,
+      contentPoint: contentPoint,
+    )!;
+
+    expect(destination.location, const CircuitLocation(qubit: 0, column: 12));
+    final preview = CircuitGeometry.insertionPreview(
+      circuit: circuit,
+      destination: destination,
+      gate: Gate.fromIdentifier(SelectedGateType.x),
+    );
+    expect(preview[0][12].gate.type, SelectedGateType.draggedGate);
+  });
+
+  test('content width and preview are computed without painting', () {
+    final circuit = QuantumCircuit(
+      currentLevel: ComposerLevel(
+        taskDescription: 'geometry',
+        numQubits: 2,
+        initialQubitsStateStr: '00',
+        initialQubitsState: ComposerLevel.getZeroStateVector(2),
+        availableGates: const [],
+        solutionFinalVector: const [],
+      ),
+    );
+    expect(CircuitGeometry.contentWidth(circuit), 120);
+    final preview = CircuitGeometry.insertionPreview(
+      circuit: circuit,
+      destination: CircuitGeometry.dropDestinationForPoint(
+        circuit: circuit,
+        contentPoint: const Offset(40, 60),
+      )!,
+      gate: Gate.fromIdentifier(SelectedGateType.hadamard),
+    );
+    expect(preview[1].single.gate.type, SelectedGateType.draggedGate);
+    expect(circuit.isCircuitEmpty(), isTrue);
+
+    circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.hadamard), 0, 1);
+    expect(CircuitGeometry.contentWidth(circuit), 200);
   });
 }

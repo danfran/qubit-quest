@@ -3,7 +3,34 @@ import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/gate_id.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
-import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
+import 'package:quantumquiz/models/placed_quantum_gate.dart';
+import 'package:quantumquiz/widgets/circuit_layout_metrics.dart';
+
+@immutable
+class CircuitDropDestination {
+  final Offset contentPoint;
+  final CircuitLocation location;
+
+  const CircuitDropDestination({
+    required this.contentPoint,
+    required this.location,
+  });
+}
+
+class CircuitCoordinateMapper {
+  const CircuitCoordinateMapper._();
+
+  static Offset viewportToContent(
+    Offset viewportPoint, {
+    required double horizontalScrollOffset,
+  }) {
+    assert(horizontalScrollOffset >= 0);
+    return Offset(
+      viewportPoint.dx + horizontalScrollOffset,
+      viewportPoint.dy,
+    );
+  }
+}
 
 class CircuitGeometry {
   const CircuitGeometry._();
@@ -18,42 +45,140 @@ class CircuitGeometry {
   }
 
   static Rect singleGateBounds(CircuitLocation location) {
-    final center = Offset(
-      QuantumCircuitPainter.padding +
-          location.column * QuantumCircuitPainter.gateSpacing +
-          QuantumCircuitPainter.gateSpacing / 2,
-      QuantumCircuitPainter.qubitCenterYFor(location.qubit),
-    );
+    final center = CircuitLayoutMetrics.slotCenter(location);
     return Rect.fromCenter(
       center: center,
-      width: QuantumCircuitPainter.gateSize,
-      height: QuantumCircuitPainter.gateSize,
+      width: CircuitLayoutMetrics.gateSize,
+      height: CircuitLayoutMetrics.gateSize,
+    );
+  }
+
+  static int? qubitForPoint(Offset point, int qubitCount) {
+    for (int qubit = 0; qubit < qubitCount; qubit++) {
+      final center = CircuitLayoutMetrics.wireCenterY(qubit);
+      if (point.dy >= center - CircuitLayoutMetrics.hitTolerance &&
+          point.dy <= center + CircuitLayoutMetrics.hitTolerance) {
+        return qubit;
+      }
+    }
+    return null;
+  }
+
+  /// Resolves every vertical point in the active circuit surface to its
+  /// nearest wire. Equal-distance midpoints consistently prefer the upper
+  /// (lower-indexed) wire.
+  static int? nearestQubitForPoint(Offset point, int qubitCount) {
+    if (qubitCount <= 0) return null;
+    var nearestQubit = 0;
+    var nearestDistance =
+        (point.dy - CircuitLayoutMetrics.wireCenterY(0)).abs();
+    for (var qubit = 1; qubit < qubitCount; qubit++) {
+      final distance =
+          (point.dy - CircuitLayoutMetrics.wireCenterY(qubit)).abs();
+      if (distance < nearestDistance) {
+        nearestQubit = qubit;
+        nearestDistance = distance;
+      }
+    }
+    return nearestQubit;
+  }
+
+  static int insertionColumnForPoint(Offset point) {
+    final relativeX = point.dx - CircuitLayoutMetrics.padding;
+    return (relativeX / CircuitLayoutMetrics.gateSpacing)
+        .floor()
+        .clamp(0, 1 << 30);
+  }
+
+  static CircuitDropDestination? dropDestinationForPoint({
+    required QuantumCircuit circuit,
+    required Offset contentPoint,
+  }) {
+    final qubit = nearestQubitForPoint(
+      contentPoint,
+      circuit.currentLevel.numQubits,
+    );
+    if (qubit == null) return null;
+    final column = circuit.isCircuitEmpty()
+        ? 0
+        : insertionColumnForPoint(contentPoint)
+            .clamp(0, circuit.maxCircuitDepth());
+    return CircuitDropDestination(
+      contentPoint: contentPoint,
+      location: CircuitLocation(qubit: qubit, column: column),
+    );
+  }
+
+  static double contentWidth(QuantumCircuit circuit,
+      {int trailingColumns = 3}) {
+    if (circuit.isCircuitEmpty()) {
+      return CircuitLayoutMetrics.contentWidthForDepth(0, trailingColumns: 2);
+    }
+    final depth = circuit.maxCircuitDepth();
+    return CircuitLayoutMetrics.contentWidthForDepth(
+      depth,
+      trailingColumns: trailingColumns,
+    );
+  }
+
+  static List<List<PlacedQuantumGate>> insertionPreview({
+    required QuantumCircuit circuit,
+    required CircuitDropDestination destination,
+    required Gate gate,
+  }) {
+    final preview = circuit.placedGates
+        .map((row) => List<PlacedQuantumGate>.from(row))
+        .toList();
+    final qubit = destination.location.qubit;
+    final column = destination.location.column;
+    final marker = PlacedQuantumGate(
+      gate: Gate.fromIdentifier(SelectedGateType.draggedGate),
+    );
+    if (gate.type == SelectedGateType.cnot ||
+        gate.type == SelectedGateType.cz ||
+        gate.type == SelectedGateType.ccnot) {
+      for (final row in preview) {
+        while (row.length < column) {
+          row.add(PlacedQuantumGate.emptyGate());
+        }
+        row.insert(column.clamp(0, row.length), marker);
+      }
+      return preview;
+    }
+    final row = preview[qubit];
+    while (row.length < column) {
+      row.add(PlacedQuantumGate.emptyGate());
+    }
+    if (column < row.length && row[column].gate.type == SelectedGateType.none) {
+      row[column] = marker;
+    } else {
+      row.insert(column.clamp(0, row.length), marker);
+    }
+    return preview;
+  }
+
+  static List<List<PlacedQuantumGate>>? logicalGateMovePreview({
+    required QuantumCircuit circuit,
+    required GateId gateId,
+    required int destinationColumn,
+  }) {
+    return circuit.previewLogicalGateHorizontalMove(
+      gateId,
+      destinationColumn,
     );
   }
 
   static Rect? logicalGateBounds(QuantumCircuit circuit, GateId id) {
-    final source = circuit.placedGateById(id);
-    if (source == null) return null;
-    if (source.isSingleQubit) return singleGateBounds(source.location);
+    final footprint = circuit.logicalGateById(id);
+    if (footprint == null) return null;
+    if (footprint.isSingleQubit) return singleGateBounds(footprint.anchor);
+    final locations = footprint.occupiedLocations;
 
-    final locations = <CircuitLocation>[];
-    for (final (qubit, row) in circuit.placedGates.indexed) {
-      for (final (column, gate) in row.indexed) {
-        if (gate.id == id) {
-          locations.add(CircuitLocation(qubit: qubit, column: column));
-        }
-      }
-    }
-    if (locations.isEmpty) return null;
-
-    final centerX = QuantumCircuitPainter.padding +
-        locations.first.column * QuantumCircuitPainter.gateSpacing +
-        QuantumCircuitPainter.gateSpacing / 2;
+    final centerX = CircuitLayoutMetrics.slotCenter(locations.first).dx;
     final centersY = locations
-        .map(
-            (location) => QuantumCircuitPainter.qubitCenterYFor(location.qubit))
+        .map((location) => CircuitLayoutMetrics.wireCenterY(location.qubit))
         .toList();
-    final extent = QuantumCircuitPainter.targetRadius + 4;
+    final extent = CircuitLayoutMetrics.targetRadius + 4;
     return Rect.fromLTRB(
       centerX - extent,
       centersY.reduce((a, b) => a < b ? a : b) - extent,
@@ -63,18 +188,10 @@ class CircuitGeometry {
   }
 
   static PlacedGateRef? hitTestGate(QuantumCircuit circuit, Offset position) {
-    final seenIds = <GateId>{};
-    for (final row in circuit.placedGates) {
-      for (final placedGate in row) {
-        if (placedGate.gate.type == SelectedGateType.none ||
-            placedGate.id == null ||
-            !seenIds.add(placedGate.id!)) {
-          continue;
-        }
-        final bounds = logicalGateBounds(circuit, placedGate.id!)?.inflate(3);
-        if (bounds == null) continue;
-        if (!bounds.contains(position)) continue;
-        return circuit.placedGateById(placedGate.id!);
+    for (final footprint in circuit.logicalGates) {
+      final bounds = logicalGateBounds(circuit, footprint.id)?.inflate(3);
+      if (bounds != null && bounds.contains(position)) {
+        return footprint.toPlacedGateRef();
       }
     }
     return null;

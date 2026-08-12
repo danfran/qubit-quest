@@ -2,7 +2,8 @@ import 'dart:math' as math;
 
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
-import 'package:quantumquiz/utils/complex_formatter.dart';
+import 'package:quantumquiz/utils/quantum_state_formatter.dart';
+import 'package:quantumquiz/widgets/latex_text.dart';
 
 class _ResultPalette {
   // Qubit Quest composer result tokens mirror the exact composer visual system.
@@ -64,7 +65,6 @@ class StateVectorDisplay extends StatefulWidget {
 
 class _StateVectorDisplayState extends State<StateVectorDisplay> {
   bool _nonZeroOnly = false;
-  static const double _amplitudeThreshold = 1e-9;
   static const double _probabilityThreshold = 1e-6;
   static const double _matchTolerance = 1e-6;
 
@@ -162,11 +162,15 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
         widget.targetStateVector!.length == vectorSize;
     final bool compactSplitPanel =
         widget.dense && !widget.showHeader && widget.showToggleInSummary;
-    final String? stateExpression =
-        (widget.tone == StateVectorDisplayTone.current
-                ? _currentStateExpression(vectorSize)
-                : widget.stateExpression)
-            ?.trim();
+    final currentTerms = widget.tone == StateVectorDisplayTone.current
+        ? formatQuantumStateTerms(
+            widget.stateVector.take(vectorSize).toList(growable: false),
+            numQubits: widget.numQubits,
+          )
+        : null;
+    final authoredExpression = widget.tone == StateVectorDisplayTone.target
+        ? widget.stateExpression?.trim()
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,14 +201,15 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (stateExpression != null &&
-                              stateExpression.isNotEmpty)
+                          if (currentTerms != null ||
+                              (authoredExpression?.isNotEmpty ?? false))
                             Padding(
                               padding: EdgeInsets.only(
                                 bottom: widget.dense ? 4 : 6,
                               ),
                               child: _StateExpressionLine(
-                                expression: stateExpression,
+                                currentTerms: currentTerms,
+                                authoredExpression: authoredExpression,
                                 dense: widget.dense,
                               ),
                             ),
@@ -304,115 +309,6 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
         (hasTarget ? 'Measured from your circuit' : 'Live outcome');
   }
 
-  String? _currentStateExpression(int vectorSize) {
-    final List<({int index, Complex value})> terms = [];
-    for (int index = 0; index < vectorSize; index++) {
-      final Complex value = widget.stateVector[index];
-      if (value.magnitude > _amplitudeThreshold) {
-        terms.add((index: index, value: value));
-      }
-    }
-
-    if (terms.isEmpty) {
-      return '|ψ⟩ = 0';
-    }
-
-    return '|ψ⟩ = ${_formatStateExpression(terms)}';
-  }
-
-  String _formatStateExpression(List<({int index, Complex value})> terms) {
-    final double commonMagnitude = terms.first.value.magnitude.toDouble();
-    final bool hasCommonMagnitude = terms.every((term) {
-      return (term.value.magnitude.toDouble() - commonMagnitude).abs() <
-          _matchTolerance;
-    });
-
-    if (hasCommonMagnitude && terms.length > 1) {
-      final String? denominator = switch (terms.length) {
-        2 => '√2',
-        4 => '2',
-        _ => null,
-      };
-      if (denominator != null) {
-        final List<String> innerTerms = terms.map((term) {
-          final Complex normalized = Complex(
-            term.value.real / commonMagnitude,
-            term.value.imaginary / commonMagnitude,
-          );
-          return _formatKetTerm(
-            normalized,
-            _toBinaryKet(term.index, widget.numQubits),
-            omitUnitCoefficient: true,
-          );
-        }).toList();
-        return '(${_joinKetTerms(innerTerms)})/$denominator';
-      }
-    }
-
-    return _joinKetTerms(
-      terms.map((term) {
-        return _formatKetTerm(
-          term.value,
-          _toBinaryKet(term.index, widget.numQubits),
-          omitUnitCoefficient: true,
-        );
-      }).toList(),
-    );
-  }
-
-  String _formatKetTerm(
-    Complex coefficient,
-    String ket, {
-    required bool omitUnitCoefficient,
-  }) {
-    final double real = coefficient.real.toDouble();
-    final double imaginary = coefficient.imaginary.toDouble();
-    final double invSqrt2 = 1 / math.sqrt(2);
-
-    if (real.abs() < _matchTolerance &&
-        (imaginary - 1).abs() < _matchTolerance) {
-      return 'i$ket';
-    }
-    if (real.abs() < _matchTolerance &&
-        (imaginary + 1).abs() < _matchTolerance) {
-      return '-i$ket';
-    }
-    if ((real - 1).abs() < _matchTolerance &&
-        imaginary.abs() < _matchTolerance) {
-      return omitUnitCoefficient ? ket : '1$ket';
-    }
-    if ((real + 1).abs() < _matchTolerance &&
-        imaginary.abs() < _matchTolerance) {
-      return '-$ket';
-    }
-    if ((real - invSqrt2).abs() < _matchTolerance &&
-        imaginary.abs() < _matchTolerance) {
-      return omitUnitCoefficient ? ket : '(1/√2)$ket';
-    }
-    if ((real + invSqrt2).abs() < _matchTolerance &&
-        imaginary.abs() < _matchTolerance) {
-      return '-$ket';
-    }
-
-    return '${formatComplex(coefficient)}$ket';
-  }
-
-  String _joinKetTerms(List<String> terms) {
-    if (terms.isEmpty) {
-      return '';
-    }
-
-    final StringBuffer buffer = StringBuffer(terms.first);
-    for (final String term in terms.skip(1)) {
-      if (term.startsWith('-')) {
-        buffer.write(' - ${term.substring(1)}');
-      } else {
-        buffer.write(' + $term');
-      }
-    }
-    return buffer.toString();
-  }
-
   Widget _buildProbabilityList(int vectorSize, bool hasTarget) {
     final List<int> visibleIndexes = _significantIndexes(vectorSize, hasTarget);
     final Color probabilityColor = widget.tone == StateVectorDisplayTone.target
@@ -486,13 +382,19 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
 }
 
 class _StateExpressionLine extends StatefulWidget {
-  final String expression;
+  final List<QuantumStateTerm>? currentTerms;
+  final String? authoredExpression;
   final bool dense;
 
   const _StateExpressionLine({
-    required this.expression,
+    required this.currentTerms,
+    required this.authoredExpression,
     required this.dense,
   });
+
+  String get signature => currentTerms == null
+      ? authoredExpression ?? ''
+      : currentTerms!.map((term) => term.displayText).join();
 
   @override
   State<_StateExpressionLine> createState() => _StateExpressionLineState();
@@ -510,7 +412,7 @@ class _StateExpressionLineState extends State<_StateExpressionLine> {
   @override
   void didUpdateWidget(covariant _StateExpressionLine oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.expression != widget.expression) {
+    if (oldWidget.signature != widget.signature) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_horizontalScrollController.hasClients) {
           _horizontalScrollController.jumpTo(0);
@@ -530,66 +432,55 @@ class _StateExpressionLineState extends State<_StateExpressionLine> {
     return SingleChildScrollView(
       controller: _horizontalScrollController,
       scrollDirection: Axis.horizontal,
-      child: RichText(
-        softWrap: false,
-        text: TextSpan(
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: widget.dense ? 11 : 12.5,
-            fontWeight: FontWeight.w800,
-            height: 1.1,
-          ),
-          children: _highlightKetSpans(widget.expression),
-        ),
-      ),
+      child: widget.currentTerms == null
+          ? LatexText(
+              math:
+                  '\$${quantumStateNotationToLatex(widget.authoredExpression!)}\$',
+              textStyle: _baseStyle,
+              inlineMathColor: Colors.white,
+              inlineMathHeight: widget.dense ? 13 : 15,
+            )
+          : RichText(
+              key: const ValueKey('current-state-rich-text'),
+              softWrap: false,
+              text: TextSpan(
+                style: _baseStyle,
+                children: _currentStateSpans(widget.currentTerms!),
+              ),
+            ),
     );
   }
 
-  List<TextSpan> _highlightKetSpans(String value) {
-    final RegExp ketPattern = RegExp(r'\|[^|⟩]+⟩');
-    final List<TextSpan> spans = [];
-    int cursor = 0;
+  TextStyle get _baseStyle => TextStyle(
+        color: Colors.white,
+        fontSize: widget.dense ? 11 : 12.5,
+        fontWeight: FontWeight.w800,
+        height: 1.1,
+      );
 
-    for (final RegExpMatch match in ketPattern.allMatches(value)) {
-      if (match.start > cursor) {
-        spans.add(TextSpan(text: value.substring(cursor, match.start)));
+  List<InlineSpan> _currentStateSpans(List<QuantumStateTerm> terms) {
+    final spans = <InlineSpan>[const TextSpan(text: '|ψ⟩ = ')];
+    if (terms.isEmpty) {
+      spans.add(const TextSpan(text: '0'));
+      return spans;
+    }
+
+    for (var index = 0; index < terms.length; index++) {
+      if (index > 0) {
+        spans.add(const TextSpan(text: ' + '));
       }
-
-      final String ket = value.substring(match.start, match.end);
-      final String ketBody = ket.substring(1, ket.length - 1);
-      final bool isBasisKet = RegExp(r'^[01]+$').hasMatch(ketBody);
-      final bool shouldSeparateFromCoefficient =
-          match.start > 0 && !_isKetPrefixBoundary(value[match.start - 1]);
-
-      if (shouldSeparateFromCoefficient) {
-        spans.add(const TextSpan(text: ' '));
+      final term = terms[index];
+      if (!term.coefficientIsUnit) {
+        spans.add(TextSpan(text: '(${term.formattedCoefficient})'));
       }
-
       spans.add(
         TextSpan(
-          text: ket,
-          style: isBasisKet
-              ? const TextStyle(color: _ResultPalette.qqGreen)
-              : null,
+          text: term.basisKet,
+          style: const TextStyle(color: _ResultPalette.qqGreen),
         ),
       );
-      cursor = match.end;
     }
-
-    if (cursor < value.length) {
-      spans.add(TextSpan(text: value.substring(cursor)));
-    }
-
     return spans;
-  }
-
-  bool _isKetPrefixBoundary(String char) {
-    return char == ' ' ||
-        char == '(' ||
-        char == '=' ||
-        char == '+' ||
-        char == '-' ||
-        char == '/';
   }
 }
 
