@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/logical_gate_footprint.dart';
+import 'package:quantumquiz/widgets/gate_inspector_theme.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 
 /// Static Phase 2 renderer for the Inspector's educational visual slot.
@@ -130,11 +131,14 @@ class _GateVisualPainter extends CustomPainter {
         center - Offset(0, radius + 4), center + Offset(0, radius + 4), front);
 
     _paintLabel(canvas, center + Offset(radius + 12, 1), 'X',
-        color: QubitQuestDialog.mutedText, fontSize: 9);
+        color: QubitQuestDialog.mutedText,
+        fontSize: GateInspectorTheme.visualAxisLabelSize);
     _paintLabel(canvas, center - Offset(radius * .82, radius * .7), 'Y',
-        color: QubitQuestDialog.mutedText, fontSize: 9);
+        color: QubitQuestDialog.mutedText,
+        fontSize: GateInspectorTheme.visualAxisLabelSize);
     _paintLabel(canvas, center - Offset(-2, radius + 9), 'Z',
-        color: QubitQuestDialog.mutedText, fontSize: 9);
+        color: QubitQuestDialog.mutedText,
+        fontSize: GateInspectorTheme.visualAxisLabelSize);
 
     final stateVector = Paint()
       ..color = Colors.white
@@ -162,27 +166,73 @@ class _GateVisualPainter extends CustomPainter {
         arrowEnd, arrowEnd - tangent * 8 + const Offset(-3, -2), arrow);
 
     _paintLabel(canvas, Offset(size.width * .73, size.height * .26), gateLabel,
-        fontSize: 19);
+        fontSize: GateInspectorTheme.visualGateNameSize);
     _paintLabel(canvas, Offset(size.width * .73, size.height * .49),
         '${axisLabel ?? ''} axis • $rotationLabel',
-        color: QubitQuestDialog.cyan, fontSize: 11);
+        color: QubitQuestDialog.cyan,
+        fontSize: GateInspectorTheme.visualBehaviorSize);
     if (representativeTransition != null) {
       _paintLabel(canvas, Offset(size.width * .73, size.height * .72),
           representativeTransition!,
-          color: QubitQuestDialog.mutedText, fontSize: 10);
+          color: QubitQuestDialog.mutedText,
+          fontSize: GateInspectorTheme.visualCaptionSize);
     }
   }
 
   void _paintSuperposition(Canvas canvas, Size size) {
-    final y = size.height / 2;
-    final line = Paint()
-      ..color = QubitQuestDialog.cyan.withValues(alpha: .7)
-      ..strokeWidth = 2;
-    canvas.drawLine(Offset(18, y), Offset(size.width - 18, y), line);
-    _paintGateTile(canvas, Offset(size.width / 2, y), 'H');
-    _paintLabel(canvas, Offset(size.width * .16, y - 22), '|0⟩', fontSize: 15);
-    _paintLabel(canvas, Offset(size.width * .83, y - 22), '|+⟩',
-        color: QubitQuestDialog.purple, fontSize: 15);
+    final radius = math.min(27.0, size.height * .3);
+    final left = Offset(size.width * .24, size.height * .52);
+    final right = Offset(size.width * .76, size.height * .52);
+    final sphere = Paint()
+      ..color = QubitQuestDialog.cyan.withValues(alpha: .62)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    final depth = Paint()
+      ..color = QubitQuestDialog.cyan.withValues(alpha: .25)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+
+    for (final center in [left, right]) {
+      canvas.drawCircle(center, radius, sphere);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: center,
+          width: radius * 2,
+          height: radius * .62,
+        ),
+        depth,
+      );
+      canvas.drawLine(center - Offset(0, radius + 3),
+          center + Offset(0, radius + 3), sphere);
+    }
+
+    final vector = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+    final basisEnd = left - Offset(0, radius * .82);
+    final plusEnd = right + Offset(radius * .82, 0);
+    canvas.drawLine(left, basisEnd, vector);
+    canvas.drawLine(right, plusEnd, vector);
+    canvas.drawCircle(basisEnd, 3, Paint()..color = Colors.white);
+    canvas.drawCircle(plusEnd, 3, Paint()..color = Colors.white);
+
+    final transition = Paint()
+      ..color = QubitQuestDialog.purple
+      ..strokeWidth = 2.4
+      ..strokeCap = StrokeCap.round;
+    final arrowStart = Offset(left.dx + radius + 10, left.dy);
+    final arrowEnd = Offset(right.dx - radius - 10, right.dy);
+    canvas.drawLine(arrowStart, arrowEnd, transition);
+    canvas.drawLine(arrowEnd, arrowEnd - const Offset(8, 5), transition);
+    canvas.drawLine(arrowEnd, arrowEnd - const Offset(8, -5), transition);
+    _paintGateTile(canvas, Offset(size.width / 2, size.height * .52), 'H');
+
+    _paintLabel(canvas, Offset(left.dx, 10), '|0⟩',
+        fontSize: GateInspectorTheme.visualStateSize);
+    _paintLabel(canvas, Offset(right.dx, 10), '|+⟩',
+        color: QubitQuestDialog.purple,
+        fontSize: GateInspectorTheme.visualStateSize);
   }
 
   void _paintControlled(Canvas canvas, Size size,
@@ -239,11 +289,13 @@ class _GateVisualPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );
-    _paintLabel(canvas, center, label, fontSize: 16);
+    _paintLabel(canvas, center, label,
+        fontSize: GateInspectorTheme.visualDiagramGateSize);
   }
 
   void _paintLabel(Canvas canvas, Offset center, String label,
-      {Color color = Colors.white, double fontSize = 14}) {
+      {Color color = Colors.white,
+      double fontSize = GateInspectorTheme.visualBehaviorSize}) {
     final painter = TextPainter(
       text: TextSpan(
         text: label,

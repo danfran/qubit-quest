@@ -9,7 +9,9 @@ import 'package:quantumquiz/models/logical_gate_footprint.dart';
 import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
+import 'package:quantumquiz/widgets/gate_inspector_theme.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/native_math_text.dart';
 
 LogicalGateFootprint footprint(
   SelectedGateType type, {
@@ -45,6 +47,20 @@ LogicalGateFootprint footprint(
     isDeletable: true,
   );
 }
+
+LogicalGateFootprint _productionFootprint(SelectedGateType type) =>
+    switch (type) {
+      SelectedGateType.rx ||
+      SelectedGateType.ry ||
+      SelectedGateType.rz =>
+        footprint(type, angle: math.pi / 4),
+      SelectedGateType.cnot ||
+      SelectedGateType.cz =>
+        footprint(type, control: 0, target: 1),
+      SelectedGateType.ccnot =>
+        footprint(type, control: 0, secondControl: 1, target: 2),
+      _ => footprint(type),
+    };
 
 void main() {
   test('all production gate types have educational metadata', () {
@@ -90,6 +106,11 @@ void main() {
         findsOneWidget);
     expect(find.byKey(const ValueKey('gate-inspector-static-visual')),
         findsOneWidget);
+    expect(
+      find.bySemanticsLabel(
+          'Hadamard changes a basis state into superposition'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Inspector uses primary secondary and tertiary math hierarchy',
@@ -102,10 +123,14 @@ void main() {
       ),
     ));
 
-    final stateMath = tester.widget<LatexText>(
-        find.byKey(const ValueKey('gate-inspector-state-math-0')));
-    final identityMath = tester.widget<LatexText>(
-        find.byKey(const ValueKey('gate-inspector-identity-math-0')));
+    final stateMath = tester.widget<NativeMathText>(find.descendant(
+      of: find.byKey(const ValueKey('gate-inspector-state-math-0')),
+      matching: find.byType(NativeMathText),
+    ));
+    final identityMath = tester.widget<NativeMathText>(find.descendant(
+      of: find.byKey(const ValueKey('gate-inspector-identity-math-0')),
+      matching: find.byType(NativeMathText),
+    ));
     final matrix = find.byKey(const ValueKey('gate-inspector-matrix'));
     await tester.ensureVisible(matrix);
     await tester.tap(matrix);
@@ -113,11 +138,134 @@ void main() {
     final matrixMath = tester.widget<LatexText>(
         find.byKey(const ValueKey('gate-inspector-matrix-latex')));
 
-    expect(
-        matrixMath.displayMathHeight, greaterThan(stateMath.displayMathHeight));
-    expect(stateMath.displayMathHeight,
-        greaterThan(identityMath.displayMathHeight));
-    expect(identityMath.inlineMathHeight, lessThan(stateMath.inlineMathHeight));
+    expect(matrixMath.textStyle, GateInspectorTheme.mathPrimary);
+    expect(matrixMath.displayMathHeight,
+        GateInspectorTheme.mathPrimaryDisplayHeight);
+    expect(stateMath.style, GateInspectorTheme.mathSecondary);
+    expect(identityMath.style, GateInspectorTheme.mathTertiary);
+    expect(identityMath.style.fontSize,
+        lessThan(GateInspectorTheme.body.fontSize!));
+  });
+
+  testWidgets('all production gates inherit shared Inspector math styles',
+      (tester) async {
+    for (final type in GateEducationalCatalog.productionGateTypes) {
+      final info = GateEducationalCatalog.forType(type)!;
+      await tester.pumpWidget(MaterialApp(
+        home: GateInspectorDialog(
+          footprint: _productionFootprint(type),
+          info: info,
+        ),
+      ));
+      await tester.pump();
+
+      final title = tester.widget<Text>(find.text(info.name));
+      expect(title.style, GateInspectorTheme.title, reason: type.name);
+      if (info.transformations.isNotEmpty) {
+        final container =
+            find.byKey(const ValueKey('gate-inspector-state-math-0'));
+        if (NativeMathText.supports(info.transformations.first)) {
+          final finder = find.descendant(
+              of: container, matching: find.byType(NativeMathText));
+          expect(tester.widget<NativeMathText>(finder).style,
+              GateInspectorTheme.mathSecondary,
+              reason: type.name);
+        } else {
+          final finder =
+              find.descendant(of: container, matching: find.byType(LatexText));
+          expect(tester.widget<LatexText>(finder).textStyle,
+              GateInspectorTheme.mathSecondary,
+              reason: type.name);
+        }
+      }
+      if (info.identities.isNotEmpty) {
+        final container =
+            find.byKey(const ValueKey('gate-inspector-identity-math-0'));
+        if (NativeMathText.supports(info.identities.first)) {
+          final finder = find.descendant(
+              of: container, matching: find.byType(NativeMathText));
+          expect(tester.widget<NativeMathText>(finder).style,
+              GateInspectorTheme.mathTertiary,
+              reason: type.name);
+        } else {
+          final finder =
+              find.descendant(of: container, matching: find.byType(LatexText));
+          expect(tester.widget<LatexText>(finder).textStyle,
+              GateInspectorTheme.mathTertiary,
+              reason: type.name);
+        }
+      }
+      expect(tester.takeException(), isNull, reason: type.name);
+    }
+  });
+
+  testWidgets('all production dialogs remain usable at supported text scales',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    for (final scale in [1.0, 1.5, 2.0]) {
+      for (final type in GateEducationalCatalog.productionGateTypes) {
+        await tester.pumpWidget(MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(scale)),
+            child: child!,
+          ),
+          home: GateInspectorDialog(
+            footprint: _productionFootprint(type),
+            info: GateEducationalCatalog.forType(type),
+          ),
+        ));
+        await tester.pump();
+        expect(find.byType(SingleChildScrollView), findsWidgets,
+            reason: '${type.name} at ${scale}x');
+        expect(tester.takeException(), isNull,
+            reason: '${type.name} at ${scale}x');
+      }
+    }
+  });
+
+  testWidgets('long identity lists use tertiary style and wrap in scroll view',
+      (tester) async {
+    final base = GateEducationalCatalog.forType(SelectedGateType.x)!;
+    final longInfo = GateEducationalInfo(
+      type: base.type,
+      name: base.name,
+      intuition: base.intuition,
+      physicalChange: base.physicalChange,
+      commonUse: base.commonUse,
+      transformations: base.transformations,
+      matrix: base.matrix,
+      properties: base.properties,
+      identities: List.generate(12,
+          (index) => r'\(X^{2}=I\) — supporting relation number ${index + 1}'),
+      relatedConcepts: base.relatedConcepts,
+      visual: base.visual,
+    );
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: const TextScaler.linear(2)),
+        child: child!,
+      ),
+      home: GateInspectorDialog(
+        footprint: footprint(SelectedGateType.x),
+        info: longInfo,
+      ),
+    ));
+
+    expect(find.byKey(const ValueKey('gate-inspector-identity-math-11')),
+        findsOneWidget);
+    final last = tester.widget<NativeMathText>(find.descendant(
+      of: find.byKey(const ValueKey('gate-inspector-identity-math-11')),
+      matching: find.byType(NativeMathText),
+    ));
+    expect(last.style, GateInspectorTheme.mathTertiary);
+    expect(find.byType(SingleChildScrollView), findsWidgets);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('rotation shows configured angle and axis', (tester) async {

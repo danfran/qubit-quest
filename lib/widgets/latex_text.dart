@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:flutter_tex/flutter_tex.dart';
 
 /// Renders a mixed text + LaTeX string correctly.
@@ -108,12 +107,11 @@ class LatexText extends StatelessWidget {
         rows.add(Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: TeX2SVG(
-            math: seg.content,
-            formulaWidgetBuilder: (ctx, svg) => SvgPicture.string(
-              svg,
-              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-              height: displayMathHeight,
-              fit: BoxFit.contain,
+            math: _mathJaxSource(seg),
+            formulaWidgetBuilder: (ctx, svg) => LatexSvgPicture(
+              svg: svg,
+              logicalHeight: displayMathHeight,
+              color: color,
             ),
           ),
         ));
@@ -122,12 +120,11 @@ class LatexText extends StatelessWidget {
         currentSpans.add(WidgetSpan(
           alignment: PlaceholderAlignment.middle,
           child: TeX2SVG(
-            math: seg.content,
-            formulaWidgetBuilder: (ctx, svg) => SvgPicture.string(
-              svg,
-              colorFilter: ColorFilter.mode(inlineColor, BlendMode.srcIn),
-              height: inlineMathHeight,
-              fit: BoxFit.contain,
+            math: _mathJaxSource(seg),
+            formulaWidgetBuilder: (ctx, svg) => LatexSvgPicture(
+              svg: svg,
+              logicalHeight: inlineMathHeight,
+              color: inlineColor,
             ),
           ),
         ));
@@ -141,6 +138,50 @@ class LatexText extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: rows,
+    );
+  }
+
+  // flutter_tex calls MathJax's convert() without forwarding delimiter mode;
+  // bare input therefore defaults to display style. Preserve the parsed TeX
+  // semantics explicitly when the delimiters themselves are removed.
+  String _mathJaxSource(_Segment segment) {
+    final style = segment.isDisplay ? r'\displaystyle' : r'\textstyle';
+    return '$style{${segment.content}}';
+  }
+}
+
+/// Renders MathJax SVG output inside an explicit logical-height contract.
+///
+/// MathJax emits paths in an intrinsic SVG viewBox, not Flutter text glyphs.
+/// This tight, clipped viewport makes [logicalHeight] an actual paint bound
+/// rather than only a preferred picture dimension. It also follows Flutter's
+/// accessibility text scale just like the surrounding text.
+class LatexSvgPicture extends StatelessWidget {
+  const LatexSvgPicture({
+    super.key,
+    required this.svg,
+    required this.logicalHeight,
+    required this.color,
+  });
+
+  final String svg;
+  final double logicalHeight;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedHeight =
+        MediaQuery.textScalerOf(context).scale(logicalHeight);
+    return SizedBox(
+      height: resolvedHeight,
+      child: ClipRect(
+        child: SvgPicture.string(
+          svg,
+          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+          height: resolvedHeight,
+          fit: BoxFit.contain,
+        ),
+      ),
     );
   }
 }

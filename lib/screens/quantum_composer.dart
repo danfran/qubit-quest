@@ -22,10 +22,10 @@ import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialo
 import 'package:quantumquiz/utils/complex_formatter.dart';
 import 'package:quantumquiz/widgets/adaptive_learning_card.dart';
 import 'package:quantumquiz/widgets/circuit_canvas_metrics.dart';
-import 'package:quantumquiz/widgets/gate_visual_style.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
+import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
@@ -126,35 +126,6 @@ class _QuantumComposerState extends State<QuantumComposer>
   static const Color qqPurple = Color(0xFFB388FF);
   static const Color qqGreen = Color(0xFF7CFFB2);
   static const Color qqYellow = Color(0xFFFFD54F);
-
-  static const Color gateBorder = QubitQuestGateStyle.border;
-  static const double gateButtonRadius = QubitQuestGateStyle.buttonRadius;
-  static const double gateButtonBorderWidth = QubitQuestGateStyle.borderWidth;
-
-  static GateGradientStyle _gateVisualFor(Gate gate) =>
-      QubitQuestGateStyle.forGate(gate);
-
-  static BoxDecoration _flatGateButtonDecoration(GateGradientStyle visual) {
-    return BoxDecoration(
-      borderRadius: BorderRadius.circular(gateButtonRadius),
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: visual.colors,
-      ),
-      border: Border.all(
-        color: gateBorder,
-        width: gateButtonBorderWidth,
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.45),
-          blurRadius: 8,
-          offset: const Offset(0, 3),
-        ),
-      ],
-    );
-  }
 
   late int _numQubits;
   late String _taskDescription;
@@ -3095,31 +3066,16 @@ class _QuantumComposerState extends State<QuantumComposer>
     }
 
     final double buttonSize = dense ? 38 : 52;
-    final GateGradientStyle visual = _gateVisualFor(gate);
-
     return Draggable<CircuitDragData>(
       // Draggable for Hadamard
       data: CircuitDragData.palette(gate), // Data carried by the drag
       feedback: Material(
         color: Colors.transparent,
-        child: DecoratedBox(
-          decoration: _flatGateButtonDecoration(visual),
-          child: SizedBox(
-            width: buttonSize,
-            height: buttonSize,
-            child: Center(
-              child: Text(
-                gate.label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.95),
-                  fontSize: fontSizeW,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0,
-                ),
-              ),
-            ),
-          ),
+        child: QubitQuestGateTile(
+          gate: gate,
+          size: buttonSize,
+          fontSize: fontSizeW,
+          onPressed: null,
         ),
       ),
       childWhenDragging: Opacity(
@@ -3156,42 +3112,12 @@ class _GatePaletteButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final GateGradientStyle visual = _QuantumComposerState._gateVisualFor(gate);
-
-    return DecoratedBox(
-      decoration: _QuantumComposerState._flatGateButtonDecoration(visual),
-      child: ElevatedButton(
+  Widget build(BuildContext context) => QubitQuestGateTile(
+        gate: gate,
+        size: buttonSize,
+        fontSize: fontSize,
         onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          minimumSize: Size.square(buttonSize),
-          fixedSize: Size.square(buttonSize),
-          padding: EdgeInsets.zero,
-          elevation: 0,
-          shadowColor: Colors.transparent,
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white.withValues(alpha: 0.95),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(
-              _QuantumComposerState.gateButtonRadius,
-            ),
-          ),
-        ),
-        child: Center(
-          child: Text(
-            gate.label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.95),
-              fontSize: fontSize,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+      );
 }
 
 class _ReleaseToRemovePill extends StatelessWidget {

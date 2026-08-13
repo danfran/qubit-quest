@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/logical_gate_footprint.dart';
 import 'package:quantumquiz/widgets/gate_educational_visual.dart';
+import 'package:quantumquiz/widgets/gate_inspector_theme.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/native_math_text.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 
 class GateInspectorDialog extends StatelessWidget {
@@ -25,6 +27,7 @@ class GateInspectorDialog extends StatelessWidget {
     if (educational == null) {
       return QubitQuestDialog(
         title: 'Gate Inspector',
+        titleStyle: GateInspectorTheme.title,
         actions: [
           QubitQuestDialogButton.primary(
             label: 'Close',
@@ -34,13 +37,14 @@ class GateInspectorDialog extends StatelessWidget {
         child: const Text(
           'Educational information is not available for this gate yet.',
           key: ValueKey('gate-inspector-unsupported'),
-          style: TextStyle(color: Color(0xFFD6E3F8), height: 1.4),
+          style: GateInspectorTheme.body,
         ),
       );
     }
 
     return QubitQuestDialog(
       title: educational.name,
+      titleStyle: GateInspectorTheme.title,
       maxWidth: 600,
       actions: [
         if (onOpenNotebook != null)
@@ -151,7 +155,7 @@ class _InspectorHero extends StatelessWidget {
               : details.join('\n'),
           key: const ValueKey('gate-inspector-config'),
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Color(0xFFD6E3F8), height: 1.45),
+          style: GateInspectorTheme.caption,
         ),
       ]),
     );
@@ -187,17 +191,14 @@ class _Section extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title,
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w900)),
+          Text(title, style: GateInspectorTheme.sectionTitle),
           const SizedBox(height: 5),
           LatexText(
             math: body,
-            textStyle: const TextStyle(
-              color: Color(0xFFD6E3F8),
-              height: 1.4,
-            ),
+            textStyle: GateInspectorTheme.body,
             inlineMathColor: Colors.white,
+            inlineMathHeight: GateInspectorTheme.mathSecondaryInlineHeight,
+            displayMathHeight: GateInspectorTheme.mathSecondaryDisplayHeight,
           ),
         ]),
       );
@@ -231,29 +232,50 @@ class _MathListSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _InspectorCard(children: [
-        Text(title,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w900)),
+        Text(title, style: GateInspectorTheme.sectionTitle),
         const SizedBox(height: 8),
         for (final entry in values.asMap().entries)
           Padding(
             padding: const EdgeInsets.only(bottom: 7),
-            child: LatexText(
+            child: _InspectorMathExpression(
               key: ValueKey('$keyPrefix-${entry.key}'),
               math: entry.value,
-              textStyle: TextStyle(
-                color: Color(0xFFD6E3F8),
-                fontSize: level == _InspectorMathLevel.secondary ? 14 : 12,
-                height: 1.35,
-              ),
-              inlineMathColor: Colors.white,
-              inlineMathHeight:
-                  level == _InspectorMathLevel.secondary ? 16 : 11,
-              displayMathHeight:
-                  level == _InspectorMathLevel.secondary ? 22 : 14,
+              level: level,
             ),
           ),
       ]);
+}
+
+class _InspectorMathExpression extends StatelessWidget {
+  const _InspectorMathExpression({
+    super.key,
+    required this.math,
+    required this.level,
+  });
+
+  final String math;
+  final _InspectorMathLevel level;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = level == _InspectorMathLevel.secondary
+        ? GateInspectorTheme.mathSecondary
+        : GateInspectorTheme.mathTertiary;
+    if (NativeMathText.supports(math)) {
+      return NativeMathText(math: math, style: style);
+    }
+    return LatexText(
+      math: math,
+      textStyle: style,
+      inlineMathColor: Colors.white,
+      inlineMathHeight: level == _InspectorMathLevel.secondary
+          ? GateInspectorTheme.mathSecondaryInlineHeight
+          : GateInspectorTheme.mathTertiaryInlineHeight,
+      displayMathHeight: level == _InspectorMathLevel.secondary
+          ? GateInspectorTheme.mathSecondaryDisplayHeight
+          : GateInspectorTheme.mathTertiaryDisplayHeight,
+    );
+  }
 }
 
 class _RelatedConceptsSection extends StatelessWidget {
@@ -263,8 +285,7 @@ class _RelatedConceptsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _InspectorCard(children: [
-        const Text('Related concepts',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+        const Text('Related concepts', style: GateInspectorTheme.sectionTitle),
         const SizedBox(height: 8),
         Wrap(
           spacing: 7,
@@ -308,16 +329,16 @@ class _MatrixSection extends StatelessWidget {
           collapsedIconColor: QubitQuestDialog.cyan,
           iconColor: QubitQuestDialog.cyan,
           title: const Text('Mathematical definition',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+              style: GateInspectorTheme.sectionTitle),
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
               child: LatexText(
                 key: const ValueKey('gate-inspector-matrix-latex'),
                 math: matrix,
-                textStyle: const TextStyle(color: Color(0xFFD6E3F8)),
-                displayMathHeight: 34,
+                textStyle: GateInspectorTheme.mathPrimary,
+                inlineMathHeight: GateInspectorTheme.mathPrimaryInlineHeight,
+                displayMathHeight: GateInspectorTheme.mathPrimaryDisplayHeight,
               ),
             ),
           ],

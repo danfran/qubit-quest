@@ -6,6 +6,7 @@ import 'package:quantumquiz/models/bloch_explorer_model.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
+import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 
 class BlochExplorerScreen extends StatefulWidget {
   const BlochExplorerScreen({super.key});
@@ -123,13 +124,6 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
         surfaceTintColor: Colors.transparent,
         title: const Text('Bloch Explorer',
             style: TextStyle(fontWeight: FontWeight.w900)),
-        actions: [
-          IconButton(
-            tooltip: 'Reset state',
-            onPressed: _history.reset,
-            icon: const Icon(Icons.restart_alt_rounded),
-          ),
-        ],
       ),
       body: SafeArea(
         child: LayoutBuilder(builder: (context, constraints) {
@@ -148,33 +142,32 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
             onGlobalPhaseChanged: _setGlobalPhase,
           );
           final sphereWithControls = Column(children: [
-            Expanded(child: sphere),
+            SizedBox(height: wide ? 330 : 360, child: sphere),
             const SizedBox(height: 8),
             _buildTransportControls(),
+            const SizedBox(height: 8),
+            _buildHistory(),
           ]);
           return ListView(
             key: const ValueKey('bloch-explorer-scroll'),
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
             children: [
               if (wide)
-                SizedBox(
-                  height: math.max(420, constraints.maxHeight * .58),
-                  child: Row(children: [
-                    Expanded(flex: 6, child: sphereWithControls),
-                    const SizedBox(width: 14),
-                    Expanded(
-                        flex: 5, child: SingleChildScrollView(child: details)),
-                  ]),
-                )
+                Row(
+                    key: const ValueKey('bloch-landscape-top-row'),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 6, child: sphereWithControls),
+                      const SizedBox(width: 14),
+                      Expanded(flex: 5, child: details),
+                    ])
               else ...[
-                SizedBox(height: 430, child: sphereWithControls),
+                sphereWithControls,
                 const SizedBox(height: 12),
                 details,
               ],
               const SizedBox(height: 14),
               _buildGateLab(),
-              const SizedBox(height: 12),
-              _buildHistory(),
             ],
           );
         }),
@@ -214,23 +207,6 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
             divisions: 16,
             onChanged: (value) => setState(() => _rotationAngle = value),
           ),
-          ExpansionTile(
-            key: const ValueKey('bloch-animation-settings'),
-            tilePadding: EdgeInsets.zero,
-            childrenPadding: EdgeInsets.zero,
-            title: const Text('Animation',
-                style: TextStyle(fontWeight: FontWeight.w800)),
-            children: [
-              SwitchListTile.adaptive(
-                key: const ValueKey('bloch-instant-mode'),
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Instant mode'),
-                subtitle: const Text('Skip the educational vector transition'),
-                value: _instant,
-                onChanged: (value) => setState(() => _instant = value),
-              ),
-            ],
-          ),
         ]),
       );
 
@@ -251,18 +227,21 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
         ],
       );
 
-  Widget _gateChip(SelectedGateType type) => ActionChip(
-        key: ValueKey('bloch-gate-${type.name}'),
-        label: Text(Gate.fromIdentifier(type,
-                angle: type == SelectedGateType.rx ||
-                        type == SelectedGateType.ry ||
-                        type == SelectedGateType.rz
-                    ? _rotationAngle
-                    : null)
-            .label
-            .replaceAll('\n', ' ')),
-        onPressed: () => _applyGate(type),
-      );
+  Widget _gateChip(SelectedGateType type) {
+    final gate = Gate.fromIdentifier(type,
+        angle: type == SelectedGateType.rx ||
+                type == SelectedGateType.ry ||
+                type == SelectedGateType.rz
+            ? _rotationAngle
+            : null);
+    return QubitQuestGateTile(
+      key: ValueKey('bloch-gate-${type.name}'),
+      gate: gate,
+      size: 44,
+      tooltip: 'Apply ${gate.label.replaceAll('\n', ' ')} gate',
+      onPressed: () => _applyGate(type),
+    );
+  }
 
   Widget _buildTransportControls() => Container(
         key: const ValueKey('bloch-transport-controls'),
@@ -272,52 +251,94 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: QubitQuestDialog.borderColor),
         ),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          _transportButton(
-              key: 'bloch-undo',
-              tooltip: 'Undo',
-              icon: Icons.undo_rounded,
-              onPressed: _history.canUndo ? _history.undo : null),
-          _transportButton(
-              key: 'bloch-redo',
-              tooltip: 'Redo',
-              icon: Icons.redo_rounded,
-              onPressed: _history.canRedo ? _history.redo : null),
-          _transportButton(
-              key: 'bloch-replay',
-              tooltip: 'Replay',
-              icon: Icons.replay_rounded,
-              onPressed: _history.replayTransition != null ? _replay : null),
-          _transportButton(
-              key: 'bloch-reset',
-              tooltip: 'Reset',
-              icon: Icons.restart_alt_rounded,
-              onPressed: _history.reset),
-        ]),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final controls = <Widget>[
+            _transportButton(
+                key: 'bloch-undo',
+                label: 'Undo',
+                icon: Icons.undo_rounded,
+                onPressed: _history.canUndo ? _history.undo : null),
+            _transportButton(
+                key: 'bloch-redo',
+                label: 'Redo',
+                icon: Icons.redo_rounded,
+                onPressed: _history.canRedo ? _history.redo : null),
+            _transportButton(
+                key: 'bloch-replay',
+                label: 'Replay',
+                icon: Icons.play_circle_outline_rounded,
+                onPressed: _history.replayTransition != null ? _replay : null),
+            _transportButton(
+                key: 'bloch-reset',
+                label: 'Reset',
+                icon: Icons.restart_alt_rounded,
+                onPressed: _history.reset),
+          ];
+          final instant = Row(mainAxisSize: MainAxisSize.min, children: [
+            const Text('Instant mode', style: TextStyle(fontSize: 12)),
+            Switch.adaptive(
+              key: const ValueKey('bloch-instant-mode'),
+              value: _instant,
+              onChanged: (value) => setState(() => _instant = value),
+            ),
+          ]);
+          if (constraints.maxWidth >= 520) {
+            return Row(children: [
+              Expanded(
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: controls)),
+              instant,
+            ]);
+          }
+          return Column(children: [
+            Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: controls),
+            instant,
+          ]);
+        }),
       );
 
   Widget _transportButton({
     required String key,
-    required String tooltip,
+    required String label,
     required IconData icon,
     required VoidCallback? onPressed,
   }) =>
-      IconButton(
+      Semantics(
         key: ValueKey(key),
-        tooltip: tooltip,
-        visualDensity: VisualDensity.compact,
-        onPressed: onPressed,
-        icon: Icon(icon),
+        button: true,
+        enabled: onPressed != null,
+        label: label,
+        child: Tooltip(
+          message: label,
+          child: TextButton.icon(
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+            ),
+            onPressed: onPressed,
+            icon: Icon(icon, size: 20),
+            label: Text(label, style: const TextStyle(fontSize: 11)),
+          ),
+        ),
       );
 
-  Widget _buildHistory() => _Panel(
-        title: 'History',
+  Widget _buildHistory() => Container(
+        key: const ValueKey('bloch-history-container'),
+        decoration: BoxDecoration(
+          color: QubitQuestDialog.panelColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: QubitQuestDialog.borderColor),
+        ),
         child: ExpansionTile(
           key: const ValueKey('bloch-history-expansion'),
           tilePadding: EdgeInsets.zero,
           childrenPadding: EdgeInsets.zero,
-          title: Text('${_history.entries.length} operations'),
-          subtitle: const Text('Show state journey'),
+          title: const Text('History',
+              style: TextStyle(fontWeight: FontWeight.w800)),
+          subtitle: Text('${_history.entries.length} operations'),
           children: [
             Align(
               alignment: Alignment.centerLeft,
@@ -407,6 +428,7 @@ class _SpherePanelState extends State<_SpherePanel> {
 
   @override
   Widget build(BuildContext context) => _Panel(
+        key: const ValueKey('bloch-sphere-panel'),
         title: '',
         expandChild: true,
         trailing: const Text('Drag vector • orbit elsewhere • pinch to zoom',
@@ -489,6 +511,7 @@ class _StateDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _Panel(
+        key: const ValueKey('bloch-current-state-panel'),
         title: 'Current state',
         child:
             Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -509,17 +532,6 @@ class _StateDetails extends StatelessWidget {
           _value('y', state.y),
           _value('z', state.z),
           const Divider(),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 6),
-            child: LatexText(
-              key: ValueKey('bloch-column-vector-latex'),
-              math:
-                  r'\[|\psi\rangle=\begin{bmatrix}\cos(\theta/2)\\e^{i\phi}\sin(\theta/2)\end{bmatrix}\]',
-              textStyle: TextStyle(color: Color(0xFFD6E3F8)),
-              inlineMathColor: Colors.white,
-              displayMathHeight: 21,
-            ),
-          ),
           Text('P(|0⟩) = ${(state.probabilityZero * 100).toStringAsFixed(1)}%'),
           Text('P(|1⟩) = ${(state.probabilityOne * 100).toStringAsFixed(1)}%'),
           const SizedBox(height: 8),
@@ -529,8 +541,19 @@ class _StateDetails extends StatelessWidget {
             childrenPadding: EdgeInsets.zero,
             title: const Text('Advanced',
                 style: TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: const Text('Global phase γ'),
+            subtitle: const Text('Column vector • global phase γ'),
             children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 6),
+                child: LatexText(
+                  key: ValueKey('bloch-column-vector-latex'),
+                  math:
+                      r'\[|\psi\rangle=\begin{bmatrix}\cos(\theta/2)\\e^{i\phi}\sin(\theta/2)\end{bmatrix}\]',
+                  textStyle: TextStyle(color: Color(0xFFD6E3F8)),
+                  inlineMathColor: Colors.white,
+                  displayMathHeight: 21,
+                ),
+              ),
               Text('Global phase γ: ${globalPhase.toStringAsFixed(2)} rad'),
               Slider(
                 key: const ValueKey('bloch-global-phase-slider'),
@@ -557,6 +580,7 @@ class _StateDetails extends StatelessWidget {
 
 class _Panel extends StatelessWidget {
   const _Panel({
+    super.key,
     required this.title,
     required this.child,
     this.trailing,

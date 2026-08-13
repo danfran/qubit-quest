@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/bloch_explorer_model.dart';
 import 'package:quantumquiz/screens/bloch_explorer_screen.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 
 void main() {
   Future<void> pumpExplorer(WidgetTester tester,
@@ -38,24 +39,52 @@ void main() {
     await pumpExplorer(tester);
     final wavefunction = tester.widget<LatexText>(
         find.byKey(const ValueKey('bloch-wavefunction-latex')));
-    final columnVector = tester.widget<LatexText>(
-        find.byKey(const ValueKey('bloch-column-vector-latex')));
-
     expect(wavefunction.displayMathHeight, 20);
     expect(wavefunction.math, contains(r'\phi'));
     expect(wavefunction.math, isNot(contains(r'\Phi')));
+    expect(
+        find.byKey(const ValueKey('bloch-column-vector-latex')), findsNothing);
+    await tester
+        .tap(find.byKey(const ValueKey('bloch-global-phase-expansion')));
+    await tester.pumpAndSettle();
+    final columnVector = tester.widget<LatexText>(
+        find.byKey(const ValueKey('bloch-column-vector-latex')));
     expect(columnVector.math, contains(r'\begin{bmatrix}'));
     expect(columnVector.math, contains(r'e^{i\phi}'));
+    expect(columnVector.math, isNot(contains(r'\Phi')));
     expect(find.textContaining('Column vector:'), findsNothing);
+    expect(find.textContaining('Φ'), findsNothing);
   });
 
-  testWidgets('animation preference is collapsed outside primary controls',
+  testWidgets('instant mode is adjacent to primary playback controls',
       (tester) async {
     await pumpExplorer(tester, size: const Size(800, 1400));
-    expect(find.byKey(const ValueKey('bloch-instant-mode')), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('bloch-animation-settings')));
-    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('bloch-instant-mode')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('bloch-animation-settings')), findsNothing);
+    final controls = find.byKey(const ValueKey('bloch-transport-controls'));
+    expect(
+        find.descendant(
+            of: controls,
+            matching: find.byKey(const ValueKey('bloch-instant-mode'))),
+        findsOneWidget);
+  });
+
+  testWidgets('there is exactly one Reset and transport semantics are clear',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(800, 1400));
+    expect(find.text('Reset'), findsOneWidget);
+    expect(find.byTooltip('Reset'), findsOneWidget);
+    for (final entry in {
+      'bloch-undo': 'Undo',
+      'bloch-redo': 'Redo',
+      'bloch-replay': 'Replay',
+      'bloch-reset': 'Reset',
+    }.entries) {
+      final semantics =
+          tester.widget<Semantics>(find.byKey(ValueKey(entry.key)));
+      expect(semantics.properties.label, entry.value);
+    }
   });
 
   testWidgets('transport controls stay directly beneath the sphere',
@@ -69,6 +98,22 @@ void main() {
         .dy;
     // The sphere panel's bottom padding plus the explicit strip gap.
     expect(controlsTop - sphereBottom, lessThanOrEqualTo(24));
+    final historyTop = tester
+        .getTopLeft(find.byKey(const ValueKey('bloch-history-container')))
+        .dy;
+    final controlsBottom = tester
+        .getBottomLeft(find.byKey(const ValueKey('bloch-transport-controls')))
+        .dy;
+    expect(historyTop - controlsBottom, lessThanOrEqualTo(12));
+  });
+
+  testWidgets('Gate laboratory reuses production gate tiles and angles',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(800, 1400));
+    expect(find.byType(QubitQuestGateTile), findsNWidgets(9));
+    final rx = tester.widget<QubitQuestGateTile>(
+        find.byKey(const ValueKey('bloch-gate-rx')));
+    expect(rx.gate.label, contains('1/2π'));
   });
 
   testWidgets('history entries are collapsed and expand on demand',
@@ -167,7 +212,33 @@ void main() {
     await pumpExplorer(tester, size: const Size(1000, 520));
     expect(tester.takeException(), isNull);
     expect(find.byKey(const ValueKey('bloch-explorer-scroll')), findsOneWidget);
+    final scrollable = tester.state<ScrollableState>(find
+        .descendant(
+          of: find.byKey(const ValueKey('bloch-explorer-scroll')),
+          matching: find.byType(Scrollable),
+        )
+        .first);
+    scrollable.position.jumpTo(scrollable.position.maxScrollExtent);
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('bloch-rotation-slider')), findsOneWidget);
+    final row = find.byKey(const ValueKey('bloch-landscape-top-row'));
+    final spherePanel = find.byKey(const ValueKey('bloch-sphere-panel'));
+    final currentState =
+        find.byKey(const ValueKey('bloch-current-state-panel'));
+    expect(row, findsOneWidget);
+    expect(
+      (tester.getTopLeft(spherePanel).dy - tester.getTopLeft(currentState).dy)
+          .abs(),
+      lessThan(1),
+    );
+  });
+
+  testWidgets('tablet landscape top columns align without overflow',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(1280, 800));
+    expect(
+        find.byKey(const ValueKey('bloch-landscape-top-row')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   test('screen projection constrains dragged state to sphere', () {
