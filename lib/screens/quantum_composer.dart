@@ -5,6 +5,7 @@ import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/adaptive_learning.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
+import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/logical_gate_footprint.dart';
@@ -15,6 +16,7 @@ import 'package:quantumquiz/screens/learning_flow_widgets.dart';
 import 'package:quantumquiz/screens/operator_matrix_dialog.dart';
 import 'package:quantumquiz/screens/rotation_gate_dialog.dart';
 import 'package:quantumquiz/screens/gate_replacement_dialog.dart';
+import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
 import 'package:quantumquiz/screens/three_qubits_gate_target_qubits_selection_dialog.dart';
 import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
 import 'package:quantumquiz/utils/complex_formatter.dart';
@@ -1297,6 +1299,46 @@ class _QuantumComposerState extends State<QuantumComposer>
     );
   }
 
+  void _openGateNotebook(NotebookEntry entry) {
+    _adaptiveLearningSession.recordNotebookOpened();
+    Navigator.of(context).pop();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => NotebookEntryScreen(entry: entry),
+      ),
+    );
+  }
+
+  void _openInspectorRelatedConcept(String discoveryTitle) {
+    final entry = notebookEntriesByDiscoveryTitle[discoveryTitle];
+    if (entry != null) _openGateNotebook(entry);
+  }
+
+  Future<void> _inspectSelectedGate() async {
+    final selected = _selectedGateId;
+    if (selected == null) return;
+    final footprint = _circuit.logicalGateById(selected);
+    if (footprint == null) {
+      if (mounted) setState(_validateSelection);
+      return;
+    }
+    final info = GateEducationalCatalog.forType(footprint.type);
+    final notebookTitle = info?.notebookDiscoveryTitle;
+    final notebook = notebookTitle == null
+        ? null
+        : notebookEntriesByDiscoveryTitle[notebookTitle];
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => GateInspectorDialog(
+        footprint: footprint,
+        info: info,
+        onOpenNotebook:
+            notebook == null ? null : () => _openGateNotebook(notebook),
+        onOpenRelatedConcept: _openInspectorRelatedConcept,
+      ),
+    );
+  }
+
   void _selectComposerMenuAction(String action) {
     switch (action) {
       case 'matrix':
@@ -1838,6 +1880,10 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   List<Widget> _buildAppBarActions(bool compact) {
     return [
+      if (_selectedGateId != null) ...[
+        _buildInspectGateHeaderAction(compact: compact),
+        SizedBox(width: compact ? 6 : 8),
+      ],
       if (_selectedGateId != null &&
           (_circuit.logicalGateById(_selectedGateId!)?.isEditable ?? false) &&
           _circuit.availableSingleQubitReplacementTypes.any(
@@ -1862,6 +1908,51 @@ class _QuantumComposerState extends State<QuantumComposer>
       _buildMenuHeaderAction(compact: compact),
       SizedBox(width: compact ? 10 : 12),
     ];
+  }
+
+  Widget _buildInspectGateHeaderAction({required bool compact}) {
+    final content = compact
+        ? const _HeaderActionShell(
+            size: 34,
+            child: Icon(Icons.info_outline_rounded, size: 18, color: qqCyan),
+          )
+        : SizedBox(
+            width: 52,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _HeaderActionShell(
+                  size: 32,
+                  child:
+                      Icon(Icons.info_outline_rounded, size: 17, color: qqCyan),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Inspect',
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.78),
+                    fontSize: 9,
+                    height: 1,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          );
+    return Semantics(
+      label: 'Inspect gate',
+      button: true,
+      child: Tooltip(
+        message: 'Inspect gate',
+        child: InkWell(
+          key: const ValueKey('inspect-selected-gate'),
+          onTap: _inspectSelectedGate,
+          borderRadius: BorderRadius.circular(16),
+          child: content,
+        ),
+      ),
+    );
   }
 
   Widget _buildReplaceGateHeaderAction({required bool compact}) {

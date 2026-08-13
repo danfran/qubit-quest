@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:quantumquiz/screens/learning_map_screen.dart';
+import 'package:quantumquiz/screens/bloch_explorer_screen.dart';
 import 'package:quantumquiz/screens/level_ui_router.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
@@ -916,6 +917,14 @@ class _HomePageState extends State<HomePage> {
       compact: compact,
       onTap: _openLearningMap,
     );
+    final Widget blochExplorerCard = _buildActionCard(
+      title: 'Bloch Explorer',
+      subtitle: 'Move states and see the mathematics change',
+      icon: Icons.public_rounded,
+      primary: false,
+      compact: compact,
+      onTap: _openBlochExplorer,
+    );
 
     if (compact) {
       return Column(
@@ -924,6 +933,8 @@ class _HomePageState extends State<HomePage> {
           continueCard,
           const SizedBox(height: 10),
           learningMapCard,
+          const SizedBox(height: 10),
+          blochExplorerCard,
           const SizedBox(height: 10),
           composerCard,
         ],
@@ -936,8 +947,16 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(width: 14),
         Expanded(flex: 5, child: learningMapCard),
         const SizedBox(width: 14),
+        Expanded(flex: 5, child: blochExplorerCard),
+        const SizedBox(width: 14),
         Expanded(flex: 5, child: composerCard),
       ],
+    );
+  }
+
+  void _openBlochExplorer() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (context) => const BlochExplorerScreen()),
     );
   }
 

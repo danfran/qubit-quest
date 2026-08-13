@@ -1646,6 +1646,47 @@ void main() {
     expect(find.bySemanticsLabel('Edit angle'), findsOneWidget);
   });
 
+  testWidgets('selected gate exposes Inspect and opens educational dialog',
+      (tester) async {
+    await pumpComposer(
+      tester,
+      placedGate: Gate.fromIdentifier(SelectedGateType.hadamard),
+    );
+    expect(find.byKey(const ValueKey('inspect-selected-gate')), findsNothing);
+    await selectFirstGate(tester);
+    final inspect = find.byKey(const ValueKey('inspect-selected-gate'));
+    expect(inspect, findsOneWidget);
+    expect(
+      find.descendant(
+        of: inspect,
+        matching: find.byIcon(Icons.info_outline_rounded),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+          of: inspect, matching: find.byIcon(Icons.school_outlined)),
+      findsNothing,
+    );
+    expect(find.byTooltip('Inspect gate'), findsOneWidget);
+    expect(
+      find.ancestor(
+        of: inspect,
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics && widget.properties.label == 'Inspect gate',
+        ),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(inspect);
+    await tester.pumpAndSettle();
+    expect(find.text('Hadamard gate'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('gate-inspector-content')), findsOneWidget);
+    expect(find.text('Open Notebook'), findsOneWidget);
+  });
+
   testWidgets('selection exposes replacement actions only for editable singles',
       (tester) async {
     await pumpComposer(
