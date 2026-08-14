@@ -17,6 +17,12 @@ void main() {
     );
   }
 
+  BlochState paintedState(WidgetTester tester) => (tester
+          .widget<CustomPaint>(
+              find.byKey(const ValueKey('bloch-sphere-canvas')))
+          .painter! as BlochSpherePainter)
+      .state;
+
   testWidgets('screen exposes sphere mathematics gates and history',
       (tester) async {
     await pumpExplorer(tester, size: const Size(800, 1400));
@@ -25,8 +31,8 @@ void main() {
     expect(find.text('Drag vector • orbit elsewhere • pinch to zoom'),
         findsOneWidget);
     expect(find.byKey(const ValueKey('bloch-sphere-canvas')), findsOneWidget);
-    expect(find.text('Current state'), findsOneWidget);
-    expect(find.text('Gate laboratory'), findsOneWidget);
+    expect(find.text('Maths / state details'), findsOneWidget);
+    expect(find.text('Gate laboratory'), findsNothing);
     expect(find.byKey(const ValueKey('bloch-gate-hadamard')), findsOneWidget);
     expect(find.byKey(const ValueKey('bloch-undo')), findsOneWidget);
     expect(
@@ -37,20 +43,23 @@ void main() {
   testWidgets('math notation is balanced and consistently uses lowercase phi',
       (tester) async {
     await pumpExplorer(tester);
+    expect(find.byKey(const ValueKey('bloch-state-maths-expansion')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('bloch-global-phase-expansion')),
+        findsNothing);
+    await tester.tap(find.byKey(const ValueKey('bloch-maths-action')));
+    await tester.pumpAndSettle();
     final wavefunction = tester.widget<LatexText>(
         find.byKey(const ValueKey('bloch-wavefunction-latex')));
-    expect(wavefunction.displayMathHeight, 20);
-    expect(wavefunction.math, contains(r'\phi'));
+    expect(wavefunction.displayMathHeight, 24);
+    expect(wavefunction.math, contains(r'\varphi'));
+    expect(wavefunction.math, isNot(contains(r'\phi')));
     expect(wavefunction.math, isNot(contains(r'\Phi')));
-    expect(
-        find.byKey(const ValueKey('bloch-column-vector-latex')), findsNothing);
-    await tester
-        .tap(find.byKey(const ValueKey('bloch-global-phase-expansion')));
-    await tester.pumpAndSettle();
     final columnVector = tester.widget<LatexText>(
         find.byKey(const ValueKey('bloch-column-vector-latex')));
     expect(columnVector.math, contains(r'\begin{bmatrix}'));
-    expect(columnVector.math, contains(r'e^{i\phi}'));
+    expect(columnVector.math, contains(r'e^{i\varphi}'));
+    expect(columnVector.math, isNot(contains(r'e^{i\phi}')));
     expect(columnVector.math, isNot(contains(r'\Phi')));
     expect(find.textContaining('Column vector:'), findsNothing);
     expect(find.textContaining('Φ'), findsNothing);
@@ -68,6 +77,11 @@ void main() {
             of: controls,
             matching: find.byKey(const ValueKey('bloch-instant-mode'))),
         findsOneWidget);
+    final instantCenter =
+        tester.getCenter(find.byKey(const ValueKey('bloch-instant-mode'))).dy;
+    final replayCenter =
+        tester.getCenter(find.byKey(const ValueKey('bloch-replay'))).dy;
+    expect((instantCenter - replayCenter).abs(), lessThan(12));
   });
 
   testWidgets('there is exactly one Reset and transport semantics are clear',
@@ -84,11 +98,18 @@ void main() {
       final semantics =
           tester.widget<Semantics>(find.byKey(ValueKey(entry.key)));
       expect(semantics.properties.label, entry.value);
+      final button = find.descendant(
+        of: find.byKey(ValueKey(entry.key)),
+        matching: find.byType(TextButton),
+      );
+      expect(
+        find.descendant(of: button, matching: find.byType(Column)),
+        findsOneWidget,
+      );
     }
   });
 
-  testWidgets('transport controls stay directly beneath the sphere',
-      (tester) async {
+  testWidgets('gate strip precedes transport controls', (tester) async {
     await pumpExplorer(tester);
     final sphereBottom = tester
         .getBottomLeft(find.byKey(const ValueKey('bloch-sphere-gesture')))
@@ -96,15 +117,59 @@ void main() {
     final controlsTop = tester
         .getTopLeft(find.byKey(const ValueKey('bloch-transport-controls')))
         .dy;
-    // The sphere panel's bottom padding plus the explicit strip gap.
-    expect(controlsTop - sphereBottom, lessThanOrEqualTo(24));
+    final gatesTop =
+        tester.getTopLeft(find.byKey(const ValueKey('bloch-gate-strip'))).dy;
+    expect(gatesTop, greaterThanOrEqualTo(sphereBottom));
+    expect(controlsTop, greaterThan(gatesTop));
+    final workspace = find.byKey(const ValueKey('bloch-primary-workspace'));
+    expect(
+        find.descendant(
+            of: workspace,
+            matching: find.byKey(const ValueKey('bloch-transport-controls'))),
+        findsOneWidget);
     final historyTop = tester
         .getTopLeft(find.byKey(const ValueKey('bloch-history-container')))
         .dy;
-    final controlsBottom = tester
-        .getBottomLeft(find.byKey(const ValueKey('bloch-transport-controls')))
-        .dy;
-    expect(historyTop - controlsBottom, lessThanOrEqualTo(12));
+    expect(
+        historyTop - tester.getBottomLeft(workspace).dy, lessThanOrEqualTo(8));
+  });
+
+  testWidgets('live values are inside the primary sphere workspace',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(430, 900));
+    final workspace = find.byKey(const ValueKey('bloch-primary-workspace'));
+    for (final key in [
+      'bloch-live-angles',
+      'bloch-live-cartesian',
+      'bloch-live-probabilities',
+    ]) {
+      expect(
+          find.descendant(of: workspace, matching: find.byKey(ValueKey(key))),
+          findsOneWidget);
+    }
+    expect(find.text('θ = 0.000'), findsOneWidget);
+    expect(find.text('φ = 0.000'), findsOneWidget);
+    expect(find.text('x = 0.000'), findsOneWidget);
+    expect(find.text('y = 0.000'), findsOneWidget);
+    expect(find.text('z = 1.000'), findsOneWidget);
+  });
+
+  testWidgets('gate strip is part of the primary workspace', (tester) async {
+    await pumpExplorer(tester, size: const Size(430, 900));
+    final workspace = find.byKey(const ValueKey('bloch-primary-workspace'));
+    expect(
+        find.descendant(
+            of: workspace,
+            matching: find.byKey(const ValueKey('bloch-gate-strip'))),
+        findsOneWidget);
+    expect(find.text('Gate laboratory'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('bloch-gate-strip')),
+        matching: find.byKey(const ValueKey('bloch-gate-angle-control')),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Gate laboratory reuses production gate tiles and angles',
@@ -120,6 +185,12 @@ void main() {
       (tester) async {
     await pumpExplorer(tester, size: const Size(800, 1400));
     expect(find.text('● Initial'), findsNothing);
+    final workspace = find.byKey(const ValueKey('bloch-primary-workspace'));
+    final history = find.byKey(const ValueKey('bloch-history-container'));
+    expect(
+      (tester.getTopLeft(history).dx - tester.getTopLeft(workspace).dx).abs(),
+      lessThan(1),
+    );
     await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
     await tester.pumpAndSettle();
     expect(find.text('● Initial'), findsOneWidget);
@@ -166,46 +237,82 @@ void main() {
     expect(afterCamera.pitch, isNot(beforeCamera.pitch));
   });
 
-  testWidgets('global phase is advanced and leaves Bloch state unchanged',
+  testWidgets('global phase is explanatory detail rather than primary control',
       (tester) async {
     await pumpExplorer(tester, size: const Size(700, 1400));
     expect(
         find.byKey(const ValueKey('bloch-global-phase-slider')), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('bloch-primary-workspace')),
+        matching: find.byKey(const ValueKey('bloch-global-phase-expansion')),
+      ),
+      findsNothing,
+    );
     final thetaBefore = find.text('θ = 0.000');
-    final phiBefore = find.text('φ (relative phase) = 0.000');
-    expect(thetaBefore, findsOneWidget);
-    expect(phiBefore, findsOneWidget);
+    final phiBefore = find.text('φ = 0.000');
+    expect(thetaBefore, findsWidgets);
+    expect(phiBefore, findsWidgets);
 
-    await tester
-        .tap(find.byKey(const ValueKey('bloch-global-phase-expansion')));
+    await tester.tap(find.byKey(const ValueKey('bloch-maths-action')));
     await tester.pumpAndSettle();
-    final slider = find.byKey(const ValueKey('bloch-global-phase-slider'));
-    expect(slider, findsOneWidget);
-    await tester.ensureVisible(slider);
-    await tester.pumpAndSettle();
-    await tester.drag(slider, const Offset(90, 0));
-    await tester.pump();
+    expect(
+        find.byKey(const ValueKey('bloch-global-phase-slider')), findsNothing);
+    expect(find.textContaining('Global phase γ:'), findsOneWidget);
+    expect(find.textContaining('Relative phase φ'), findsOneWidget);
 
-    expect(thetaBefore, findsOneWidget);
-    expect(phiBefore, findsOneWidget);
-    expect(find.textContaining('P(|0⟩) = 100.0%'), findsOneWidget);
+    expect(thetaBefore, findsNWidgets(2));
+    expect(phiBefore, findsNWidgets(2));
+    expect(find.textContaining('P(|0⟩) = 100.0%'), findsNWidgets(2));
   });
 
-  testWidgets('replay visibly restarts the previous transition',
+  testWidgets('Replay animates the full sequence even in Instant mode',
       (tester) async {
     await pumpExplorer(tester, size: const Size(800, 1400));
+    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
     await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('P(|1⟩) = 100.0%'), findsOneWidget);
-    expect(find.byKey(const ValueKey('bloch-replay')), findsOneWidget);
-    expect(find.text('2 operations'), findsOneWidget);
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
+    await tester.pump();
+    expect(find.text('3 operations'), findsOneWidget);
+    final committed = paintedState(tester);
+    expect(committed.x, closeTo(-1, 1e-9));
 
     await tester.tap(find.byKey(const ValueKey('bloch-replay')));
     await tester.pump();
-    expect(find.textContaining('P(|0⟩) = 100.0%'), findsOneWidget);
+    expect(paintedState(tester).z, closeTo(1, 1e-9));
+
+    await tester.pump(const Duration(milliseconds: 420));
+    expect(paintedState(tester).z, closeTo(-1, 1e-9));
     await tester.pumpAndSettle();
-    expect(find.textContaining('P(|1⟩) = 100.0%'), findsOneWidget);
-    expect(find.text('2 operations'), findsOneWidget);
+    expect(paintedState(tester).x, closeTo(committed.x, 1e-9));
+    expect(find.text('3 operations'), findsOneWidget);
+  });
+
+  testWidgets('Replay disables conflicts and Reset cancels playback',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(800, 1400));
+    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('bloch-replay')));
+    await tester.pump(const Duration(milliseconds: 100));
+    final replayButton = tester.widget<TextButton>(find.descendant(
+      of: find.byKey(const ValueKey('bloch-replay')),
+      matching: find.byType(TextButton),
+    ));
+    expect(replayButton.onPressed, isNull);
+    final gate = tester
+        .widget<QubitQuestGateTile>(find.byKey(const ValueKey('bloch-gate-z')));
+    expect(gate.onPressed, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('bloch-reset')));
+    await tester.pumpAndSettle();
+    expect(paintedState(tester).z, closeTo(1, 1e-9));
+    expect(find.text('1 operations'), findsOneWidget);
   });
 
   testWidgets('landscape layout remains scrollable', (tester) async {
@@ -222,9 +329,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('bloch-rotation-slider')), findsOneWidget);
     final row = find.byKey(const ValueKey('bloch-landscape-top-row'));
-    final spherePanel = find.byKey(const ValueKey('bloch-sphere-panel'));
-    final currentState =
-        find.byKey(const ValueKey('bloch-current-state-panel'));
+    final spherePanel = find.byKey(const ValueKey('bloch-primary-workspace'));
+    final currentState = find.byKey(const ValueKey('bloch-maths-action'));
     expect(row, findsOneWidget);
     expect(
       (tester.getTopLeft(spherePanel).dy - tester.getTopLeft(currentState).dy)
@@ -270,5 +376,31 @@ void main() {
         camera: camera, dragDelta: const Offset(60, -30));
     expect(orbit.yaw, isNot(camera.yaw));
     expect(orbit.pitch, isNot(camera.pitch));
+  });
+
+  test('axis labels are clamped to the sphere drawing safe area', () {
+    const projection = BlochProjection(
+      size: Size(300, 220),
+      camera: BlochCamera(),
+    );
+    const labelSize = Size(12, 14);
+    final top = projection.safeLabelCenter(const Offset(150, -20), labelSize);
+    final right = projection.safeLabelCenter(const Offset(340, 110), labelSize);
+    final bottom =
+        projection.safeLabelCenter(const Offset(150, 260), labelSize);
+    expect(top.dy, greaterThanOrEqualTo(15));
+    expect(right.dx, lessThanOrEqualTo(286));
+    expect(bottom.dy, lessThanOrEqualTo(205));
+
+    for (final endpoint in [
+      projection.project(1.25, 0, 0),
+      projection.project(0, 1.25, 0),
+      projection.project(0, 0, 1.25),
+    ]) {
+      expect(
+        (projection.safeLabelCenter(endpoint, labelSize) - endpoint).distance,
+        lessThan(20),
+      );
+    }
   });
 }

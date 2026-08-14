@@ -82,23 +82,60 @@ void main() {
     expect(history.state.z, closeTo(1, 1e-12));
   });
 
-  test('replay transition exposes endpoints without changing history', () {
+  test('replay sequence exposes every endpoint without changing history', () {
     final history = BlochExplorerHistory();
-    final source = history.state;
-    final destination = source.applyGate(SelectedGateType.x);
-    history.commit('X', destination);
+    final initial = history.state;
+    final h = initial.applyGate(SelectedGateType.hadamard);
+    final s = h.applyGate(SelectedGateType.s);
+    final rx = s.applyGate(SelectedGateType.rx, angle: math.pi / 3);
+    history
+      ..commit('H', h)
+      ..commit('S', s)
+      ..commit('Rx(π/3)', rx);
     final entriesBefore = history.entries.length;
     final indexBefore = history.index;
 
-    final transition = history.replayTransition!;
+    final sequence = history.replaySequence;
 
-    expect(transition.source.z, closeTo(source.z, 1e-12));
-    expect(transition.destination.z, closeTo(destination.z, 1e-12));
+    expect(sequence, hasLength(3));
+    expect(sequence[0].source, initial);
+    expect(sequence[0].destination, h);
+    expect(sequence[1].source, h);
+    expect(sequence[1].destination, s);
+    expect(sequence[2].source, s);
+    expect(sequence[2].destination, rx);
     expect(history.entries, hasLength(entriesBefore));
     expect(history.index, indexBefore);
   });
 
-  test('replay transition is absent before a committed transition', () {
-    expect(BlochExplorerHistory().replayTransition, isNull);
+  test('replay sequence is empty before a committed transition', () {
+    expect(BlochExplorerHistory().replaySequence, isEmpty);
+  });
+
+  test('replay sequence stops at undo index and excludes redo branch', () {
+    final history = BlochExplorerHistory();
+    history
+      ..commit('H', history.state.applyGate(SelectedGateType.hadamard))
+      ..commit('Z', history.state.applyGate(SelectedGateType.z))
+      ..commit('S', history.state.applyGate(SelectedGateType.s))
+      ..undo();
+
+    expect(history.replaySequence, hasLength(2));
+    expect(history.replaySequence.last.destination, history.state);
+    expect(history.canRedo, isTrue);
+  });
+
+  test('replay sequence follows a new branch after undo', () {
+    final history = BlochExplorerHistory();
+    history
+      ..commit('H', history.state.applyGate(SelectedGateType.hadamard))
+      ..commit('Z', history.state.applyGate(SelectedGateType.z))
+      ..undo();
+    final dragged = BlochState.fromAngles(theta: 1.1, phi: .7);
+    history.commit('Direct state', dragged);
+
+    expect(history.canRedo, isFalse);
+    expect(history.replaySequence, hasLength(2));
+    expect(history.replaySequence.last.destination, dragged);
   });
 }

@@ -17,6 +17,10 @@ class BlochExplorerScreen extends StatefulWidget {
 
 class _BlochExplorerScreenState extends State<BlochExplorerScreen>
     with SingleTickerProviderStateMixin {
+  static const _gateTransitionDuration = Duration(milliseconds: 650);
+  static const _replayTransitionDuration = Duration(milliseconds: 420);
+  static const _replayStepGap = Duration(milliseconds: 90);
+
   late final BlochExplorerHistory _history;
   late final AnimationController _animation;
   BlochState _displayState = BlochState.zero;
@@ -26,6 +30,8 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
   double _rotationAngle = math.pi / 2;
   double _globalPhase = 0;
   bool _instant = false;
+  bool _isReplaying = false;
+  int _replayGeneration = 0;
 
   @override
   void initState() {
@@ -33,7 +39,7 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
     _history = BlochExplorerHistory()..addListener(_historyChanged);
     _animation = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 650),
+      duration: _gateTransitionDuration,
     )
       ..addListener(_tickAnimation)
       ..addStatusListener((status) {
@@ -45,6 +51,8 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
 
   @override
   void dispose() {
+    _replayGeneration++;
+    _animation.stop();
     _history
       ..removeListener(_historyChanged)
       ..dispose();
@@ -69,6 +77,7 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
   }
 
   void _applyGate(SelectedGateType type) {
+    _cancelReplay();
     final source = _history.state;
     final angle = switch (type) {
       SelectedGateType.rx ||
@@ -86,33 +95,72 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
             : null);
     _history.commit(gate.label.replaceAll('\n', ' '), target);
     if (_instant) return;
+    _animation.duration = _gateTransitionDuration;
     _animationStart = source;
     _animationEnd = target;
     _displayState = _animationStart!;
     _animation.forward(from: 0);
   }
 
-  void _replay() {
-    final transition = _history.replayTransition;
-    if (transition == null) return;
+  Future<void> _replay() async {
+    final sequence = _history.replaySequence;
+    if (sequence.isEmpty || _isReplaying) return;
     _animation.stop();
-    _animationStart = transition.source;
-    _animationEnd = transition.destination;
-    if (_instant) {
-      setState(() => _displayState = transition.destination);
+    final generation = ++_replayGeneration;
+    setState(() {
+      _isReplaying = true;
+      _displayState = sequence.first.source;
+    });
+
+    try {
+      for (var index = 0; index < sequence.length; index++) {
+        if (!mounted || generation != _replayGeneration) return;
+        final transition = sequence[index];
+        _animationStart = transition.source;
+        _animationEnd = transition.destination;
+        _animation.duration = _replayTransitionDuration;
+        setState(() => _displayState = transition.source);
+        await _animation.forward(from: 0).orCancel;
+        if (index + 1 < sequence.length) {
+          await Future<void>.delayed(_replayStepGap);
+        }
+      }
+    } on TickerCanceled {
       return;
+    } finally {
+      if (mounted && generation == _replayGeneration) {
+        _animation.duration = _gateTransitionDuration;
+        setState(() {
+          _isReplaying = false;
+          _displayState = _history.state;
+        });
+      }
     }
-    setState(() => _displayState = transition.source);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _animation.forward(from: 0);
+  }
+
+  void _cancelReplay({bool restoreCommittedState = true}) {
+    _replayGeneration++;
+    _animation.stop();
+    if (!_isReplaying || !mounted) return;
+    setState(() {
+      _isReplaying = false;
+      if (restoreCommittedState) _displayState = _history.state;
     });
   }
 
-  void _setGlobalPhase(double value) {
-    setState(() {
-      _globalPhase = value;
-      _displayState = _displayState.withGlobalPhase(value);
-    });
+  void _undo() {
+    _cancelReplay();
+    _history.undo();
+  }
+
+  void _redo() {
+    _cancelReplay();
+    _history.redo();
+  }
+
+  void _reset() {
+    _cancelReplay(restoreCommittedState: false);
+    _history.reset();
   }
 
   @override
@@ -128,26 +176,19 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
       body: SafeArea(
         child: LayoutBuilder(builder: (context, constraints) {
           final wide = constraints.maxWidth >= 760;
-          final sphere = _SpherePanel(
-            state: _displayState,
-            camera: _camera,
-            onCameraChanged: (camera) => setState(() => _camera = camera),
-            onStatePreview: (state) => setState(() => _displayState = state),
-            onStateCommitted: (state) => _history.commit('Direct state', state),
-            onGestureStarted: _animation.stop,
+          final sphere = IgnorePointer(
+            ignoring: _isReplaying,
+            child: _SpherePanel(
+              state: _displayState,
+              camera: _camera,
+              onCameraChanged: (camera) => setState(() => _camera = camera),
+              onStatePreview: (state) => setState(() => _displayState = state),
+              onStateCommitted: (state) =>
+                  _history.commit('Direct state', state),
+              onGestureStarted: _animation.stop,
+            ),
           );
-          final details = _StateDetails(
-            state: _displayState,
-            globalPhase: _globalPhase,
-            onGlobalPhaseChanged: _setGlobalPhase,
-          );
-          final sphereWithControls = Column(children: [
-            SizedBox(height: wide ? 330 : 360, child: sphere),
-            const SizedBox(height: 8),
-            _buildTransportControls(),
-            const SizedBox(height: 8),
-            _buildHistory(),
-          ]);
+          final workspace = _buildWorkspace(sphere, wide: wide);
           return ListView(
             key: const ValueKey('bloch-explorer-scroll'),
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
@@ -157,17 +198,27 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
                     key: const ValueKey('bloch-landscape-top-row'),
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(flex: 6, child: sphereWithControls),
+                      Expanded(
+                        flex: 6,
+                        child: Column(children: [
+                          workspace,
+                          const SizedBox(height: 6),
+                          _buildHistory(),
+                        ]),
+                      ),
                       const SizedBox(width: 14),
-                      Expanded(flex: 5, child: details),
+                      Expanded(
+                        flex: 5,
+                        child: _buildMathsAction(expanded: true),
+                      ),
                     ])
               else ...[
-                sphereWithControls,
-                const SizedBox(height: 12),
-                details,
+                workspace,
+                const SizedBox(height: 6),
+                _buildHistory(),
+                const SizedBox(height: 6),
+                _buildMathsAction(),
               ],
-              const SizedBox(height: 14),
-              _buildGateLab(),
             ],
           );
         }),
@@ -175,11 +226,29 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
     );
   }
 
-  Widget _buildGateLab() => _Panel(
-        title: 'Gate laboratory',
+  Widget _buildWorkspace(Widget sphere, {required bool wide}) => Container(
+        key: const ValueKey('bloch-primary-workspace'),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+        decoration: BoxDecoration(
+          color: QubitQuestDialog.panelColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: QubitQuestDialog.borderColor),
+        ),
+        child: Column(children: [
+          SizedBox(height: wide ? 330 : 350, child: sphere),
+          const SizedBox(height: 4),
+          _buildGateStrip(),
+          const SizedBox(height: 4),
+          _buildTransportControls(),
+        ]),
+      );
+
+  Widget _buildGateStrip() => Container(
+        key: const ValueKey('bloch-gate-strip'),
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         child:
             Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Wrap(spacing: 14, runSpacing: 10, children: [
+          Wrap(spacing: 14, runSpacing: 6, children: [
             _gateGroup('Pauli', const [
               SelectedGateType.x,
               SelectedGateType.y,
@@ -190,23 +259,50 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
               SelectedGateType.s,
               SelectedGateType.t,
             ]),
-            _gateGroup('Rotations', const [
-              SelectedGateType.rx,
-              SelectedGateType.ry,
-              SelectedGateType.rz,
-            ]),
           ]),
-          const SizedBox(height: 12),
-          Text('Rotation angle: ${_formatAngle(_rotationAngle)}',
-              style: const TextStyle(fontWeight: FontWeight.w800)),
-          Slider(
-            key: const ValueKey('bloch-rotation-slider'),
-            value: _rotationAngle,
-            min: -math.pi,
-            max: math.pi,
-            divisions: 16,
-            onChanged: (value) => setState(() => _rotationAngle = value),
-          ),
+          const SizedBox(height: 6),
+          LayoutBuilder(builder: (context, constraints) {
+            final angleWidth = math.max(130.0, constraints.maxWidth - 170);
+            return Wrap(
+              spacing: 12,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.end,
+              children: [
+                _gateGroup('Rotations', const [
+                  SelectedGateType.rx,
+                  SelectedGateType.ry,
+                  SelectedGateType.rz,
+                ]),
+                SizedBox(
+                  key: const ValueKey('bloch-gate-angle-control'),
+                  width: angleWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Gate angle: ${_formatAngle(_rotationAngle)}',
+                          style: const TextStyle(
+                              color: QubitQuestDialog.mutedText,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800)),
+                      SizedBox(
+                        height: 38,
+                        child: Slider(
+                          key: const ValueKey('bloch-rotation-slider'),
+                          value: _rotationAngle,
+                          min: -math.pi,
+                          max: math.pi,
+                          divisions: 16,
+                          onChanged: (value) =>
+                              setState(() => _rotationAngle = value),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }),
         ]),
       );
 
@@ -239,7 +335,7 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
       gate: gate,
       size: 44,
       tooltip: 'Apply ${gate.label.replaceAll('\n', ' ')} gate',
-      onPressed: () => _applyGate(type),
+      onPressed: _isReplaying ? null : () => _applyGate(type),
     );
   }
 
@@ -247,9 +343,8 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
         key: const ValueKey('bloch-transport-controls'),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(
-          color: QubitQuestDialog.panelColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: QubitQuestDialog.borderColor),
+          color: QubitQuestDialog.innerColor,
+          borderRadius: BorderRadius.circular(10),
         ),
         child: LayoutBuilder(builder: (context, constraints) {
           final controls = <Widget>[
@@ -257,44 +352,41 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
                 key: 'bloch-undo',
                 label: 'Undo',
                 icon: Icons.undo_rounded,
-                onPressed: _history.canUndo ? _history.undo : null),
+                onPressed: !_isReplaying && _history.canUndo ? _undo : null),
             _transportButton(
                 key: 'bloch-redo',
                 label: 'Redo',
                 icon: Icons.redo_rounded,
-                onPressed: _history.canRedo ? _history.redo : null),
+                onPressed: !_isReplaying && _history.canRedo ? _redo : null),
             _transportButton(
                 key: 'bloch-replay',
                 label: 'Replay',
                 icon: Icons.play_circle_outline_rounded,
-                onPressed: _history.replayTransition != null ? _replay : null),
+                onPressed: !_isReplaying && _history.replaySequence.isNotEmpty
+                    ? _replay
+                    : null),
             _transportButton(
                 key: 'bloch-reset',
                 label: 'Reset',
                 icon: Icons.restart_alt_rounded,
-                onPressed: _history.reset),
+                onPressed: _reset),
           ];
           final instant = Row(mainAxisSize: MainAxisSize.min, children: [
-            const Text('Instant mode', style: TextStyle(fontSize: 12)),
-            Switch.adaptive(
+            const Icon(Icons.bolt_rounded, size: 16),
+            const Text('Instant', style: TextStyle(fontSize: 11)),
+            Checkbox(
               key: const ValueKey('bloch-instant-mode'),
               value: _instant,
-              onChanged: (value) => setState(() => _instant = value),
+              visualDensity: VisualDensity.compact,
+              onChanged: (value) => setState(() => _instant = value ?? false),
             ),
           ]);
-          if (constraints.maxWidth >= 520) {
-            return Row(children: [
-              Expanded(
-                  child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: controls)),
-              instant,
-            ]);
-          }
-          return Column(children: [
-            Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: controls),
+          return Row(children: [
+            Expanded(
+              child: Row(children: [
+                for (final control in controls) Expanded(child: control),
+              ]),
+            ),
             instant,
           ]);
         }),
@@ -313,14 +405,57 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
         label: label,
         child: Tooltip(
           message: label,
-          child: TextButton.icon(
+          child: TextButton(
             style: TextButton.styleFrom(
               visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
             ),
             onPressed: onPressed,
-            icon: Icon(icon, size: 20),
-            label: Text(label, style: const TextStyle(fontSize: 11)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 20),
+                const SizedBox(height: 1),
+                Text(
+                  label,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.visible,
+                  style: const TextStyle(fontSize: 10, height: 1),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  Widget _buildMathsAction({bool expanded = false}) => Align(
+        alignment: Alignment.topCenter,
+        child: SizedBox(
+          width: expanded ? double.infinity : null,
+          child: OutlinedButton.icon(
+            key: const ValueKey('bloch-maths-action'),
+            onPressed: _showMathsDetails,
+            icon: const Icon(Icons.functions_rounded, size: 18),
+            label: const Text('Maths / state details'),
+          ),
+        ),
+      );
+
+  Future<void> _showMathsDetails() => showDialog<void>(
+        context: context,
+        builder: (dialogContext) => QubitQuestDialog(
+          title: 'State maths',
+          maxWidth: 560,
+          actions: [
+            QubitQuestDialogButton.primary(
+              label: 'Close',
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+          ],
+          child: _StateMathsDialogContent(
+            state: _displayState,
+            globalPhase: _globalPhase,
           ),
         ),
       );
@@ -334,11 +469,14 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
         ),
         child: ExpansionTile(
           key: const ValueKey('bloch-history-expansion'),
-          tilePadding: EdgeInsets.zero,
-          childrenPadding: EdgeInsets.zero,
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
           title: const Text('History',
-              style: TextStyle(fontWeight: FontWeight.w800)),
-          subtitle: Text('${_history.entries.length} operations'),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+          subtitle: Text('${_history.entries.length} operations',
+              style: const TextStyle(fontSize: 10)),
           children: [
             Align(
               alignment: Alignment.centerLeft,
@@ -427,203 +565,243 @@ class _SpherePanelState extends State<_SpherePanel> {
   BlochState? _latestState;
 
   @override
-  Widget build(BuildContext context) => _Panel(
+  Widget build(BuildContext context) => Stack(
         key: const ValueKey('bloch-sphere-panel'),
-        title: '',
-        expandChild: true,
-        trailing: const Text('Drag vector • orbit elsewhere • pinch to zoom',
-            style: TextStyle(color: QubitQuestDialog.mutedText, fontSize: 11)),
-        child: LayoutBuilder(builder: (context, constraints) {
-          final size = Size(constraints.maxWidth, constraints.maxHeight - 8);
-          final projection = BlochProjection(size: size, camera: widget.camera);
-          return RawGestureDetector(
-            key: const ValueKey('bloch-sphere-gesture'),
-            behavior: HitTestBehavior.opaque,
-            gestures: {
-              _BlochScaleGestureRecognizer:
-                  GestureRecognizerFactoryWithHandlers<
-                      _BlochScaleGestureRecognizer>(
-                _BlochScaleGestureRecognizer.new,
-                (recognizer) {
-                  recognizer
-                    ..onStart = (details) {
-                      final tip = projection.project(
-                          widget.state.x, widget.state.y, widget.state.z);
-                      widget.onGestureStarted();
-                      _startCamera = widget.camera;
-                      _startPoint = details.localFocalPoint;
-                      _latestState = widget.state;
-                      _mode = BlochGestureResolver.resolveMode(
-                          details.localFocalPoint, tip);
-                    }
-                    ..onUpdate = (details) {
-                      final initialCamera = _startCamera ?? widget.camera;
-                      if (details.pointerCount > 1) {
-                        _mode = BlochSphereGestureMode.zoom;
-                        widget.onCameraChanged(
-                            initialCamera.scale(details.scale));
-                      } else if (_mode == BlochSphereGestureMode.state) {
-                        _latestState = projection.stateForPoint(
-                            details.localFocalPoint,
-                            globalPhase: widget.state.globalPhase);
-                        widget.onStatePreview(_latestState!);
-                      } else {
-                        widget.onCameraChanged(BlochGestureResolver.orbit(
-                          camera: initialCamera,
-                          dragDelta: details.localFocalPoint -
-                              (_startPoint ?? details.localFocalPoint),
-                        ));
-                      }
-                    }
-                    ..onEnd = (_) {
-                      if (_mode == BlochSphereGestureMode.state &&
-                          _latestState != null) {
-                        widget.onStateCommitted(_latestState!);
-                      }
-                      _mode = null;
-                      _startCamera = null;
-                      _startPoint = null;
-                      _latestState = null;
-                    };
-                },
+        children: [
+          Positioned.fill(
+              top: 18,
+              child: LayoutBuilder(builder: (context, constraints) {
+                final size = Size(constraints.maxWidth, constraints.maxHeight);
+                final projection =
+                    BlochProjection(size: size, camera: widget.camera);
+                return RawGestureDetector(
+                  key: const ValueKey('bloch-sphere-gesture'),
+                  behavior: HitTestBehavior.opaque,
+                  gestures: {
+                    _BlochScaleGestureRecognizer:
+                        GestureRecognizerFactoryWithHandlers<
+                            _BlochScaleGestureRecognizer>(
+                      _BlochScaleGestureRecognizer.new,
+                      (recognizer) {
+                        recognizer
+                          ..onStart = (details) {
+                            final tip = projection.project(
+                                widget.state.x, widget.state.y, widget.state.z);
+                            widget.onGestureStarted();
+                            _startCamera = widget.camera;
+                            _startPoint = details.localFocalPoint;
+                            _latestState = widget.state;
+                            _mode = BlochGestureResolver.resolveMode(
+                                details.localFocalPoint, tip);
+                          }
+                          ..onUpdate = (details) {
+                            final initialCamera = _startCamera ?? widget.camera;
+                            if (details.pointerCount > 1) {
+                              _mode = BlochSphereGestureMode.zoom;
+                              widget.onCameraChanged(
+                                  initialCamera.scale(details.scale));
+                            } else if (_mode == BlochSphereGestureMode.state) {
+                              _latestState = projection.stateForPoint(
+                                  details.localFocalPoint,
+                                  globalPhase: widget.state.globalPhase);
+                              widget.onStatePreview(_latestState!);
+                            } else {
+                              widget.onCameraChanged(BlochGestureResolver.orbit(
+                                camera: initialCamera,
+                                dragDelta: details.localFocalPoint -
+                                    (_startPoint ?? details.localFocalPoint),
+                              ));
+                            }
+                          }
+                          ..onEnd = (_) {
+                            if (_mode == BlochSphereGestureMode.state &&
+                                _latestState != null) {
+                              widget.onStateCommitted(_latestState!);
+                            }
+                            _mode = null;
+                            _startCamera = null;
+                            _startPoint = null;
+                            _latestState = null;
+                          };
+                      },
+                    ),
+                  },
+                  child: CustomPaint(
+                    key: const ValueKey('bloch-sphere-canvas'),
+                    painter: BlochSpherePainter(
+                        state: widget.state, camera: widget.camera),
+                    child: const SizedBox.expand(),
+                  ),
+                );
+              })),
+          const Positioned(
+            top: 0,
+            left: 2,
+            right: 2,
+            child: IgnorePointer(
+              child: Text(
+                'Drag vector • orbit elsewhere • pinch to zoom',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: QubitQuestDialog.mutedText,
+                  fontSize: 10,
+                ),
               ),
-            },
-            child: CustomPaint(
-              key: const ValueKey('bloch-sphere-canvas'),
-              painter: BlochSpherePainter(
-                  state: widget.state, camera: widget.camera),
-              child: const SizedBox.expand(),
             ),
-          );
-        }),
+          ),
+          Positioned(
+            top: 22,
+            left: 2,
+            child: _LiveValues(
+              key: const ValueKey('bloch-live-angles'),
+              values: [
+                ('θ', widget.state.theta),
+                ('φ', widget.state.phi),
+              ],
+            ),
+          ),
+          Positioned(
+            top: 22,
+            right: 2,
+            child: _LiveValues(
+              key: const ValueKey('bloch-live-cartesian'),
+              alignment: CrossAxisAlignment.end,
+              values: [
+                ('x', widget.state.x),
+                ('y', widget.state.y),
+                ('z', widget.state.z),
+              ],
+            ),
+          ),
+          Positioned(
+            bottom: 2,
+            left: 2,
+            child: IgnorePointer(
+              child: Container(
+                key: const ValueKey('bloch-live-probabilities'),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xD9000712),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'P(|0⟩) = ${(widget.state.probabilityZero * 100).toStringAsFixed(1)}%',
+                    ),
+                    Text(
+                      'P(|1⟩) = ${(widget.state.probabilityOne * 100).toStringAsFixed(1)}%',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       );
 }
 
-class _StateDetails extends StatelessWidget {
-  const _StateDetails({
-    required this.state,
-    required this.globalPhase,
-    required this.onGlobalPhaseChanged,
+class _LiveValues extends StatelessWidget {
+  const _LiveValues({
+    super.key,
+    required this.values,
+    this.alignment = CrossAxisAlignment.start,
   });
-  final BlochState state;
-  final double globalPhase;
-  final ValueChanged<double> onGlobalPhaseChanged;
+
+  final List<(String, double)> values;
+  final CrossAxisAlignment alignment;
 
   @override
-  Widget build(BuildContext context) => _Panel(
-        key: const ValueKey('bloch-current-state-panel'),
-        title: 'Current state',
-        child:
-            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+  Widget build(BuildContext context) => IgnorePointer(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xD9000712),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: alignment,
+            children: [
+              for (final value in values)
+                Text(
+                  '${value.$1} = ${value.$2.toStringAsFixed(3)}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _StateMathsDialogContent extends StatelessWidget {
+  const _StateMathsDialogContent({
+    required this.state,
+    required this.globalPhase,
+  });
+
+  final BlochState state;
+  final double globalPhase;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        key: const ValueKey('bloch-maths-dialog-content'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           const LatexText(
             key: ValueKey('bloch-wavefunction-latex'),
             math:
-                r'\[|\psi\rangle=\cos(\theta/2)|0\rangle+e^{i\phi}\sin(\theta/2)|1\rangle\]',
+                r'\[|\psi\rangle=\cos(\theta/2)|0\rangle+e^{i\varphi}\sin(\theta/2)|1\rangle\]',
             textStyle: TextStyle(
               color: QubitQuestDialog.cyan,
               fontWeight: FontWeight.w700,
             ),
             inlineMathColor: QubitQuestDialog.cyan,
-            displayMathHeight: 20,
+            displayMathHeight: 24,
           ),
-          _value('θ', state.theta),
-          _value('φ (relative phase)', state.phi),
-          _value('x', state.x),
-          _value('y', state.y),
-          _value('z', state.z),
-          const Divider(),
-          Text('P(|0⟩) = ${(state.probabilityZero * 100).toStringAsFixed(1)}%'),
-          Text('P(|1⟩) = ${(state.probabilityOne * 100).toStringAsFixed(1)}%'),
-          const SizedBox(height: 8),
-          ExpansionTile(
-            key: const ValueKey('bloch-global-phase-expansion'),
-            tilePadding: EdgeInsets.zero,
-            childrenPadding: EdgeInsets.zero,
-            title: const Text('Advanced',
-                style: TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: const Text('Column vector • global phase γ'),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 18,
+            runSpacing: 5,
             children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 6),
-                child: LatexText(
-                  key: ValueKey('bloch-column-vector-latex'),
-                  math:
-                      r'\[|\psi\rangle=\begin{bmatrix}\cos(\theta/2)\\e^{i\phi}\sin(\theta/2)\end{bmatrix}\]',
-                  textStyle: TextStyle(color: Color(0xFFD6E3F8)),
-                  inlineMathColor: Colors.white,
-                  displayMathHeight: 21,
-                ),
-              ),
-              Text('Global phase γ: ${globalPhase.toStringAsFixed(2)} rad'),
-              Slider(
-                key: const ValueKey('bloch-global-phase-slider'),
-                value: globalPhase,
-                min: 0,
-                max: 2 * math.pi,
-                onChanged: onGlobalPhaseChanged,
-              ),
-              const Text(
-                'Unlike relative phase φ, multiplying the whole ket by e^(iγ) changes neither the Bloch position nor its probabilities.',
-                style:
-                    TextStyle(color: QubitQuestDialog.mutedText, height: 1.35),
-              ),
+              _detailValue('θ', state.theta),
+              _detailValue('φ', state.phi),
+              _detailValue('x', state.x),
+              _detailValue('y', state.y),
+              _detailValue('z', state.z),
+              Text(
+                  'P(|0⟩) = ${(state.probabilityZero * 100).toStringAsFixed(1)}%'),
+              Text(
+                  'P(|1⟩) = ${(state.probabilityOne * 100).toStringAsFixed(1)}%'),
             ],
           ),
-        ]),
+          const Divider(height: 24),
+          const Text('Column vector',
+              style: TextStyle(fontWeight: FontWeight.w800)),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: LatexText(
+              key: ValueKey('bloch-column-vector-latex'),
+              math:
+                  r'\[|\psi\rangle=\begin{bmatrix}\cos(\theta/2)\\e^{i\varphi}\sin(\theta/2)\end{bmatrix}\]',
+              textStyle: TextStyle(color: Color(0xFFD6E3F8)),
+              inlineMathColor: Colors.white,
+              displayMathHeight: 34,
+            ),
+          ),
+          const Divider(height: 24),
+          Text('Global phase γ: ${globalPhase.toStringAsFixed(2)} rad',
+              style: const TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          const Text(
+            'Multiplying the whole state by e^(iγ) changes neither the Bloch position nor measurement probabilities. Relative phase φ, by contrast, changes the Bloch position.',
+            style: TextStyle(color: QubitQuestDialog.mutedText, height: 1.35),
+          ),
+        ],
       );
 
-  Widget _value(String label, double value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Text('$label = ${value.toStringAsFixed(3)}'),
-      );
-}
-
-class _Panel extends StatelessWidget {
-  const _Panel({
-    super.key,
-    required this.title,
-    required this.child,
-    this.trailing,
-    this.expandChild = false,
-  });
-  final String title;
-  final Widget child;
-  final Widget? trailing;
-  final bool expandChild;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: QubitQuestDialog.panelColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: QubitQuestDialog.borderColor),
-        ),
-        child:
-            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          if (title.isNotEmpty || trailing != null) ...[
-            Row(children: [
-              if (title.isNotEmpty)
-                Expanded(
-                  flex: trailing == null ? 1 : 2,
-                  child: Text(title,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900)),
-                ),
-              if (trailing != null)
-                Expanded(
-                  flex: 3,
-                  child:
-                      Align(alignment: Alignment.centerRight, child: trailing!),
-                ),
-            ]),
-            const SizedBox(height: 10),
-          ],
-          if (expandChild) Expanded(child: child) else child,
-        ]),
-      );
+  static Widget _detailValue(String label, double value) =>
+      Text('$label = ${value.toStringAsFixed(3)}');
 }
 
 class BlochProjection {
@@ -637,6 +815,21 @@ class BlochProjection {
   Offset project(double x, double y, double z) {
     final rotated = _rotate(x, y, z);
     return center + Offset(rotated.$1 * radius, -rotated.$3 * radius);
+  }
+
+  Offset safeLabelCenter(
+    Offset point,
+    Size labelSize, {
+    double horizontalInset = 8,
+    double topInset = 8,
+    double bottomInset = 8,
+  }) {
+    return Offset(
+      point.dx.clamp(horizontalInset + labelSize.width / 2,
+          size.width - horizontalInset - labelSize.width / 2),
+      point.dy.clamp(topInset + labelSize.height / 2,
+          size.height - bottomInset - labelSize.height / 2),
+    );
   }
 
   ({Offset point, double depth}) projectWithDepth(
@@ -764,7 +957,8 @@ class BlochSpherePainter extends CustomPainter {
               color: Colors.white, fontSize: 12, fontWeight: FontWeight.w900)),
       textDirection: TextDirection.ltr,
     )..layout();
-    text.paint(canvas, b - Offset(text.width / 2, text.height / 2));
+    final labelCenter = p.safeLabelCenter(b, text.size);
+    text.paint(canvas, labelCenter - Offset(text.width / 2, text.height / 2));
   }
 
   @override

@@ -18,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
+import 'package:quantumquiz/widgets/responsive_dashboard_grid.dart';
 
 import '../models/qq_level.dart';
 import '../models/qq_levels.dart';
@@ -926,30 +927,17 @@ class _HomePageState extends State<HomePage> {
       onTap: _openBlochExplorer,
     );
 
-    if (compact) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          continueCard,
-          const SizedBox(height: 10),
-          learningMapCard,
-          const SizedBox(height: 10),
-          blochExplorerCard,
-          const SizedBox(height: 10),
-          composerCard,
-        ],
-      );
-    }
-
-    return Row(
+    return ResponsiveDashboardGrid(
+      key: const ValueKey('home-action-grid'),
+      minimumTileWidth: 250,
+      maxColumns: 4,
+      mainAxisExtent: compact ? 82 : 94,
+      spacing: compact ? 10 : 14,
       children: [
-        Expanded(flex: 6, child: continueCard),
-        const SizedBox(width: 14),
-        Expanded(flex: 5, child: learningMapCard),
-        const SizedBox(width: 14),
-        Expanded(flex: 5, child: blochExplorerCard),
-        const SizedBox(width: 14),
-        Expanded(flex: 5, child: composerCard),
+        continueCard,
+        learningMapCard,
+        blochExplorerCard,
+        composerCard,
       ],
     );
   }
@@ -983,6 +971,7 @@ class _HomePageState extends State<HomePage> {
     required VoidCallback onTap,
   }) {
     return InkWell(
+      key: ValueKey('home-action-$title'),
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
@@ -1124,210 +1113,220 @@ class _HomePageState extends State<HomePage> {
 
     return Padding(
       padding: EdgeInsets.only(bottom: compact ? 14 : 18),
-      child: CustomScrollView(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.only(
-                top: compact ? 12 : 16,
-                bottom: compact ? 8 : 10,
-              ),
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: topic,
-                      style: TextStyle(
-                        fontSize: compact ? 18 : 22,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        height: 1.12,
-                      ),
-                    ),
-                    TextSpan(
-                      text:
-                          '\n${category.phaseTitle} • ${category.phasePurpose}'
-                          '${isMasterySection ? ' • $masteryCompletionSummary' : ''}',
-                      style: TextStyle(
-                        fontSize: compact ? 11 : 12.5,
-                        fontWeight: FontWeight.w800,
-                        color: isMasterySection
-                            ? const Color(0xFF7CFFB2)
-                            : qqCyan.withValues(alpha: 0.85),
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          if (isMasterySection && !_masteryChallengesUnlocked)
+      child: LayoutBuilder(builder: (context, constraints) {
+        final spacing = compact ? 8.0 : 10.0;
+        final columns = DashboardGridPolicy.columnsFor(
+          availableWidth: constraints.maxWidth,
+          minimumTileWidth: isMasterySection
+              ? compact
+                  ? 168
+                  : 200
+              : compact
+                  ? 108
+                  : 120,
+          maxColumns: isMasterySection ? 6 : 10,
+          spacing: spacing,
+        );
+        return CustomScrollView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          slivers: [
             SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.only(bottom: compact ? 10 : 12),
-                child: _MasteryLockedCard(compact: compact),
-              ),
-            ),
-          SliverGrid.builder(
-            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: isMasterySection
-                  ? compact
-                      ? 178.0
-                      : 220.0
-                  : compact
-                      ? 116.0
-                      : 132.0,
-              crossAxisSpacing: compact ? 8.0 : 10.0,
-              mainAxisSpacing: compact ? 8.0 : 10.0,
-              childAspectRatio: isMasterySection
-                  ? compact
-                      ? 0.98
-                      : 1.18
-                  : compact
-                      ? 1.02
-                      : 1.18,
-            ),
-            itemCount: indexStop - indexStart + 1,
-            itemBuilder: (context, index) {
-              final int currentIndex = indexStart + index;
-              final int levelNumber = currentIndex + 1;
-              final QQLevel level = allQQLevels[currentIndex];
-              final bool isUnlocked = _isLevelUnlocked(levelNumber);
-              final bool isCompleted =
-                  isMasterySection && _isMasteryCompleted(levelNumber);
-
-              return Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black
-                          .withValues(alpha: isUnlocked ? 0.28 : 0.16),
-                      spreadRadius: isUnlocked ? 1 : 0.5,
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                  gradient: isUnlocked
-                      ? LinearGradient(
-                          colors: isMasterySection
-                              ? const [
-                                  Color(0xFF0F766E),
-                                  Color(0xFF115E59),
-                                  Color(0xFF134E4A),
-                                ]
-                              : const [
-                                  Color(0xFF4A8DFF),
-                                  Color(0xFF2F6FEA),
-                                  Color(0xFF1F4FC7),
-                                ],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        )
-                      : null,
-                  color: isUnlocked ? null : qqCard2,
-                  border: Border.all(
-                    color: isUnlocked ? const Color(0x80344A73) : qqBorder,
+                padding: EdgeInsets.only(
+                  top: compact ? 12 : 16,
+                  bottom: compact ? 8 : 10,
+                ),
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: topic,
+                        style: TextStyle(
+                          fontSize: compact ? 18 : 22,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          height: 1.12,
+                        ),
+                      ),
+                      TextSpan(
+                        text:
+                            '\n${category.phaseTitle} • ${category.phasePurpose}'
+                            '${isMasterySection ? ' • $masteryCompletionSummary' : ''}',
+                        style: TextStyle(
+                          fontSize: compact ? 11 : 12.5,
+                          fontWeight: FontWeight.w800,
+                          color: isMasterySection
+                              ? const Color(0xFF7CFFB2)
+                              : qqCyan.withValues(alpha: 0.85),
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: ElevatedButton(
-                        onPressed: isUnlocked
-                            ? () async {
-                                await _playLevelSequence(levelNumber, context);
-                              }
-                            : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 6,
-                          ),
-                        ),
-                        child: isUnlocked
-                            ? Center(
-                                child: Text.rich(
-                                  TextSpan(
-                                    children: [
-                                      TextSpan(
-                                        text: isMasterySection
-                                            ? 'Challenge ${ProgressionRules.masteryChallengeNumber(levelNumber)}'
-                                            : 'Lesson $levelNumber',
-                                        style: TextStyle(
-                                          fontSize: isMasterySection
-                                              ? compact
-                                                  ? 12.5
-                                                  : 13.5
-                                              : compact
-                                                  ? 14
-                                                  : 16,
-                                          fontWeight: FontWeight.w900,
-                                          color: Colors.white,
-                                          height: 1.04,
-                                        ),
-                                      ),
-                                      if (level.title != null)
-                                        TextSpan(
-                                          text: '\n${level.title!}',
-                                          style: TextStyle(
-                                            fontSize: compact ? 9 : 10,
-                                            color: Colors.white
-                                                .withValues(alpha: 0.78),
-                                            fontWeight: FontWeight.w700,
-                                            height: 1.08,
-                                          ),
-                                        ),
-                                      if (isMasterySection &&
-                                          level.conceptsUsed.isNotEmpty)
-                                        TextSpan(
-                                          text:
-                                              '\n${level.conceptsUsed.take(2).join(' + ')}',
-                                          style: TextStyle(
-                                            fontSize: compact ? 8 : 9,
-                                            color: Colors.white
-                                                .withValues(alpha: 0.72),
-                                            fontWeight: FontWeight.w800,
-                                            height: 1.08,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  maxLines: isMasterySection ? 5 : 4,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              )
-                            : Icon(
-                                Icons.lock,
-                                color: Colors.white.withValues(alpha: 0.24),
-                                size: 26,
-                              ),
-                      ),
-                    ),
-                    if (isCompleted)
-                      const Positioned(
-                        top: 7,
-                        right: 7,
-                        child: _MasteryCompletedCheckmark(),
-                      ),
-                  ],
+              ),
+            ),
+            if (isMasterySection && !_masteryChallengesUnlocked)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: compact ? 10 : 12),
+                  child: _MasteryLockedCard(compact: compact),
                 ),
-              );
-            },
-          ),
-        ],
-      ),
+              ),
+            SliverGrid.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                crossAxisSpacing: spacing,
+                mainAxisSpacing: spacing,
+                childAspectRatio: isMasterySection
+                    ? compact
+                        ? 0.98
+                        : 1.18
+                    : compact
+                        ? 1.02
+                        : 1.18,
+              ),
+              itemCount: indexStop - indexStart + 1,
+              itemBuilder: (context, index) {
+                final int currentIndex = indexStart + index;
+                final int levelNumber = currentIndex + 1;
+                final QQLevel level = allQQLevels[currentIndex];
+                final bool isUnlocked = _isLevelUnlocked(levelNumber);
+                final bool isCompleted =
+                    isMasterySection && _isMasteryCompleted(levelNumber);
+
+                return Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black
+                            .withValues(alpha: isUnlocked ? 0.28 : 0.16),
+                        spreadRadius: isUnlocked ? 1 : 0.5,
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                    gradient: isUnlocked
+                        ? LinearGradient(
+                            colors: isMasterySection
+                                ? const [
+                                    Color(0xFF0F766E),
+                                    Color(0xFF115E59),
+                                    Color(0xFF134E4A),
+                                  ]
+                                : const [
+                                    Color(0xFF4A8DFF),
+                                    Color(0xFF2F6FEA),
+                                    Color(0xFF1F4FC7),
+                                  ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          )
+                        : null,
+                    color: isUnlocked ? null : qqCard2,
+                    border: Border.all(
+                      color: isUnlocked ? const Color(0x80344A73) : qqBorder,
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: ElevatedButton(
+                          onPressed: isUnlocked
+                              ? () async {
+                                  await _playLevelSequence(
+                                      levelNumber, context);
+                                }
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 6,
+                            ),
+                          ),
+                          child: isUnlocked
+                              ? Center(
+                                  child: Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: isMasterySection
+                                              ? 'Challenge ${ProgressionRules.masteryChallengeNumber(levelNumber)}'
+                                              : 'Lesson $levelNumber',
+                                          style: TextStyle(
+                                            fontSize: isMasterySection
+                                                ? compact
+                                                    ? 12.5
+                                                    : 13.5
+                                                : compact
+                                                    ? 14
+                                                    : 16,
+                                            fontWeight: FontWeight.w900,
+                                            color: Colors.white,
+                                            height: 1.04,
+                                          ),
+                                        ),
+                                        if (level.title != null)
+                                          TextSpan(
+                                            text: '\n${level.title!}',
+                                            style: TextStyle(
+                                              fontSize: compact ? 9 : 10,
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.78),
+                                              fontWeight: FontWeight.w700,
+                                              height: 1.08,
+                                            ),
+                                          ),
+                                        if (isMasterySection &&
+                                            level.conceptsUsed.isNotEmpty)
+                                          TextSpan(
+                                            text:
+                                                '\n${level.conceptsUsed.take(2).join(' + ')}',
+                                            style: TextStyle(
+                                              fontSize: compact ? 8 : 9,
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.72),
+                                              fontWeight: FontWeight.w800,
+                                              height: 1.08,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: isMasterySection ? 5 : 4,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.lock,
+                                  color: Colors.white.withValues(alpha: 0.24),
+                                  size: 26,
+                                ),
+                        ),
+                      ),
+                      if (isCompleted)
+                        const Positioned(
+                          top: 7,
+                          right: 7,
+                          child: _MasteryCompletedCheckmark(),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      }),
     );
   }
 

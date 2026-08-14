@@ -221,12 +221,13 @@ class BlochExplorerHistory extends ChangeNotifier {
   BlochState get state => _entries[_index].state;
   bool get canUndo => _index > 0;
   bool get canRedo => _index + 1 < _entries.length;
-  BlochReplayTransition? get replayTransition => _index == 0
-      ? null
-      : BlochReplayTransition(
-          source: _entries[_index - 1].state,
-          destination: _entries[_index].state,
-        );
+  List<BlochReplayTransition> get replaySequence => List.unmodifiable([
+        for (var step = 0; step < _index; step++)
+          BlochReplayTransition(
+            source: _entries[step].state,
+            destination: _entries[step + 1].state,
+          ),
+      ]);
 
   void commit(String label, BlochState state) {
     if (_index + 1 < _entries.length) {
