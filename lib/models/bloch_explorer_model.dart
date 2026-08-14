@@ -191,9 +191,14 @@ class BlochCamera {
 
 @immutable
 class BlochHistoryEntry {
-  const BlochHistoryEntry({required this.label, required this.state});
+  const BlochHistoryEntry({
+    required this.label,
+    required this.state,
+    this.gate,
+  });
   final String label;
   final BlochState state;
+  final Gate? gate;
 }
 
 @immutable
@@ -218,22 +223,28 @@ class BlochExplorerHistory extends ChangeNotifier {
 
   List<BlochHistoryEntry> get entries => List.unmodifiable(_entries);
   int get index => _index;
+  int get operationCount => _index;
   BlochState get state => _entries[_index].state;
   bool get canUndo => _index > 0;
   bool get canRedo => _index + 1 < _entries.length;
-  List<BlochReplayTransition> get replaySequence => List.unmodifiable([
-        for (var step = 0; step < _index; step++)
-          BlochReplayTransition(
-            source: _entries[step].state,
-            destination: _entries[step + 1].state,
-          ),
-      ]);
+  List<BlochReplayTransition> get replaySequence => replaySequenceFrom(0);
 
-  void commit(String label, BlochState state) {
+  List<BlochReplayTransition> replaySequenceFrom(int startIndex) {
+    if (startIndex < 0 || startIndex > _index) return const [];
+    return List.unmodifiable([
+      for (var step = startIndex; step < _index; step++)
+        BlochReplayTransition(
+          source: _entries[step].state,
+          destination: _entries[step + 1].state,
+        ),
+    ]);
+  }
+
+  void commit(String label, BlochState state, {Gate? gate}) {
     if (_index + 1 < _entries.length) {
       _entries.removeRange(_index + 1, _entries.length);
     }
-    _entries.add(BlochHistoryEntry(label: label, state: state));
+    _entries.add(BlochHistoryEntry(label: label, state: state, gate: gate));
     _index = _entries.length - 1;
     notifyListeners();
   }

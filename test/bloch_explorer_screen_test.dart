@@ -1,7 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/bloch_explorer_model.dart';
+import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/bloch_explorer_screen.dart';
+import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 
@@ -184,7 +188,7 @@ void main() {
   testWidgets('history entries are collapsed and expand on demand',
       (tester) async {
     await pumpExplorer(tester, size: const Size(800, 1400));
-    expect(find.text('● Initial'), findsNothing);
+    expect(find.byKey(const ValueKey('bloch-history-timeline')), findsNothing);
     final workspace = find.byKey(const ValueKey('bloch-primary-workspace'));
     final history = find.byKey(const ValueKey('bloch-history-container'));
     expect(
@@ -193,7 +197,60 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
     await tester.pumpAndSettle();
-    expect(find.text('● Initial'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('bloch-history-timeline')), findsOneWidget);
+    expect(find.byKey(const ValueKey('bloch-history-label-0')), findsOneWidget);
+    final timeline = tester
+        .widget<ListView>(find.byKey(const ValueKey('bloch-history-timeline')));
+    expect(timeline.scrollDirection, Axis.horizontal);
+    final expansionTheme = tester.widget<Theme>(find
+        .ancestor(
+          of: find.byKey(const ValueKey('bloch-history-expansion')),
+          matching: find.byType(Theme),
+        )
+        .first);
+    expect(expansionTheme.data.dividerColor, Colors.transparent);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('bloch-history-container')),
+        matching: find.byType(Divider),
+      ),
+      findsNothing,
+    );
+    expect(find.text('Start'), findsOneWidget);
+    expect(find.text('0 operations'), findsOneWidget);
+  });
+
+  testWidgets('timeline operation numbering follows Undo Redo and branching',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(800, 1400));
+    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('2 operations'), findsOneWidget);
+    expect(find.text('Step 1'), findsOneWidget);
+    expect(find.text('Step 2'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('bloch-undo')));
+    await tester.pump();
+    expect(find.text('1 operation'), findsOneWidget);
+    expect(find.byKey(const ValueKey('bloch-history-step-2')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('bloch-redo')));
+    await tester.pump();
+    expect(find.text('2 operations'), findsOneWidget);
+    expect(find.byKey(const ValueKey('bloch-history-step-2')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('bloch-undo')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-z')));
+    await tester.pump();
+    expect(find.text('2 operations'), findsOneWidget);
+    expect(find.text('Z'), findsWidgets);
+    expect(find.text('Step 2'), findsOneWidget);
   });
 
   testWidgets('gate application updates probabilities and supports undo redo',
@@ -274,7 +331,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
     await tester.pump();
-    expect(find.text('3 operations'), findsOneWidget);
+    expect(find.text('2 operations'), findsOneWidget);
     final committed = paintedState(tester);
     expect(committed.x, closeTo(-1, 1e-9));
 
@@ -286,7 +343,316 @@ void main() {
     expect(paintedState(tester).z, closeTo(-1, 1e-9));
     await tester.pumpAndSettle();
     expect(paintedState(tester).x, closeTo(committed.x, 1e-9));
+    expect(find.text('2 operations'), findsOneWidget);
+  });
+
+  testWidgets('timeline selection starts Replay after the selected state',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(800, 1400));
+    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
+    await tester.pump();
+    final committed = paintedState(tester);
+
+    await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('bloch-history-step-1')));
+    await tester.pump();
+    expect(paintedState(tester).z, closeTo(-1, 1e-9));
+    expect(find.byKey(const ValueKey('bloch-history-marker-selected')),
+        findsOneWidget);
+    expect(find.textContaining('Replay start: Step 1 / 2'), findsOneWidget);
+    expect(find.textContaining('· X'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('bloch-replay')));
+    await tester.pump();
+    expect(paintedState(tester).z, closeTo(-1, 1e-9));
+    expect(find.byKey(const ValueKey('bloch-history-marker-active')),
+        findsOneWidget);
+    expect(find.textContaining('Step 2 / 2'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(paintedState(tester).x, closeTo(committed.x, 1e-9));
+    expect(find.byKey(const ValueKey('bloch-history-marker-active')),
+        findsNothing);
+    expect(find.byKey(const ValueKey('bloch-history-marker-selected')),
+        findsOneWidget);
+  });
+
+  testWidgets('history selection previews recorded state and toggles current',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(800, 1400));
+    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
+    await tester.pump();
+    final committed = paintedState(tester);
+    expect(committed.x, closeTo(-1, 1e-9));
+
+    await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
+    await tester.pumpAndSettle();
+    final undoBefore = tester.widget<TextButton>(find.descendant(
+      of: find.byKey(const ValueKey('bloch-undo')),
+      matching: find.byType(TextButton),
+    ));
+    final redoBefore = tester.widget<TextButton>(find.descendant(
+      of: find.byKey(const ValueKey('bloch-redo')),
+      matching: find.byType(TextButton),
+    ));
+    await tester.tap(find.byKey(const ValueKey('bloch-history-step-1')));
+    await tester.pump();
+    final firstStep = paintedState(tester);
+    final recordedFirstStep = BlochState.zero.applyGate(SelectedGateType.x);
+    expect(firstStep.theta, closeTo(math.pi, 1e-9));
+    expect(firstStep.phi, closeTo(recordedFirstStep.phi, 1e-9));
+    expect(firstStep.x, closeTo(0, 1e-9));
+    expect(firstStep.y, closeTo(0, 1e-9));
+    expect(firstStep.z, closeTo(-1, 1e-9));
+    expect(find.text('θ = 3.142'), findsOneWidget);
+    expect(find.text('z = -1.000'), findsOneWidget);
+    expect(find.textContaining('P(|1⟩) = 100.0%'), findsOneWidget);
+    final undoAfter = tester.widget<TextButton>(find.descendant(
+      of: find.byKey(const ValueKey('bloch-undo')),
+      matching: find.byType(TextButton),
+    ));
+    final redoAfter = tester.widget<TextButton>(find.descendant(
+      of: find.byKey(const ValueKey('bloch-redo')),
+      matching: find.byType(TextButton),
+    ));
+    expect(undoAfter.onPressed != null, undoBefore.onPressed != null);
+    expect(redoAfter.onPressed != null, redoBefore.onPressed != null);
+    expect(find.textContaining('2 operations'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('bloch-history-step-0')));
+    await tester.pump();
+    expect(paintedState(tester).z, closeTo(1, 1e-9));
+    expect(find.textContaining('Replay start: Start'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('bloch-history-step-0')));
+    await tester.pump();
+    expect(paintedState(tester).x, closeTo(committed.x, 1e-9));
+    expect(find.byKey(const ValueKey('bloch-history-marker-selected')),
+        findsNothing);
+  });
+
+  testWidgets('Undo and a new gate exit preview without historical branching',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(800, 1400));
+    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('bloch-history-step-0')));
+    await tester.pump();
+    expect(paintedState(tester).z, closeTo(1, 1e-9));
+    await tester.tap(find.byKey(const ValueKey('bloch-undo')));
+    await tester.pump();
+    expect(paintedState(tester).z, closeTo(-1, 1e-9));
+    expect(find.text('1 operation'), findsOneWidget);
+    expect(find.byKey(const ValueKey('bloch-history-marker-selected')),
+        findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('bloch-redo')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-history-step-0')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-z')));
+    await tester.pump();
+    expect(paintedState(tester).x, closeTo(1, 1e-9));
     expect(find.text('3 operations'), findsOneWidget);
+    expect(find.byKey(const ValueKey('bloch-history-marker-selected')),
+        findsNothing);
+  });
+
+  testWidgets('vector editing exits preview and appends to committed history',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(800, 1400));
+    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('bloch-history-step-0')));
+    await tester.pump();
+    expect(paintedState(tester).z, closeTo(1, 1e-9));
+
+    final canvas = find.byKey(const ValueKey('bloch-sphere-canvas'));
+    final paint = tester.widget<CustomPaint>(canvas);
+    final painter = paint.painter! as BlochSpherePainter;
+    final size = tester.getSize(canvas);
+    final projection = BlochProjection(size: size, camera: painter.camera);
+    final start = tester.getTopLeft(canvas) + projection.project(0, 0, 1);
+    final gesture = await tester.startGesture(start);
+    await tester.pump();
+    await gesture.moveBy(const Offset(70, 55));
+    await tester.pump();
+    await gesture.up();
+    await tester.pump();
+
+    expect(find.text('2 operations'), findsOneWidget);
+    expect(find.byKey(const ValueKey('bloch-history-marker-selected')),
+        findsNothing);
+    await tester.tap(find.byKey(const ValueKey('bloch-undo')));
+    await tester.pump();
+    expect(paintedState(tester).z, closeTo(-1, 1e-9));
+  });
+
+  testWidgets(
+      'long press inspects a history gate without changing replay selection',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(800, 1400));
+    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('bloch-history-step-1')));
+    await tester.pump();
+    final selectedPreview = paintedState(tester);
+    expect(find.byType(GateInspectorDialog), findsNothing);
+
+    await tester.longPress(find.byKey(const ValueKey('bloch-history-step-2')));
+    await tester.pumpAndSettle();
+    expect(find.byType(GateInspectorDialog), findsOneWidget);
+    expect(find.text('Hadamard gate'), findsOneWidget);
+    expect(find.text('History step 2 of 2'), findsOneWidget);
+    expect(find.text('Applied after: X'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('gate-inspector-context')), findsOneWidget);
+    expect(find.text('Open Notebook'), findsOneWidget);
+
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+    expect(find.byType(GateInspectorDialog), findsNothing);
+    expect(find.byKey(const ValueKey('bloch-history-marker-selected')),
+        findsOneWidget);
+    expect(paintedState(tester).z, closeTo(selectedPreview.z, 1e-9));
+    expect(find.textContaining('Replay start: Step 1 / 2'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('bloch-replay')));
+    await tester.pumpAndSettle();
+    expect(paintedState(tester).x, closeTo(-1, 1e-9));
+  });
+
+  testWidgets('Bloch gate long press inspects while tap still applies',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(800, 1400));
+    final gate = find.byKey(const ValueKey('bloch-gate-hadamard'));
+
+    await tester.longPress(gate);
+    await tester.pumpAndSettle();
+    expect(find.byType(GateInspectorDialog), findsOneWidget);
+    expect(find.text('Hadamard gate'), findsOneWidget);
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+    expect(find.text('0 operations'), findsOneWidget);
+
+    await tester.tap(gate);
+    await tester.pumpAndSettle();
+    expect(find.byType(GateInspectorDialog), findsNothing);
+    expect(find.text('1 operation'), findsOneWidget);
+    expect(paintedState(tester).x, closeTo(1, 1e-9));
+  });
+
+  testWidgets('rotation history inspection uses the recorded configured angle',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(800, 1400));
+    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
+    final slider = tester
+        .widget<Slider>(find.byKey(const ValueKey('bloch-rotation-slider')));
+    slider.onChanged!(-math.pi / 4);
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-ry')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.byKey(const ValueKey('bloch-history-step-1')));
+    await tester.pumpAndSettle();
+    expect(find.byType(GateInspectorDialog), findsOneWidget);
+    expect(find.text('Ry rotation gate'), findsOneWidget);
+    expect(find.textContaining('Configured angle: Ry -1/4π'), findsOneWidget);
+    expect(find.text('History step 1 of 1'), findsOneWidget);
+    expect(find.text('Applied after: Start'), findsOneWidget);
+  });
+
+  testWidgets('Start and direct-state entries do not open Gate Inspector',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(800, 1400));
+    await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
+    await tester.pumpAndSettle();
+    await tester.longPress(find.byKey(const ValueKey('bloch-history-step-0')));
+    await tester.pumpAndSettle();
+    expect(find.byType(GateInspectorDialog), findsNothing);
+
+    final canvas = find.byKey(const ValueKey('bloch-sphere-canvas'));
+    final paint = tester.widget<CustomPaint>(canvas);
+    final painter = paint.painter! as BlochSpherePainter;
+    final projection =
+        BlochProjection(size: tester.getSize(canvas), camera: painter.camera);
+    final start = tester.getTopLeft(canvas) + projection.project(0, 0, 1);
+    final gesture = await tester.startGesture(start);
+    await gesture.moveBy(const Offset(65, 45));
+    await gesture.up();
+    await tester.pump();
+    await tester.longPress(find.byKey(const ValueKey('bloch-history-step-1')));
+    await tester.pumpAndSettle();
+    expect(find.byType(GateInspectorDialog), findsNothing);
+  });
+
+  testWidgets('selecting current disables Replay and Undo clears stale start',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(800, 1400));
+    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('bloch-history-step-2')));
+    await tester.pump();
+
+    final replay = tester.widget<TextButton>(find.descendant(
+      of: find.byKey(const ValueKey('bloch-replay')),
+      matching: find.byType(TextButton),
+    ));
+    expect(replay.onPressed, isNull);
+    await tester.tap(find.byKey(const ValueKey('bloch-undo')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('bloch-history-marker-selected')),
+        findsNothing);
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-z')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('bloch-history-marker-selected')),
+        findsNothing);
+  });
+
+  testWidgets('selecting Initial explicitly performs full Replay',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(800, 1400));
+    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('bloch-history-step-0')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-replay')));
+    await tester.pump();
+    expect(paintedState(tester).z, closeTo(1, 1e-9));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('Replay disables conflicts and Reset cancels playback',
@@ -297,6 +663,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
     await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('bloch-replay')));
     await tester.pump(const Duration(milliseconds: 100));
@@ -312,7 +680,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('bloch-reset')));
     await tester.pumpAndSettle();
     expect(paintedState(tester).z, closeTo(1, 1e-9));
-    expect(find.text('1 operations'), findsOneWidget);
+    expect(find.text('0 operations'), findsOneWidget);
+    expect(find.byKey(const ValueKey('bloch-history-marker-active')),
+        findsNothing);
   });
 
   testWidgets('landscape layout remains scrollable', (tester) async {

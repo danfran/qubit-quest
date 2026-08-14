@@ -3,7 +3,12 @@ import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/bloch_explorer_model.dart';
+import 'package:quantumquiz/models/gate_educational_info.dart';
+import 'package:quantumquiz/models/notebook_entries.dart';
+import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
+import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
+import 'package:quantumquiz/screens/learning_flow_widgets.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
@@ -23,6 +28,7 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
 
   late final BlochExplorerHistory _history;
   late final AnimationController _animation;
+  late final ScrollController _historyScrollController;
   BlochState _displayState = BlochState.zero;
   BlochState? _animationStart;
   BlochState? _animationEnd;
@@ -32,11 +38,16 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
   bool _instant = false;
   bool _isReplaying = false;
   int _replayGeneration = 0;
+  int? _selectedReplayStartIndex;
+  BlochHistoryEntry? _selectedReplayStartEntry;
+  int? _activeReplayEntryIndex;
+  bool _historyExpanded = false;
 
   @override
   void initState() {
     super.initState();
     _history = BlochExplorerHistory()..addListener(_historyChanged);
+    _historyScrollController = ScrollController();
     _animation = AnimationController(
       vsync: this,
       duration: _gateTransitionDuration,
@@ -57,12 +68,22 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
       ..removeListener(_historyChanged)
       ..dispose();
     _animation.dispose();
+    _historyScrollController.dispose();
     super.dispose();
   }
 
   void _historyChanged() {
     _animation.stop();
     setState(() {
+      final selectedIndex = _selectedReplayStartIndex;
+      if (selectedIndex != null &&
+          (selectedIndex > _history.index ||
+              selectedIndex >= _history.entries.length ||
+              !identical(_history.entries[selectedIndex],
+                  _selectedReplayStartEntry))) {
+        _selectedReplayStartIndex = null;
+        _selectedReplayStartEntry = null;
+      }
       _displayState = _history.state;
       _globalPhase = _history.state.globalPhase;
     });
@@ -78,6 +99,7 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
 
   void _applyGate(SelectedGateType type) {
     _cancelReplay();
+    _clearHistoryPreview();
     final source = _history.state;
     final angle = switch (type) {
       SelectedGateType.rx ||
@@ -93,7 +115,11 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
                 type == SelectedGateType.rz
             ? angle
             : null);
-    _history.commit(gate.label.replaceAll('\n', ' '), target);
+    _history.commit(
+      gate.label.replaceAll('\n', ' '),
+      target,
+      gate: gate,
+    );
     if (_instant) return;
     _animation.duration = _gateTransitionDuration;
     _animationStart = source;
@@ -103,14 +129,17 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
   }
 
   Future<void> _replay() async {
-    final sequence = _history.replaySequence;
+    final startIndex = _selectedReplayStartIndex ?? 0;
+    final sequence = _history.replaySequenceFrom(startIndex);
     if (sequence.isEmpty || _isReplaying) return;
     _animation.stop();
     final generation = ++_replayGeneration;
     setState(() {
       _isReplaying = true;
+      _activeReplayEntryIndex = startIndex;
       _displayState = sequence.first.source;
     });
+    _scrollActiveHistoryEntry();
 
     try {
       for (var index = 0; index < sequence.length; index++) {
@@ -119,7 +148,11 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
         _animationStart = transition.source;
         _animationEnd = transition.destination;
         _animation.duration = _replayTransitionDuration;
-        setState(() => _displayState = transition.source);
+        setState(() {
+          _activeReplayEntryIndex = startIndex + index + 1;
+          _displayState = transition.source;
+        });
+        _scrollActiveHistoryEntry();
         await _animation.forward(from: 0).orCancel;
         if (index + 1 < sequence.length) {
           await Future<void>.delayed(_replayStepGap);
@@ -132,6 +165,7 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
         _animation.duration = _gateTransitionDuration;
         setState(() {
           _isReplaying = false;
+          _activeReplayEntryIndex = null;
           _displayState = _history.state;
         });
       }
@@ -144,23 +178,137 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
     if (!_isReplaying || !mounted) return;
     setState(() {
       _isReplaying = false;
+      _activeReplayEntryIndex = null;
       if (restoreCommittedState) _displayState = _history.state;
     });
   }
 
   void _undo() {
     _cancelReplay();
+    _clearHistoryPreview();
     _history.undo();
   }
 
   void _redo() {
     _cancelReplay();
+    _clearHistoryPreview();
     _history.redo();
   }
 
   void _reset() {
     _cancelReplay(restoreCommittedState: false);
+    _selectedReplayStartIndex = null;
+    _selectedReplayStartEntry = null;
     _history.reset();
+  }
+
+  void _selectReplayStart(int index) {
+    if (_isReplaying || index < 0 || index > _history.index) return;
+    setState(() {
+      if (_selectedReplayStartIndex == index) {
+        _selectedReplayStartIndex = null;
+        _selectedReplayStartEntry = null;
+        _displayState = _history.state;
+        _globalPhase = _history.state.globalPhase;
+      } else {
+        final entry = _history.entries[index];
+        _selectedReplayStartIndex = index;
+        _selectedReplayStartEntry = entry;
+        _displayState = entry.state;
+        _globalPhase = entry.state.globalPhase;
+      }
+    });
+  }
+
+  void _clearHistoryPreview() {
+    if (_selectedReplayStartIndex == null) return;
+    setState(() {
+      _selectedReplayStartIndex = null;
+      _selectedReplayStartEntry = null;
+      _displayState = _history.state;
+      _globalPhase = _history.state.globalPhase;
+    });
+  }
+
+  BlochState _beginStateEdit() {
+    _animation.stop();
+    _cancelReplay();
+    _clearHistoryPreview();
+    return _history.state;
+  }
+
+  Future<void> _inspectHistoryGate(int index) async {
+    if (_isReplaying || index <= 0 || index > _history.index) return;
+    final gate = _history.entries[index].gate;
+    if (gate == null) return;
+    final preceding = [
+      for (var step = 1; step < index; step++) _history.entries[step].label,
+    ];
+    final concisePreceding = preceding.length <= 4
+        ? preceding
+        : ['…', ...preceding.sublist(preceding.length - 4)];
+    await _inspectGate(
+      gate,
+      inspectionContext: GateInspectorContext(
+        title: 'History step $index of ${_history.index}',
+        description: 'Applied after: '
+            '${concisePreceding.isEmpty ? 'Start' : concisePreceding.join(' → ')}',
+      ),
+    );
+  }
+
+  Future<void> _inspectGate(
+    Gate gate, {
+    GateInspectorContext? inspectionContext,
+  }) async {
+    final info = GateEducationalCatalog.forType(gate.type);
+    final notebookTitle = info?.notebookDiscoveryTitle;
+    final notebook = notebookTitle == null
+        ? null
+        : notebookEntriesByDiscoveryTitle[notebookTitle];
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => GateInspectorDialog.forGate(
+        gate: gate,
+        info: info,
+        inspectionContext: inspectionContext,
+        onOpenNotebook:
+            notebook == null ? null : () => _openGateNotebook(notebook),
+        onOpenRelatedConcept: _openInspectorRelatedConcept,
+      ),
+    );
+  }
+
+  void _openGateNotebook(NotebookEntry entry) {
+    Navigator.of(context).pop();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => NotebookEntryScreen(entry: entry),
+      ),
+    );
+  }
+
+  void _openInspectorRelatedConcept(String discoveryTitle) {
+    final entry = notebookEntriesByDiscoveryTitle[discoveryTitle];
+    if (entry != null) _openGateNotebook(entry);
+  }
+
+  void _scrollActiveHistoryEntry() {
+    if (!_historyExpanded) return;
+    final active = _activeReplayEntryIndex;
+    if (active == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_historyScrollController.hasClients) return;
+      final target = (active * 82.0).clamp(
+        0.0,
+        _historyScrollController.position.maxScrollExtent,
+      );
+      _historyScrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   @override
@@ -186,6 +334,7 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
               onStateCommitted: (state) =>
                   _history.commit('Direct state', state),
               onGestureStarted: _animation.stop,
+              onStateGestureStarted: _beginStateEdit,
             ),
           );
           final workspace = _buildWorkspace(sphere, wide: wide);
@@ -336,6 +485,7 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
       size: 44,
       tooltip: 'Apply ${gate.label.replaceAll('\n', ' ')} gate',
       onPressed: _isReplaying ? null : () => _applyGate(type),
+      onInspect: _isReplaying ? null : () => _inspectGate(gate),
     );
   }
 
@@ -362,7 +512,8 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
                 key: 'bloch-replay',
                 label: 'Replay',
                 icon: Icons.play_circle_outline_rounded,
-                onPressed: !_isReplaying && _history.replaySequence.isNotEmpty
+                onPressed: !_isReplaying &&
+                        (_selectedReplayStartIndex ?? 0) < _history.index
                     ? _replay
                     : null),
             _transportButton(
@@ -467,30 +618,124 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: QubitQuestDialog.borderColor),
         ),
-        child: ExpansionTile(
-          key: const ValueKey('bloch-history-expansion'),
-          dense: true,
-          visualDensity: VisualDensity.compact,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-          title: const Text('History',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
-          subtitle: Text('${_history.entries.length} operations',
-              style: const TextStyle(fontSize: 10)),
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(_history.entries
-                  .asMap()
-                  .entries
-                  .map((entry) => entry.key == _history.index
-                      ? '● ${entry.value.label}'
-                      : '○ ${entry.value.label}')
-                  .join('  →  ')),
-            ),
-          ],
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            key: const ValueKey('bloch-history-expansion'),
+            dense: true,
+            visualDensity: VisualDensity.compact,
+            tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+            childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+            onExpansionChanged: (expanded) {
+              _historyExpanded = expanded;
+              if (expanded) _scrollActiveHistoryEntry();
+            },
+            title: const Text('History',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+            subtitle:
+                Text(_historyStatus, style: const TextStyle(fontSize: 10)),
+            children: [
+              SizedBox(
+                height: 60,
+                child: ListView.builder(
+                  key: const ValueKey('bloch-history-timeline'),
+                  controller: _historyScrollController,
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.zero,
+                  itemExtent: 82,
+                  itemCount: _history.index + 1,
+                  itemBuilder: (context, index) =>
+                      _buildHistoryTimelineEntry(index),
+                ),
+              ),
+            ],
+          ),
         ),
       );
+
+  String get _historyStatus {
+    final active = _activeReplayEntryIndex;
+    if (_isReplaying && active != null) {
+      return 'Step $active / ${_history.index} · ${_history.entries[active].label}';
+    }
+    final selected = _selectedReplayStartIndex;
+    if (selected != null) {
+      final position = selected == 0
+          ? 'Replay start: Start'
+          : 'Replay start: Step $selected / ${_history.index} · '
+              '${_history.entries[selected].label}';
+      return '$_operationSummary · $position';
+    }
+    return _operationSummary;
+  }
+
+  String get _operationSummary => _history.operationCount == 1
+      ? '1 operation'
+      : '${_history.operationCount} operations';
+
+  Widget _buildHistoryTimelineEntry(int index) {
+    final entry = _history.entries[index];
+    final active = index == _activeReplayEntryIndex;
+    final selected = index == _selectedReplayStartIndex;
+    final replayCompleted = _isReplaying &&
+        _activeReplayEntryIndex != null &&
+        index < _activeReplayEntryIndex!;
+    final labelStyle = TextStyle(
+      color: active ? Colors.white : QubitQuestDialog.mutedText,
+      fontSize: 10,
+      fontWeight: active ? FontWeight.w900 : FontWeight.w600,
+    );
+    return Semantics(
+      key: ValueKey('bloch-history-step-$index'),
+      button: !_isReplaying,
+      selected: selected,
+      label: '${index == 0 ? 'Start' : 'Step $index, ${entry.label}'}'
+          '${selected ? ', replay start' : ''}'
+          '${active ? ', currently replaying' : ''}',
+      child: InkWell(
+        onTap: _isReplaying ? null : () => _selectReplayStart(index),
+        onLongPress: !_isReplaying && entry.gate != null
+            ? () => _inspectHistoryGate(index)
+            : null,
+        child: Stack(children: [
+          Positioned(
+            left: index == 0 ? 41 : 0,
+            right: index == _history.index ? 41 : 0,
+            top: 9,
+            child: Container(
+              key: ValueKey('bloch-history-connector-$index'),
+              height: 1,
+              color: QubitQuestDialog.mutedText.withValues(alpha: .42),
+            ),
+          ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              _HistoryMarker(
+                active: active,
+                selected: selected,
+                completed: replayCompleted,
+                start: index == 0,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                index == 0 ? 'Start' : entry.label,
+                key: ValueKey('bloch-history-label-$index'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: labelStyle,
+              ),
+              if (index > 0)
+                Text('Step $index',
+                    style: const TextStyle(
+                        color: QubitQuestDialog.mutedText, fontSize: 8)),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
 
   String _formatAngle(double angle) {
     final ratio = angle / math.pi;
@@ -503,6 +748,66 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
       }
     }
     return '${angle.toStringAsFixed(2)} rad';
+  }
+}
+
+class _HistoryMarker extends StatelessWidget {
+  const _HistoryMarker({
+    required this.active,
+    required this.selected,
+    required this.completed,
+    required this.start,
+  });
+
+  final bool active;
+  final bool selected;
+  final bool completed;
+  final bool start;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = QubitQuestDialog.purple;
+    final border = selected || active
+        ? accent
+        : QubitQuestDialog.mutedText.withValues(alpha: .65);
+    return AnimatedContainer(
+      key: ValueKey(active
+          ? 'bloch-history-marker-active'
+          : selected
+              ? 'bloch-history-marker-selected'
+              : completed
+                  ? 'bloch-history-marker-completed'
+                  : 'bloch-history-marker-idle'),
+      duration: const Duration(milliseconds: 120),
+      width: 18,
+      height: 18,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: active ? accent : Colors.transparent,
+        border: Border.all(color: border, width: selected && !active ? 2 : 1),
+      ),
+      child: active
+          ? const Icon(Icons.play_arrow_rounded, size: 12, color: Colors.white)
+          : completed
+              ? const Icon(Icons.check_rounded,
+                  size: 12, color: QubitQuestDialog.mutedText)
+              : start
+                  ? Icon(Icons.flag_rounded,
+                      size: 11,
+                      color: selected ? accent : QubitQuestDialog.mutedText)
+                  : selected
+                      ? Center(
+                          child: Container(
+                            width: 5,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: accent,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        )
+                      : null,
+    );
   }
 }
 
@@ -545,6 +850,7 @@ class _SpherePanel extends StatefulWidget {
     required this.onStatePreview,
     required this.onStateCommitted,
     required this.onGestureStarted,
+    required this.onStateGestureStarted,
   });
 
   final BlochState state;
@@ -553,6 +859,7 @@ class _SpherePanel extends StatefulWidget {
   final ValueChanged<BlochState> onStatePreview;
   final ValueChanged<BlochState> onStateCommitted;
   final VoidCallback onGestureStarted;
+  final BlochState Function() onStateGestureStarted;
 
   @override
   State<_SpherePanel> createState() => _SpherePanelState();
@@ -590,9 +897,11 @@ class _SpherePanelState extends State<_SpherePanel> {
                             widget.onGestureStarted();
                             _startCamera = widget.camera;
                             _startPoint = details.localFocalPoint;
-                            _latestState = widget.state;
                             _mode = BlochGestureResolver.resolveMode(
                                 details.localFocalPoint, tip);
+                            _latestState = _mode == BlochSphereGestureMode.state
+                                ? widget.onStateGestureStarted()
+                                : widget.state;
                           }
                           ..onUpdate = (details) {
                             final initialCamera = _startCamera ?? widget.camera;
@@ -603,7 +912,7 @@ class _SpherePanelState extends State<_SpherePanel> {
                             } else if (_mode == BlochSphereGestureMode.state) {
                               _latestState = projection.stateForPoint(
                                   details.localFocalPoint,
-                                  globalPhase: widget.state.globalPhase);
+                                  globalPhase: _latestState!.globalPhase);
                               widget.onStatePreview(_latestState!);
                             } else {
                               widget.onCameraChanged(BlochGestureResolver.orbit(

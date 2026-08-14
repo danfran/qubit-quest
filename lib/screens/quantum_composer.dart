@@ -1293,20 +1293,40 @@ class _QuantumComposerState extends State<QuantumComposer>
       if (mounted) setState(_validateSelection);
       return;
     }
-    final info = GateEducationalCatalog.forType(footprint.type);
+    await _showGateInspector(footprint.gate, footprint: footprint);
+  }
+
+  Future<void> _inspectPaletteGate(Gate gate) => _showGateInspector(gate);
+
+  Future<void> _showGateInspector(
+    Gate gate, {
+    LogicalGateFootprint? footprint,
+  }) async {
+    final info = GateEducationalCatalog.forType(gate.type);
     final notebookTitle = info?.notebookDiscoveryTitle;
     final notebook = notebookTitle == null
         ? null
         : notebookEntriesByDiscoveryTitle[notebookTitle];
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => GateInspectorDialog(
-        footprint: footprint,
-        info: info,
-        onOpenNotebook:
-            notebook == null ? null : () => _openGateNotebook(notebook),
-        onOpenRelatedConcept: _openInspectorRelatedConcept,
-      ),
+      builder: (dialogContext) {
+        final onOpenNotebook =
+            notebook == null ? null : () => _openGateNotebook(notebook);
+        if (footprint != null) {
+          return GateInspectorDialog(
+            footprint: footprint,
+            info: info,
+            onOpenNotebook: onOpenNotebook,
+            onOpenRelatedConcept: _openInspectorRelatedConcept,
+          );
+        }
+        return GateInspectorDialog.forGate(
+          gate: gate,
+          info: info,
+          onOpenNotebook: onOpenNotebook,
+          onOpenRelatedConcept: _openInspectorRelatedConcept,
+        );
+      },
     );
   }
 
@@ -3085,6 +3105,7 @@ class _QuantumComposerState extends State<QuantumComposer>
           buttonSize: buttonSize,
           fontSize: fontSizeW,
           onPressed: () => _setInteractionMode(SelectedGateType.none),
+          onInspect: () => _inspectPaletteGate(gate),
         ),
       ),
       child: _GatePaletteButton(
@@ -3093,6 +3114,7 @@ class _QuantumComposerState extends State<QuantumComposer>
         fontSize: fontSizeW,
         onPressed: () => _setInteractionMode(
             SelectedGateType.none), // Tapping button resets mode
+        onInspect: () => _inspectPaletteGate(gate),
       ),
     );
   }
@@ -3103,12 +3125,14 @@ class _GatePaletteButton extends StatelessWidget {
   final double buttonSize;
   final double fontSize;
   final VoidCallback onPressed;
+  final VoidCallback onInspect;
 
   const _GatePaletteButton({
     required this.gate,
     required this.buttonSize,
     required this.fontSize,
     required this.onPressed,
+    required this.onInspect,
   });
 
   @override
@@ -3117,6 +3141,7 @@ class _GatePaletteButton extends StatelessWidget {
         size: buttonSize,
         fontSize: fontSize,
         onPressed: onPressed,
+        onInspect: onInspect,
       );
 }
 

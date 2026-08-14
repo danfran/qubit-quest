@@ -68,18 +68,38 @@ void main() {
 
   test('history supports undo redo branching and reset', () {
     final history = BlochExplorerHistory();
+    expect(history.operationCount, 0);
     history.commit('X', history.state.applyGate(SelectedGateType.x));
+    expect(history.operationCount, 1);
     expect(history.state.z, closeTo(-1, 1e-12));
     history.undo();
+    expect(history.operationCount, 0);
     expect(history.state.z, closeTo(1, 1e-12));
     history.redo();
+    expect(history.operationCount, 1);
     expect(history.state.z, closeTo(-1, 1e-12));
     history.undo();
     history.commit('H', history.state.applyGate(SelectedGateType.hadamard));
+    expect(history.operationCount, 1);
     expect(history.canRedo, isFalse);
     history.reset();
     expect(history.entries, hasLength(1));
+    expect(history.operationCount, 0);
     expect(history.state.z, closeTo(1, 1e-12));
+  });
+
+  test('history gate metadata preserves type and configured angle', () {
+    final history = BlochExplorerHistory();
+    final gate = Gate.fromIdentifier(SelectedGateType.ry, angle: -math.pi / 4);
+    history.commit(
+      gate.label.replaceAll('\n', ' '),
+      history.state.applyGate(gate.type, angle: gate.angle!),
+      gate: gate,
+    );
+
+    expect(history.entries.first.gate, isNull);
+    expect(history.entries[1].gate?.type, SelectedGateType.ry);
+    expect(history.entries[1].gate?.angle, closeTo(-math.pi / 4, 1e-12));
   });
 
   test('replay sequence exposes every endpoint without changing history', () {
@@ -137,5 +157,28 @@ void main() {
     expect(history.canRedo, isFalse);
     expect(history.replaySequence, hasLength(2));
     expect(history.replaySequence.last.destination, dragged);
+  });
+
+  test('replay sequence can begin after a selected history state', () {
+    final history = BlochExplorerHistory();
+    history
+      ..commit('H', history.state.applyGate(SelectedGateType.hadamard))
+      ..commit('Z', history.state.applyGate(SelectedGateType.z))
+      ..commit('S', history.state.applyGate(SelectedGateType.s));
+
+    final selectedState = history.entries[2].state;
+    final sequence = history.replaySequenceFrom(2);
+    expect(sequence, hasLength(1));
+    expect(sequence.single.source, selectedState);
+    expect(sequence.single.destination, history.state);
+    expect(history.index, 3);
+  });
+
+  test('selecting current state produces no replay transitions', () {
+    final history = BlochExplorerHistory();
+    history.commit('H', history.state.applyGate(SelectedGateType.hadamard));
+    expect(history.replaySequenceFrom(history.index), isEmpty);
+    expect(history.replaySequenceFrom(-1), isEmpty);
+    expect(history.replaySequenceFrom(history.index + 1), isEmpty);
   });
 }

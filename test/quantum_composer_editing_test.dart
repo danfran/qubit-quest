@@ -1687,6 +1687,27 @@ void main() {
     expect(find.text('Open Notebook'), findsOneWidget);
   });
 
+  testWidgets('palette gate long press opens shared Inspector and tap does not',
+      (tester) async {
+    await pumpComposer(
+      tester,
+      palette: [Gate.fromIdentifier(SelectedGateType.hadamard)],
+    );
+    final paletteGate = find.byType(Draggable<CircuitDragData>).first;
+
+    await tester.longPress(paletteGate);
+    await tester.pumpAndSettle();
+    expect(find.text('Hadamard gate'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('gate-inspector-content')), findsOneWidget);
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(paletteGate);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('gate-inspector-content')), findsNothing);
+  });
+
   testWidgets('selection exposes replacement actions only for editable singles',
       (tester) async {
     await pumpComposer(
