@@ -20,6 +20,56 @@ class BlochExplorerScreen extends StatefulWidget {
   State<BlochExplorerScreen> createState() => _BlochExplorerScreenState();
 }
 
+@immutable
+class BlochExplorerLayout {
+  const BlochExplorerLayout._({
+    required this.twoColumn,
+    required this.contentHeight,
+    required this.leftColumnWidth,
+    required this.rightColumnWidth,
+    required this.spherePanelExtent,
+    required this.sphereExtent,
+    required this.inlineMaths,
+  });
+
+  static const double horizontalPadding = 28;
+  static const double verticalPadding = 20;
+  static const double columnGap = 14;
+  static const double spherePanelPadding = 16;
+  static const double minimumSphereColumn = 260;
+  static const double minimumControlsColumn = 300;
+  static const double inlineMathsControlsWidth = 480;
+
+  final bool twoColumn;
+  final double contentHeight;
+  final double leftColumnWidth;
+  final double rightColumnWidth;
+  final double spherePanelExtent;
+  final double sphereExtent;
+  final bool inlineMaths;
+
+  factory BlochExplorerLayout.resolve(Size viewport) {
+    final contentWidth = math.max(0.0, viewport.width - horizontalPadding);
+    final contentHeight = math.max(0.0, viewport.height - verticalPadding);
+    final columnWidth = math.max(0.0, contentWidth - columnGap);
+    final leftWidth = math.min(contentHeight, columnWidth * .52);
+    final rightWidth = math.max(0.0, columnWidth - leftWidth);
+    final twoColumn = viewport.width > viewport.height &&
+        leftWidth >= minimumSphereColumn &&
+        rightWidth >= minimumControlsColumn;
+    final panelExtent = twoColumn ? math.min(leftWidth, contentHeight) : 0.0;
+    return BlochExplorerLayout._(
+      twoColumn: twoColumn,
+      contentHeight: contentHeight,
+      leftColumnWidth: leftWidth,
+      rightColumnWidth: rightWidth,
+      spherePanelExtent: panelExtent,
+      sphereExtent: math.max(0.0, panelExtent - spherePanelPadding),
+      inlineMaths: twoColumn && rightWidth >= inlineMathsControlsWidth,
+    );
+  }
+}
+
 class _BlochExplorerScreenState extends State<BlochExplorerScreen>
     with SingleTickerProviderStateMixin {
   static const _gateTransitionDuration = Duration(milliseconds: 650);
@@ -323,59 +373,118 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
       ),
       body: SafeArea(
         child: LayoutBuilder(builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 760;
-          final sphere = IgnorePointer(
-            ignoring: _isReplaying,
-            child: _SpherePanel(
-              state: _displayState,
-              camera: _camera,
-              onCameraChanged: (camera) => setState(() => _camera = camera),
-              onStatePreview: (state) => setState(() => _displayState = state),
-              onStateCommitted: (state) =>
-                  _history.commit('Direct state', state),
-              onGestureStarted: _animation.stop,
-              onStateGestureStarted: _beginStateEdit,
-            ),
-          );
-          final workspace = _buildWorkspace(sphere, wide: wide);
-          return ListView(
-            key: const ValueKey('bloch-explorer-scroll'),
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
-            children: [
-              if (wide)
-                Row(
-                    key: const ValueKey('bloch-landscape-top-row'),
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 6,
-                        child: Column(children: [
-                          workspace,
-                          const SizedBox(height: 6),
-                          _buildHistory(),
-                        ]),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        flex: 5,
-                        child: _buildMathsAction(expanded: true),
-                      ),
-                    ])
-              else ...[
-                workspace,
-                const SizedBox(height: 6),
-                _buildHistory(),
-                const SizedBox(height: 6),
-                _buildMathsAction(),
-              ],
-            ],
-          );
+          final layout = BlochExplorerLayout.resolve(constraints.biggest);
+          if (layout.twoColumn) {
+            return _buildLandscapeWorkspace(
+              _buildSphere(reserveOverlaySafeRegions: true),
+              layout,
+            );
+          }
+          return _buildPortraitWorkspace(_buildSphere());
         }),
       ),
     );
   }
 
-  Widget _buildWorkspace(Widget sphere, {required bool wide}) => Container(
+  Widget _buildSphere({bool reserveOverlaySafeRegions = false}) =>
+      IgnorePointer(
+        ignoring: _isReplaying,
+        child: _SpherePanel(
+          reserveOverlaySafeRegions: reserveOverlaySafeRegions,
+          state: _displayState,
+          camera: _camera,
+          onCameraChanged: (camera) => setState(() => _camera = camera),
+          onStatePreview: (state) => setState(() => _displayState = state),
+          onStateCommitted: (state) => _history.commit('Direct state', state),
+          onGestureStarted: _animation.stop,
+          onStateGestureStarted: _beginStateEdit,
+        ),
+      );
+
+  Widget _buildPortraitWorkspace(Widget sphere) => ListView(
+        key: const ValueKey('bloch-explorer-scroll'),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
+        children: [
+          _buildPortraitPrimaryWorkspace(sphere),
+          const SizedBox(height: 6),
+          _buildHistory(),
+          const SizedBox(height: 6),
+          _buildMathsAction(),
+        ],
+      );
+
+  Widget _buildLandscapeWorkspace(
+    Widget sphere,
+    BlochExplorerLayout layout,
+  ) =>
+      Padding(
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+        child: Row(
+          key: const ValueKey('bloch-landscape-workspace'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              key: const ValueKey('bloch-landscape-left-column'),
+              width: layout.leftColumnWidth,
+              height: layout.contentHeight,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Container(
+                  key: const ValueKey('bloch-primary-workspace'),
+                  width: layout.spherePanelExtent,
+                  height: layout.spherePanelExtent,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: QubitQuestDialog.panelColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: QubitQuestDialog.borderColor),
+                  ),
+                  child: SizedBox.square(
+                    key: const ValueKey('bloch-landscape-sphere-square'),
+                    dimension: layout.sphereExtent,
+                    child: sphere,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: BlochExplorerLayout.columnGap),
+            Expanded(
+              child: ListView(
+                key: const ValueKey('bloch-landscape-controls-scroll'),
+                padding: EdgeInsets.zero,
+                children: [
+                  Container(
+                    key: const ValueKey('bloch-landscape-right-column'),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: QubitQuestDialog.panelColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: QubitQuestDialog.borderColor),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildGateStrip(),
+                        const SizedBox(height: 6),
+                        _buildTransportControls(),
+                        const SizedBox(height: 6),
+                        _buildHistory(),
+                        const SizedBox(height: 6),
+                        if (layout.inlineMaths)
+                          _buildInlineMathsDetails()
+                        else
+                          _buildMathsAction(expanded: true),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildPortraitPrimaryWorkspace(Widget sphere) => Container(
         key: const ValueKey('bloch-primary-workspace'),
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
         decoration: BoxDecoration(
@@ -384,7 +493,7 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
           border: Border.all(color: QubitQuestDialog.borderColor),
         ),
         child: Column(children: [
-          SizedBox(height: wide ? 330 : 350, child: sphere),
+          SizedBox(height: 350, child: sphere),
           const SizedBox(height: 4),
           _buildGateStrip(),
           const SizedBox(height: 4),
@@ -589,6 +698,35 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
             onPressed: _showMathsDetails,
             icon: const Icon(Icons.functions_rounded, size: 18),
             label: const Text('Maths / state details'),
+          ),
+        ),
+      );
+
+  Widget _buildInlineMathsDetails() => Container(
+        key: const ValueKey('bloch-inline-maths-details'),
+        decoration: BoxDecoration(
+          color: QubitQuestDialog.innerColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: QubitQuestDialog.borderSoftColor),
+        ),
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            key: const ValueKey('bloch-inline-maths-expansion'),
+            dense: true,
+            tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+            childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            leading: const Icon(Icons.functions_rounded, size: 18),
+            title: const Text(
+              'Maths / state details',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+            ),
+            children: [
+              _StateMathsDialogContent(
+                state: _displayState,
+                globalPhase: _globalPhase,
+              ),
+            ],
           ),
         ),
       );
@@ -844,6 +982,7 @@ class _BlochScaleGestureRecognizer extends ScaleGestureRecognizer {
 
 class _SpherePanel extends StatefulWidget {
   const _SpherePanel({
+    this.reserveOverlaySafeRegions = false,
     required this.state,
     required this.camera,
     required this.onCameraChanged,
@@ -853,6 +992,7 @@ class _SpherePanel extends StatefulWidget {
     required this.onStateGestureStarted,
   });
 
+  final bool reserveOverlaySafeRegions;
   final BlochState state;
   final BlochCamera camera;
   final ValueChanged<BlochCamera> onCameraChanged;
@@ -871,144 +1011,256 @@ class _SpherePanelState extends State<_SpherePanel> {
   Offset? _startPoint;
   BlochState? _latestState;
 
-  @override
-  Widget build(BuildContext context) => Stack(
-        key: const ValueKey('bloch-sphere-panel'),
-        children: [
-          Positioned.fill(
-              top: 18,
-              child: LayoutBuilder(builder: (context, constraints) {
-                final size = Size(constraints.maxWidth, constraints.maxHeight);
-                final projection =
-                    BlochProjection(size: size, camera: widget.camera);
-                return RawGestureDetector(
-                  key: const ValueKey('bloch-sphere-gesture'),
-                  behavior: HitTestBehavior.opaque,
-                  gestures: {
-                    _BlochScaleGestureRecognizer:
-                        GestureRecognizerFactoryWithHandlers<
-                            _BlochScaleGestureRecognizer>(
-                      _BlochScaleGestureRecognizer.new,
-                      (recognizer) {
-                        recognizer
-                          ..onStart = (details) {
-                            final tip = projection.project(
-                                widget.state.x, widget.state.y, widget.state.z);
-                            widget.onGestureStarted();
-                            _startCamera = widget.camera;
-                            _startPoint = details.localFocalPoint;
-                            _mode = BlochGestureResolver.resolveMode(
-                                details.localFocalPoint, tip);
-                            _latestState = _mode == BlochSphereGestureMode.state
-                                ? widget.onStateGestureStarted()
-                                : widget.state;
-                          }
-                          ..onUpdate = (details) {
-                            final initialCamera = _startCamera ?? widget.camera;
-                            if (details.pointerCount > 1) {
-                              _mode = BlochSphereGestureMode.zoom;
-                              widget.onCameraChanged(
-                                  initialCamera.scale(details.scale));
-                            } else if (_mode == BlochSphereGestureMode.state) {
-                              _latestState = projection.stateForPoint(
-                                  details.localFocalPoint,
-                                  globalPhase: _latestState!.globalPhase);
-                              widget.onStatePreview(_latestState!);
-                            } else {
-                              widget.onCameraChanged(BlochGestureResolver.orbit(
-                                camera: initialCamera,
-                                dragDelta: details.localFocalPoint -
-                                    (_startPoint ?? details.localFocalPoint),
-                              ));
-                            }
-                          }
-                          ..onEnd = (_) {
-                            if (_mode == BlochSphereGestureMode.state &&
-                                _latestState != null) {
-                              widget.onStateCommitted(_latestState!);
-                            }
-                            _mode = null;
-                            _startCamera = null;
-                            _startPoint = null;
-                            _latestState = null;
-                          };
-                      },
-                    ),
-                  },
-                  child: CustomPaint(
-                    key: const ValueKey('bloch-sphere-canvas'),
-                    painter: BlochSpherePainter(
-                        state: widget.state, camera: widget.camera),
-                    child: const SizedBox.expand(),
-                  ),
-                );
-              })),
-          const Positioned(
-            top: 0,
-            left: 2,
-            right: 2,
-            child: IgnorePointer(
-              child: Text(
-                'Drag vector • orbit elsewhere • pinch to zoom',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: QubitQuestDialog.mutedText,
-                  fontSize: 10,
-                ),
-              ),
+  Widget _interactiveCanvas() => LayoutBuilder(builder: (context, constraints) {
+        final size = Size(constraints.maxWidth, constraints.maxHeight);
+        final projection = BlochProjection(size: size, camera: widget.camera);
+        return RawGestureDetector(
+          key: const ValueKey('bloch-sphere-gesture'),
+          behavior: HitTestBehavior.opaque,
+          gestures: {
+            _BlochScaleGestureRecognizer: GestureRecognizerFactoryWithHandlers<
+                _BlochScaleGestureRecognizer>(
+              _BlochScaleGestureRecognizer.new,
+              (recognizer) {
+                recognizer
+                  ..onStart = (details) {
+                    final tip = projection.project(
+                        widget.state.x, widget.state.y, widget.state.z);
+                    widget.onGestureStarted();
+                    _startCamera = widget.camera;
+                    _startPoint = details.localFocalPoint;
+                    _mode = BlochGestureResolver.resolveMode(
+                        details.localFocalPoint, tip);
+                    _latestState = _mode == BlochSphereGestureMode.state
+                        ? widget.onStateGestureStarted()
+                        : widget.state;
+                  }
+                  ..onUpdate = (details) {
+                    final initialCamera = _startCamera ?? widget.camera;
+                    if (details.pointerCount > 1) {
+                      _mode = BlochSphereGestureMode.zoom;
+                      widget
+                          .onCameraChanged(initialCamera.scale(details.scale));
+                    } else if (_mode == BlochSphereGestureMode.state) {
+                      _latestState = projection.stateForPoint(
+                          details.localFocalPoint,
+                          globalPhase: _latestState!.globalPhase);
+                      widget.onStatePreview(_latestState!);
+                    } else {
+                      widget.onCameraChanged(BlochGestureResolver.orbit(
+                        camera: initialCamera,
+                        dragDelta: details.localFocalPoint -
+                            (_startPoint ?? details.localFocalPoint),
+                      ));
+                    }
+                  }
+                  ..onEnd = (_) {
+                    if (_mode == BlochSphereGestureMode.state &&
+                        _latestState != null) {
+                      widget.onStateCommitted(_latestState!);
+                    }
+                    _mode = null;
+                    _startCamera = null;
+                    _startPoint = null;
+                    _latestState = null;
+                  };
+              },
             ),
+          },
+          child: CustomPaint(
+            key: const ValueKey('bloch-sphere-canvas'),
+            painter:
+                BlochSpherePainter(state: widget.state, camera: widget.camera),
+            child: const SizedBox.expand(),
           ),
-          Positioned(
-            top: 22,
-            left: 2,
-            child: _LiveValues(
-              key: const ValueKey('bloch-live-angles'),
-              values: [
-                ('θ', widget.state.theta),
-                ('φ', widget.state.phi),
-              ],
-            ),
-          ),
-          Positioned(
-            top: 22,
-            right: 2,
-            child: _LiveValues(
-              key: const ValueKey('bloch-live-cartesian'),
-              alignment: CrossAxisAlignment.end,
-              values: [
-                ('x', widget.state.x),
-                ('y', widget.state.y),
-                ('z', widget.state.z),
-              ],
-            ),
-          ),
-          Positioned(
-            bottom: 2,
-            left: 2,
-            child: IgnorePointer(
-              child: Container(
-                key: const ValueKey('bloch-live-probabilities'),
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xD9000712),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'P(|0⟩) = ${(widget.state.probabilityZero * 100).toStringAsFixed(1)}%',
-                    ),
-                    Text(
-                      'P(|1⟩) = ${(widget.state.probabilityOne * 100).toStringAsFixed(1)}%',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+        );
+      });
+
+  Widget _angles() => _LiveValues(
+        key: const ValueKey('bloch-live-angles'),
+        values: [('θ', widget.state.theta), ('φ', widget.state.phi)],
+      );
+
+  Widget _cartesian() => _LiveValues(
+        key: const ValueKey('bloch-live-cartesian'),
+        alignment: CrossAxisAlignment.end,
+        values: [
+          ('x', widget.state.x),
+          ('y', widget.state.y),
+          ('z', widget.state.z),
         ],
       );
+
+  Widget _probabilities() => IgnorePointer(
+        child: Container(
+          key: const ValueKey('bloch-live-probabilities'),
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xD9000712),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: DefaultTextStyle.merge(
+            style: const TextStyle(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'P(|0⟩) = ${(widget.state.probabilityZero * 100).toStringAsFixed(1)}%',
+                ),
+                Text(
+                  'P(|1⟩) = ${(widget.state.probabilityOne * 100).toStringAsFixed(1)}%',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  static const _helper = Text(
+    key: ValueKey('bloch-sphere-helper'),
+    'Drag vector • orbit elsewhere • pinch to zoom',
+    textAlign: TextAlign.center,
+    style: TextStyle(color: QubitQuestDialog.mutedText, fontSize: 10),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.reserveOverlaySafeRegions) {
+      return CustomMultiChildLayout(
+        key: const ValueKey('bloch-sphere-panel'),
+        delegate: _BlochLandscapeOverlayLayout(),
+        children: [
+          LayoutId(id: _BlochOverlaySlot.canvas, child: _interactiveCanvas()),
+          LayoutId(
+              id: _BlochOverlaySlot.helper,
+              child: const IgnorePointer(child: _helper)),
+          LayoutId(id: _BlochOverlaySlot.angles, child: _angles()),
+          LayoutId(id: _BlochOverlaySlot.cartesian, child: _cartesian()),
+          LayoutId(
+              id: _BlochOverlaySlot.probabilities, child: _probabilities()),
+        ],
+      );
+    }
+    return Stack(
+      key: const ValueKey('bloch-sphere-panel'),
+      children: [
+        Positioned.fill(top: 18, child: _interactiveCanvas()),
+        const Positioned(
+          top: 0,
+          left: 2,
+          right: 2,
+          child: IgnorePointer(
+            child: _helper,
+          ),
+        ),
+        Positioned(
+          top: 22,
+          left: 2,
+          child: _angles(),
+        ),
+        Positioned(
+          top: 22,
+          right: 2,
+          child: _cartesian(),
+        ),
+        Positioned(
+          bottom: 2,
+          left: 2,
+          child: _probabilities(),
+        ),
+      ],
+    );
+  }
+}
+
+enum _BlochOverlaySlot { canvas, helper, angles, cartesian, probabilities }
+
+class _BlochLandscapeOverlayLayout extends MultiChildLayoutDelegate {
+  static const double edgeInset = 2;
+  static const double safeGap = 6;
+
+  @override
+  void performLayout(Size size) {
+    final loose = BoxConstraints.loose(size);
+    final helper = layoutChild(_BlochOverlaySlot.helper, loose);
+    final helperRect = Rect.fromLTWH(
+      (size.width - helper.width) / 2,
+      0,
+      helper.width,
+      helper.height,
+    );
+    positionChild(_BlochOverlaySlot.helper, helperRect.topLeft);
+
+    final angles = layoutChild(_BlochOverlaySlot.angles, loose);
+    final overlayTop = helperRect.bottom + safeGap;
+    final anglesRect = Rect.fromLTWH(
+      edgeInset,
+      overlayTop,
+      angles.width,
+      angles.height,
+    );
+    positionChild(_BlochOverlaySlot.angles, anglesRect.topLeft);
+    final cartesian = layoutChild(_BlochOverlaySlot.cartesian, loose);
+    final cartesianRect = Rect.fromLTWH(
+      size.width - cartesian.width - edgeInset,
+      overlayTop,
+      cartesian.width,
+      cartesian.height,
+    );
+    positionChild(_BlochOverlaySlot.cartesian, cartesianRect.topLeft);
+
+    final probabilities = layoutChild(_BlochOverlaySlot.probabilities, loose);
+    final probabilityRect = Rect.fromLTWH(
+      edgeInset,
+      size.height - probabilities.height - edgeInset,
+      probabilities.width,
+      probabilities.height,
+    );
+    positionChild(_BlochOverlaySlot.probabilities, probabilityRect.topLeft);
+
+    final usablePane = Rect.fromLTRB(
+      edgeInset,
+      helperRect.bottom + safeGap,
+      size.width - edgeInset,
+      size.height - edgeInset,
+    );
+    final centre = usablePane.center;
+    var radius = <double>[
+      centre.dx - usablePane.left,
+      usablePane.right - centre.dx,
+      centre.dy - usablePane.top,
+      usablePane.bottom - centre.dy,
+      _maximumRadiusClearOf(centre, anglesRect),
+      _maximumRadiusClearOf(centre, cartesianRect),
+      _maximumRadiusClearOf(centre, probabilityRect),
+    ].reduce(math.min);
+    radius = math.max(0, radius);
+    final canvasRect = Rect.fromCircle(
+      center: centre,
+      radius: radius,
+    );
+    layoutChild(
+      _BlochOverlaySlot.canvas,
+      BoxConstraints.tight(canvasRect.size),
+    );
+    positionChild(_BlochOverlaySlot.canvas, canvasRect.topLeft);
+  }
+
+  double _maximumRadiusClearOf(Offset centre, Rect obstacle) {
+    final horizontalClearance = centre.dx < obstacle.center.dx
+        ? obstacle.left - centre.dx - safeGap
+        : centre.dx - obstacle.right - safeGap;
+    final verticalClearance = centre.dy < obstacle.center.dy
+        ? obstacle.top - centre.dy - safeGap
+        : centre.dy - obstacle.bottom - safeGap;
+    // Axis-aligned squares are disjoint when separated on either axis.
+    return math.max(horizontalClearance, verticalClearance);
+  }
+
+  @override
+  bool shouldRelayout(covariant _BlochLandscapeOverlayLayout oldDelegate) =>
+      false;
 }
 
 class _LiveValues extends StatelessWidget {
@@ -1030,6 +1282,7 @@ class _LiveValues extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: alignment,
             children: [
               for (final value in values)

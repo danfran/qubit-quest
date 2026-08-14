@@ -7,6 +7,7 @@ import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/bloch_explorer_screen.dart';
 import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 
 void main() {
@@ -26,6 +27,80 @@ void main() {
               find.byKey(const ValueKey('bloch-sphere-canvas')))
           .painter! as BlochSpherePainter)
       .state;
+
+  void expectLandscapeGeometry(
+    WidgetTester tester,
+    Size viewport, {
+    required bool inlineMaths,
+  }) {
+    final left = tester
+        .getRect(find.byKey(const ValueKey('bloch-landscape-left-column')));
+    final right = tester
+        .getRect(find.byKey(const ValueKey('bloch-landscape-right-column')));
+    final sphere =
+        tester.getRect(find.byKey(const ValueKey('bloch-sphere-panel')));
+    final fittedSphereRegion =
+        tester.getRect(find.byKey(const ValueKey('bloch-sphere-canvas')));
+    final angles =
+        tester.getRect(find.byKey(const ValueKey('bloch-live-angles')));
+    final cartesian =
+        tester.getRect(find.byKey(const ValueKey('bloch-live-cartesian')));
+    final probabilities =
+        tester.getRect(find.byKey(const ValueKey('bloch-live-probabilities')));
+    final helper =
+        tester.getRect(find.byKey(const ValueKey('bloch-sphere-helper')));
+    final gates =
+        tester.getRect(find.byKey(const ValueKey('bloch-gate-strip')));
+    final playback =
+        tester.getRect(find.byKey(const ValueKey('bloch-transport-controls')));
+    final history =
+        tester.getRect(find.byKey(const ValueKey('bloch-history-container')));
+    final maths = tester.getRect(find.byKey(ValueKey(
+        inlineMaths ? 'bloch-inline-maths-details' : 'bloch-maths-action')));
+    final slider =
+        tester.getRect(find.byKey(const ValueKey('bloch-rotation-slider')));
+
+    expect((left.top - right.top).abs(), lessThan(1));
+    expect(sphere.width, closeTo(sphere.height, 1e-9));
+    expect(sphere.left, greaterThanOrEqualTo(left.left));
+    expect(sphere.right, lessThanOrEqualTo(left.right));
+    expect(sphere.bottom, lessThanOrEqualTo(left.bottom));
+    expect(sphere.bottom, lessThanOrEqualTo(viewport.height));
+    for (final overlay in [angles, cartesian, probabilities]) {
+      expect(
+        overlay.overlaps(fittedSphereRegion),
+        isFalse,
+        reason: 'Live-value overlay $overlay intersects the fitted sphere '
+            'drawing region $fittedSphereRegion',
+      );
+    }
+    expect(angles.bottom, lessThan(fittedSphereRegion.top));
+    expect(cartesian.bottom, lessThan(fittedSphereRegion.top));
+    expect(
+      fittedSphereRegion.shortestSide / sphere.shortestSide,
+      greaterThan(.44),
+      reason: 'The centred sphere should use a substantial fraction of even '
+          'the smallest supported landscape pane.',
+    );
+    final expectedCentre = Offset(
+      sphere.left + sphere.width / 2,
+      (helper.bottom + 6 + sphere.bottom - 2) / 2,
+    );
+    expect(
+        (fittedSphereRegion.center.dx - expectedCentre.dx).abs(), lessThan(1));
+    expect(
+        (fittedSphereRegion.center.dy - expectedCentre.dy).abs(), lessThan(1));
+    expect(probabilities.width, greaterThan(probabilities.height));
+    for (final control in [gates, playback, history, maths]) {
+      expect(control.left, greaterThanOrEqualTo(right.left));
+      expect(control.right, lessThanOrEqualTo(right.right));
+      expect(control.left, greaterThan(sphere.right));
+    }
+    expect(gates.top, lessThan(sphere.bottom));
+    expect(playback.top, lessThan(sphere.bottom));
+    expect(slider.width, lessThanOrEqualTo(right.width));
+    expect(slider.width, lessThan(viewport.width * .6));
+  }
 
   testWidgets('screen exposes sphere mathematics gates and history',
       (tester) async {
@@ -685,35 +760,144 @@ void main() {
         findsNothing);
   });
 
-  testWidgets('landscape layout remains scrollable', (tester) async {
-    await pumpExplorer(tester, size: const Size(1000, 520));
+  testWidgets('landscape uses fixed sphere and scrollable controls columns',
+      (tester) async {
+    const viewport = Size(1000, 520);
+    await pumpExplorer(tester, size: viewport);
     expect(tester.takeException(), isNull);
-    expect(find.byKey(const ValueKey('bloch-explorer-scroll')), findsOneWidget);
-    final scrollable = tester.state<ScrollableState>(find
-        .descendant(
-          of: find.byKey(const ValueKey('bloch-explorer-scroll')),
-          matching: find.byType(Scrollable),
-        )
-        .first);
-    scrollable.position.jumpTo(scrollable.position.maxScrollExtent);
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('bloch-rotation-slider')), findsOneWidget);
-    final row = find.byKey(const ValueKey('bloch-landscape-top-row'));
-    final spherePanel = find.byKey(const ValueKey('bloch-primary-workspace'));
-    final currentState = find.byKey(const ValueKey('bloch-maths-action'));
-    expect(row, findsOneWidget);
+    expect(find.byKey(const ValueKey('bloch-landscape-workspace')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('bloch-explorer-scroll')), findsNothing);
+    final left = find.byKey(const ValueKey('bloch-landscape-left-column'));
+    final right = find.byKey(const ValueKey('bloch-landscape-right-column'));
     expect(
-      (tester.getTopLeft(spherePanel).dy - tester.getTopLeft(currentState).dy)
-          .abs(),
+      (tester.getTopLeft(left).dy - tester.getTopLeft(right).dy).abs(),
       lessThan(1),
     );
+    for (final key in [
+      'bloch-gate-strip',
+      'bloch-transport-controls',
+      'bloch-history-container',
+      'bloch-inline-maths-details',
+    ]) {
+      expect(
+        find.descendant(of: right, matching: find.byKey(ValueKey(key))),
+        findsOneWidget,
+      );
+    }
+    expect(
+      find.descendant(
+        of: left,
+        matching: find.byKey(const ValueKey('bloch-gate-strip')),
+      ),
+      findsNothing,
+    );
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('bloch-gate-strip'))).dy,
+      lessThan(tester
+          .getTopLeft(find.byKey(const ValueKey('bloch-transport-controls')))
+          .dy),
+    );
+    expect(
+      tester
+          .getTopLeft(find.byKey(const ValueKey('bloch-transport-controls')))
+          .dy,
+      lessThan(tester
+          .getTopLeft(find.byKey(const ValueKey('bloch-history-container')))
+          .dy),
+    );
+    expect(
+      tester
+          .getTopLeft(find.byKey(const ValueKey('bloch-history-container')))
+          .dy,
+      lessThan(tester
+          .getTopLeft(find.byKey(const ValueKey('bloch-inline-maths-details')))
+          .dy),
+    );
+    expect(tester.getRect(right).right, closeTo(986, 1));
+    expectLandscapeGeometry(tester, viewport, inlineMaths: true);
   });
 
-  testWidgets('tablet landscape top columns align without overflow',
+  testWidgets('tablet landscape sphere is square and fully visible',
       (tester) async {
-    await pumpExplorer(tester, size: const Size(1280, 800));
+    const viewport = Size(1280, 800);
+    await pumpExplorer(tester, size: viewport);
+    expect(find.byKey(const ValueKey('bloch-landscape-workspace')),
+        findsOneWidget);
+    final square = tester
+        .getRect(find.byKey(const ValueKey('bloch-landscape-sphere-square')));
+    final panel =
+        tester.getRect(find.byKey(const ValueKey('bloch-sphere-panel')));
+    expect(square.width, closeTo(square.height, 1e-9));
+    expect(panel.width, closeTo(panel.height, 1e-9));
+    expect(square.top, greaterThanOrEqualTo(0));
+    expect(square.bottom, lessThanOrEqualTo(800));
+    final left = find.byKey(const ValueKey('bloch-landscape-left-column'));
+    for (final key in [
+      'bloch-live-angles',
+      'bloch-live-cartesian',
+      'bloch-live-probabilities',
+    ]) {
+      expect(find.descendant(of: left, matching: find.byKey(ValueKey(key))),
+          findsOneWidget);
+    }
+    expectLandscapeGeometry(tester, viewport, inlineMaths: true);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('wide landscape expands maths inline in controls column',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(1000, 520));
+    final right = find.byKey(const ValueKey('bloch-landscape-right-column'));
+    expect(find.byKey(const ValueKey('bloch-inline-maths-details')),
+        findsOneWidget);
+    await tester
+        .tap(find.byKey(const ValueKey('bloch-inline-maths-expansion')));
+    await tester.pumpAndSettle();
     expect(
-        find.byKey(const ValueKey('bloch-landscape-top-row')), findsOneWidget);
+      find.descendant(
+        of: right,
+        matching: find.byKey(const ValueKey('bloch-maths-dialog-content')),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(QubitQuestDialog), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('small landscape phone uses two columns without overflow',
+      (tester) async {
+    const viewport = Size(700, 400);
+    await pumpExplorer(tester, size: viewport);
+    expect(find.byKey(const ValueKey('bloch-landscape-workspace')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('bloch-maths-action')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('bloch-inline-maths-details')), findsNothing);
+    expectLandscapeGeometry(tester, viewport, inlineMaths: false);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('portrait retains the full-width interactive sphere canvas',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(430, 900));
+    final panel =
+        tester.getRect(find.byKey(const ValueKey('bloch-sphere-panel')));
+    final canvas =
+        tester.getRect(find.byKey(const ValueKey('bloch-sphere-canvas')));
+    expect(canvas.width, closeTo(panel.width, 1e-9));
+    expect(canvas.top, closeTo(panel.top + 18, 1e-9));
+    expect(
+        find.byKey(const ValueKey('bloch-landscape-workspace')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('constrained landscape falls back to portrait composition',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(560, 320));
+    expect(
+        find.byKey(const ValueKey('bloch-landscape-workspace')), findsNothing);
+    expect(find.byKey(const ValueKey('bloch-explorer-scroll')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -729,6 +913,45 @@ void main() {
     expect(state.x * state.x + state.y * state.y + state.z * state.z,
         closeTo(1, 1e-12));
     expect(state.globalPhase, closeTo(.7, 1e-12));
+  });
+
+  test('responsive landscape sizing uses both width and height', () {
+    final phone = BlochExplorerLayout.resolve(const Size(800, 374));
+    final tablet = BlochExplorerLayout.resolve(const Size(1280, 744));
+    final constrained = BlochExplorerLayout.resolve(const Size(560, 264));
+
+    expect(phone.twoColumn, isTrue);
+    expect(tablet.twoColumn, isTrue);
+    expect(constrained.twoColumn, isFalse);
+    for (final layout in [phone, tablet]) {
+      expect(
+          layout.spherePanelExtent, lessThanOrEqualTo(layout.leftColumnWidth));
+      expect(layout.spherePanelExtent, lessThanOrEqualTo(layout.contentHeight));
+      expect(layout.sphereExtent, closeTo(layout.spherePanelExtent - 16, 1e-9));
+      expect(
+          layout.leftColumnWidth + layout.rightColumnWidth + 14,
+          closeTo(
+              layout.spherePanelExtent + layout.rightColumnWidth + 14, 1e-9));
+    }
+  });
+
+  test('projected vector tips remain interactable at sphere extremes', () {
+    const size = Size(340, 340);
+    const projection = BlochProjection(size: size, camera: BlochCamera());
+    for (final vector in const <(double, double, double)>[
+      (1, 0, 0),
+      (-1, 0, 0),
+      (0, 1, 0),
+      (0, -1, 0),
+      (0, 0, 1),
+      (0, 0, -1),
+    ]) {
+      final tip = projection.project(vector.$1, vector.$2, vector.$3);
+      expect(tip.dx, inInclusiveRange(0, size.width));
+      expect(tip.dy, inInclusiveRange(0, size.height));
+      expect(BlochGestureResolver.resolveMode(tip, tip),
+          BlochSphereGestureMode.state);
+    }
   });
 
   test('gesture resolver reserves a focused tip target and orbits elsewhere',
