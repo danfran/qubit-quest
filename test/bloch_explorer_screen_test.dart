@@ -39,8 +39,18 @@ void main() {
         .getRect(find.byKey(const ValueKey('bloch-landscape-right-column')));
     final sphere =
         tester.getRect(find.byKey(const ValueKey('bloch-sphere-panel')));
-    final fittedSphereRegion =
+    final sphereCanvas =
         tester.getRect(find.byKey(const ValueKey('bloch-sphere-canvas')));
+    final painter = tester
+        .widget<CustomPaint>(
+          find.byKey(const ValueKey('bloch-sphere-canvas')),
+        )
+        .painter! as BlochSpherePainter;
+    final paintedRadius = sphereCanvas.shortestSide * .38 * painter.camera.zoom;
+    final actualSphereBounds = Rect.fromCircle(
+      center: sphereCanvas.center,
+      radius: paintedRadius,
+    );
     final angles =
         tester.getRect(find.byKey(const ValueKey('bloch-live-angles')));
     final cartesian =
@@ -68,28 +78,26 @@ void main() {
     expect(sphere.bottom, lessThanOrEqualTo(viewport.height));
     for (final overlay in [angles, cartesian, probabilities]) {
       expect(
-        overlay.overlaps(fittedSphereRegion),
+        overlay.overlaps(actualSphereBounds),
         isFalse,
-        reason: 'Live-value overlay $overlay intersects the fitted sphere '
-            'drawing region $fittedSphereRegion',
+        reason: 'Live-value overlay $overlay intersects the painted sphere '
+            'bounds $actualSphereBounds',
       );
     }
-    expect(angles.bottom, lessThan(fittedSphereRegion.top));
-    expect(cartesian.bottom, lessThan(fittedSphereRegion.top));
+    expect(angles.bottom, lessThan(actualSphereBounds.top));
+    expect(cartesian.bottom, lessThan(actualSphereBounds.top));
+    final usableHeight = sphere.bottom - 2 - (helper.bottom + 6);
     expect(
-      fittedSphereRegion.shortestSide / sphere.shortestSide,
-      greaterThan(.44),
-      reason: 'The centred sphere should use a substantial fraction of even '
-          'the smallest supported landscape pane.',
+      sphereCanvas.shortestSide / usableHeight,
+      greaterThanOrEqualTo(.65),
+      reason: 'Sphere sizing must come from, and dominate, the usable pane.',
     );
     final expectedCentre = Offset(
       sphere.left + sphere.width / 2,
       (helper.bottom + 6 + sphere.bottom - 2) / 2,
     );
-    expect(
-        (fittedSphereRegion.center.dx - expectedCentre.dx).abs(), lessThan(1));
-    expect(
-        (fittedSphereRegion.center.dy - expectedCentre.dy).abs(), lessThan(1));
+    expect((sphereCanvas.center.dx - expectedCentre.dx).abs(), lessThan(1));
+    expect((sphereCanvas.center.dy - expectedCentre.dy).abs(), lessThan(1));
     expect(probabilities.width, greaterThan(probabilities.height));
     for (final control in [gates, playback, history, maths]) {
       expect(control.left, greaterThanOrEqualTo(right.left));

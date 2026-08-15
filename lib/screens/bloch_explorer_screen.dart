@@ -1179,6 +1179,7 @@ enum _BlochOverlaySlot { canvas, helper, angles, cartesian, probabilities }
 class _BlochLandscapeOverlayLayout extends MultiChildLayoutDelegate {
   static const double edgeInset = 2;
   static const double safeGap = 6;
+  static const double spherePaneFraction = .74;
 
   @override
   void performLayout(Size size) {
@@ -1225,37 +1226,17 @@ class _BlochLandscapeOverlayLayout extends MultiChildLayoutDelegate {
       size.width - edgeInset,
       size.height - edgeInset,
     );
-    final centre = usablePane.center;
-    var radius = <double>[
-      centre.dx - usablePane.left,
-      usablePane.right - centre.dx,
-      centre.dy - usablePane.top,
-      usablePane.bottom - centre.dy,
-      _maximumRadiusClearOf(centre, anglesRect),
-      _maximumRadiusClearOf(centre, cartesianRect),
-      _maximumRadiusClearOf(centre, probabilityRect),
-    ].reduce(math.min);
-    radius = math.max(0, radius);
-    final canvasRect = Rect.fromCircle(
-      center: centre,
-      radius: radius,
+    final sphereExtent = usablePane.shortestSide * spherePaneFraction;
+    final canvasRect = Rect.fromCenter(
+      center: usablePane.center,
+      width: sphereExtent,
+      height: sphereExtent,
     );
     layoutChild(
       _BlochOverlaySlot.canvas,
       BoxConstraints.tight(canvasRect.size),
     );
     positionChild(_BlochOverlaySlot.canvas, canvasRect.topLeft);
-  }
-
-  double _maximumRadiusClearOf(Offset centre, Rect obstacle) {
-    final horizontalClearance = centre.dx < obstacle.center.dx
-        ? obstacle.left - centre.dx - safeGap
-        : centre.dx - obstacle.right - safeGap;
-    final verticalClearance = centre.dy < obstacle.center.dy
-        ? obstacle.top - centre.dy - safeGap
-        : centre.dy - obstacle.bottom - safeGap;
-    // Axis-aligned squares are disjoint when separated on either axis.
-    return math.max(horizontalClearance, verticalClearance);
   }
 
   @override
