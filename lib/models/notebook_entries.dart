@@ -8,6 +8,7 @@ const List<NotebookEntry> notebookEntries = [
     chapterTitle: 'Chapter 1 - The Quantum Bit',
     title: 'The First Qubit',
     summary: 'A qubit can hold a state, and a circuit can change that state.',
+    executableExampleIds: ['x_from_zero'],
     intuition: NotebookSection(
       title: 'Intuition',
       body:
@@ -310,6 +311,7 @@ const List<NotebookEntry> notebookEntries = [
     chapterIndex: 2,
     chapterTitle: 'Chapter 2 - Hidden Change',
     title: 'The Minus Sign',
+    executableExampleIds: ['z_on_plus'],
     summary:
         'A minus sign becomes meaningful when it changes the relationship between parts of a state.',
     intuition: NotebookSection(
@@ -350,6 +352,7 @@ const List<NotebookEntry> notebookEntries = [
     chapterIndex: 2,
     chapterTitle: 'Chapter 2 - Hidden Change',
     title: 'Hidden Information',
+    executableExampleIds: ['s_on_plus'],
     summary:
         'Quantum information can be stored in relationships that measurement probabilities do not directly show.',
     intuition: NotebookSection(
@@ -497,6 +500,7 @@ const List<NotebookEntry> notebookEntries = [
     chapterIndex: 3,
     chapterTitle: 'Chapter 3 - Superposition',
     title: 'Precise, Not Random',
+    executableExampleIds: ['ry_rotation'],
     summary:
         'A superposition is controllable and reversible, not random noise.',
     intuition: NotebookSection(
@@ -592,6 +596,7 @@ const List<NotebookEntry> notebookEntries = [
     chapterIndex: 3,
     chapterTitle: 'Chapter 3 - Superposition',
     title: 'What Is Superposition?',
+    executableExampleIds: ['h_superposition'],
     summary:
         'Superposition is a precise, controllable combination of possibilities inside a quantum state.',
     intuition: NotebookSection(
@@ -826,6 +831,7 @@ const List<NotebookEntry> notebookEntries = [
     chapterIndex: 4,
     chapterTitle: 'Chapter 4 - Interference',
     title: 'What Is Interference?',
+    executableExampleIds: ['interference_hzh'],
     summary:
         'Interference converts phase relationships inside a superposition into changed measurement probabilities.',
     intuition: NotebookSection(
@@ -967,6 +973,7 @@ const List<NotebookEntry> notebookEntries = [
     chapterIndex: 5,
     chapterTitle: 'Chapter 5 - Entanglement',
     title: 'Bell State',
+    executableExampleIds: ['bell_phi_plus'],
     summary:
         'A Bell state is a simple example where two qubits behave as one shared quantum state.',
     intuition: NotebookSection(

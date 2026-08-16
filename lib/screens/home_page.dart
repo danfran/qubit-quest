@@ -12,6 +12,7 @@ import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
+import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
 import 'package:quantumquiz/screens/learning_flow_widgets.dart';
 import 'package:quantumquiz/screens/webview_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -389,11 +390,35 @@ class _HomePageState extends State<HomePage> {
               level: getComposerAsLevel(
                   selectedNumQubits), // No specific level provided
               onLevelUnlocked: null,
+              sessionOwnership: ComposerSessionOwnership.sandbox,
             ),
           ),
         );
       }
     });
+  }
+
+  Future<void> _openSandbox() async {
+    final snapshot = await const SandboxPersistenceStore().loadSnapshot();
+    if (!mounted) return;
+    if (snapshot == null) {
+      _showQubitSelectionDialog();
+      return;
+    }
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) => QuantumComposer(
+          levelId: -1,
+          level: createSandboxComposerLevel(
+            snapshot.qubitCount,
+            initialBinaryState: snapshot.initialBinaryState,
+          ),
+          onLevelUnlocked: null,
+          sessionOwnership: ComposerSessionOwnership.sandbox,
+          initialSandboxSnapshot: snapshot,
+        ),
+      ),
+    );
   }
 
   Widget _buildQubitChoiceButton(BuildContext dialogContext, int numQubits) {
@@ -908,7 +933,7 @@ class _HomePageState extends State<HomePage> {
       icon: Icons.tune_rounded,
       primary: false,
       compact: compact,
-      onTap: _showQubitSelectionDialog,
+      onTap: _openSandbox,
     );
     final Widget learningMapCard = _buildActionCard(
       title: 'Learning Map',

@@ -1,4 +1,5 @@
 import 'package:quantumquiz/models/circuit_editing.dart';
+import 'package:quantumquiz/models/canonical_composer_solution.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
@@ -107,7 +108,31 @@ QuantumCircuit buildCanonicalSolutionCircuit(ComposerLevel level) {
   if (errors.isNotEmpty) throw CanonicalSolutionException(errors);
 
   final circuit = QuantumCircuit(currentLevel: level);
-  for (final step in level.canonicalSolution!.steps) {
+  applyCanonicalCircuitSteps(circuit, level.canonicalSolution!.steps);
+  circuit.runSimulation();
+  final simulationError = circuit.lastSimulationError;
+  if (simulationError != null) {
+    throw CanonicalSolutionException([simulationError.userMessage]);
+  }
+  for (final footprint in circuit.logicalGates) {
+    if (!footprint.hasValidTopology(level.numQubits)) {
+      throw CanonicalSolutionException([
+        'logical footprint ${footprint.id} is malformed',
+      ]);
+    }
+  }
+  return circuit;
+}
+
+/// Applies semantic operations through the production circuit editing APIs.
+///
+/// Callers own metadata validation. This is shared by canonical campaign
+/// construction and immutable educational handoffs.
+void applyCanonicalCircuitSteps(
+  QuantumCircuit circuit,
+  Iterable<CanonicalCircuitStep> steps,
+) {
+  for (final step in steps) {
     final gate = Gate.fromIdentifier(step.gateType, angle: step.angle);
     final column = circuit.maxCircuitDepth();
     final CircuitEditOutcome outcome;
@@ -139,17 +164,4 @@ QuantumCircuit buildCanonicalSolutionCircuit(ComposerLevel level) {
       ]);
     }
   }
-  circuit.runSimulation();
-  final simulationError = circuit.lastSimulationError;
-  if (simulationError != null) {
-    throw CanonicalSolutionException([simulationError.userMessage]);
-  }
-  for (final footprint in circuit.logicalGates) {
-    if (!footprint.hasValidTopology(level.numQubits)) {
-      throw CanonicalSolutionException([
-        'logical footprint ${footprint.id} is malformed',
-      ]);
-    }
-  }
-  return circuit;
 }

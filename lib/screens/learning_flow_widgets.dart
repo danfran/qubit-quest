@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
+import 'package:quantumquiz/models/bloch_explorer_model.dart';
+import 'package:quantumquiz/models/executable_notebook_catalog.dart';
+import 'package:quantumquiz/models/executable_notebook_example.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
+import 'package:quantumquiz/widgets/executable_notebook_example_view.dart';
+import 'package:quantumquiz/screens/bloch_explorer_screen.dart';
+import 'package:quantumquiz/screens/quantum_composer.dart';
 
 class ChapterIntroScreen extends StatelessWidget {
   const ChapterIntroScreen({
@@ -362,6 +368,39 @@ class _NotebookEntryScreenState extends State<NotebookEntryScreen> {
       .where((entry) => entry.chapterIndex == widget.entry.chapterIndex)
       .toList(growable: false);
 
+  List<ExecutableNotebookExample> get _executableExamples => [
+        for (final id in widget.entry.executableExampleIds)
+          if (executableNotebookExamplesById[id] case final example?) example,
+      ];
+
+  void _openExampleInComposer(ExecutableNotebookExample example) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) => QuantumComposer(
+          levelId: -1,
+          level: example.createEditableComposerLevel(),
+          onLevelUnlocked: null,
+          sessionOwnership: ComposerSessionOwnership.temporary,
+        ),
+      ),
+    );
+  }
+
+  void _openExampleInBloch(
+    ExecutableNotebookExample example,
+    ExecutableNotebookResult result,
+  ) {
+    final state = result.state;
+    if (example.qubitCount != 1 || state.length != 2) return;
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) => BlochExplorerScreen(
+          initialState: BlochState.fromAmplitudes(state[0], state[1]),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final previousEntry = _previousEntry;
@@ -415,6 +454,25 @@ class _NotebookEntryScreenState extends State<NotebookEntryScreen> {
             if (keyExamples.isNotEmpty) ...[
               _NotebookKeyExamples(examples: keyExamples),
               const SizedBox(height: 12),
+            ],
+            if (_executableExamples.isNotEmpty) ...[
+              const Text(
+                'Try it',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              for (final example in _executableExamples) ...[
+                ExecutableNotebookExampleView(
+                  example: example,
+                  onOpenInComposer: _openExampleInComposer,
+                  onOpenInBlochExplorer: _openExampleInBloch,
+                ),
+                const SizedBox(height: 12),
+              ],
             ],
             _NotebookSectionCard(section: widget.entry.intuition),
             if (widget.entry.whatChanged != null) ...[

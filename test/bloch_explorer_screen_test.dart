@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/bloch_explorer_model.dart';
+import 'package:quantumquiz/models/canonical_qubit_state.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/bloch_explorer_screen.dart';
 import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
@@ -12,14 +13,14 @@ import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 
 void main() {
   Future<void> pumpExplorer(WidgetTester tester,
-      {Size size = const Size(800, 900)}) async {
+      {Size size = const Size(800, 900), BlochState? initialState}) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(
-      const MaterialApp(home: BlochExplorerScreen()),
-    );
+    await tester.pumpWidget(MaterialApp(
+      home: BlochExplorerScreen(initialState: initialState),
+    ));
   }
 
   BlochState paintedState(WidgetTester tester) => (tester
@@ -61,6 +62,8 @@ void main() {
         tester.getRect(find.byKey(const ValueKey('bloch-sphere-helper')));
     final gates =
         tester.getRect(find.byKey(const ValueKey('bloch-gate-strip')));
+    final presets =
+        tester.getRect(find.byKey(const ValueKey('bloch-presets-menu')));
     final playback =
         tester.getRect(find.byKey(const ValueKey('bloch-transport-controls')));
     final history =
@@ -99,7 +102,7 @@ void main() {
     expect((sphereCanvas.center.dx - expectedCentre.dx).abs(), lessThan(1));
     expect((sphereCanvas.center.dy - expectedCentre.dy).abs(), lessThan(1));
     expect(probabilities.width, greaterThan(probabilities.height));
-    for (final control in [gates, playback, history, maths]) {
+    for (final control in [presets, gates, playback, history, maths]) {
       expect(control.left, greaterThanOrEqualTo(right.left));
       expect(control.right, lessThanOrEqualTo(right.right));
       expect(control.left, greaterThan(sphere.right));
@@ -266,6 +269,81 @@ void main() {
     final rx = tester.widget<QubitQuestGateTile>(
         find.byKey(const ValueKey('bloch-gate-rx')));
     expect(rx.gate.label, contains('1/2π'));
+  });
+
+  testWidgets('preset selection establishes a new Start and clears history',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(430, 1000));
+    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
+    await tester.pump();
+    expect(find.text('1 operation'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('bloch-presets-menu')));
+    await tester.pumpAndSettle();
+    for (final preset in CanonicalQubitState.values) {
+      expect(
+          find.byKey(ValueKey('bloch-preset-${preset.name}')), findsOneWidget);
+    }
+    await tester.tap(find.byKey(const ValueKey('bloch-preset-plus')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('0 operations'), findsOneWidget);
+    expect(find.textContaining('Start: |+⟩'), findsOneWidget);
+    expect(paintedState(tester).x, closeTo(1, 1e-9));
+    expect(paintedState(tester).y, closeTo(0, 1e-9));
+    expect(paintedState(tester).z, closeTo(0, 1e-9));
+    final replay = tester.widget<TextButton>(find.descendant(
+      of: find.byKey(const ValueKey('bloch-replay')),
+      matching: find.byType(TextButton),
+    ));
+    expect(replay.onPressed, isNull);
+  });
+
+  testWidgets('Replay and Reset use the selected preset as initial state',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(430, 1000));
+    await tester.tap(find.byKey(const ValueKey('bloch-presets-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('bloch-preset-plusI')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-z')));
+    await tester.pump();
+    expect(find.text('1 operation'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('bloch-replay')));
+    await tester.pump();
+    expect(paintedState(tester).y, closeTo(1, 1e-9));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('bloch-reset')));
+    await tester.pump();
+    expect(paintedState(tester).y, closeTo(1, 1e-9));
+    expect(find.text('0 operations'), findsOneWidget);
+  });
+
+  testWidgets('default and arbitrary handoff starts remain exact',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(430, 1000));
+    expect(find.textContaining('Start: |0⟩'), findsOneWidget);
+    expect(paintedState(tester).z, closeTo(1, 1e-12));
+
+    final custom = BlochState.fromAngles(theta: 1.123, phi: -.731);
+    await tester.pumpWidget(MaterialApp(
+      home: BlochExplorerScreen(key: UniqueKey(), initialState: custom),
+    ));
+    await tester.pump();
+    expect(find.textContaining('Start: custom state'), findsOneWidget);
+    expect(paintedState(tester).theta, closeTo(custom.theta, 1e-12));
+    expect(paintedState(tester).phi, closeTo(custom.phi, 1e-12));
+    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-reset')));
+    await tester.pump();
+    expect(paintedState(tester).x, closeTo(custom.x, 1e-12));
+    expect(paintedState(tester).y, closeTo(custom.y, 1e-12));
+    expect(paintedState(tester).z, closeTo(custom.z, 1e-12));
   });
 
   testWidgets('history entries are collapsed and expand on demand',

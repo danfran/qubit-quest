@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:advance_math/advance_math.dart';
 import 'package:flutter/foundation.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 
@@ -37,6 +38,33 @@ class BlochState {
       theta: math.acos(nz.clamp(-1.0, 1.0)),
       phi: math.atan2(ny, nx),
       globalPhase: globalPhase,
+    );
+  }
+
+  factory BlochState.fromAmplitudes(Complex alpha, Complex beta) {
+    final alphaMagnitude = math.sqrt(
+      alpha.real * alpha.real + alpha.imaginary * alpha.imaginary,
+    );
+    final betaMagnitude = math.sqrt(
+      beta.real * beta.real + beta.imaginary * beta.imaginary,
+    );
+    final norm = math.sqrt(
+      alphaMagnitude * alphaMagnitude + betaMagnitude * betaMagnitude,
+    );
+    if (!norm.isFinite || norm < 1e-12) {
+      throw ArgumentError('Single-qubit amplitudes must be normalized.');
+    }
+    final normalizedAlpha = alphaMagnitude / norm;
+    final normalizedBeta = betaMagnitude / norm;
+    final alphaPhase =
+        alphaMagnitude < 1e-12 ? 0.0 : math.atan2(alpha.imaginary, alpha.real);
+    final betaPhase = betaMagnitude < 1e-12
+        ? alphaPhase
+        : math.atan2(beta.imaginary, beta.real);
+    return BlochState.fromAngles(
+      theta: 2 * math.atan2(normalizedBeta, normalizedAlpha),
+      phi: betaPhase - alphaPhase,
+      globalPhase: alphaPhase,
     );
   }
 
@@ -214,16 +242,19 @@ class BlochReplayTransition {
 
 class BlochExplorerHistory extends ChangeNotifier {
   BlochExplorerHistory({BlochState? initial})
-      : _entries = [
+      : _initialState = initial ?? BlochState.zero,
+        _entries = [
           BlochHistoryEntry(label: 'Initial', state: initial ?? BlochState.zero)
         ];
 
+  BlochState _initialState;
   final List<BlochHistoryEntry> _entries;
   int _index = 0;
 
   List<BlochHistoryEntry> get entries => List.unmodifiable(_entries);
   int get index => _index;
   int get operationCount => _index;
+  BlochState get initialState => _initialState;
   BlochState get state => _entries[_index].state;
   bool get canUndo => _index > 0;
   bool get canRedo => _index + 1 < _entries.length;
@@ -261,10 +292,11 @@ class BlochExplorerHistory extends ChangeNotifier {
     notifyListeners();
   }
 
-  void reset() {
+  void reset({BlochState? initial}) {
+    if (initial != null) _initialState = initial;
     _entries
       ..clear()
-      ..add(BlochHistoryEntry(label: 'Initial', state: BlochState.zero));
+      ..add(BlochHistoryEntry(label: 'Initial', state: _initialState));
     _index = 0;
     notifyListeners();
   }

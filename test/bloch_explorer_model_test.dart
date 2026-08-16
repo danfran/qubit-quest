@@ -2,9 +2,56 @@ import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/bloch_explorer_model.dart';
+import 'package:quantumquiz/models/canonical_qubit_state.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 
 void main() {
+  test('canonical presets expose exact amplitudes and Bloch positions', () {
+    const expected = {
+      CanonicalQubitState.zero: (0.0, 0.0, 1.0, 0.0, 0.0),
+      CanonicalQubitState.one: (0.0, 0.0, -1.0, math.pi, 0.0),
+      CanonicalQubitState.plus: (1.0, 0.0, 0.0, math.pi / 2, 0.0),
+      CanonicalQubitState.minus: (-1.0, 0.0, 0.0, math.pi / 2, math.pi),
+      CanonicalQubitState.plusI: (0.0, 1.0, 0.0, math.pi / 2, math.pi / 2),
+      CanonicalQubitState.minusI: (0.0, -1.0, 0.0, math.pi / 2, -math.pi / 2),
+    };
+    const expectedAmplitudes = {
+      CanonicalQubitState.zero: (1.0, 0.0, 0.0, 0.0),
+      CanonicalQubitState.one: (0.0, 0.0, 1.0, 0.0),
+      CanonicalQubitState.plus: (math.sqrt1_2, 0.0, math.sqrt1_2, 0.0),
+      CanonicalQubitState.minus: (math.sqrt1_2, 0.0, -math.sqrt1_2, 0.0),
+      CanonicalQubitState.plusI: (math.sqrt1_2, 0.0, 0.0, math.sqrt1_2),
+      CanonicalQubitState.minusI: (math.sqrt1_2, 0.0, 0.0, -math.sqrt1_2),
+    };
+    for (final preset in CanonicalQubitState.values) {
+      final amplitudes = preset.amplitudes;
+      final state = preset.blochState;
+      final position = expected[preset]!;
+      final expectedPair = expectedAmplitudes[preset]!;
+      final norm = amplitudes.fold<double>(
+        0,
+        (sum, amplitude) => sum + amplitude.magnitude * amplitude.magnitude,
+      );
+      expect(norm, closeTo(1, 1e-12), reason: preset.label);
+      expect(amplitudes[0].real, closeTo(expectedPair.$1, 1e-12));
+      expect(amplitudes[0].imaginary, closeTo(expectedPair.$2, 1e-12));
+      expect(amplitudes[1].real, closeTo(expectedPair.$3, 1e-12));
+      expect(amplitudes[1].imaginary, closeTo(expectedPair.$4, 1e-12));
+      expect(state.x, closeTo(position.$1, 1e-12), reason: preset.label);
+      expect(state.y, closeTo(position.$2, 1e-12), reason: preset.label);
+      expect(state.z, closeTo(position.$3, 1e-12), reason: preset.label);
+      expect(state.theta, closeTo(position.$4, 1e-12), reason: preset.label);
+      expect(_angleDistance(state.phi, position.$5), lessThan(1e-12),
+          reason: preset.label);
+      expect(state.probabilityZero,
+          closeTo(amplitudes[0].magnitude * amplitudes[0].magnitude, 1e-12));
+      expect(state.probabilityOne,
+          closeTo(amplitudes[1].magnitude * amplitudes[1].magnitude, 1e-12));
+      expect(CanonicalQubitState.matching(state), preset);
+      expect(CanonicalQubitState.matching(state.withGlobalPhase(.73)), preset);
+    }
+  });
+
   test('Cartesian construction remains normalized on sphere', () {
     final state = BlochState.fromCartesian(4, -2, 7);
     expect(state.x * state.x + state.y * state.y + state.z * state.z,
@@ -86,6 +133,20 @@ void main() {
     expect(history.entries, hasLength(1));
     expect(history.operationCount, 0);
     expect(history.state.z, closeTo(1, 1e-12));
+  });
+
+  test('history reset preserves or replaces its authored initial state', () {
+    final custom = BlochState.fromAngles(theta: 1.1, phi: .7);
+    final plus = CanonicalQubitState.plus.blochState;
+    final history = BlochExplorerHistory(initial: custom)
+      ..commit('X', custom.applyGate(SelectedGateType.x));
+    history.reset();
+    expect(history.state.x, closeTo(custom.x, 1e-12));
+    expect(history.operationCount, 0);
+    history.reset(initial: plus);
+    expect(history.initialState.x, closeTo(1, 1e-12));
+    expect(history.entries, hasLength(1));
+    expect(history.operationCount, 0);
   });
 
   test('history gate metadata preserves type and configured angle', () {
@@ -182,3 +243,6 @@ void main() {
     expect(history.replaySequenceFrom(history.index + 1), isEmpty);
   });
 }
+
+double _angleDistance(double first, double second) =>
+    math.atan2(math.sin(first - second), math.cos(first - second)).abs();

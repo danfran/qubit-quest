@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/bloch_explorer_model.dart';
+import 'package:quantumquiz/models/canonical_qubit_state.dart';
 import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
@@ -14,7 +15,9 @@ import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 
 class BlochExplorerScreen extends StatefulWidget {
-  const BlochExplorerScreen({super.key});
+  const BlochExplorerScreen({super.key, this.initialState});
+
+  final BlochState? initialState;
 
   @override
   State<BlochExplorerScreen> createState() => _BlochExplorerScreenState();
@@ -96,7 +99,9 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
   @override
   void initState() {
     super.initState();
-    _history = BlochExplorerHistory()..addListener(_historyChanged);
+    _displayState = widget.initialState ?? BlochState.zero;
+    _history = BlochExplorerHistory(initial: _displayState)
+      ..addListener(_historyChanged);
     _historyScrollController = ScrollController();
     _animation = AnimationController(
       vsync: this,
@@ -250,6 +255,15 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
     _selectedReplayStartIndex = null;
     _selectedReplayStartEntry = null;
     _history.reset();
+  }
+
+  void _selectPreset(CanonicalQubitState preset) {
+    _cancelReplay(restoreCommittedState: false);
+    _animation.stop();
+    _selectedReplayStartIndex = null;
+    _selectedReplayStartEntry = null;
+    _activeReplayEntryIndex = null;
+    _history.reset(initial: preset.blochState);
   }
 
   void _selectReplayStart(int index) {
@@ -506,6 +520,8 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
         padding: const EdgeInsets.symmetric(horizontal: 2),
         child:
             Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _buildPresetSelector(),
+          const SizedBox(height: 5),
           Wrap(spacing: 14, runSpacing: 6, children: [
             _gateGroup('Pauli', const [
               SelectedGateType.x,
@@ -563,6 +579,50 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
           }),
         ]),
       );
+
+  Widget _buildPresetSelector() {
+    final preset = CanonicalQubitState.matching(_history.initialState);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: PopupMenuButton<CanonicalQubitState>(
+        key: const ValueKey('bloch-presets-menu'),
+        tooltip: 'Choose initial-state preset',
+        enabled: !_isReplaying,
+        onSelected: _selectPreset,
+        itemBuilder: (context) => [
+          for (final state in CanonicalQubitState.values)
+            PopupMenuItem(
+              key: ValueKey('bloch-preset-${state.name}'),
+              value: state,
+              child: Text(state.label),
+            ),
+        ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: BoxDecoration(
+            color: QubitQuestDialog.innerColor,
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(color: QubitQuestDialog.borderSoftColor),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.explore_outlined, size: 16),
+              const SizedBox(width: 5),
+              Text(
+                'Start: ${preset?.label ?? 'custom state'}',
+                key: const ValueKey('bloch-start-state-label'),
+                style:
+                    const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(width: 3),
+              const Icon(Icons.arrow_drop_down_rounded, size: 17),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _gateGroup(String label, List<SelectedGateType> types) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,

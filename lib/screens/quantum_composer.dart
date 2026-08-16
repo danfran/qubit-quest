@@ -12,6 +12,7 @@ import 'package:quantumquiz/models/logical_gate_footprint.dart';
 import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
+import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
 import 'package:quantumquiz/screens/learning_flow_widgets.dart';
 import 'package:quantumquiz/screens/operator_matrix_dialog.dart';
 import 'package:quantumquiz/screens/rotation_gate_dialog.dart';
@@ -81,6 +82,12 @@ class QuantumComposerController {
   void _detach() => _insert = null;
 }
 
+enum ComposerSessionOwnership {
+  campaign,
+  sandbox,
+  temporary,
+}
+
 @visibleForTesting
 bool requiresRotationAngleSelection(Gate gate) {
   return gate.requiresAngle && gate.angle == null;
@@ -92,6 +99,9 @@ class QuantumComposer extends StatefulWidget {
   final Function(int unlockedLevel)? onLevelUnlocked;
   final bool isCompleted;
   final QuantumComposerController? controller;
+  final ComposerSessionOwnership sessionOwnership;
+  final SandboxCircuitSnapshot? initialSandboxSnapshot;
+  final SandboxPersistenceStore sandboxPersistenceStore;
 
   const QuantumComposer({
     super.key,
@@ -100,6 +110,9 @@ class QuantumComposer extends StatefulWidget {
     required this.onLevelUnlocked,
     this.isCompleted = false,
     this.controller,
+    this.sessionOwnership = ComposerSessionOwnership.campaign,
+    this.initialSandboxSnapshot,
+    this.sandboxPersistenceStore = const SandboxPersistenceStore(),
   });
 
   @override
@@ -107,7 +120,7 @@ class QuantumComposer extends StatefulWidget {
 }
 
 class _QuantumComposerState extends State<QuantumComposer>
-    with SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   // Qubit Quest composer visual system tokens. Use these exact colours for composer surfaces.
   static const Color qqBlack = Color(0xFF00030A);
   static const Color qqCard = Color(0xFF111827);
@@ -179,10 +192,12 @@ class _QuantumComposerState extends State<QuantumComposer>
   AdaptiveLearningInsight? _adaptiveInsight;
   bool _adaptiveInsightDismissed = false;
   Timer? _adaptiveInsightAutoDismissTimer;
+  Future<void> _sandboxSaveQueue = Future<void>.value();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _isCompleted = widget.isCompleted;
     _adaptiveLearningSession = AdaptiveLearningSession(
       level: widget.level,
@@ -219,13 +234,17 @@ class _QuantumComposerState extends State<QuantumComposer>
     _hints = widget.level.hints ?? [];
     _currentHintIndex = -1;
 
-    _numQubits = widget.level.numQubits;
-    _taskDescription = widget.level.taskDescription;
-    _initialState = widget.level.initialQubitsState;
-    _availableGates = widget.level.availableGates;
-    _solutionVector = widget.level.solutionFinalVector;
-    _circuit = QuantumCircuit(currentLevel: widget.level);
+    _circuit = _createInitialCircuit();
+    final activeLevel = _circuit.currentLevel;
+    _numQubits = activeLevel.numQubits;
+    _taskDescription = activeLevel.taskDescription;
+    _initialState = activeLevel.initialQubitsState;
+    _availableGates = activeLevel.availableGates;
+    _solutionVector = activeLevel.solutionFinalVector;
     widget.controller?._attach(_insertGateFromController);
+    if (_ownsSandboxWorkspace) {
+      unawaited(_scheduleSandboxPersistence());
+    }
 
     debugPrint('Task: $_taskDescription');
     debugPrint('Number of qubits: $_numQubits');
@@ -236,6 +255,10 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   @override
   void dispose() {
+    if (_ownsSandboxWorkspace) {
+      unawaited(_scheduleSandboxPersistence());
+    }
+    WidgetsBinding.instance.removeObserver(this);
     widget.controller?._detach();
     _adaptiveInsightAutoDismissTimer?.cancel();
     _gatesScrollController.removeListener(_updateScrollButtonStates);
@@ -245,6 +268,50 @@ class _QuantumComposerState extends State<QuantumComposer>
       ..dispose();
     _notebookPulseController.dispose();
     super.dispose();
+  }
+
+  bool get _ownsSandboxWorkspace =>
+      widget.sessionOwnership == ComposerSessionOwnership.sandbox;
+
+  QuantumCircuit _createInitialCircuit() {
+    if (!_ownsSandboxWorkspace || widget.initialSandboxSnapshot == null) {
+      return QuantumCircuit(currentLevel: widget.level);
+    }
+    try {
+      return widget.initialSandboxSnapshot!.restoreCircuit();
+    } catch (error) {
+      assert(() {
+        debugPrint('Unable to restore Sandbox circuit: $error');
+        return true;
+      }());
+      return QuantumCircuit(currentLevel: widget.level);
+    }
+  }
+
+  Future<void> _scheduleSandboxPersistence() {
+    if (!_ownsSandboxWorkspace) return Future<void>.value();
+    final snapshot = SandboxCircuitSnapshot.capture(_circuit);
+    _sandboxSaveQueue = _sandboxSaveQueue.then((_) async {
+      try {
+        await widget.sandboxPersistenceStore.saveSnapshot(snapshot);
+      } catch (error) {
+        assert(() {
+          debugPrint('Unable to persist Sandbox circuit: $error');
+          return true;
+        }());
+      }
+    });
+    return _sandboxSaveQueue;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_ownsSandboxWorkspace &&
+        (state == AppLifecycleState.inactive ||
+            state == AppLifecycleState.paused ||
+            state == AppLifecycleState.detached)) {
+      unawaited(_scheduleSandboxPersistence());
+    }
   }
 
   @override
@@ -755,6 +822,9 @@ class _QuantumComposerState extends State<QuantumComposer>
       _selectedGateId = selectionAfter;
     }
     _runSimulation();
+    if (_ownsSandboxWorkspace) {
+      unawaited(_scheduleSandboxPersistence());
+    }
     if (mounted) setState(_validateSelection);
   }
 
@@ -2084,6 +2154,7 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   Widget _buildMenuHeaderAction({required bool compact}) {
     final menuButton = PopupMenuButton<String>(
+      key: const ValueKey('composer-menu'),
       tooltip: 'Menu',
       color: qqCard,
       offset: const Offset(0, 10),
@@ -2100,6 +2171,7 @@ class _QuantumComposerState extends State<QuantumComposer>
           ),
         ),
         const PopupMenuItem(
+          key: ValueKey('clear-circuit'),
           value: 'clear',
           child: ListTile(
             leading: Icon(Icons.cleaning_services, color: Colors.white),
