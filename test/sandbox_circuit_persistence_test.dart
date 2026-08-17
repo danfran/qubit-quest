@@ -7,10 +7,19 @@ import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
+import 'package:quantumquiz/screens/bloch_explorer_screen.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+class _FailingSandboxPersistenceStore extends SandboxPersistenceStore {
+  const _FailingSandboxPersistenceStore();
+
+  @override
+  Future<void> saveSnapshot(SandboxCircuitSnapshot snapshot) =>
+      Future<void>.error(StateError('storage unavailable'));
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -70,12 +79,37 @@ void main() {
       expect(decoded.restoreCircuit().logicalGates, isEmpty);
     });
 
-    test('single and multiple gates round trip', () {
+    test('X and H each round trip independently', () {
+      for (final type in [
+        SelectedGateType.x,
+        SelectedGateType.hadamard,
+      ]) {
+        final value = circuit(1);
+        insertSingle(value, type, 0, 0);
+        expectEquivalent(
+          value,
+          SandboxCircuitSnapshot.decode(
+            SandboxCircuitSnapshot.capture(value).encode(),
+          ).restoreCircuit(),
+        );
+      }
+    });
+
+    test('mixed single-qubit gates round trip', () {
       final value = circuit(2);
-      insertSingle(value, SelectedGateType.hadamard, 0, 0);
-      insertSingle(value, SelectedGateType.x, 1, 1);
+      const types = [
+        SelectedGateType.x,
+        SelectedGateType.y,
+        SelectedGateType.z,
+        SelectedGateType.hadamard,
+        SelectedGateType.s,
+        SelectedGateType.t,
+      ];
+      for (final (column, type) in types.indexed) {
+        insertSingle(value, type, column, column % 2);
+      }
       final snapshot = SandboxCircuitSnapshot.capture(value);
-      expect(snapshot.operations, hasLength(2));
+      expect(snapshot.operations, hasLength(types.length));
       expectEquivalent(
           value,
           SandboxCircuitSnapshot.decode(
@@ -85,7 +119,7 @@ void main() {
 
     test('Rx Ry Rz preserve finite configured angles', () {
       final value = circuit(1);
-      insertSingle(value, SelectedGateType.rx, 0, 0, angle: math.pi / 4);
+      insertSingle(value, SelectedGateType.rx, 0, 0, angle: math.pi / 7);
       insertSingle(value, SelectedGateType.ry, 1, 0, angle: -math.pi / 3);
       insertSingle(value, SelectedGateType.rz, 2, 0, angle: math.pi * 1.5);
       expectEquivalent(
@@ -147,6 +181,79 @@ void main() {
       expectEquivalent(
           value, SandboxCircuitSnapshot.capture(value).restoreCircuit());
     });
+
+    test('restored gates remain fully editable through production APIs', () {
+      final source = circuit(3);
+      insertSingle(source, SelectedGateType.rx, 0, 0, angle: math.pi / 7);
+      insertSingle(source, SelectedGateType.hadamard, 1, 1);
+      expect(
+        source
+            .insertDoubleGateWithOutcome(
+              Gate.fromIdentifier(SelectedGateType.cnot),
+              2,
+              2,
+              0,
+            )
+            .changed,
+        isTrue,
+      );
+
+      final restored = SandboxCircuitSnapshot.capture(source).restoreCircuit();
+      final rx = restored.logicalGates
+          .singleWhere((gate) => gate.type == SelectedGateType.rx);
+      final hadamard = restored.logicalGates
+          .singleWhere((gate) => gate.type == SelectedGateType.hadamard);
+      final cnot = restored.logicalGates
+          .singleWhere((gate) => gate.type == SelectedGateType.cnot);
+
+      expect(
+        restored
+            .moveSingleGateWithOutcome(
+              rx.id,
+              const CircuitLocation(qubit: 2, column: 2),
+            )
+            .changed,
+        isTrue,
+      );
+      expect(
+        restored
+            .updateGateParametersWithOutcome(rx.id, angle: -math.pi / 5)
+            .changed,
+        isTrue,
+      );
+      expect(restored.duplicateLogicalGateWithOutcome(cnot.id).changed, isTrue);
+      expect(
+        restored
+            .replaceSingleGateWithOutcome(
+              hadamard.id,
+              Gate.fromIdentifier(SelectedGateType.z),
+            )
+            .changed,
+        isTrue,
+      );
+      expect(restored.removeLogicalGateByIdWithOutcome(hadamard.id).changed,
+          isTrue);
+      expect(
+        restored
+            .insertSingleGateWithOutcome(
+              Gate.fromIdentifier(SelectedGateType.s),
+              restored.maxCircuitDepth(),
+              1,
+            )
+            .changed,
+        isTrue,
+      );
+      restored.runSimulation();
+      expect(restored.lastSimulationError, isNull);
+      expect(
+        restored.logicalGates.every(
+          (gate) => gate.hasValidTopology(restored.currentLevel.numQubits),
+        ),
+        isTrue,
+      );
+      final ids = restored.logicalGates.map((gate) => gate.id).toList();
+      expect(ids.toSet(), hasLength(ids.length));
+    });
   });
 
   group('Sandbox corruption handling', () {
@@ -170,6 +277,20 @@ void main() {
       );
     });
 
+    test('missing fields and invalid qubit counts are discarded', () async {
+      await expectDiscarded(
+        '{"schemaVersion":1,"qubitCount":1,"initialState":"0"}',
+      );
+      await expectDiscarded(
+        '{"schemaVersion":1,"qubitCount":0,"initialState":"",'
+        '"operations":[]}',
+      );
+      await expectDiscarded(
+        '{"schemaVersion":1,"qubitCount":6,"initialState":"000000",'
+        '"operations":[]}',
+      );
+    });
+
     test('unknown gate and out-of-range qubit are discarded', () async {
       await expectDiscarded(
         '{"schemaVersion":1,"qubitCount":1,"initialState":"0",'
@@ -178,6 +299,11 @@ void main() {
       await expectDiscarded(
         '{"schemaVersion":1,"qubitCount":1,"initialState":"0",'
         '"operations":[{"gateType":"x","column":0,"targetQubit":2}]}',
+      );
+      await expectDiscarded(
+        '{"schemaVersion":1,"qubitCount":2,"initialState":"00",'
+        '"operations":[{"gateType":"cnot","column":0,"targetQubit":0,'
+        '"controlQubit":2}]}',
       );
     });
 
@@ -232,6 +358,7 @@ void main() {
       QuantumComposerController? controller,
       ComposerLevel? level,
       int? levelId,
+      SandboxPersistenceStore store = const SandboxPersistenceStore(),
     }) async {
       tester.view.physicalSize = const Size(1200, 800);
       tester.view.devicePixelRatio = 1;
@@ -247,6 +374,7 @@ void main() {
             onLevelUnlocked: null,
             sessionOwnership: ownership,
             initialSandboxSnapshot: snapshot,
+            sandboxPersistenceStore: store,
             controller: controller,
           ),
         ),
@@ -378,6 +506,46 @@ void main() {
         );
         await tester.pumpAndSettle();
       }
+      expect((await store.loadSnapshot())!.encode(), before);
+    });
+
+    testWidgets('save failure does not make the Sandbox unusable',
+        (tester) async {
+      final controller = QuantumComposerController();
+      final value = await pumpComposer(
+        tester,
+        ownership: ComposerSessionOwnership.sandbox,
+        controller: controller,
+        store: const _FailingSandboxPersistenceStore(),
+      );
+      expect(
+        controller
+            .insertGate(
+              gate: Gate.fromIdentifier(SelectedGateType.x),
+              location: const CircuitLocation(column: 0, qubit: 0),
+            )
+            .changed,
+        isTrue,
+      );
+      await tester.pumpAndSettle();
+      expect(value.logicalGates.single.type, SelectedGateType.x);
+      expect(value.lastSimulationError, isNull);
+    });
+
+    testWidgets('Bloch Explorer interaction leaves Sandbox storage unchanged',
+        (tester) async {
+      final saved = circuit(2);
+      insertSingle(saved, SelectedGateType.s, 0, 1);
+      const store = SandboxPersistenceStore();
+      await store.saveCircuit(saved);
+      final before = (await store.loadSnapshot())!.encode();
+
+      await tester.pumpWidget(const MaterialApp(home: BlochExplorerScreen()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
+      await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
+      await tester.pumpAndSettle();
+
       expect((await store.loadSnapshot())!.encode(), before);
     });
   });

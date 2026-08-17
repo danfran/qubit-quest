@@ -5,6 +5,7 @@ import 'package:quantumquiz/models/executable_notebook_catalog.dart';
 import 'package:quantumquiz/models/executable_notebook_example.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
+import 'package:quantumquiz/models/notebook_search.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
@@ -199,11 +200,29 @@ class DiscoveriesScreen extends StatefulWidget {
 class _DiscoveriesScreenState extends State<DiscoveriesScreen> {
   Set<String> _unlocked = const {};
   bool _loading = true;
+  bool _searching = false;
+  String _searchQuery = '';
+  late final TextEditingController _searchController;
+  late final FocusNode _searchFocusNode;
+  late final NotebookSearchIndex _searchIndex;
 
   @override
   void initState() {
     super.initState();
+    _searchController = TextEditingController();
+    _searchFocusNode = FocusNode();
+    _searchIndex = NotebookSearchIndex.build(
+      entries: notebookEntries,
+      executableExamples: executableNotebookExamples,
+    );
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -217,53 +236,131 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final normalizedQuery = normalizeNotebookSearchText(_searchQuery);
+    final results = normalizedQuery.isEmpty
+        ? const <NotebookSearchResult>[]
+        : _searchIndex.search(
+            _searchQuery,
+            allowedEntryIds: {
+              for (final entry in notebookEntries)
+                if (_unlocked.contains(entry.discoveryTitle)) entry.id,
+            },
+          );
     return Scaffold(
       backgroundColor: const Color(0xFF00030A),
       appBar: AppBar(
         backgroundColor: const Color(0xFF00030A),
         surfaceTintColor: Colors.transparent,
         foregroundColor: Colors.white,
-        title: const Text(
-          'Quantum Notebook',
-          style: TextStyle(fontWeight: FontWeight.w900),
-        ),
+        title: _searching
+            ? TextField(
+                key: const ValueKey('notebook-search-field'),
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                autofocus: true,
+                textInputAction: TextInputAction.search,
+                style: const TextStyle(color: Colors.white, fontSize: 17),
+                decoration: const InputDecoration(
+                  hintText: 'Search Notebook',
+                  hintStyle: TextStyle(color: QubitQuestDialog.mutedText),
+                  border: InputBorder.none,
+                ),
+                onChanged: (value) => setState(() => _searchQuery = value),
+              )
+            : const Text(
+                'Quantum Notebook',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+        actions: [
+          if (!_searching)
+            IconButton(
+              key: const ValueKey('open-notebook-search'),
+              tooltip: 'Search Notebook',
+              onPressed: () {
+                setState(() => _searching = true);
+                WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => _searchFocusNode.requestFocus(),
+                );
+              },
+              icon: const Icon(Icons.search_rounded),
+            )
+          else ...[
+            if (_searchQuery.isNotEmpty)
+              IconButton(
+                key: const ValueKey('clear-notebook-search'),
+                tooltip: 'Clear search',
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() => _searchQuery = '');
+                  _searchFocusNode.requestFocus();
+                },
+                icon: const Icon(Icons.clear_rounded),
+              ),
+            IconButton(
+              key: const ValueKey('close-notebook-search'),
+              tooltip: 'Close search',
+              onPressed: () {
+                _searchController.clear();
+                _searchFocusNode.unfocus();
+                setState(() {
+                  _searching = false;
+                  _searchQuery = '';
+                });
+              },
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ],
+        ],
       ),
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
-            : ListView(
-                padding: const EdgeInsets.all(18),
-                children: [
-                  for (final chapter in _notebookChapters()) ...[
-                    _NotebookChapterHeader(
-                      title: chapter.title,
-                      identity: chapter.identity,
-                      unlockedCount: chapter.entries
-                          .where((entry) =>
-                              _unlocked.contains(entry.discoveryTitle))
-                          .length,
-                      totalCount: chapter.entries.length,
-                    ),
-                    const SizedBox(height: 10),
-                    for (final entry in chapter.entries) ...[
-                      _NotebookEntryTile(
-                        entry: entry,
-                        unlocked: _unlocked.contains(entry.discoveryTitle),
-                        onTap: () {
-                          Navigator.of(context).push<void>(
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  NotebookEntryScreen(entry: entry),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 10),
+            : normalizedQuery.isNotEmpty
+                ? _NotebookSearchResults(
+                    query: _searchQuery,
+                    results: results,
+                    onOpen: (entry) {
+                      Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              NotebookEntryScreen(entry: entry),
+                        ),
+                      );
+                    },
+                  )
+                : ListView(
+                    padding: const EdgeInsets.all(18),
+                    children: [
+                      for (final chapter in _notebookChapters()) ...[
+                        _NotebookChapterHeader(
+                          title: chapter.title,
+                          identity: chapter.identity,
+                          unlockedCount: chapter.entries
+                              .where((entry) =>
+                                  _unlocked.contains(entry.discoveryTitle))
+                              .length,
+                          totalCount: chapter.entries.length,
+                        ),
+                        const SizedBox(height: 10),
+                        for (final entry in chapter.entries) ...[
+                          _NotebookEntryTile(
+                            entry: entry,
+                            unlocked: _unlocked.contains(entry.discoveryTitle),
+                            onTap: () {
+                              Navigator.of(context).push<void>(
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      NotebookEntryScreen(entry: entry),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                        const SizedBox(height: 12),
+                      ],
                     ],
-                    const SizedBox(height: 12),
-                  ],
-                ],
-              ),
+                  ),
       ),
     );
   }
@@ -287,6 +384,127 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> {
         (a, b) => a.entries.first.chapterIndex
             .compareTo(b.entries.first.chapterIndex),
       );
+  }
+}
+
+class _NotebookSearchResults extends StatelessWidget {
+  const _NotebookSearchResults({
+    required this.query,
+    required this.results,
+    required this.onOpen,
+  });
+
+  final String query;
+  final List<NotebookSearchResult> results;
+  final ValueChanged<NotebookEntry> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    if (results.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Text(
+            'No Notebook entries found for “${query.trim()}”.',
+            key: const ValueKey('notebook-search-empty'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: QubitQuestDialog.mutedText,
+              fontSize: 15,
+              height: 1.4,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      );
+    }
+    return ListView.separated(
+      key: const ValueKey('notebook-search-results'),
+      padding: const EdgeInsets.all(18),
+      itemCount: results.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final result = results[index];
+        return Semantics(
+          button: true,
+          label: 'Open ${result.entry.title}',
+          child: InkWell(
+            key: ValueKey('notebook-search-result-${result.entry.id}'),
+            onTap: () => onOpen(result.entry),
+            borderRadius: BorderRadius.circular(12),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: QubitQuestDialog.cardColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: QubitQuestDialog.cyan.withValues(alpha: 0.38),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 13,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.menu_book_outlined,
+                        color: QubitQuestDialog.cyan,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            result.entry.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            result.entry.chapterTitle,
+                            style: const TextStyle(
+                              color: QubitQuestDialog.cyan,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 7),
+                          Text(
+                            result.snippet,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFFD6E3F8),
+                              fontSize: 13,
+                              height: 1.3,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: QubitQuestDialog.mutedText,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
