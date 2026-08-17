@@ -393,6 +393,12 @@ class QuantumCircuit extends ChangeNotifier {
         rowDelta,
       );
     }
+    if (_compactDetachedRows(compacted) == null) {
+      return rejected(
+        CircuitEditStatus.invalid,
+        'Moved logical footprint could not be compacted safely.',
+      );
+    }
     _trimDetachedRows(compacted);
     if (!_isValidLogicalGrid(
       compacted,
@@ -406,12 +412,28 @@ class QuantumCircuit extends ChangeNotifier {
       );
     }
 
+    final movedFragments = _detachedLogicalFragments(compacted)[id]!;
+    final movedAnchor = movedFragments.firstWhere(
+      (fragment) => fragment.$2.isTarget,
+      orElse: () => movedFragments.first,
+    );
+    final canonicalLocation = CircuitLocation(
+      qubit: movedAnchor.$1,
+      column: movedAnchor.$3,
+    );
+    if (_sameGridIdentity(baseRows, compacted)) {
+      return rejected(
+        CircuitEditStatus.same,
+        'Canonical compaction resolves to the original circuit.',
+      );
+    }
+
     return LogicalMovePlan(
       status: CircuitEditStatus.changed,
       sourceId: id,
       baseRows: baseRows,
       proposedRows: compacted,
-      resultingLocation: resultingLocation,
+      resultingLocation: canonicalLocation,
     );
   }
 

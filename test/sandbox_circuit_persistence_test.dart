@@ -348,6 +348,94 @@ void main() {
     });
   });
 
+  group('moved circuit persistence regression', () {
+    setUp(() => SharedPreferences.setMockInitialValues({}));
+
+    test('single-gate move saves and restores the compact non-empty circuit',
+        () async {
+      final value = circuit(2);
+      insertSingle(value, SelectedGateType.hadamard, 0, 0);
+      insertSingle(value, SelectedGateType.x, 1, 0);
+      insertSingle(value, SelectedGateType.z, 2, 0);
+      final z = value.logicalGates
+          .singleWhere((gate) => gate.type == SelectedGateType.z);
+      expect(
+        value
+            .moveSingleGateWithOutcome(
+              z.id,
+              const CircuitLocation(qubit: 1, column: 2),
+            )
+            .changed,
+        isTrue,
+      );
+      expect(value.logicalGateById(z.id)!.column, 0);
+      value.runSimulation();
+      final before = value.currentState.state;
+
+      const store = SandboxPersistenceStore();
+      await store.saveCircuit(value);
+      final loaded = await store.loadSnapshot();
+
+      expect(loaded, isNotNull);
+      expect(loaded!.operations, hasLength(3));
+      final restored = loaded.restoreCircuit();
+      expect(restored.logicalGates, hasLength(3));
+      restored.runSimulation();
+      expect(restored.currentState.state.almostEqualTo(before), isTrue);
+      final restoredZ = restored.logicalGates
+          .singleWhere((gate) => gate.type == SelectedGateType.z);
+      expect(restored.removeLogicalGateByIdWithOutcome(restoredZ.id).changed,
+          isTrue);
+    });
+
+    test('controlled move saves and restores its compact rigid footprint',
+        () async {
+      final value = circuit(4);
+      final cx = value.insertDoubleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.cnot),
+        0,
+        1,
+        0,
+      );
+      insertSingle(value, SelectedGateType.hadamard, 1, 3);
+      insertSingle(value, SelectedGateType.x, 2, 3);
+      expect(
+        value
+            .commitLogicalGateMovePlan(
+              value.planLogicalGateMove(
+                cx.affectedGateId!,
+                const CircuitLocation(qubit: 2, column: 2),
+              ),
+            )
+            .changed,
+        isTrue,
+      );
+      final moved = value.logicalGateById(cx.affectedGateId!)!;
+      expect(moved.column, 0);
+      expect(moved.hasValidTopology(4), isTrue);
+      value.runSimulation();
+      final before = value.currentState.state;
+
+      const store = SandboxPersistenceStore();
+      await store.saveCircuit(value);
+      final loaded = await store.loadSnapshot();
+
+      expect(loaded, isNotNull);
+      expect(loaded!.operations, hasLength(3));
+      final restored = loaded.restoreCircuit();
+      final restoredCx = restored.logicalGates
+          .singleWhere((gate) => gate.type == SelectedGateType.cnot);
+      expect(restoredCx.column, 0);
+      expect(restoredCx.controlQubit, 1);
+      expect(restoredCx.targetQubit, 2);
+      expect(restoredCx.hasValidTopology(4), isTrue);
+      restored.runSimulation();
+      expect(restored.currentState.state.almostEqualTo(before), isTrue);
+      expect(restored.duplicateLogicalGateWithOutcome(restoredCx.id).changed,
+          isTrue);
+    });
+  });
+
   group('Sandbox Composer persistence ownership', () {
     setUp(() => SharedPreferences.setMockInitialValues({}));
 
