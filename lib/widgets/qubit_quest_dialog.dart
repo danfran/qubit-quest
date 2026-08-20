@@ -10,6 +10,7 @@ class QubitQuestDialog extends StatelessWidget {
     required this.actions,
     this.maxWidth = 520,
     this.titleAlign = TextAlign.left,
+    this.titleStyle,
   });
 
   static const Color panelColor = Color(0xFF111827);
@@ -27,6 +28,7 @@ class QubitQuestDialog extends StatelessWidget {
   final List<Widget> actions;
   final double maxWidth;
   final TextAlign titleAlign;
+  final TextStyle? titleStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -72,12 +74,13 @@ class QubitQuestDialog extends StatelessWidget {
                   Text(
                     title,
                     textAlign: titleAlign,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w900,
-                      height: 1.12,
-                    ),
+                    style: titleStyle ??
+                        const TextStyle(
+                          color: Colors.white,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w900,
+                          height: 1.12,
+                        ),
                   ),
                   const SizedBox(height: 14),
                   Flexible(

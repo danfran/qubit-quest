@@ -9,6 +9,7 @@ import 'package:quantumquiz/models/qq_levels_category.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/models/qq_level.dart';
+import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
 
 Complex get negOne => Complex(-1.0, 0.0); // -1
 Complex get negI => Complex(0.0, -1.0); // -i
@@ -5085,27 +5086,7 @@ QQLevel? getQQLevelById(int id) {
 }
 
 ComposerLevel getComposerAsLevel(int numQubits) {
-  return ComposerLevel.fromBinaryString(
-    taskDescription:
-        r"Experiment with any combination of gates on your chosen number of qubits. Build circuits, visualize the resulting quantum state, and generate the overall unitary operator matrix for your circuit.",
-    numQubits: numQubits,
-    initialQubitsStateString: "0" * numQubits,
-    availableGates: [
-      Gate.fromIdentifier(SelectedGateType.x),
-      Gate.fromIdentifier(SelectedGateType.y),
-      Gate.fromIdentifier(SelectedGateType.z),
-      Gate.fromIdentifier(SelectedGateType.hadamard),
-      Gate.fromIdentifier(SelectedGateType.s),
-      Gate.fromIdentifier(SelectedGateType.t),
-      Gate.fromIdentifier(SelectedGateType.cz),
-      Gate.fromIdentifier(SelectedGateType.cnot),
-      Gate.fromIdentifier(SelectedGateType.ccnot),
-      Gate.fromIdentifier(SelectedGateType.rx),
-      Gate.fromIdentifier(SelectedGateType.ry),
-      Gate.fromIdentifier(SelectedGateType.rz),
-    ],
-    solutionFinalVector: List.empty(),
-  );
+  return createSandboxComposerLevel(numQubits);
 }
 
 // Chapter structure rule:

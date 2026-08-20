@@ -5,25 +5,28 @@ import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/adaptive_learning.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
+import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/logical_gate_footprint.dart';
 import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
+import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
 import 'package:quantumquiz/screens/learning_flow_widgets.dart';
 import 'package:quantumquiz/screens/operator_matrix_dialog.dart';
 import 'package:quantumquiz/screens/rotation_gate_dialog.dart';
 import 'package:quantumquiz/screens/gate_replacement_dialog.dart';
+import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
 import 'package:quantumquiz/screens/three_qubits_gate_target_qubits_selection_dialog.dart';
 import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
 import 'package:quantumquiz/utils/complex_formatter.dart';
 import 'package:quantumquiz/widgets/adaptive_learning_card.dart';
 import 'package:quantumquiz/widgets/circuit_canvas_metrics.dart';
-import 'package:quantumquiz/widgets/gate_visual_style.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
+import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
@@ -79,6 +82,12 @@ class QuantumComposerController {
   void _detach() => _insert = null;
 }
 
+enum ComposerSessionOwnership {
+  campaign,
+  sandbox,
+  temporary,
+}
+
 @visibleForTesting
 bool requiresRotationAngleSelection(Gate gate) {
   return gate.requiresAngle && gate.angle == null;
@@ -90,6 +99,9 @@ class QuantumComposer extends StatefulWidget {
   final Function(int unlockedLevel)? onLevelUnlocked;
   final bool isCompleted;
   final QuantumComposerController? controller;
+  final ComposerSessionOwnership sessionOwnership;
+  final SandboxCircuitSnapshot? initialSandboxSnapshot;
+  final SandboxPersistenceStore sandboxPersistenceStore;
 
   const QuantumComposer({
     super.key,
@@ -98,6 +110,9 @@ class QuantumComposer extends StatefulWidget {
     required this.onLevelUnlocked,
     this.isCompleted = false,
     this.controller,
+    this.sessionOwnership = ComposerSessionOwnership.campaign,
+    this.initialSandboxSnapshot,
+    this.sandboxPersistenceStore = const SandboxPersistenceStore(),
   });
 
   @override
@@ -105,7 +120,7 @@ class QuantumComposer extends StatefulWidget {
 }
 
 class _QuantumComposerState extends State<QuantumComposer>
-    with SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   // Qubit Quest composer visual system tokens. Use these exact colours for composer surfaces.
   static const Color qqBlack = Color(0xFF00030A);
   static const Color qqCard = Color(0xFF111827);
@@ -124,35 +139,6 @@ class _QuantumComposerState extends State<QuantumComposer>
   static const Color qqPurple = Color(0xFFB388FF);
   static const Color qqGreen = Color(0xFF7CFFB2);
   static const Color qqYellow = Color(0xFFFFD54F);
-
-  static const Color gateBorder = QubitQuestGateStyle.border;
-  static const double gateButtonRadius = QubitQuestGateStyle.buttonRadius;
-  static const double gateButtonBorderWidth = QubitQuestGateStyle.borderWidth;
-
-  static GateGradientStyle _gateVisualFor(Gate gate) =>
-      QubitQuestGateStyle.forGate(gate);
-
-  static BoxDecoration _flatGateButtonDecoration(GateGradientStyle visual) {
-    return BoxDecoration(
-      borderRadius: BorderRadius.circular(gateButtonRadius),
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: visual.colors,
-      ),
-      border: Border.all(
-        color: gateBorder,
-        width: gateButtonBorderWidth,
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.45),
-          blurRadius: 8,
-          offset: const Offset(0, 3),
-        ),
-      ],
-    );
-  }
 
   late int _numQubits;
   late String _taskDescription;
@@ -206,10 +192,12 @@ class _QuantumComposerState extends State<QuantumComposer>
   AdaptiveLearningInsight? _adaptiveInsight;
   bool _adaptiveInsightDismissed = false;
   Timer? _adaptiveInsightAutoDismissTimer;
+  Future<void> _sandboxSaveQueue = Future<void>.value();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _isCompleted = widget.isCompleted;
     _adaptiveLearningSession = AdaptiveLearningSession(
       level: widget.level,
@@ -246,13 +234,17 @@ class _QuantumComposerState extends State<QuantumComposer>
     _hints = widget.level.hints ?? [];
     _currentHintIndex = -1;
 
-    _numQubits = widget.level.numQubits;
-    _taskDescription = widget.level.taskDescription;
-    _initialState = widget.level.initialQubitsState;
-    _availableGates = widget.level.availableGates;
-    _solutionVector = widget.level.solutionFinalVector;
-    _circuit = QuantumCircuit(currentLevel: widget.level);
+    _circuit = _createInitialCircuit();
+    final activeLevel = _circuit.currentLevel;
+    _numQubits = activeLevel.numQubits;
+    _taskDescription = activeLevel.taskDescription;
+    _initialState = activeLevel.initialQubitsState;
+    _availableGates = activeLevel.availableGates;
+    _solutionVector = activeLevel.solutionFinalVector;
     widget.controller?._attach(_insertGateFromController);
+    if (_ownsSandboxWorkspace) {
+      unawaited(_scheduleSandboxPersistence());
+    }
 
     debugPrint('Task: $_taskDescription');
     debugPrint('Number of qubits: $_numQubits');
@@ -263,6 +255,10 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   @override
   void dispose() {
+    if (_ownsSandboxWorkspace) {
+      unawaited(_scheduleSandboxPersistence());
+    }
+    WidgetsBinding.instance.removeObserver(this);
     widget.controller?._detach();
     _adaptiveInsightAutoDismissTimer?.cancel();
     _gatesScrollController.removeListener(_updateScrollButtonStates);
@@ -272,6 +268,50 @@ class _QuantumComposerState extends State<QuantumComposer>
       ..dispose();
     _notebookPulseController.dispose();
     super.dispose();
+  }
+
+  bool get _ownsSandboxWorkspace =>
+      widget.sessionOwnership == ComposerSessionOwnership.sandbox;
+
+  QuantumCircuit _createInitialCircuit() {
+    if (!_ownsSandboxWorkspace || widget.initialSandboxSnapshot == null) {
+      return QuantumCircuit(currentLevel: widget.level);
+    }
+    try {
+      return widget.initialSandboxSnapshot!.restoreCircuit();
+    } catch (error) {
+      assert(() {
+        debugPrint('Unable to restore Sandbox circuit: $error');
+        return true;
+      }());
+      return QuantumCircuit(currentLevel: widget.level);
+    }
+  }
+
+  Future<void> _scheduleSandboxPersistence() {
+    if (!_ownsSandboxWorkspace) return Future<void>.value();
+    final snapshot = SandboxCircuitSnapshot.capture(_circuit);
+    _sandboxSaveQueue = _sandboxSaveQueue.then((_) async {
+      try {
+        await widget.sandboxPersistenceStore.saveSnapshot(snapshot);
+      } catch (error) {
+        assert(() {
+          debugPrint('Unable to persist Sandbox circuit: $error');
+          return true;
+        }());
+      }
+    });
+    return _sandboxSaveQueue;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_ownsSandboxWorkspace &&
+        (state == AppLifecycleState.inactive ||
+            state == AppLifecycleState.paused ||
+            state == AppLifecycleState.detached)) {
+      unawaited(_scheduleSandboxPersistence());
+    }
   }
 
   @override
@@ -782,6 +822,9 @@ class _QuantumComposerState extends State<QuantumComposer>
       _selectedGateId = selectionAfter;
     }
     _runSimulation();
+    if (_ownsSandboxWorkspace) {
+      unawaited(_scheduleSandboxPersistence());
+    }
     if (mounted) setState(_validateSelection);
   }
 
@@ -1294,6 +1337,66 @@ class _QuantumComposerState extends State<QuantumComposer>
           return const DiscoveriesScreen();
         },
       ),
+    );
+  }
+
+  void _openGateNotebook(NotebookEntry entry) {
+    _adaptiveLearningSession.recordNotebookOpened();
+    Navigator.of(context).pop();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => NotebookEntryScreen(entry: entry),
+      ),
+    );
+  }
+
+  void _openInspectorRelatedConcept(String discoveryTitle) {
+    final entry = notebookEntriesByDiscoveryTitle[discoveryTitle];
+    if (entry != null) _openGateNotebook(entry);
+  }
+
+  Future<void> _inspectSelectedGate() async {
+    final selected = _selectedGateId;
+    if (selected == null) return;
+    final footprint = _circuit.logicalGateById(selected);
+    if (footprint == null) {
+      if (mounted) setState(_validateSelection);
+      return;
+    }
+    await _showGateInspector(footprint.gate, footprint: footprint);
+  }
+
+  Future<void> _inspectPaletteGate(Gate gate) => _showGateInspector(gate);
+
+  Future<void> _showGateInspector(
+    Gate gate, {
+    LogicalGateFootprint? footprint,
+  }) async {
+    final info = GateEducationalCatalog.forType(gate.type);
+    final notebookTitle = info?.notebookDiscoveryTitle;
+    final notebook = notebookTitle == null
+        ? null
+        : notebookEntriesByDiscoveryTitle[notebookTitle];
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final onOpenNotebook =
+            notebook == null ? null : () => _openGateNotebook(notebook);
+        if (footprint != null) {
+          return GateInspectorDialog(
+            footprint: footprint,
+            info: info,
+            onOpenNotebook: onOpenNotebook,
+            onOpenRelatedConcept: _openInspectorRelatedConcept,
+          );
+        }
+        return GateInspectorDialog.forGate(
+          gate: gate,
+          info: info,
+          onOpenNotebook: onOpenNotebook,
+          onOpenRelatedConcept: _openInspectorRelatedConcept,
+        );
+      },
     );
   }
 
@@ -1838,6 +1941,10 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   List<Widget> _buildAppBarActions(bool compact) {
     return [
+      if (_selectedGateId != null) ...[
+        _buildInspectGateHeaderAction(compact: compact),
+        SizedBox(width: compact ? 6 : 8),
+      ],
       if (_selectedGateId != null &&
           (_circuit.logicalGateById(_selectedGateId!)?.isEditable ?? false) &&
           _circuit.availableSingleQubitReplacementTypes.any(
@@ -1862,6 +1969,51 @@ class _QuantumComposerState extends State<QuantumComposer>
       _buildMenuHeaderAction(compact: compact),
       SizedBox(width: compact ? 10 : 12),
     ];
+  }
+
+  Widget _buildInspectGateHeaderAction({required bool compact}) {
+    final content = compact
+        ? const _HeaderActionShell(
+            size: 34,
+            child: Icon(Icons.info_outline_rounded, size: 18, color: qqCyan),
+          )
+        : SizedBox(
+            width: 52,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _HeaderActionShell(
+                  size: 32,
+                  child:
+                      Icon(Icons.info_outline_rounded, size: 17, color: qqCyan),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Inspect',
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.78),
+                    fontSize: 9,
+                    height: 1,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          );
+    return Semantics(
+      label: 'Inspect gate',
+      button: true,
+      child: Tooltip(
+        message: 'Inspect gate',
+        child: InkWell(
+          key: const ValueKey('inspect-selected-gate'),
+          onTap: _inspectSelectedGate,
+          borderRadius: BorderRadius.circular(16),
+          child: content,
+        ),
+      ),
+    );
   }
 
   Widget _buildReplaceGateHeaderAction({required bool compact}) {
@@ -2002,6 +2154,7 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   Widget _buildMenuHeaderAction({required bool compact}) {
     final menuButton = PopupMenuButton<String>(
+      key: const ValueKey('composer-menu'),
       tooltip: 'Menu',
       color: qqCard,
       offset: const Offset(0, 10),
@@ -2018,6 +2171,7 @@ class _QuantumComposerState extends State<QuantumComposer>
           ),
         ),
         const PopupMenuItem(
+          key: ValueKey('clear-circuit'),
           value: 'clear',
           child: ListTile(
             leading: Icon(Icons.cleaning_services, color: Colors.white),
@@ -3004,31 +3158,16 @@ class _QuantumComposerState extends State<QuantumComposer>
     }
 
     final double buttonSize = dense ? 38 : 52;
-    final GateGradientStyle visual = _gateVisualFor(gate);
-
     return Draggable<CircuitDragData>(
       // Draggable for Hadamard
       data: CircuitDragData.palette(gate), // Data carried by the drag
       feedback: Material(
         color: Colors.transparent,
-        child: DecoratedBox(
-          decoration: _flatGateButtonDecoration(visual),
-          child: SizedBox(
-            width: buttonSize,
-            height: buttonSize,
-            child: Center(
-              child: Text(
-                gate.label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.95),
-                  fontSize: fontSizeW,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0,
-                ),
-              ),
-            ),
-          ),
+        child: QubitQuestGateTile(
+          gate: gate,
+          size: buttonSize,
+          fontSize: fontSizeW,
+          onPressed: null,
         ),
       ),
       childWhenDragging: Opacity(
@@ -3038,6 +3177,7 @@ class _QuantumComposerState extends State<QuantumComposer>
           buttonSize: buttonSize,
           fontSize: fontSizeW,
           onPressed: () => _setInteractionMode(SelectedGateType.none),
+          onInspect: () => _inspectPaletteGate(gate),
         ),
       ),
       child: _GatePaletteButton(
@@ -3046,6 +3186,7 @@ class _QuantumComposerState extends State<QuantumComposer>
         fontSize: fontSizeW,
         onPressed: () => _setInteractionMode(
             SelectedGateType.none), // Tapping button resets mode
+        onInspect: () => _inspectPaletteGate(gate),
       ),
     );
   }
@@ -3056,51 +3197,24 @@ class _GatePaletteButton extends StatelessWidget {
   final double buttonSize;
   final double fontSize;
   final VoidCallback onPressed;
+  final VoidCallback onInspect;
 
   const _GatePaletteButton({
     required this.gate,
     required this.buttonSize,
     required this.fontSize,
     required this.onPressed,
+    required this.onInspect,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final GateGradientStyle visual = _QuantumComposerState._gateVisualFor(gate);
-
-    return DecoratedBox(
-      decoration: _QuantumComposerState._flatGateButtonDecoration(visual),
-      child: ElevatedButton(
+  Widget build(BuildContext context) => QubitQuestGateTile(
+        gate: gate,
+        size: buttonSize,
+        fontSize: fontSize,
         onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          minimumSize: Size.square(buttonSize),
-          fixedSize: Size.square(buttonSize),
-          padding: EdgeInsets.zero,
-          elevation: 0,
-          shadowColor: Colors.transparent,
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white.withValues(alpha: 0.95),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(
-              _QuantumComposerState.gateButtonRadius,
-            ),
-          ),
-        ),
-        child: Center(
-          child: Text(
-            gate.label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.95),
-              fontSize: fontSize,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+        onInspect: onInspect,
+      );
 }
 
 class _ReleaseToRemovePill extends StatelessWidget {

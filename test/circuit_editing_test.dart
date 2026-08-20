@@ -20,6 +20,176 @@ void main() {
         ),
       );
 
+  void expectCanonicallyCompacted(QuantumCircuit model) {
+    for (final footprint in model.logicalGates) {
+      if (footprint.column == 0 || !footprint.isDeletable) continue;
+      final blockedOnLeft = footprint.fragments.any((fragment) {
+        final row = model.placedGates[fragment.location.qubit];
+        final left = footprint.column - 1;
+        return left < row.length &&
+            row[left].gate.type != SelectedGateType.none;
+      });
+      expect(
+        blockedOnLeft,
+        isTrue,
+        reason: '${footprint.type} at column ${footprint.column} can move left',
+      );
+    }
+  }
+
+  group('canonical compaction after logical move', () {
+    test('single gate cannot leave a removable right-side gap', () {
+      final model = circuit(2);
+      model.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+      model.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 1, 0);
+      model.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 2, 0);
+      final z = model.logicalGates
+          .singleWhere((gate) => gate.type == SelectedGateType.z);
+      final outcome = model.moveSingleGateWithOutcome(
+        z.id,
+        const CircuitLocation(qubit: 1, column: 2),
+      );
+
+      expect(outcome.changed, isTrue);
+      expect(model.logicalGateById(z.id)!.anchor,
+          const CircuitLocation(qubit: 1, column: 0));
+      expectCanonicallyCompacted(model);
+      model.runSimulation();
+      final expected = circuit(2);
+      expected.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+      expected.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 1, 0);
+      expected.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 0, 1);
+      expected.runSimulation();
+      expect(
+          model.currentState.state.almostEqualTo(expected.currentState.state),
+          isTrue);
+    });
+
+    test('CX compacts as one rigid logical footprint', () {
+      final model = circuit(4);
+      final inserted = model.insertDoubleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.cnot),
+        0,
+        1,
+        0,
+      );
+      model.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 1, 3);
+      model.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 2, 3);
+
+      final outcome = model.commitLogicalGateMovePlan(
+        model.planLogicalGateMove(
+          inserted.affectedGateId!,
+          const CircuitLocation(qubit: 2, column: 2),
+        ),
+      );
+
+      expect(outcome.changed, isTrue);
+      final moved = model.logicalGateById(inserted.affectedGateId!)!;
+      expect(moved.column, 0);
+      expect(moved.controlQubit, 1);
+      expect(moved.targetQubit, 2);
+      expect(moved.fragments.map((fragment) => fragment.placedGate.id).toSet(),
+          {moved.id});
+      expect(moved.hasValidTopology(4), isTrue);
+      expectCanonicallyCompacted(model);
+      model.runSimulation();
+      final expected = circuit(4);
+      expected.insertDoubleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.cnot), 0, 2, 1);
+      expected.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 3);
+      expected.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 1, 3);
+      expected.runSimulation();
+      expect(
+          model.currentState.state.almostEqualTo(expected.currentState.state),
+          isTrue);
+    });
+
+    test('CCNOT compacts all fragments without changing topology', () {
+      final model = circuit(6);
+      final inserted = model.insertTripleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.ccnot),
+        0,
+        2,
+        0,
+        1,
+      );
+      model.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 1, 5);
+      model.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 2, 5);
+
+      final outcome = model.commitLogicalGateMovePlan(
+        model.planLogicalGateMove(
+          inserted.affectedGateId!,
+          const CircuitLocation(qubit: 4, column: 2),
+        ),
+      );
+
+      expect(outcome.changed, isTrue);
+      final moved = model.logicalGateById(inserted.affectedGateId!)!;
+      expect(moved.column, 0);
+      expect(moved.controlQubit, 2);
+      expect(moved.secondControlQubit, 3);
+      expect(moved.targetQubit, 4);
+      expect(moved.fragments.map((fragment) => fragment.placedGate.id).toSet(),
+          {moved.id});
+      expect(moved.hasValidTopology(6), isTrue);
+      expectCanonicallyCompacted(model);
+      model.runSimulation();
+      final expected = circuit(6);
+      expected.insertTripleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.ccnot), 0, 4, 2, 3);
+      expected.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 5);
+      expected.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 1, 5);
+      expected.runSimulation();
+      expect(
+          model.currentState.state.almostEqualTo(expected.currentState.state),
+          isTrue);
+    });
+
+    test('mixed moved circuit remains compact after every commit', () {
+      final model = circuit(6);
+      model.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+      final rotation = model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 7), 1, 0);
+      final cx = model.insertDoubleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.cnot), 2, 2, 1);
+      final ccnot = model.insertTripleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.ccnot), 3, 4, 1, 3);
+      model.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 4, 5);
+      model.runSimulation();
+
+      final outcome = model.commitLogicalGateMovePlan(
+        model.planLogicalGateMove(
+          rotation.affectedGateId!,
+          CircuitLocation(qubit: 5, column: model.maxCircuitDepth()),
+        ),
+      );
+      expect(outcome.changed, isTrue);
+      expect(model.logicalGateById(cx.affectedGateId!)!.hasValidTopology(6),
+          isTrue);
+      expect(model.logicalGateById(ccnot.affectedGateId!)!.hasValidTopology(6),
+          isTrue);
+      expectCanonicallyCompacted(model);
+      model.runSimulation();
+      expect(model.lastSimulationError, isNull);
+    });
+  });
+
   group('stable logical gate identity', () {
     test('single insertion allocates a stable non-empty identity', () {
       final model = circuit(1);
@@ -333,8 +503,8 @@ void main() {
         final id = inserted.affectedGateId!;
         model.insertSingleGateWithOutcome(
           Gate.fromIdentifier(SelectedGateType.hadamard),
+          1,
           0,
-          4,
         );
         final before = model.logicalGateById(id)!;
         final fragmentRoles = before.fragments

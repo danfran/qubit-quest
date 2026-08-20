@@ -11,6 +11,7 @@ class NotebookEntry {
     this.quantumView,
     this.advancedNotes,
     this.relatedDiscoveryTitles = const [],
+    this.executableExampleIds = const [],
   });
 
   final String id;
@@ -24,6 +25,7 @@ class NotebookEntry {
   final NotebookSection? quantumView;
   final NotebookSection? advancedNotes;
   final List<String> relatedDiscoveryTitles;
+  final List<String> executableExampleIds;
 
   String get chapterIdentity {
     switch (chapterIndex) {
