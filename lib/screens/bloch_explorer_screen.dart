@@ -205,12 +205,16 @@ class _BlochExplorerScreenState extends State<BlochExplorerScreen>
         _animation.duration = _replayTransitionDuration;
         setState(() {
           _activeReplayEntryIndex = startIndex + index + 1;
-          _displayState = transition.source;
+          _displayState = _instant ? transition.destination : transition.source;
         });
         _scrollActiveHistoryEntry();
-        await _animation.forward(from: 0).orCancel;
-        if (index + 1 < sequence.length) {
+        if (_instant) {
           await Future<void>.delayed(_replayStepGap);
+        } else {
+          await _animation.forward(from: 0).orCancel;
+          if (index + 1 < sequence.length) {
+            await Future<void>.delayed(_replayStepGap);
+          }
         }
       }
     } on TickerCanceled {

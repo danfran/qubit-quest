@@ -314,7 +314,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('bloch-replay')));
     await tester.pump();
-    expect(paintedState(tester).y, closeTo(1, 1e-9));
+    expect(paintedState(tester).y, closeTo(-1, 1e-9));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('bloch-reset')));
     await tester.pump();
@@ -484,7 +484,35 @@ void main() {
     expect(find.textContaining('P(|0⟩) = 100.0%'), findsNWidgets(2));
   });
 
-  testWidgets('Replay animates the full sequence even in Instant mode',
+  testWidgets('Replay animates the full sequence when Instant is off',
+      (tester) async {
+    await pumpExplorer(tester, size: const Size(800, 1400));
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
+    await tester.pumpAndSettle();
+    expect(find.text('2 operations'), findsOneWidget);
+    final committed = paintedState(tester);
+    expect(committed.x, closeTo(-1, 1e-9));
+
+    await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('bloch-replay')));
+    await tester.pump();
+    expect(paintedState(tester).z, closeTo(1, 1e-9));
+
+    await tester.pump(const Duration(milliseconds: 210));
+    final tweened = paintedState(tester);
+    expect(tweened.z, lessThan(1));
+    expect(tweened.z, greaterThan(-1));
+    expect(find.byKey(const ValueKey('bloch-history-marker-active')),
+        findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(paintedState(tester).x, closeTo(committed.x, 1e-9));
+    expect(find.text('2 operations'), findsOneWidget);
+  });
+
+  testWidgets('Instant Replay advances every step without vector tweening',
       (tester) async {
     await pumpExplorer(tester, size: const Size(800, 1400));
     await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
@@ -492,19 +520,22 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
     await tester.pump();
-    expect(find.text('2 operations'), findsOneWidget);
     final committed = paintedState(tester);
-    expect(committed.x, closeTo(-1, 1e-9));
 
+    await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('bloch-replay')));
     await tester.pump();
-    expect(paintedState(tester).z, closeTo(1, 1e-9));
-
-    await tester.pump(const Duration(milliseconds: 420));
     expect(paintedState(tester).z, closeTo(-1, 1e-9));
+    expect(find.textContaining('Step 1 / 2'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 45));
+    expect(paintedState(tester).z, closeTo(-1, 1e-9));
+
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(paintedState(tester).x, closeTo(committed.x, 1e-9));
+    expect(find.textContaining('Step 2 / 2'), findsOneWidget);
     await tester.pumpAndSettle();
     expect(paintedState(tester).x, closeTo(committed.x, 1e-9));
-    expect(find.text('2 operations'), findsOneWidget);
   });
 
   testWidgets('timeline selection starts Replay after the selected state',
@@ -529,7 +560,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('bloch-replay')));
     await tester.pump();
-    expect(paintedState(tester).z, closeTo(-1, 1e-9));
+    expect(paintedState(tester).x, closeTo(committed.x, 1e-9));
     expect(find.byKey(const ValueKey('bloch-history-marker-active')),
         findsOneWidget);
     expect(find.textContaining('Step 2 / 2'), findsOneWidget);
@@ -812,7 +843,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('bloch-replay')));
     await tester.pump();
-    expect(paintedState(tester).z, closeTo(1, 1e-9));
+    expect(paintedState(tester).z, closeTo(-1, 1e-9));
+    expect(find.textContaining('Step 1 / 2'), findsOneWidget);
     await tester.pumpAndSettle();
   });
 

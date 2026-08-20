@@ -264,7 +264,7 @@ void main() {
         SandboxPersistenceStore.storageKey: encoded,
       });
       const store = SandboxPersistenceStore();
-      expect(await store.loadSnapshot(), isNull);
+      expect(await store.loadSnapshot(1), isNull);
       final preferences = await SharedPreferences.getInstance();
       expect(
           preferences.containsKey(SandboxPersistenceStore.storageKey), isFalse);
@@ -374,7 +374,7 @@ void main() {
 
       const store = SandboxPersistenceStore();
       await store.saveCircuit(value);
-      final loaded = await store.loadSnapshot();
+      final loaded = await store.loadSnapshot(2);
 
       expect(loaded, isNotNull);
       expect(loaded!.operations, hasLength(3));
@@ -418,7 +418,7 @@ void main() {
 
       const store = SandboxPersistenceStore();
       await store.saveCircuit(value);
-      final loaded = await store.loadSnapshot();
+      final loaded = await store.loadSnapshot(4);
 
       expect(loaded, isNotNull);
       expect(loaded!.operations, hasLength(3));
@@ -433,6 +433,83 @@ void main() {
       expect(restored.currentState.state.almostEqualTo(before), isTrue);
       expect(restored.duplicateLogicalGateWithOutcome(restoredCx.id).changed,
           isTrue);
+    });
+  });
+
+  group('per-qubit Sandbox workspaces', () {
+    setUp(() => SharedPreferences.setMockInitialValues({}));
+
+    test('3- and 5-qubit workspaces persist independently across store owners',
+        () async {
+      final five = circuit(5);
+      insertSingle(five, SelectedGateType.hadamard, 0, 4);
+      final three = circuit(3);
+      insertSingle(three, SelectedGateType.x, 0, 1);
+
+      const firstOwner = SandboxPersistenceStore();
+      await firstOwner.saveCircuit(five);
+      await firstOwner.saveCircuit(three);
+
+      const recreatedOwner = SandboxPersistenceStore();
+      final restoredFive = (await recreatedOwner.loadSnapshot(5))!;
+      final restoredThree = (await recreatedOwner.loadSnapshot(3))!;
+      expect(restoredFive.qubitCount, 5);
+      expect(
+          restoredFive.operations.single.gateType, SelectedGateType.hadamard);
+      expect(restoredFive.operations.single.targetQubit, 4);
+      expect(restoredThree.qubitCount, 3);
+      expect(restoredThree.operations.single.gateType, SelectedGateType.x);
+      expect(restoredThree.operations.single.targetQubit, 1);
+    });
+
+    test('a never-used qubit count opens without another workspace', () async {
+      final five = circuit(5);
+      insertSingle(five, SelectedGateType.z, 0, 4);
+      const store = SandboxPersistenceStore();
+      await store.saveCircuit(five);
+
+      expect(await store.loadSnapshot(4), isNull);
+      expect((await store.loadSnapshot(5))!.operations, hasLength(1));
+    });
+
+    test('clearing one qubit count leaves the other workspace intact',
+        () async {
+      final three = circuit(3);
+      insertSingle(three, SelectedGateType.s, 0, 0);
+      final five = circuit(5);
+      insertSingle(five, SelectedGateType.t, 0, 4);
+      const store = SandboxPersistenceStore();
+      await store.saveCircuit(three);
+      await store.saveCircuit(five);
+
+      await store.saveSnapshot(SandboxCircuitSnapshot.empty(5));
+
+      expect((await store.loadSnapshot(5))!.operations, isEmpty);
+      final restoredThree = await store.loadSnapshot(3);
+      expect(restoredThree, isNotNull);
+      expect(restoredThree!.operations.single.gateType, SelectedGateType.s);
+    });
+
+    test('legacy single snapshot migrates only to its recorded qubit count',
+        () async {
+      final legacyCircuit = circuit(5);
+      insertSingle(legacyCircuit, SelectedGateType.hadamard, 0, 2);
+      final legacy = SandboxCircuitSnapshot.capture(legacyCircuit);
+      SharedPreferences.setMockInitialValues({
+        SandboxPersistenceStore.storageKey: legacy.encode(),
+      });
+      const store = SandboxPersistenceStore();
+
+      expect(await store.loadSnapshot(3), isNull);
+      expect((await store.loadSnapshot(5))!.operations, hasLength(1));
+      final preferences = await SharedPreferences.getInstance();
+      expect(
+          preferences.containsKey(SandboxPersistenceStore.storageKey), isFalse);
+      expect(
+        preferences
+            .containsKey(SandboxPersistenceStore.storageKeyForQubitCount(5)),
+        isTrue,
+      );
     });
   });
 
@@ -500,7 +577,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       final expectedState = List.of(original.currentState.stateVector);
-      final stored = await const SandboxPersistenceStore().loadSnapshot();
+      final stored = await const SandboxPersistenceStore().loadSnapshot(2);
       expect(stored, isNotNull);
       expect(stored!.operations, hasLength(1));
 
@@ -529,7 +606,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('clear-circuit')));
       await tester.pumpAndSettle();
-      final stored = await const SandboxPersistenceStore().loadSnapshot();
+      final stored = await const SandboxPersistenceStore().loadSnapshot(2);
       expect(stored, isNotNull);
       expect(stored!.operations, isEmpty);
 
@@ -544,7 +621,7 @@ void main() {
       insertSingle(saved, SelectedGateType.z, 0, 1);
       const store = SandboxPersistenceStore();
       await store.saveCircuit(saved);
-      final before = (await store.loadSnapshot())!.encode();
+      final before = (await store.loadSnapshot(2))!.encode();
 
       final composerEntries = allQQLevels.indexed
           .where((entry) => entry.$2 is ComposerLevel)
@@ -594,7 +671,7 @@ void main() {
         );
         await tester.pumpAndSettle();
       }
-      expect((await store.loadSnapshot())!.encode(), before);
+      expect((await store.loadSnapshot(2))!.encode(), before);
     });
 
     testWidgets('save failure does not make the Sandbox unusable',
@@ -626,7 +703,7 @@ void main() {
       insertSingle(saved, SelectedGateType.s, 0, 1);
       const store = SandboxPersistenceStore();
       await store.saveCircuit(saved);
-      final before = (await store.loadSnapshot())!.encode();
+      final before = (await store.loadSnapshot(2))!.encode();
 
       await tester.pumpWidget(const MaterialApp(home: BlochExplorerScreen()));
       await tester.pumpAndSettle();
@@ -634,7 +711,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
       await tester.pumpAndSettle();
 
-      expect((await store.loadSnapshot())!.encode(), before);
+      expect((await store.loadSnapshot(2))!.encode(), before);
     });
   });
 }

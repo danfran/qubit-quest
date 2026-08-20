@@ -296,19 +296,6 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> {
                 },
                 icon: const Icon(Icons.clear_rounded),
               ),
-            IconButton(
-              key: const ValueKey('close-notebook-search'),
-              tooltip: 'Close search',
-              onPressed: () {
-                _searchController.clear();
-                _searchFocusNode.unfocus();
-                setState(() {
-                  _searching = false;
-                  _searchQuery = '';
-                });
-              },
-              icon: const Icon(Icons.close_rounded),
-            ),
           ],
         ],
       ),

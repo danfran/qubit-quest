@@ -582,12 +582,17 @@ void main() {
         .id;
 
     var gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
-    await gesture.moveTo(circuitPoint(tester, 0, 1));
+    await gesture.moveTo(circuitPoint(tester, 1, 0));
     await gesture.up();
     await tester.pumpAndSettle();
-    expect(model.logicalGateById(cxId)!.column, 1);
+    final movedCx = model.logicalGateById(cxId)!;
+    expect(movedCx.column, 0);
+    expect(movedCx.controlQubit, 1);
+    expect(movedCx.targetQubit, 3);
+    expect(movedCx.hasValidTopology(4), isTrue);
+    expect(model.logicalGateById(neighbourId)!.column, 1);
 
-    await tester.tapAt(circuitPoint(tester, 3, 0));
+    await tester.tapAt(circuitPoint(tester, 3, 1));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('replace-selected-gate')));
     await tester.pumpAndSettle();
@@ -609,7 +614,7 @@ void main() {
         closeTo(math.pi / 4, 1e-12));
 
     final surface = circuitSurfaceRect(tester);
-    gesture = await tester.startGesture(circuitPoint(tester, 0, 1));
+    gesture = await tester.startGesture(circuitPoint(tester, 1, 0));
     final outside = Offset(surface.left - 30, surface.center.dy);
     await gesture.moveTo(outside + const Offset(1, 0));
     await gesture.moveTo(outside);
@@ -622,6 +627,8 @@ void main() {
     final neighbour = model.logicalGateById(neighbourId)!;
     expect(neighbour.type, SelectedGateType.rx);
     expect(neighbour.gate.angle, closeTo(math.pi / 4, 1e-12));
+    expect(neighbour.column, 0);
+    expect(model.lastSimulationError, isNull);
   });
 
   testWidgets('controlled internal drop and cancelled drag are non-destructive',
@@ -908,7 +915,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(model.logicalGateById(id)!.controlQubit, 2);
     expect(model.logicalGateById(id)!.targetQubit, 4);
-    expect(model.logicalGateById(id)!.column, 1);
+    expect(model.logicalGateById(id)!.column, 0);
+    expect(model.logicalGateById(id)!.id, id);
+    expect(model.logicalGateById(id)!.hasValidTopology(5), isTrue);
+    expect(notifications, 4);
+    expect(model.simulationRunCount, simulationsBefore + 2);
   });
 
   for (final type in [SelectedGateType.cz, SelectedGateType.ccnot]) {
@@ -1172,18 +1183,36 @@ void main() {
         qubits: 4,
         viewportSize: viewport,
         preInsertGates: (circuit) {
-          insertControlledGate(circuit, gateType);
           circuit.insertSinglePlacedGateAt(
             Gate.fromIdentifier(SelectedGateType.hadamard),
             0,
-            3,
+            0,
           );
+          if (gateType == SelectedGateType.ccnot) {
+            circuit.insertTriplePlacedGateAt(
+              Gate.fromIdentifier(gateType),
+              1,
+              2,
+              0,
+              1,
+            );
+          } else {
+            circuit.insertDoublePlacedGateAt(
+              Gate.fromIdentifier(gateType),
+              1,
+              2,
+              0,
+            );
+          }
         },
       );
       final footprint = model.logicalGates.firstWhere(
         (gate) => gate.type == gateType,
       );
       final id = footprint.id;
+      final neighbourId = model.logicalGates
+          .firstWhere((gate) => gate.type == SelectedGateType.hadamard)
+          .id;
       final rolesBefore = footprint.fragments
           .map((fragment) => (
                 fragment.location.qubit,
@@ -1197,8 +1226,8 @@ void main() {
       model.addListener(() => notifications++);
       final simulationsBefore = model.simulationRunCount;
 
-      final gesture = await tester.startGesture(circuitPoint(tester, 0, 0));
-      final destination = circuitPoint(tester, 0, 1);
+      final gesture = await tester.startGesture(circuitPoint(tester, 0, 1));
+      final destination = circuitPoint(tester, 0, 0);
       await gesture.moveTo(destination + const Offset(1, 0));
       await gesture.moveTo(destination);
       await tester.pump();
@@ -1211,12 +1240,20 @@ void main() {
           .expand((row) => row)
           .where((gate) => gate.id == id);
       expect(previewFragments, hasLength(footprint.fragments.length));
+      expect(
+        previewPainter.previewGates!
+            .expand((row) => row)
+            .where((gate) => gate.id == neighbourId)
+            .single,
+        isNotNull,
+      );
+      expect(previewPainter.previewGates![0][1].id, neighbourId);
 
       await gesture.up();
       await tester.pumpAndSettle();
       final moved = model.logicalGateById(id)!;
       expect(moved.id, id);
-      expect(moved.column, 1);
+      expect(moved.column, 0);
       expect(
         moved.fragments
             .map((fragment) => (
@@ -1229,8 +1266,13 @@ void main() {
             .toList(),
         rolesBefore,
       );
+      expect(moved.fragments.map((fragment) => fragment.placedGate.id).toSet(),
+          {id});
+      expect(moved.hasValidTopology(4), isTrue);
+      expect(model.logicalGateById(neighbourId)!.column, 1);
       expect(notifications, 2); // structural edit and simulation result
       expect(model.simulationRunCount, simulationsBefore + 1);
+      expect(model.lastSimulationError, isNull);
       expect(
         find.bySemanticsLabel('Selected gate ${moved.gate.label}'),
         findsOneWidget,
@@ -1277,6 +1319,7 @@ void main() {
     final position = tester.state<ScrollableState>(scrollable).position;
     position.jumpTo(position.maxScrollExtent);
     await tester.pump();
+    expect(position.pixels, greaterThan(0));
     final surface = circuitSurfaceRect(tester);
     Offset visiblePoint(int qubit, int column) =>
         surface.topLeft +
@@ -1286,13 +1329,30 @@ void main() {
         );
 
     final gesture = await tester.startGesture(visiblePoint(1, 10));
-    await gesture.moveTo(visiblePoint(1, 11));
+    await gesture.moveTo(visiblePoint(2, 11));
+    await tester.pump();
+    final previewPainter = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter)
+        .whereType<QuantumCircuitPainter>()
+        .firstWhere((painter) => painter.previewGates != null);
+    final preview = [
+      for (final (qubit, row) in previewPainter.previewGates!.indexed)
+        for (final (column, gate) in row.indexed)
+          if (gate.id == id) (qubit, column, gate),
+    ];
+    expect(preview.map((fragment) => fragment.$2).toSet(), {11});
+    expect(preview.firstWhere((fragment) => fragment.$3.isControl).$1, 2);
+    expect(preview.firstWhere((fragment) => fragment.$3.isTarget).$1, 3);
     await gesture.up();
     await tester.pumpAndSettle();
 
-    expect(model.logicalGateById(id)!.column, 11);
-    expect(model.logicalGateById(id)!.controlQubit, 1);
-    expect(model.logicalGateById(id)!.targetQubit, 2);
+    final moved = model.logicalGateById(id)!;
+    expect(moved.column, 11);
+    expect(moved.controlQubit, 2);
+    expect(moved.targetQubit, 3);
+    expect(moved.hasValidTopology(4), isTrue);
+    expect(model.lastSimulationError, isNull);
   });
 
   testWidgets(

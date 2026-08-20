@@ -137,8 +137,20 @@ void main() {
       await search(tester, 'phase');
       expect(
           find.byKey(const ValueKey('clear-notebook-search')), findsOneWidget);
+      expect(find.byKey(const ValueKey('close-notebook-search')), findsNothing);
+      expect(find.byTooltip('Clear search'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('clear-notebook-search')));
       await tester.pumpAndSettle();
+      expect(
+          find.byKey(const ValueKey('notebook-search-field')), findsOneWidget);
+      expect(
+        tester
+            .widget<TextField>(
+                find.byKey(const ValueKey('notebook-search-field')))
+            .controller!
+            .text,
+        isEmpty,
+      );
       expect(
           find.byKey(const ValueKey('notebook-search-results')), findsNothing);
       expect(find.textContaining('Chapter 1'), findsWidgets);

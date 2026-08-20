@@ -318,28 +318,45 @@ class SandboxPersistenceStore {
 
   static const String storageKey = 'sandbox_circuit_snapshot';
 
+  static String storageKeyForQubitCount(int qubitCount) =>
+      '${storageKey}_q$qubitCount';
+
   Future<void> saveCircuit(QuantumCircuit circuit) =>
       saveSnapshot(SandboxCircuitSnapshot.capture(circuit));
 
   Future<void> saveSnapshot(SandboxCircuitSnapshot snapshot) async {
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(storageKey, snapshot.encode());
+    await preferences.setString(
+      storageKeyForQubitCount(snapshot.qubitCount),
+      snapshot.encode(),
+    );
   }
 
-  Future<SandboxCircuitSnapshot?> loadSnapshot() async {
+  Future<SandboxCircuitSnapshot?> loadSnapshot(int qubitCount) async {
     final preferences = await SharedPreferences.getInstance();
-    final encoded = preferences.getString(storageKey);
+    final workspaceKey = storageKeyForQubitCount(qubitCount);
+    var sourceKey = workspaceKey;
+    var encoded = preferences.getString(workspaceKey);
+    if (encoded == null) {
+      sourceKey = storageKey;
+      encoded = preferences.getString(storageKey);
+    }
     if (encoded == null) return null;
     try {
       final snapshot = SandboxCircuitSnapshot.decode(encoded);
       snapshot.restoreCircuit();
+      if (snapshot.qubitCount != qubitCount) return null;
+      if (sourceKey == storageKey) {
+        await preferences.setString(workspaceKey, encoded);
+        await preferences.remove(storageKey);
+      }
       return snapshot;
     } catch (error) {
       assert(() {
         debugPrint('Discarding invalid Sandbox snapshot: $error');
         return true;
       }());
-      await preferences.remove(storageKey);
+      await preferences.remove(sourceKey);
       return null;
     }
   }

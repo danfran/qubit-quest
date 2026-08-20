@@ -380,17 +380,23 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       },
-    ).then((selectedNumQubits) {
+    ).then((selectedNumQubits) async {
       if (!mounted) return;
       if (selectedNumQubits != null) {
-        Navigator.of(context).push(
+        final snapshot = await const SandboxPersistenceStore()
+            .loadSnapshot(selectedNumQubits);
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
           MaterialPageRoute(
             builder: (context) => QuantumComposer(
               levelId: -1,
-              level: getComposerAsLevel(
-                  selectedNumQubits), // No specific level provided
+              level: createSandboxComposerLevel(
+                selectedNumQubits,
+                initialBinaryState: snapshot?.initialBinaryState,
+              ),
               onLevelUnlocked: null,
               sessionOwnership: ComposerSessionOwnership.sandbox,
+              initialSandboxSnapshot: snapshot,
             ),
           ),
         );
@@ -398,27 +404,8 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  Future<void> _openSandbox() async {
-    final snapshot = await const SandboxPersistenceStore().loadSnapshot();
-    if (!mounted) return;
-    if (snapshot == null) {
-      _showQubitSelectionDialog();
-      return;
-    }
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (context) => QuantumComposer(
-          levelId: -1,
-          level: createSandboxComposerLevel(
-            snapshot.qubitCount,
-            initialBinaryState: snapshot.initialBinaryState,
-          ),
-          onLevelUnlocked: null,
-          sessionOwnership: ComposerSessionOwnership.sandbox,
-          initialSandboxSnapshot: snapshot,
-        ),
-      ),
-    );
+  void _openSandbox() {
+    _showQubitSelectionDialog();
   }
 
   Widget _buildQubitChoiceButton(BuildContext dialogContext, int numQubits) {
