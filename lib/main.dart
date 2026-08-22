@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Import for orientation control
 import 'package:flutter_tex/flutter_tex.dart';
+import 'package:quantumquiz/models/campaign_progress.dart';
+import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
+import 'package:quantumquiz/models/tutorial_flags_store.dart';
 import 'package:quantumquiz/screens/home_page.dart';
+import 'package:quantumquiz/storage/app_storage.dart';
+import 'package:quantumquiz/storage/shared_preferences_app_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +24,19 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  MyApp({super.key, this.storage = const SharedPreferencesAppStorage()})
+      : progressController = CampaignProgressController(
+          store: SharedPreferencesCampaignProgressStore(storage: storage),
+        ),
+        sandboxPersistenceStore = SandboxPersistenceStore(storage: storage),
+        tutorialFlagsStore = TutorialFlagsStore(storage: storage) {
+    CampaignProgressController.configureSharedInstance(progressController);
+  }
+
+  final AppStorage storage;
+  final CampaignProgressController progressController;
+  final SandboxPersistenceStore sandboxPersistenceStore;
+  final TutorialFlagsStore tutorialFlagsStore;
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +90,13 @@ class MyApp extends StatelessWidget {
           foregroundColor: Colors.white, // Default icon/text color in app bar
         ),
       ),
-      home: SafeArea(child: HomePage()),
+      home: SafeArea(
+        child: HomePage(
+          progressController: progressController,
+          sandboxPersistenceStore: sandboxPersistenceStore,
+          tutorialFlagsStore: tutorialFlagsStore,
+        ),
+      ),
       debugShowCheckedModeBanner: false,
     );
   }

@@ -6,7 +6,8 @@ import 'package:quantumquiz/models/logical_gate_footprint.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:quantumquiz/storage/app_storage.dart';
+import 'package:quantumquiz/storage/shared_preferences_app_storage.dart';
 
 const List<SelectedGateType> sandboxGatePaletteTypes = [
   SelectedGateType.x,
@@ -314,7 +315,11 @@ class SandboxCircuitSnapshot {
 }
 
 class SandboxPersistenceStore {
-  const SandboxPersistenceStore();
+  const SandboxPersistenceStore({
+    this.storage = const SharedPreferencesAppStorage(),
+  });
+
+  final AppStorage storage;
 
   static const String storageKey = 'sandbox_circuit_snapshot';
 
@@ -325,21 +330,19 @@ class SandboxPersistenceStore {
       saveSnapshot(SandboxCircuitSnapshot.capture(circuit));
 
   Future<void> saveSnapshot(SandboxCircuitSnapshot snapshot) async {
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(
+    await storage.writeString(
       storageKeyForQubitCount(snapshot.qubitCount),
       snapshot.encode(),
     );
   }
 
   Future<SandboxCircuitSnapshot?> loadSnapshot(int qubitCount) async {
-    final preferences = await SharedPreferences.getInstance();
     final workspaceKey = storageKeyForQubitCount(qubitCount);
     var sourceKey = workspaceKey;
-    var encoded = preferences.getString(workspaceKey);
+    var encoded = await storage.readString(workspaceKey);
     if (encoded == null) {
       sourceKey = storageKey;
-      encoded = preferences.getString(storageKey);
+      encoded = await storage.readString(storageKey);
     }
     if (encoded == null) return null;
     try {
@@ -347,8 +350,8 @@ class SandboxPersistenceStore {
       snapshot.restoreCircuit();
       if (snapshot.qubitCount != qubitCount) return null;
       if (sourceKey == storageKey) {
-        await preferences.setString(workspaceKey, encoded);
-        await preferences.remove(storageKey);
+        await storage.writeString(workspaceKey, encoded);
+        await storage.delete(storageKey);
       }
       return snapshot;
     } catch (error) {
@@ -356,7 +359,7 @@ class SandboxPersistenceStore {
         debugPrint('Discarding invalid Sandbox snapshot: $error');
         return true;
       }());
-      await preferences.remove(sourceKey);
+      await storage.delete(sourceKey);
       return null;
     }
   }
