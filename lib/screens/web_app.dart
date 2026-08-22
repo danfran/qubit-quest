@@ -8,14 +8,12 @@ import 'package:quantumquiz/models/canonical_qubit_state.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/gate_id.dart';
-import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
 import 'package:quantumquiz/screens/learning_flow_widgets.dart';
-import 'package:quantumquiz/screens/learning_map_screen.dart';
-import 'package:quantumquiz/screens/level_ui_router.dart';
+import 'package:quantumquiz/screens/web_learning_workspace.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
 import 'package:quantumquiz/storage/shared_preferences_app_storage.dart';
 import 'package:quantumquiz/widgets/bloch_explorer_panels.dart';
@@ -100,7 +98,10 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
   Widget _workspace() => IndexedStack(
         index: _destination.index,
         children: [
-          _JourneyWorkspace(progressController: widget.progressController),
+          WebJourneyWorkspace(
+            progressController: widget.progressController,
+            onOpenNotebook: () => _select(WebDestination.notebook),
+          ),
           const DiscoveriesScreen(key: ValueKey('web-workspace-notebook')),
           _ComposerWorkspace(
             key: const ValueKey('web-workspace-composer'),
@@ -260,50 +261,6 @@ class _NavigationHeading extends StatelessWidget {
             letterSpacing: 1.5,
           ),
         ),
-      );
-}
-
-class _JourneyWorkspace extends StatelessWidget {
-  const _JourneyWorkspace({required this.progressController});
-
-  final CampaignProgressController progressController;
-
-  Future<void> _startLevel(BuildContext context, int levelNumber) async {
-    final level = getQQLevelById(levelNumber);
-    if (level == null) return;
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (_) => LevelUIRouter.buildLevelUI(
-          level: level,
-          levelId: levelNumber,
-          onLevelUnlocked: (completed) {
-            unawaited(progressController.completeLevel(completed));
-          },
-          isCompleted: progressController.state.completedLessonIds
-                  .contains(levelNumber) ||
-              progressController.state.completedChallengeIds
-                  .contains(levelNumber),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-        animation: progressController,
-        builder: (context, _) {
-          if (!progressController.isLoaded) {
-            return const Center(
-              key: ValueKey('web-workspace-journey-loading'),
-              child: CircularProgressIndicator(),
-            );
-          }
-          return LearningMapScreen(
-            key: const ValueKey('web-workspace-journey'),
-            progressState: progressController.state,
-            onStartChapter: (level) => _startLevel(context, level),
-          );
-        },
       );
 }
 
