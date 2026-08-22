@@ -6,6 +6,43 @@ import 'package:quantumquiz/utils/complex_formatter.dart';
 const double _stateMatchTolerance = 1e-6;
 const double _stateAmplitudeThreshold = 1e-9;
 
+class TargetStateDisplayContent {
+  final String? semanticLabel;
+  final String mathExpression;
+
+  const TargetStateDisplayContent({
+    required this.semanticLabel,
+    required this.mathExpression,
+  });
+}
+
+/// Keeps human-readable target metadata out of the TeX maths expression.
+TargetStateDisplayContent targetStateDisplayContent({
+  required String expression,
+  String? semanticLabel,
+}) {
+  final trimmedExpression = expression.trim();
+  if (trimmedExpression.contains('=')) {
+    return TargetStateDisplayContent(
+      semanticLabel: null,
+      mathExpression: trimmedExpression,
+    );
+  }
+
+  final trimmedLabel = semanticLabel?.trim();
+  if (trimmedLabel != null && trimmedLabel.isNotEmpty) {
+    return TargetStateDisplayContent(
+      semanticLabel: trimmedLabel,
+      mathExpression: trimmedExpression,
+    );
+  }
+
+  return TargetStateDisplayContent(
+    semanticLabel: null,
+    mathExpression: '|ψ⟩ = $trimmedExpression',
+  );
+}
+
 class QuantumStateTerm {
   final String formattedCoefficient;
   final String basisKet;
@@ -107,6 +144,9 @@ String formatQuantumNotationForPlainText(String value) {
 /// This is presentation-only and is shared by Current and Target state lines.
 String quantumStateNotationToLatex(String value) {
   var result = formatQuantumNotationForPlainText(value)
+      // Percent is ordinary authored probability notation in Qubit Quest,
+      // but starts a comment in TeX and would hide the rest of the target.
+      .replaceAllMapped(RegExp(r'(?<!\\)%'), (_) => r'\%')
       .replaceAll('√2', r'\sqrt{2}')
       .replaceAll('π', r'\pi ')
       .replaceAll('⊗', r'\otimes ')
@@ -122,4 +162,33 @@ String quantumStateNotationToLatex(String value) {
     return r'\lvert ' + body + r'\rangle ';
   });
   return result.trim();
+}
+
+/// Reports structural problems in the exact source passed to the Target State
+/// maths renderer. This intentionally validates presentation syntax only; it
+/// does not interpret or alter quantum-state semantics.
+List<String> targetStateLatexStructuralIssues(String authoredExpression) {
+  final latex = quantumStateNotationToLatex(authoredExpression);
+  final issues = <String>[];
+  if (RegExp(r'(?<!\\)%').hasMatch(latex)) {
+    issues.add('contains an unescaped TeX comment marker');
+  }
+  if (latex.contains('√') ||
+      latex.contains('π') ||
+      latex.contains('⊗') ||
+      latex.contains('†') ||
+      latex.contains('⟩')) {
+    issues.add('contains Unicode notation that should have been normalized');
+  }
+
+  var braceDepth = 0;
+  for (var index = 0; index < latex.length; index++) {
+    final character = latex[index];
+    final escaped = index > 0 && latex[index - 1] == r'\';
+    if (!escaped && character == '{') braceDepth++;
+    if (!escaped && character == '}') braceDepth--;
+    if (braceDepth < 0) break;
+  }
+  if (braceDepth != 0) issues.add('contains unbalanced TeX braces');
+  return List.unmodifiable(issues);
 }

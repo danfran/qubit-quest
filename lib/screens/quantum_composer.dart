@@ -21,6 +21,7 @@ import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
 import 'package:quantumquiz/screens/three_qubits_gate_target_qubits_selection_dialog.dart';
 import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
 import 'package:quantumquiz/utils/complex_formatter.dart';
+import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/adaptive_learning_card.dart';
 import 'package:quantumquiz/widgets/circuit_canvas_metrics.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
@@ -1707,6 +1708,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     final List<Complex>? targetStateVector =
         runningAsQuantumComposer() ? null : _targetStateVector();
     final String? targetExpression = _targetStateDisplayExpression();
+    final String? targetExpressionLabel = _targetStateDisplayLabel();
 
     if (targetStateVector == null) {
       return _buildStatePanel(
@@ -1740,6 +1742,7 @@ class _QuantumComposerState extends State<QuantumComposer>
           child: _buildStatePanel(
             stateVector: targetStateVector,
             summaryTitle: 'Target State',
+            stateExpressionLabel: targetExpressionLabel,
             stateExpression: targetExpression,
             tone: StateVectorDisplayTone.target,
             showHeader: false,
@@ -1759,14 +1762,21 @@ class _QuantumComposerState extends State<QuantumComposer>
     if (expression == null || expression.isEmpty) {
       return null;
     }
-    if (expression.contains('=')) {
-      return expression;
+    return targetStateDisplayContent(
+      expression: expression,
+      semanticLabel: widget.level.targetStateLabel,
+    ).mathExpression;
+  }
+
+  String? _targetStateDisplayLabel() {
+    final String? expression = widget.level.targetStateExpression?.trim();
+    if (expression == null || expression.isEmpty) {
+      return null;
     }
-
-    final String? label = widget.level.targetStateLabel?.trim();
-    final String leftSide = label == null || label.isEmpty ? '|ψ⟩' : label;
-
-    return '$leftSide = $expression';
+    return targetStateDisplayContent(
+      expression: expression,
+      semanticLabel: widget.level.targetStateLabel,
+    ).semanticLabel;
   }
 
   Widget _buildSharedStateFilterControl() {
@@ -1893,6 +1903,7 @@ class _QuantumComposerState extends State<QuantumComposer>
   }) {
     final bool hasTargetState = targetStateVector != null;
     final String? targetExpression = _targetStateDisplayExpression();
+    final String? targetExpressionLabel = _targetStateDisplayLabel();
     final Widget currentStatePanel = _buildStatePanel(
       summaryTitle: 'Current State',
       tone: StateVectorDisplayTone.current,
@@ -1910,6 +1921,7 @@ class _QuantumComposerState extends State<QuantumComposer>
         : _buildStatePanel(
             stateVector: targetStateVector,
             summaryTitle: 'Target State',
+            stateExpressionLabel: targetExpressionLabel,
             stateExpression: targetExpression,
             tone: StateVectorDisplayTone.target,
             showHeader: false,
@@ -3102,6 +3114,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     String? title,
     String? summaryTitle,
     String? summarySubtitle,
+    String? stateExpressionLabel,
     String? stateExpression,
     StateVectorDisplayTone tone = StateVectorDisplayTone.current,
     bool showHeader = true,
@@ -3131,6 +3144,7 @@ class _QuantumComposerState extends State<QuantumComposer>
         titleOverride: title,
         summaryTitleOverride: summaryTitle,
         summarySubtitleOverride: summarySubtitle,
+        stateExpressionLabel: stateExpressionLabel,
         stateExpression: stateExpression,
         tone: tone,
         showHeader: showHeader,

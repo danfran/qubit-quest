@@ -30,6 +30,7 @@ class StateVectorDisplay extends StatefulWidget {
   final String? titleOverride;
   final String? summaryTitleOverride;
   final String? summarySubtitleOverride;
+  final String? stateExpressionLabel;
   final String? stateExpression;
   final StateVectorDisplayTone tone;
   final bool showHeader;
@@ -48,6 +49,7 @@ class StateVectorDisplay extends StatefulWidget {
     this.titleOverride,
     this.summaryTitleOverride,
     this.summarySubtitleOverride,
+    this.stateExpressionLabel,
     this.stateExpression,
     this.tone = StateVectorDisplayTone.current,
     this.showHeader = true,
@@ -207,10 +209,29 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
                               padding: EdgeInsets.only(
                                 bottom: widget.dense ? 4 : 6,
                               ),
-                              child: _StateExpressionLine(
-                                currentTerms: currentTerms,
-                                authoredExpression: authoredExpression,
-                                dense: widget.dense,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (widget.stateExpressionLabel != null) ...[
+                                    Text(
+                                      widget.stateExpressionLabel!,
+                                      key: const ValueKey(
+                                        'target-state-semantic-label',
+                                      ),
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: widget.dense ? 9.5 : 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    SizedBox(height: widget.dense ? 2 : 3),
+                                  ],
+                                  _StateExpressionLine(
+                                    currentTerms: currentTerms,
+                                    authoredExpression: authoredExpression,
+                                    dense: widget.dense,
+                                  ),
+                                ],
                               ),
                             ),
                           _buildProbabilityList(vectorSize, hasTarget),
@@ -430,8 +451,10 @@ class _StateExpressionLineState extends State<_StateExpressionLine> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
+      key: const ValueKey('state-expression-horizontal-scroll'),
       controller: _horizontalScrollController,
       scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.hardEdge,
       child: widget.currentTerms == null
           ? LatexText(
               math:
