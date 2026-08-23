@@ -117,6 +117,46 @@ void main() {
       expect(bell.qubitCount, 2);
       expect(bell.allowOpenInBlochExplorer, isFalse);
     });
+
+    test(
+        'all platform presentations derive actions from canonical capabilities',
+        () {
+      final blochIds = <String>{};
+      for (final example in executableNotebookExamples) {
+        expect(
+          example.capabilities,
+          containsAll({
+            ExecutableNotebookCapability.run,
+            ExecutableNotebookCapability.reset,
+          }),
+          reason: example.id,
+        );
+        expect(
+          example.supports(ExecutableNotebookCapability.composer),
+          example.allowOpenInComposer,
+          reason: example.id,
+        );
+        expect(
+          example.supports(ExecutableNotebookCapability.blochExplorer),
+          example.allowOpenInBlochExplorer,
+          reason: example.id,
+        );
+        if (example.supports(ExecutableNotebookCapability.blochExplorer)) {
+          blochIds.add(example.id);
+        }
+      }
+      expect(
+        blochIds,
+        {
+          'x_from_zero',
+          'h_superposition',
+          'z_on_plus',
+          's_on_plus',
+          'ry_rotation',
+          'interference_hzh',
+        },
+      );
+    });
   });
 
   group('Executable Notebook interactions', () {

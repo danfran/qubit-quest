@@ -8,6 +8,31 @@ import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 
+const _blochPauliGateTypes = <SelectedGateType>[
+  SelectedGateType.x,
+  SelectedGateType.y,
+  SelectedGateType.z,
+];
+const _blochHadamardGateTypes = <SelectedGateType>[
+  SelectedGateType.hadamard,
+];
+const _blochPhaseGateTypes = <SelectedGateType>[
+  SelectedGateType.s,
+  SelectedGateType.t,
+];
+const _blochRotationGateTypes = <SelectedGateType>[
+  SelectedGateType.rx,
+  SelectedGateType.ry,
+  SelectedGateType.rz,
+];
+
+const blochExplorerGateTypes = <SelectedGateType>[
+  ..._blochPauliGateTypes,
+  ..._blochHadamardGateTypes,
+  ..._blochPhaseGateTypes,
+  ..._blochRotationGateTypes,
+];
+
 class BlochGatePanel extends StatelessWidget {
   const BlochGatePanel({
     super.key,
@@ -38,16 +63,9 @@ class BlochGatePanel extends StatelessWidget {
             _presetSelector(),
             const SizedBox(height: 5),
             Wrap(spacing: 14, runSpacing: 6, children: [
-              _gateGroup('Pauli', const [
-                SelectedGateType.x,
-                SelectedGateType.y,
-                SelectedGateType.z,
-              ]),
-              _gateGroup('Hadamard', const [SelectedGateType.hadamard]),
-              _gateGroup('Phase', const [
-                SelectedGateType.s,
-                SelectedGateType.t,
-              ]),
+              _gateGroup('Pauli', _blochPauliGateTypes),
+              _gateGroup('Hadamard', _blochHadamardGateTypes),
+              _gateGroup('Phase', _blochPhaseGateTypes),
             ]),
             const SizedBox(height: 6),
             LayoutBuilder(builder: (context, constraints) {
@@ -57,11 +75,7 @@ class BlochGatePanel extends StatelessWidget {
                 runSpacing: 4,
                 crossAxisAlignment: WrapCrossAlignment.end,
                 children: [
-                  _gateGroup('Rotations', const [
-                    SelectedGateType.rx,
-                    SelectedGateType.ry,
-                    SelectedGateType.rz,
-                  ]),
+                  _gateGroup('Rotations', _blochRotationGateTypes),
                   SizedBox(
                     key: const ValueKey('bloch-gate-angle-control'),
                     width: angleWidth,

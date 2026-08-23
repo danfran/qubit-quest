@@ -33,6 +33,7 @@ import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
+import 'package:quantumquiz/models/composer_gate_capabilities.dart';
 import 'package:quantumquiz/models/gate_id.dart';
 
 import '../models/qq_level.dart';
@@ -1615,27 +1616,24 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   List<Widget> _buildAppBarActions(bool compact) {
+    final capabilities = ComposerSelectedGateCapabilities.forSelection(
+      _circuit,
+      _selectedGateId,
+    );
     return [
-      if (_selectedGateId != null) ...[
+      if (capabilities.supports(ComposerSelectedGateAction.inspect)) ...[
         _buildInspectGateHeaderAction(compact: compact),
         SizedBox(width: compact ? 6 : 8),
       ],
-      if (_selectedGateId != null &&
-          (_circuit.logicalGateById(_selectedGateId!)?.isEditable ?? false) &&
-          _circuit.availableSingleQubitReplacementTypes.any(
-            (type) => type != _circuit.logicalGateById(_selectedGateId!)?.type,
-          )) ...[
+      if (capabilities.supports(ComposerSelectedGateAction.replace)) ...[
         _buildReplaceGateHeaderAction(compact: compact),
         SizedBox(width: compact ? 6 : 8),
       ],
-      if (_selectedGateId != null &&
-          (_circuit.logicalGateById(_selectedGateId!)?.isParameterEditable ??
-              false)) ...[
+      if (capabilities.supports(ComposerSelectedGateAction.editAngle)) ...[
         _buildEditAngleHeaderAction(compact: compact),
         SizedBox(width: compact ? 6 : 8),
       ],
-      if (_selectedGateId != null &&
-          _circuit.canDuplicateLogicalGate(_selectedGateId!)) ...[
+      if (capabilities.supports(ComposerSelectedGateAction.duplicate)) ...[
         _buildDuplicateGateHeaderAction(compact: compact),
         SizedBox(width: compact ? 6 : 8),
       ],

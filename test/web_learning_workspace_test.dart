@@ -6,7 +6,13 @@ import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
+import 'package:quantumquiz/models/circuit_editing.dart';
+import 'package:quantumquiz/models/selected_gate_type.dart';
+import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialog.dart';
 import 'package:quantumquiz/screens/web_learning_workspace.dart';
+import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
+import 'package:quantumquiz/widgets/composer_gate_palette.dart';
+import 'package:quantumquiz/widgets/circuit_geometry.dart';
 
 void main() {
   Future<CampaignProgressController> controllerWith(
@@ -126,6 +132,100 @@ void main() {
     );
   });
 
+  testWidgets('Journey Composer renders canonical canvas before gate palette',
+      (tester) async {
+    await setSize(tester, const Size(1100, 1200));
+    final level = allQQLevels.whereType<ComposerLevel>().first;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(useMaterial3: true),
+        home: Scaffold(
+          body: WebComposerLesson(
+            level: level,
+            enabled: true,
+            onSolved: () async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final palette = tester.widget<ComposerGatePalette>(
+      find.byType(ComposerGatePalette),
+    );
+    expect(
+      palette.gates.map((gate) => gate.type),
+      level.availableGates.map((gate) => gate.type),
+    );
+    expect(
+      tester
+          .getTopLeft(
+            find.byKey(const ValueKey('web-lesson-composer-canvas')),
+          )
+          .dy,
+      lessThan(tester.getTopLeft(find.byType(ComposerGatePalette)).dy),
+    );
+  });
+
+  testWidgets('Journey controlled insertion uses the shared role picker',
+      (tester) async {
+    await setSize(tester, const Size(1100, 1200));
+    final level = allQQLevels.whereType<ComposerLevel>().firstWhere(
+          (level) => level.availableGates.any(
+            (gate) => gate.type == SelectedGateType.cnot,
+          ),
+        );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(useMaterial3: true),
+        home: Scaffold(
+          body: WebComposerLesson(
+            level: level,
+            enabled: true,
+            onSolved: () async {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    var canvas = tester.widget<ComposerCircuitCanvas>(
+      find.byType(ComposerCircuitCanvas),
+    );
+    final insertion = canvas.onDropRequested(
+      ComposerCircuitDropIntent(
+        data: CircuitDragData.palette(
+          Gate.fromIdentifier(SelectedGateType.cnot),
+        ),
+        destination: const CircuitDropDestination(
+          contentPoint: Offset(40, 60),
+          location: CircuitLocation(qubit: 1, column: 0),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.byType(TwoQubitsGateTargetQubitSelectionDialog),
+      findsOneWidget,
+    );
+    expect(canvas.circuit.logicalGates, isEmpty);
+    await tester.tap(find.text('q0'));
+    await tester.pump();
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+    await insertion;
+
+    canvas = tester.widget<ComposerCircuitCanvas>(
+      find.byType(ComposerCircuitCanvas),
+    );
+    final gate = canvas.circuit.logicalGates.single;
+    expect(gate.type, SelectedGateType.cnot);
+    expect(gate.targetQubit, 1);
+    expect(gate.controlQubit, 0);
+    expect(gate.hasValidTopology(level.numQubits), isTrue);
+  });
+
   testWidgets(
       'wrong answer does not progress; correct answer persists progress',
       (tester) async {
@@ -135,6 +235,7 @@ void main() {
     );
     final levelId = indexed.$1 + 1;
     final level = indexed.$2 as McqLevel;
+    String? requestedNotebookEntry;
     final controller = await controllerWith(
       CampaignProgressState(maxUnlockedLevel: levelId),
     );
@@ -151,6 +252,7 @@ void main() {
             onNextLesson: () {},
             onBackToChapter: () {},
             onOpenNotebook: () {},
+            onOpenNotebookEntry: (title) => requestedNotebookEntry = title,
           ),
         ),
       ),
@@ -199,6 +301,12 @@ void main() {
       find.byKey(const ValueKey('web-notebook-updated'), skipOffstage: false),
       findsOneWidget,
     );
+    tester
+        .widget<OutlinedButton>(
+          find.byKey(const ValueKey('web-open-notebook'), skipOffstage: false),
+        )
+        .onPressed!();
+    expect(requestedNotebookEntry, level.discoveryTitle);
   });
 
   testWidgets('Mastery answer uses shared challenge completion state',

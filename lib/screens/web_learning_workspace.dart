@@ -16,6 +16,7 @@ import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
+import 'package:quantumquiz/screens/controlled_gate_placement_dialog.dart';
 import 'package:quantumquiz/screens/learning_map_screen.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
@@ -36,10 +37,14 @@ class WebJourneyWorkspace extends StatefulWidget {
     super.key,
     required this.progressController,
     required this.onOpenNotebook,
+    this.onOpenNotebookEntry,
+    this.onOpenMastery,
   });
 
   final CampaignProgressController progressController;
   final VoidCallback onOpenNotebook;
+  final ValueChanged<String>? onOpenNotebookEntry;
+  final VoidCallback? onOpenMastery;
 
   @override
   State<WebJourneyWorkspace> createState() => _WebJourneyWorkspaceState();
@@ -61,6 +66,10 @@ class _WebJourneyWorkspaceState extends State<WebJourneyWorkspace> {
   Future<void> _openChapter(int firstLevelId) async {
     final category = _categoryForLevel(firstLevelId);
     if (category == null) return;
+    if (category.isMasteryPhase && widget.onOpenMastery != null) {
+      widget.onOpenMastery!();
+      return;
+    }
     setState(() {
       _chapter = category;
       _selectedLevelId = firstLevelId;
@@ -137,9 +146,406 @@ class _WebJourneyWorkspaceState extends State<WebJourneyWorkspace> {
             onCompleted: _complete,
             onNextLesson: _nextLesson,
             onOpenNotebook: widget.onOpenNotebook,
+            onOpenNotebookEntry: widget.onOpenNotebookEntry,
           );
         },
       );
+}
+
+class WebMasteryWorkspace extends StatefulWidget {
+  const WebMasteryWorkspace({
+    super.key,
+    required this.progressController,
+    required this.onBackToJourney,
+    required this.onOpenNotebook,
+    this.onOpenNotebookEntry,
+  });
+
+  final CampaignProgressController progressController;
+  final VoidCallback onBackToJourney;
+  final VoidCallback onOpenNotebook;
+  final ValueChanged<String>? onOpenNotebookEntry;
+
+  @override
+  State<WebMasteryWorkspace> createState() => _WebMasteryWorkspaceState();
+}
+
+class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
+  static final QQLevelsCategory _category = groupedLevels.firstWhere(
+    (category) => category.isMasteryPhase,
+  );
+
+  int? _selectedLevelId;
+
+  List<int> get _challengeIds => [
+        for (var index = _category.from; index <= _category.to; index++)
+          index + 1,
+      ];
+
+  int _preferredChallenge(CampaignProgressState state) =>
+      _challengeIds.firstWhere(
+        (id) => !state.completedChallengeIds.contains(id),
+        orElse: () => _challengeIds.first,
+      );
+
+  bool _isUnlocked(int levelId, CampaignProgressState state) =>
+      CampaignProgressPolicy.isLevelUnlocked(state, levelId);
+
+  void _selectChallenge(int levelId, CampaignProgressState state) {
+    if (!_isUnlocked(levelId, state)) return;
+    setState(() => _selectedLevelId = levelId);
+  }
+
+  Future<void> _complete(int levelId) async {
+    await widget.progressController.completeChallenge(levelId);
+    if (mounted) setState(() {});
+  }
+
+  void _nextChallenge(CampaignProgressState state) {
+    final current = _selectedLevelId;
+    if (current == null) return;
+    final next = current + 1;
+    if (_challengeIds.contains(next) && _isUnlocked(next, state)) {
+      setState(() => _selectedLevelId = next);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: widget.progressController,
+        builder: (context, _) {
+          if (!widget.progressController.isLoaded) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final state = widget.progressController.state;
+          final unlocked =
+              CampaignProgressPolicy.getMasteryChallengesUnlocked(state);
+          if (!unlocked) {
+            return _MasteryLockedWorkspace(
+              onBackToJourney: widget.onBackToJourney,
+            );
+          }
+          final selected = _selectedLevelId != null &&
+                  _challengeIds.contains(_selectedLevelId) &&
+                  _isUnlocked(_selectedLevelId!, state)
+              ? _selectedLevelId!
+              : _preferredChallenge(state);
+          _selectedLevelId = selected;
+          final activity = WebLessonWorkspace(
+            key: ValueKey('web-mastery-activity-$selected'),
+            levelId: selected,
+            level: getQQLevelById(selected)!,
+            alreadyCompleted: state.completedChallengeIds.contains(selected),
+            onCompleted: () => _complete(selected),
+            onNextLesson: () => _nextChallenge(
+              widget.progressController.state,
+            ),
+            onBackToChapter: () {},
+            onOpenNotebook: widget.onOpenNotebook,
+            onOpenNotebookEntry: widget.onOpenNotebookEntry,
+          );
+          return ColoredBox(
+            color: _background,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 940;
+                final challengeList = _MasteryChallengeList(
+                  challengeIds: _challengeIds,
+                  selectedLevelId: selected,
+                  currentLevelId: _preferredChallenge(state),
+                  progressState: state,
+                  horizontal: !wide,
+                  onSelected: (id) => _selectChallenge(id, state),
+                );
+                return Column(
+                  key: ValueKey(
+                    wide
+                        ? 'web-mastery-wide-layout'
+                        : 'web-mastery-stacked-layout',
+                  ),
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      height: wide ? 126 : 148,
+                      child: _MasteryHeader(
+                        completed: state.completedChallengeIds.length,
+                        total: _challengeIds.length,
+                        onBackToJourney: widget.onBackToJourney,
+                      ),
+                    ),
+                    const Divider(height: 1, color: _border),
+                    Expanded(
+                      child: wide
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                SizedBox(width: 286, child: challengeList),
+                                const VerticalDivider(
+                                  width: 1,
+                                  color: _border,
+                                ),
+                                Expanded(child: activity),
+                              ],
+                            )
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                SizedBox(height: 92, child: challengeList),
+                                const Divider(height: 1, color: _border),
+                                Expanded(child: activity),
+                              ],
+                            ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          );
+        },
+      );
+}
+
+class _MasteryLockedWorkspace extends StatelessWidget {
+  const _MasteryLockedWorkspace({required this.onBackToJourney});
+
+  final VoidCallback onBackToJourney;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+        key: const ValueKey('web-mastery-locked-workspace'),
+        padding: const EdgeInsets.all(16),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: _ContentCard(
+              title: 'Mastery Challenges Locked',
+              icon: Icons.lock_outline,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Complete Guided Discovery to unlock Mastery Challenges. '
+                    'They apply combined concepts after Chapter 12 Level 5.',
+                    style: TextStyle(height: 1.45),
+                  ),
+                  const SizedBox(height: 14),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton.icon(
+                      onPressed: onBackToJourney,
+                      icon: const Icon(Icons.route_outlined),
+                      label: const Text('Continue Journey'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+class _MasteryHeader extends StatelessWidget {
+  const _MasteryHeader({
+    required this.completed,
+    required this.total,
+    required this.onBackToJourney,
+  });
+
+  final int completed;
+  final int total;
+  final VoidCallback onBackToJourney;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 760;
+          final heading = Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Journey  >  Mastery Challenges',
+                    style: TextStyle(color: _cyan, fontSize: 13),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Mastery Challenges',
+                    key: const ValueKey('web-mastery-title'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _WebMasteryWorkspaceState._category.categoryIntro ?? '',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white70, height: 1.3),
+                  ),
+                ],
+              ),
+            ),
+          );
+          return Padding(
+            padding: EdgeInsets.fromLTRB(20, compact ? 10 : 14, 24, 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                IconButton(
+                  key: const ValueKey('web-mastery-back-journey'),
+                  tooltip: 'Back to Journey',
+                  onPressed: onBackToJourney,
+                  icon: const Icon(Icons.arrow_back),
+                ),
+                const SizedBox(width: 8),
+                heading,
+                if (!compact) ...[
+                  const SizedBox(width: 16),
+                  Text('$completed / $total complete'),
+                ],
+              ],
+            ),
+          );
+        },
+      );
+}
+
+class _MasteryChallengeList extends StatelessWidget {
+  const _MasteryChallengeList({
+    required this.challengeIds,
+    required this.selectedLevelId,
+    required this.currentLevelId,
+    required this.progressState,
+    required this.horizontal,
+    required this.onSelected,
+  });
+
+  final List<int> challengeIds;
+  final int selectedLevelId;
+  final int currentLevelId;
+  final CampaignProgressState progressState;
+  final bool horizontal;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final children = [
+      for (final id in challengeIds)
+        _MasteryChallengeItem(
+          levelId: id,
+          selected: id == selectedLevelId,
+          current: id == currentLevelId,
+          completed: progressState.completedChallengeIds.contains(id),
+          unlocked: CampaignProgressPolicy.isLevelUnlocked(progressState, id),
+          onSelected: onSelected,
+        ),
+    ];
+    if (horizontal) {
+      return ListView(
+        key: const ValueKey('web-mastery-challenge-list-narrow'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.all(10),
+        children: children,
+      );
+    }
+    return ListView(
+      key: const ValueKey('web-mastery-challenge-list-wide'),
+      padding: const EdgeInsets.all(14),
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(10, 0, 10, 10),
+          child: Text(
+            'CHALLENGES',
+            style: TextStyle(
+              color: _purple,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.3,
+            ),
+          ),
+        ),
+        ...children,
+      ],
+    );
+  }
+}
+
+class _MasteryChallengeItem extends StatelessWidget {
+  const _MasteryChallengeItem({
+    required this.levelId,
+    required this.selected,
+    required this.current,
+    required this.completed,
+    required this.unlocked,
+    required this.onSelected,
+  });
+
+  final int levelId;
+  final bool selected;
+  final bool current;
+  final bool completed;
+  final bool unlocked;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final level = getQQLevelById(levelId)!;
+    final number = ProgressionRules.masteryChallengeNumber(levelId);
+    return Padding(
+      padding: const EdgeInsets.only(right: 6, bottom: 6),
+      child: Material(
+        color: selected ? const Color(0x2222D3EE) : Colors.transparent,
+        borderRadius: BorderRadius.circular(11),
+        child: InkWell(
+          key: ValueKey('web-mastery-challenge-$number'),
+          onTap: unlocked ? () => onSelected(levelId) : null,
+          borderRadius: BorderRadius.circular(11),
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 190, maxWidth: 258),
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(color: selected ? _cyan : _border),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  completed
+                      ? Icons.check_circle
+                      : unlocked
+                          ? current
+                              ? Icons.play_circle_outline
+                              : Icons.circle_outlined
+                          : Icons.lock_outline,
+                  size: 20,
+                  color: completed
+                      ? Colors.greenAccent
+                      : unlocked
+                          ? _cyan
+                          : Colors.white30,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '$number. ${level.title ?? 'Challenge $number'}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: unlocked ? Colors.white : Colors.white38,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _ChapterWorkspace extends StatelessWidget {
@@ -154,6 +560,7 @@ class _ChapterWorkspace extends StatelessWidget {
     required this.onCompleted,
     required this.onNextLesson,
     required this.onOpenNotebook,
+    this.onOpenNotebookEntry,
   });
 
   final QQLevelsCategory category;
@@ -166,6 +573,7 @@ class _ChapterWorkspace extends StatelessWidget {
   final Future<void> Function(int) onCompleted;
   final VoidCallback onNextLesson;
   final VoidCallback onOpenNotebook;
+  final ValueChanged<String>? onOpenNotebookEntry;
 
   List<int> get _levelIds => [
         for (int index = category.from; index <= category.to; index++)
@@ -205,6 +613,7 @@ class _ChapterWorkspace extends StatelessWidget {
             onNextLesson: onNextLesson,
             onBackToChapter: () => onSelectLevel(selectedLevelId),
             onOpenNotebook: onOpenNotebook,
+            onOpenNotebookEntry: onOpenNotebookEntry,
           );
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -444,6 +853,7 @@ class WebLessonWorkspace extends StatefulWidget {
     required this.onNextLesson,
     required this.onBackToChapter,
     required this.onOpenNotebook,
+    this.onOpenNotebookEntry,
   });
 
   final int levelId;
@@ -453,6 +863,7 @@ class WebLessonWorkspace extends StatefulWidget {
   final VoidCallback onNextLesson;
   final VoidCallback onBackToChapter;
   final VoidCallback onOpenNotebook;
+  final ValueChanged<String>? onOpenNotebookEntry;
 
   @override
   State<WebLessonWorkspace> createState() => _WebLessonWorkspaceState();
@@ -575,7 +986,9 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
             const SizedBox(height: 16),
             _SuccessPanel(
               level: widget.level,
+              isMastery: ProgressionRules.isMasteryLevel(widget.levelId),
               onOpenNotebook: widget.onOpenNotebook,
+              onOpenNotebookEntry: widget.onOpenNotebookEntry,
               onNext: widget.onNextLesson,
             ),
           ],
@@ -636,8 +1049,12 @@ class _ContentCard extends StatelessWidget {
                 children: [
                   Icon(icon, color: _cyan, size: 19),
                   const SizedBox(width: 8),
-                  Text(title,
-                      style: const TextStyle(fontWeight: FontWeight.w900)),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 10),
@@ -651,11 +1068,15 @@ class _ContentCard extends StatelessWidget {
 class _SuccessPanel extends StatelessWidget {
   const _SuccessPanel({
     required this.level,
+    required this.isMastery,
     required this.onOpenNotebook,
+    this.onOpenNotebookEntry,
     required this.onNext,
   });
   final QQLevel level;
+  final bool isMastery;
   final VoidCallback onOpenNotebook;
+  final ValueChanged<String>? onOpenNotebookEntry;
   final VoidCallback onNext;
 
   @override
@@ -673,12 +1094,17 @@ class _SuccessPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.greenAccent),
-              SizedBox(width: 9),
-              Text('Lesson Complete',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+              const Icon(Icons.check_circle, color: Colors.greenAccent),
+              const SizedBox(width: 9),
+              Text(
+                isMastery ? 'Challenge Complete' : 'Lesson Complete',
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ],
           ),
           if ((level.solutionExplanation ?? '').trim().isNotEmpty) ...[
@@ -728,7 +1154,14 @@ class _SuccessPanel extends StatelessWidget {
               if (notebook)
                 OutlinedButton.icon(
                   key: const ValueKey('web-open-notebook'),
-                  onPressed: onOpenNotebook,
+                  onPressed: () {
+                    final discoveryTitle = level.discoveryTitle;
+                    if (discoveryTitle != null && onOpenNotebookEntry != null) {
+                      onOpenNotebookEntry!(discoveryTitle);
+                    } else {
+                      onOpenNotebook();
+                    }
+                  },
                   icon: const Icon(Icons.menu_book_outlined),
                   label: const Text('Open Notebook'),
                 ),
@@ -736,7 +1169,7 @@ class _SuccessPanel extends StatelessWidget {
                 key: const ValueKey('web-next-lesson'),
                 onPressed: onNext,
                 icon: const Icon(Icons.arrow_forward),
-                label: const Text('Next Lesson'),
+                label: Text(isMastery ? 'Next Challenge' : 'Next Lesson'),
               ),
             ],
           ),
@@ -773,8 +1206,6 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
   late QuantumCircuit _circuit;
   GateId? _selectedGateId;
   double _rotationAngle = math.pi / 2;
-  int _controlQubit = 0;
-  int _secondControlQubit = 1;
   String? _feedback;
   int _visibleHints = 0;
 
@@ -838,19 +1269,18 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
       );
       return;
     }
-    final controls = [
-      for (int q = 0; q < widget.level.numQubits; q++)
-        if (q != location.qubit) q,
-    ];
-    final control = controls.contains(_controlQubit)
-        ? _controlQubit
-        : controls.firstOrNull ?? location.qubit;
-    final second = controls
-            .where((qubit) => qubit != control)
-            .contains(_secondControlQubit)
-        ? _secondControlQubit
-        : controls.where((qubit) => qubit != control).firstOrNull ??
-            location.qubit;
+    ControlledGatePlacement? controlledPlacement;
+    if (gate.type == SelectedGateType.cnot ||
+        gate.type == SelectedGateType.cz ||
+        gate.type == SelectedGateType.ccnot) {
+      controlledPlacement = await showControlledGatePlacementDialog(
+        context,
+        gateType: gate.type,
+        targetQubit: location.qubit,
+        numQubits: widget.level.numQubits,
+      );
+      if (!mounted || controlledPlacement == null) return;
+    }
     final outcome = switch (gate.type) {
       SelectedGateType.cnot ||
       SelectedGateType.cz =>
@@ -858,14 +1288,14 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
           gate,
           location.column,
           location.qubit,
-          control,
+          controlledPlacement!.controlQubit,
         ),
       SelectedGateType.ccnot => _circuit.insertTripleGateWithOutcome(
           gate,
           location.column,
           location.qubit,
-          control,
-          second,
+          controlledPlacement!.controlQubit,
+          controlledPlacement.secondControlQubit!,
         ),
       _ => _circuit.insertSingleGateWithOutcome(
           gate,
@@ -908,10 +1338,6 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
   @override
   Widget build(BuildContext context) {
     final hints = widget.level.hints ?? const <String>[];
-    final hasControlledGate = _gates.any((gate) =>
-        gate.type == SelectedGateType.cnot ||
-        gate.type == SelectedGateType.cz ||
-        gate.type == SelectedGateType.ccnot);
     final hasRotationGate = _gates.any((gate) => _isRotation(gate.type));
     return _ContentCard(
       title: 'Interactive Composer',
@@ -919,6 +1345,24 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          SizedBox(
+            key: const ValueKey('web-lesson-composer-canvas'),
+            height: math.max(150, widget.level.numQubits * 42 + 58),
+            child: IgnorePointer(
+              ignoring: !widget.enabled,
+              child: ComposerCircuitCanvas(
+                circuit: _circuit,
+                selectedGateId: _selectedGateId,
+                onGateTap: (gate) => setState(() => _selectedGateId = gate?.id),
+                onDropRequested: _drop,
+                onPlacedGateDragStarted: (gate) =>
+                    setState(() => _selectedGateId = gate.id),
+                onDeletePlacedGateRequested: (gate) =>
+                    _commit(_circuit.removeLogicalGateByIdWithOutcome(gate.id)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
           IgnorePointer(
             ignoring: !widget.enabled,
             child: ComposerGatePalette(
@@ -946,60 +1390,6 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
                 Text('${(_rotationAngle / math.pi).toStringAsFixed(2)}π'),
               ],
             ),
-          if (hasControlledGate && widget.level.numQubits > 1)
-            Wrap(
-              spacing: 14,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                const Text('Controlled-gate placement:'),
-                DropdownButton<int>(
-                  key: const ValueKey('web-lesson-control-qubit'),
-                  value: _controlQubit.clamp(0, widget.level.numQubits - 1),
-                  items: [
-                    for (int q = 0; q < widget.level.numQubits; q++)
-                      DropdownMenuItem(value: q, child: Text('Control Q$q')),
-                  ],
-                  onChanged: widget.enabled
-                      ? (value) => setState(() => _controlQubit = value!)
-                      : null,
-                ),
-                if (widget.level.numQubits > 2)
-                  DropdownButton<int>(
-                    key: const ValueKey('web-lesson-second-control-qubit'),
-                    value: _secondControlQubit.clamp(
-                        0, widget.level.numQubits - 1),
-                    items: [
-                      for (int q = 0; q < widget.level.numQubits; q++)
-                        DropdownMenuItem(
-                          value: q,
-                          child: Text('Second Q$q'),
-                        ),
-                    ],
-                    onChanged: widget.enabled
-                        ? (value) =>
-                            setState(() => _secondControlQubit = value!)
-                        : null,
-                  ),
-              ],
-            ),
-          const SizedBox(height: 10),
-          SizedBox(
-            key: const ValueKey('web-lesson-composer-canvas'),
-            height: math.max(150, widget.level.numQubits * 42 + 58),
-            child: IgnorePointer(
-              ignoring: !widget.enabled,
-              child: ComposerCircuitCanvas(
-                circuit: _circuit,
-                selectedGateId: _selectedGateId,
-                onGateTap: (gate) => setState(() => _selectedGateId = gate?.id),
-                onDropRequested: _drop,
-                onPlacedGateDragStarted: (gate) =>
-                    setState(() => _selectedGateId = gate.id),
-                onDeletePlacedGateRequested: (gate) =>
-                    _commit(_circuit.removeLogicalGateByIdWithOutcome(gate.id)),
-              ),
-            ),
-          ),
           if (_feedback != null) ...[
             const SizedBox(height: 8),
             Text(

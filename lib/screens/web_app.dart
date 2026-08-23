@@ -4,29 +4,36 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/bloch_explorer_model.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
-import 'package:quantumquiz/models/canonical_qubit_state.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
+import 'package:quantumquiz/models/composer_gate_capabilities.dart';
+import 'package:quantumquiz/models/executable_notebook_example.dart';
 import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/gate_id.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
-import 'package:quantumquiz/screens/learning_flow_widgets.dart';
+import 'package:quantumquiz/screens/gate_replacement_dialog.dart';
+import 'package:quantumquiz/screens/rotation_gate_dialog.dart';
+import 'package:quantumquiz/screens/controlled_gate_placement_dialog.dart';
 import 'package:quantumquiz/screens/web_learning_workspace.dart';
+import 'package:quantumquiz/screens/web_notebook_workspace.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
 import 'package:quantumquiz/storage/shared_preferences_app_storage.dart';
 import 'package:quantumquiz/widgets/bloch_explorer_panels.dart';
 import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
+import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
+import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
+import 'package:quantumquiz/widgets/state_vector_display.dart';
 
 const _background = Color(0xFF00030A);
 const _surface = Color(0xFF111827);
 const _cyan = Color(0xFF22D3EE);
 const _purple = Color(0xFF9B7BFF);
 
-enum WebDestination { journey, notebook, composer, bloch }
+enum WebDestination { journey, notebook, mastery, composer, bloch }
 
 class QubitQuestWebApp extends StatelessWidget {
   QubitQuestWebApp({
@@ -85,6 +92,9 @@ class QubitQuestWebShell extends StatefulWidget {
 class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
   static const double _wideNavigationBreakpoint = 900;
   WebDestination _destination = WebDestination.journey;
+  String? _requestedNotebookDiscoveryTitle;
+  ExecutableNotebookExample? _requestedComposerExample;
+  BlochState? _requestedBlochState;
 
   @override
   void initState() {
@@ -92,22 +102,105 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
     unawaited(widget.progressController.load());
   }
 
-  void _select(WebDestination destination) =>
-      setState(() => _destination = destination);
+  void _select(WebDestination destination) {
+    setState(() {
+      if (destination == WebDestination.composer) {
+        _requestedComposerExample = null;
+      }
+      _destination = destination;
+    });
+  }
+
+  void _openNotebook([String? discoveryTitle]) {
+    setState(() {
+      _requestedNotebookDiscoveryTitle = discoveryTitle;
+      _destination = WebDestination.notebook;
+    });
+  }
+
+  void _openMastery() {
+    if (!widget.progressController.isLoaded ||
+        !widget.progressController.masteryChallengesUnlocked) {
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => QubitQuestDialog(
+          title: 'Mastery Challenges Locked',
+          actions: [
+            QubitQuestDialogButton.primary(
+              label: 'Continue Journey',
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _select(WebDestination.journey);
+              },
+            ),
+          ],
+          child: const Text(
+            'Complete Guided Discovery to unlock Mastery Challenges. '
+            'They apply combined concepts after Chapter 12 Level 5.',
+            style: TextStyle(height: 1.45),
+          ),
+        ),
+      );
+      return;
+    }
+    _select(WebDestination.mastery);
+  }
+
+  void _openNotebookExampleInComposer(ExecutableNotebookExample example) {
+    setState(() {
+      _requestedComposerExample = example;
+      _destination = WebDestination.composer;
+    });
+  }
+
+  void _openNotebookExampleInBloch(
+    ExecutableNotebookExample example,
+    ExecutableNotebookResult result,
+  ) {
+    if (example.qubitCount != 1 || result.state.length != 2) return;
+    setState(() {
+      _requestedBlochState = BlochState.fromAmplitudes(
+        result.state[0],
+        result.state[1],
+      );
+      _destination = WebDestination.bloch;
+    });
+  }
 
   Widget _workspace() => IndexedStack(
         index: _destination.index,
         children: [
           WebJourneyWorkspace(
             progressController: widget.progressController,
-            onOpenNotebook: () => _select(WebDestination.notebook),
+            onOpenNotebook: _openNotebook,
+            onOpenNotebookEntry: _openNotebook,
+            onOpenMastery: _openMastery,
           ),
-          const DiscoveriesScreen(key: ValueKey('web-workspace-notebook')),
+          WebNotebookWorkspace(
+            key: const ValueKey('web-workspace-notebook'),
+            progressController: widget.progressController,
+            requestedDiscoveryTitle: _requestedNotebookDiscoveryTitle,
+            onOpenJourney: () => _select(WebDestination.journey),
+            onOpenExampleInComposer: _openNotebookExampleInComposer,
+            onOpenExampleInBlochExplorer: _openNotebookExampleInBloch,
+          ),
+          WebMasteryWorkspace(
+            key: const ValueKey('web-workspace-mastery'),
+            progressController: widget.progressController,
+            onBackToJourney: () => _select(WebDestination.journey),
+            onOpenNotebook: _openNotebook,
+            onOpenNotebookEntry: _openNotebook,
+          ),
           _ComposerWorkspace(
             key: const ValueKey('web-workspace-composer'),
             persistence: widget.sandboxPersistenceStore,
+            example: _requestedComposerExample,
           ),
-          const _BlochWorkspace(key: ValueKey('web-workspace-bloch')),
+          _BlochWorkspace(
+            key: const ValueKey('web-workspace-bloch'),
+            requestedInitialState: _requestedBlochState,
+            onOpenNotebookEntry: _openNotebook,
+          ),
         ],
       );
 
@@ -115,12 +208,26 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
   Widget build(BuildContext context) => LayoutBuilder(
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= _wideNavigationBreakpoint;
-          final navigation = _WebNavigation(
-            selected: _destination,
-            onSelected: (destination) {
-              _select(destination);
-              if (!wide) Navigator.of(context).pop();
-            },
+          final navigation = AnimatedBuilder(
+            animation: widget.progressController,
+            builder: (context, _) => _WebNavigation(
+              selected: _destination,
+              masteryUnlocked: widget.progressController.isLoaded &&
+                  widget.progressController.masteryChallengesUnlocked,
+              onSelected: (destination) {
+                if (!wide) Navigator.of(context).pop();
+                if (destination == WebDestination.mastery) {
+                  if (wide) {
+                    _openMastery();
+                  } else {
+                    WidgetsBinding.instance
+                        .addPostFrameCallback((_) => _openMastery());
+                  }
+                } else {
+                  _select(destination);
+                }
+              },
+            ),
           );
           return Scaffold(
             key: const ValueKey('web-shell'),
@@ -207,9 +314,14 @@ class _QubitQuestWordmark extends StatelessWidget {
 }
 
 class _WebNavigation extends StatelessWidget {
-  const _WebNavigation({required this.selected, required this.onSelected});
+  const _WebNavigation({
+    required this.selected,
+    required this.masteryUnlocked,
+    required this.onSelected,
+  });
 
   final WebDestination selected;
+  final bool masteryUnlocked;
   final ValueChanged<WebDestination> onSelected;
 
   @override
@@ -219,6 +331,14 @@ class _WebNavigation extends StatelessWidget {
           const _NavigationHeading('LEARN'),
           _item(WebDestination.journey, Icons.route_outlined, 'Journey'),
           _item(WebDestination.notebook, Icons.menu_book_outlined, 'Notebook'),
+          _item(
+            WebDestination.mastery,
+            masteryUnlocked
+                ? Icons.workspace_premium_outlined
+                : Icons.lock_outline,
+            'Mastery Challenges',
+            locked: !masteryUnlocked,
+          ),
           const SizedBox(height: 22),
           const _NavigationHeading('EXPLORE'),
           _item(
@@ -227,7 +347,12 @@ class _WebNavigation extends StatelessWidget {
         ],
       );
 
-  Widget _item(WebDestination destination, IconData icon, String label) =>
+  Widget _item(
+    WebDestination destination,
+    IconData icon,
+    String label, {
+    bool locked = false,
+  }) =>
       Padding(
         padding: const EdgeInsets.only(bottom: 4),
         child: ListTile(
@@ -238,8 +363,21 @@ class _WebNavigation extends StatelessWidget {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           leading: Icon(icon),
-          title:
-              Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+          title: Text(
+            label,
+            style: TextStyle(
+              color: locked ? Colors.white54 : null,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          trailing: locked
+              ? const Icon(
+                  Icons.lock_outline,
+                  key: ValueKey('web-nav-mastery-lock'),
+                  size: 16,
+                  color: Colors.white38,
+                )
+              : null,
           onTap: () => onSelected(destination),
         ),
       );
@@ -265,75 +403,137 @@ class _NavigationHeading extends StatelessWidget {
 }
 
 class _ComposerWorkspace extends StatefulWidget {
-  const _ComposerWorkspace({super.key, required this.persistence});
+  const _ComposerWorkspace({
+    super.key,
+    required this.persistence,
+    this.example,
+  });
   final SandboxPersistenceStore persistence;
+  final ExecutableNotebookExample? example;
 
   @override
   State<_ComposerWorkspace> createState() => _ComposerWorkspaceState();
 }
 
 class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
-  late QuantumCircuit _circuit;
+  QuantumCircuit? _circuit;
+  int? _selectedQubitCount;
   GateId? _selectedGateId;
-  double _rotationAngle = math.pi / 2;
-  String _status = 'Loading saved Sandbox workspace…';
+  String _status = 'Choose a circuit size to open the Sandbox.';
+  bool _canvasHovered = false;
+
+  QuantumCircuit get _activeCircuit => _circuit!;
 
   List<Gate> get _gates => [
-        for (final type in sandboxGatePaletteTypes)
-          Gate.fromIdentifier(
-            type,
-            angle: type == SelectedGateType.rx ||
-                    type == SelectedGateType.ry ||
-                    type == SelectedGateType.rz
-                ? _rotationAngle
-                : null,
-          ),
+        for (final gate in _activeCircuit.currentLevel.availableGates)
+          Gate.fromIdentifier(gate.type, angle: gate.angle),
       ];
 
   @override
   void initState() {
     super.initState();
-    _circuit = _newCircuit();
-    unawaited(_restore());
+    if (widget.example != null) {
+      _circuit = _newCircuit();
+      _selectedQubitCount = _activeCircuit.currentLevel.numQubits;
+      _status = 'Notebook example: ${widget.example!.title}';
+    }
   }
 
-  QuantumCircuit _newCircuit() =>
-      QuantumCircuit(currentLevel: createSandboxComposerLevel(3));
+  QuantumCircuit _newCircuit({int? qubitCount, String? initialBinaryState}) =>
+      QuantumCircuit(
+        currentLevel: widget.example?.createEditableComposerLevel() ??
+            createSandboxComposerLevel(
+              qubitCount!,
+              initialBinaryState: initialBinaryState,
+            ),
+      );
 
-  Future<void> _restore() async {
-    final snapshot = await widget.persistence.loadSnapshot(3);
-    if (!mounted) return;
+  @override
+  void didUpdateWidget(covariant _ComposerWorkspace oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.example, widget.example)) {
+      _circuit?.dispose();
+      setState(() {
+        _circuit = widget.example == null ? null : _newCircuit();
+        _selectedQubitCount = widget.example == null
+            ? null
+            : _activeCircuit.currentLevel.numQubits;
+        _selectedGateId = null;
+        _status = widget.example == null
+            ? 'Choose a circuit size to open the Sandbox.'
+            : 'Notebook example: ${widget.example!.title}';
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _circuit?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openSandbox(int qubitCount) async {
+    final snapshot = await widget.persistence.loadSnapshot(qubitCount);
+    if (!mounted || widget.example != null) return;
+    final nextCircuit = snapshot?.restoreCircuit() ??
+        _newCircuit(
+          qubitCount: qubitCount,
+          initialBinaryState: snapshot?.initialBinaryState,
+        );
+    _circuit?.dispose();
     setState(() {
-      if (snapshot == null) {
-        _status = 'Ready — changes save in this browser.';
-      } else {
-        _circuit = snapshot.restoreCircuit();
-        _status = 'Restored ${snapshot.operations.length} saved operation(s).';
-      }
+      _circuit = nextCircuit;
+      _selectedQubitCount = qubitCount;
+      _selectedGateId = null;
+      _status = snapshot == null
+          ? 'Ready — changes save in this browser.'
+          : 'Restored ${snapshot.operations.length} saved operation(s).';
     });
   }
 
   Future<void> _commit(CircuitEditOutcome outcome) async {
     if (outcome.changed) {
-      _circuit.runSimulation();
-      await widget.persistence.saveCircuit(_circuit);
+      _activeCircuit.runSimulation();
+      if (widget.example == null) {
+        await widget.persistence.saveCircuit(_activeCircuit);
+      }
     }
     if (!mounted) return;
     setState(() {
       _selectedGateId = outcome.affectedGateId ?? _selectedGateId;
       _status = outcome.changed
-          ? 'Saved ${_circuit.logicalGates.length} operation(s) locally.'
+          ? widget.example == null
+              ? 'Saved ${_activeCircuit.logicalGates.length} operation(s) locally.'
+              : 'Updated Notebook example (${_activeCircuit.logicalGates.length} operation(s)).'
           : 'Edit result: ${outcome.status.name}';
     });
   }
 
   Future<void> _handleDrop(ComposerCircuitDropIntent intent) async {
-    final gate = intent.data.gate;
+    var gate = intent.data.gate;
     final location = intent.destination.location;
+    if (!intent.data.isPlaced && gate.requiresAngle && gate.angle == null) {
+      final angle = await _chooseRotationAngle(gate.type);
+      if (!mounted || angle == null) return;
+      gate = Gate.fromIdentifier(gate.type, angle: angle);
+    }
+    ControlledGatePlacement? controlledPlacement;
+    if (!intent.data.isPlaced &&
+        (gate.type == SelectedGateType.cnot ||
+            gate.type == SelectedGateType.cz ||
+            gate.type == SelectedGateType.ccnot)) {
+      controlledPlacement = await showControlledGatePlacementDialog(
+        context,
+        gateType: gate.type,
+        targetQubit: location.qubit,
+        numQubits: _activeCircuit.currentLevel.numQubits,
+      );
+      if (!mounted || controlledPlacement == null) return;
+    }
     final outcome = intent.data.isPlaced
-        ? _circuit.commitLogicalGateMovePlan(
+        ? _activeCircuit.commitLogicalGateMovePlan(
             intent.movePlan ??
-                _circuit.planLogicalGateMove(
+                _activeCircuit.planLogicalGateMove(
                   intent.data.sourceId!,
                   location,
                 ),
@@ -341,20 +541,21 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
         : switch (gate.type) {
             SelectedGateType.cnot ||
             SelectedGateType.cz =>
-              _circuit.insertDoubleGateWithOutcome(
+              _activeCircuit.insertDoubleGateWithOutcome(
                 gate,
                 location.column,
                 location.qubit,
-                location.qubit == 0 ? 1 : 0,
+                controlledPlacement!.controlQubit,
               ),
-            SelectedGateType.ccnot => _circuit.insertTripleGateWithOutcome(
+            SelectedGateType.ccnot =>
+              _activeCircuit.insertTripleGateWithOutcome(
                 gate,
                 location.column,
                 location.qubit,
-                (location.qubit + 1) % 3,
-                (location.qubit + 2) % 3,
+                controlledPlacement!.controlQubit,
+                controlledPlacement.secondControlQubit!,
               ),
-            _ => _circuit.insertSingleGateWithOutcome(
+            _ => _activeCircuit.insertSingleGateWithOutcome(
                 gate,
                 location.column,
                 location.qubit,
@@ -371,101 +572,500 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
         ),
       );
 
-  @override
-  Widget build(BuildContext context) => ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          const _WorkspaceHeading(
-            title: 'Composer',
-            subtitle: 'Build, move, and inspect quantum gates.',
-          ),
-          const SizedBox(height: 18),
-          _WorkspaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+  Future<void> _clearCircuit() async {
+    _activeCircuit.clearPlacedGates();
+    if (widget.example == null) {
+      await widget.persistence.saveCircuit(_activeCircuit);
+    }
+    if (!mounted) return;
+    setState(() {
+      _selectedGateId = null;
+      _status = widget.example == null
+          ? 'Saved an empty circuit.'
+          : 'Cleared Notebook example.';
+    });
+  }
+
+  Future<double?> _chooseRotationAngle(
+    SelectedGateType gateType, {
+    double? initialAngle,
+  }) async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => RotationGateDialog(
+        gateType: gateType,
+        initialAngle: initialAngle,
+      ),
+    );
+    return result?['angle1'] as double?;
+  }
+
+  Future<void> _editSelectedRotationAngle() async {
+    final selectedId = _selectedGateId;
+    if (selectedId == null) return;
+    final footprint = _activeCircuit.logicalGateById(selectedId);
+    if (footprint == null || !footprint.isParameterEditable) return;
+    final angle = await _chooseRotationAngle(
+      footprint.type,
+      initialAngle: footprint.gate.angle,
+    );
+    if (!mounted || angle == null) return;
+    await _commit(
+      _activeCircuit.updateGateParametersWithOutcome(selectedId, angle: angle),
+    );
+  }
+
+  Future<void> _inspectSelectedGate() async {
+    final selectedId = _selectedGateId;
+    if (selectedId == null) return;
+    final footprint = _activeCircuit.logicalGateById(selectedId);
+    if (footprint != null) await _inspect(footprint.gate);
+  }
+
+  Future<void> _replaceSelectedGate() async {
+    final selectedId = _selectedGateId;
+    if (selectedId == null) return;
+    final footprint = _activeCircuit.logicalGateById(selectedId);
+    if (footprint == null || !footprint.isEditable) return;
+    final candidates = _activeCircuit.availableSingleQubitReplacementTypes
+        .where((type) => type != footprint.type)
+        .toList(growable: false);
+    if (candidates.isEmpty) return;
+    final replacementType = await showDialog<SelectedGateType>(
+      context: context,
+      builder: (_) => GateReplacementDialog(gateTypes: candidates),
+    );
+    if (!mounted || replacementType == null) return;
+    double? angle;
+    if (Gate.fromIdentifier(replacementType).requiresAngle) {
+      angle = await _chooseRotationAngle(replacementType);
+      if (!mounted || angle == null) return;
+    }
+    await _commit(
+      _activeCircuit.replaceSingleGateWithOutcome(
+        selectedId,
+        Gate.fromIdentifier(replacementType, angle: angle),
+      ),
+    );
+  }
+
+  Future<void> _duplicateSelectedGate() async {
+    final selectedId = _selectedGateId;
+    if (selectedId == null) return;
+    await _commit(_activeCircuit.duplicateLogicalGateWithOutcome(selectedId));
+  }
+
+  Future<void> _deleteSelectedGate() async {
+    final selectedId = _selectedGateId;
+    if (selectedId == null) return;
+    await _commit(_activeCircuit.removeLogicalGateByIdWithOutcome(selectedId));
+    if (mounted) setState(() => _selectedGateId = null);
+  }
+
+  String _selectedGateSummary() {
+    final selectedId = _selectedGateId;
+    final gate =
+        selectedId == null ? null : _activeCircuit.logicalGateById(selectedId);
+    if (gate == null) return '';
+    if (gate.type == SelectedGateType.ccnot) {
+      return '${gate.gate.label}: controls Q${gate.controlQubit}, '
+          'Q${gate.secondControlQubit} → target Q${gate.targetQubit}';
+    }
+    if (gate.isControlled) {
+      return '${gate.gate.label}: control Q${gate.controlQubit} '
+          '→ target Q${gate.targetQubit}';
+    }
+    return gate.gate.label.replaceAll('\n', ' ');
+  }
+
+  Widget _buildQubitChooser() => _WorkspaceCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _ComposerSectionHeading(
+              title: 'Choose Number of Qubits',
+              icon: Icons.memory_outlined,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Open the sandbox with a circuit size.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
               children: [
-                ComposerGatePalette(
-                  gates: _gates,
-                  onGateTap: (gate) => setState(() => _status =
-                      'Selected ${gate.label.replaceAll('\n', ' ')}.'),
-                  onInspectGate: _inspect,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Text('Rotation angle'),
-                    Expanded(
-                      child: Slider(
-                        key: const ValueKey('web-composer-rotation-angle'),
-                        value: _rotationAngle,
-                        min: 0,
-                        max: 2 * math.pi,
-                        divisions: 16,
-                        onChanged: (value) =>
-                            setState(() => _rotationAngle = value),
+                for (var qubits = 1; qubits <= 5; qubits++)
+                  FilledButton(
+                    key: ValueKey('web-composer-qubits-$qubits'),
+                    onPressed: () => _openSandbox(qubits),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(72, 58),
+                      textStyle: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
-                    SizedBox(
-                      width: 54,
-                      child: Text(
-                          '${(_rotationAngle / math.pi).toStringAsFixed(2)}π'),
+                    child: Text('$qubits'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildStateInformation({required bool wide}) {
+    final level = _activeCircuit.currentLevel;
+    final target = level.solutionFinalVector.isEmpty
+        ? null
+        : level.solutionFinalVector.map((column) => column.first).toList();
+    final current = StateVectorDisplay(
+      key: const ValueKey('web-composer-current-state'),
+      stateVector: _activeCircuit.currentState.stateVector,
+      numQubits: level.numQubits,
+      summaryTitleOverride: 'Current State',
+      tone: StateVectorDisplayTone.current,
+      showHeader: false,
+      showToggleInSummary: true,
+      dense: true,
+    );
+    final targetDisplay = target == null
+        ? null
+        : StateVectorDisplay(
+            key: const ValueKey('web-composer-target-state'),
+            stateVector: target,
+            numQubits: level.numQubits,
+            summaryTitleOverride: 'Target State',
+            stateExpressionLabel: level.targetStateLabel,
+            stateExpression: level.targetStateExpression,
+            tone: StateVectorDisplayTone.target,
+            showHeader: false,
+            showToggleInSummary: true,
+            dense: true,
+          );
+    return _WorkspaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _ComposerSectionHeading(
+            title: 'State information',
+            icon: Icons.timeline_outlined,
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: targetDisplay == null ? 260 : 320,
+            child: targetDisplay == null
+                ? current
+                : wide
+                    ? Row(
+                        children: [
+                          Expanded(child: current),
+                          const SizedBox(width: 12),
+                          Expanded(child: targetDisplay),
+                        ],
+                      )
+                    : Column(
+                        children: [
+                          Expanded(child: current),
+                          const SizedBox(height: 10),
+                          Expanded(child: targetDisplay),
+                        ],
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 700;
+          final wide = constraints.maxWidth >= 1050;
+          final horizontalPadding = compact ? 14.0 : 24.0;
+
+          if (_circuit == null) {
+            return ListView(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                compact ? 16 : 24,
+                horizontalPadding,
+                24,
+              ),
+              children: [
+                const _WorkspaceHeading(
+                  title: 'Composer',
+                  subtitle: 'Build, move, and inspect quantum gates.',
+                ),
+                SizedBox(height: compact ? 14 : 18),
+                _buildQubitChooser(),
+              ],
+            );
+          }
+
+          final canvasHeight = math.max(
+            140.0,
+            QuantumCircuitPainter.requiredDrawingHeightFor(
+                  _activeCircuit.currentLevel.numQubits,
+                ) +
+                28,
+          );
+          final selectedGate = _selectedGateId == null
+              ? null
+              : _activeCircuit.logicalGateById(_selectedGateId!);
+          final selectedCapabilities =
+              ComposerSelectedGateCapabilities.forSelection(
+            _activeCircuit,
+            _selectedGateId,
+          );
+
+          return ListView(
+            key: const ValueKey('web-composer-workspace-scroll'),
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              compact ? 16 : 24,
+              horizontalPadding,
+              24,
+            ),
+            children: [
+              const _WorkspaceHeading(
+                title: 'Composer',
+                subtitle: 'Build, move, and inspect quantum gates.',
+              ),
+              SizedBox(height: compact ? 14 : 18),
+              _WorkspaceCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: _ComposerSectionHeading(
+                            title: 'Circuit',
+                            icon: Icons.account_tree_outlined,
+                          ),
+                        ),
+                        if (widget.example == null) ...[
+                          Text('${_selectedQubitCount!} qubits'),
+                          const SizedBox(width: 8),
+                          TextButton(
+                            key: const ValueKey('web-composer-change-qubits'),
+                            onPressed: () => setState(() {
+                              _circuit?.dispose();
+                              _circuit = null;
+                              _selectedQubitCount = null;
+                              _selectedGateId = null;
+                              _status =
+                                  'Choose a circuit size to open the Sandbox.';
+                            }),
+                            child: const Text('Change'),
+                          ),
+                        ],
+                        TextButton.icon(
+                          key: const ValueKey('web-clear-circuit'),
+                          onPressed: _clearCircuit,
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: const Text('Clear'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    MouseRegion(
+                      key: const ValueKey('web-composer-canvas-pointer-area'),
+                      cursor: SystemMouseCursors.precise,
+                      onEnter: (_) => setState(() => _canvasHovered = true),
+                      onExit: (_) => setState(() => _canvasHovered = false),
+                      child: AnimatedContainer(
+                        key: const ValueKey('web-composer-canvas-frame'),
+                        duration: const Duration(milliseconds: 120),
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: _canvasHovered
+                                ? _cyan.withValues(alpha: .72)
+                                : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                        child: SizedBox(
+                          key: const ValueKey('web-composer-canvas'),
+                          height: canvasHeight,
+                          child: ComposerCircuitCanvas(
+                            circuit: _activeCircuit,
+                            selectedGateId: _selectedGateId,
+                            onGateTap: (gate) => setState(() {
+                              _selectedGateId = gate?.id;
+                              _status = gate == null
+                                  ? 'Canvas selection cleared.'
+                                  : 'Selected ${gate.gate.label.replaceAll('\n', ' ')}.';
+                            }),
+                            onDropRequested: _handleDrop,
+                            onPlacedGateDragStarted: (gate) =>
+                                setState(() => _selectedGateId = gate.id),
+                            onDeletePlacedGateRequested: (gate) => _commit(
+                              _activeCircuit
+                                  .removeLogicalGateByIdWithOutcome(gate.id),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      _status,
+                      key: const ValueKey('web-storage-status'),
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    if (selectedGate != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _selectedGateSummary(),
+                        key: const ValueKey('web-composer-selected-gate'),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      if (selectedGate.isParameterEditable) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '${selectedGate.gate.label.replaceAll('\n', ' ')} angle: '
+                          '${(selectedGate.gate.angle! / math.pi).toStringAsFixed(3)}π '
+                          '(${selectedGate.gate.angle!.toStringAsFixed(6)} rad)',
+                          key: const ValueKey(
+                            'web-composer-selected-rotation-angle',
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      Wrap(
+                        runSpacing: 8,
+                        spacing: 10,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          OutlinedButton.icon(
+                            key: const ValueKey(
+                              'web-composer-inspect-selected-gate',
+                            ),
+                            onPressed: _inspectSelectedGate,
+                            icon: const Icon(Icons.info_outline, size: 18),
+                            label: const Text('Inspect'),
+                          ),
+                          if (selectedCapabilities
+                              .supports(ComposerSelectedGateAction.replace))
+                            OutlinedButton.icon(
+                              key: const ValueKey(
+                                'web-composer-replace-selected-gate',
+                              ),
+                              onPressed: _replaceSelectedGate,
+                              icon: const Icon(Icons.swap_horiz_rounded,
+                                  size: 18),
+                              label: const Text('Replace'),
+                            ),
+                          if (selectedCapabilities.supports(
+                            ComposerSelectedGateAction.editAngle,
+                          ))
+                            OutlinedButton.icon(
+                              key: const ValueKey(
+                                'web-composer-edit-selected-angle',
+                              ),
+                              onPressed: _editSelectedRotationAngle,
+                              icon: const Icon(Icons.tune_rounded, size: 18),
+                              label: const Text('Edit angle'),
+                            ),
+                          if (selectedCapabilities.supports(
+                            ComposerSelectedGateAction.duplicate,
+                          ))
+                            OutlinedButton.icon(
+                              key: const ValueKey(
+                                'web-composer-duplicate-selected-gate',
+                              ),
+                              onPressed: _duplicateSelectedGate,
+                              icon: const Icon(Icons.copy_rounded, size: 18),
+                              label: const Text('Duplicate'),
+                            ),
+                          if (selectedCapabilities
+                              .supports(ComposerSelectedGateAction.move))
+                            const Chip(
+                              key: ValueKey('web-composer-move-selected-gate'),
+                              avatar: Icon(Icons.open_with_rounded, size: 16),
+                              label: Text('Drag to move'),
+                            ),
+                          if (selectedCapabilities
+                              .supports(ComposerSelectedGateAction.delete))
+                            OutlinedButton.icon(
+                              key: const ValueKey(
+                                'web-composer-delete-selected-gate',
+                              ),
+                              onPressed: _deleteSelectedGate,
+                              icon: const Icon(Icons.delete_outline, size: 18),
+                              label: const Text('Delete'),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              _WorkspaceCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _ComposerSectionHeading(
+                      title: 'Gate palette',
+                      icon: Icons.widgets_outlined,
+                    ),
+                    const SizedBox(height: 10),
+                    ComposerGatePalette(
+                      gates: _gates,
+                      dense: wide,
+                      onGateTap: (gate) => setState(() => _status =
+                          'Selected ${gate.label.replaceAll('\n', ' ')}.'),
+                      onInspectGate: _inspect,
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          _WorkspaceCard(
-            child: SizedBox(
-              key: const ValueKey('web-composer-canvas'),
-              height: 230,
-              child: ComposerCircuitCanvas(
-                circuit: _circuit,
-                selectedGateId: _selectedGateId,
-                onGateTap: (gate) => setState(() {
-                  _selectedGateId = gate?.id;
-                  _status = gate == null
-                      ? 'Canvas selection cleared.'
-                      : 'Selected ${gate.gate.label.replaceAll('\n', ' ')}.';
-                }),
-                onDropRequested: _handleDrop,
-                onPlacedGateDragStarted: (gate) =>
-                    setState(() => _selectedGateId = gate.id),
-                onDeletePlacedGateRequested: (gate) =>
-                    _commit(_circuit.removeLogicalGateByIdWithOutcome(gate.id)),
               ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: Text(_status, key: const ValueKey('web-storage-status')),
-              ),
-              TextButton.icon(
-                key: const ValueKey('web-clear-circuit'),
-                onPressed: () async {
-                  _circuit.clearPlacedGates();
-                  await widget.persistence.saveCircuit(_circuit);
-                  if (mounted) {
-                    setState(() {
-                      _selectedGateId = null;
-                      _status = 'Saved an empty circuit.';
-                    });
-                  }
-                },
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('Clear'),
-              ),
+              const SizedBox(height: 14),
+              _buildStateInformation(wide: wide),
             ],
+          );
+        },
+      );
+}
+
+class _ComposerSectionHeading extends StatelessWidget {
+  const _ComposerSectionHeading({required this.title, required this.icon});
+
+  final String title;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: _cyan),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       );
 }
 
 class _BlochWorkspace extends StatefulWidget {
-  const _BlochWorkspace({super.key});
+  const _BlochWorkspace({
+    super.key,
+    this.requestedInitialState,
+    this.onOpenNotebookEntry,
+  });
+
+  final BlochState? requestedInitialState;
+  final ValueChanged<String>? onOpenNotebookEntry;
 
   @override
   State<_BlochWorkspace> createState() => _BlochWorkspaceState();
@@ -480,7 +1080,7 @@ class _BlochWorkspaceState extends State<_BlochWorkspace>
   late final BlochExplorerHistory _history;
   late final AnimationController _animation;
   final ScrollController _historyScrollController = ScrollController();
-  BlochState _displayState = CanonicalQubitState.plus.blochState;
+  late BlochState _displayState;
   BlochState? _animationStart;
   BlochState? _animationEnd;
   BlochCamera _camera = const BlochCamera();
@@ -489,16 +1089,38 @@ class _BlochWorkspaceState extends State<_BlochWorkspace>
   bool _replaying = false;
   int _replayGeneration = 0;
   int? _selectedHistoryIndex;
+  BlochHistoryEntry? _selectedHistoryEntry;
   int? _activeHistoryIndex;
+  bool _historyExpanded = false;
   String _interaction = 'Ready.';
 
   @override
   void initState() {
     super.initState();
+    _displayState = widget.requestedInitialState ?? BlochState.zero;
     _history = BlochExplorerHistory(initial: _displayState)
       ..addListener(_syncHistory);
     _animation = AnimationController(vsync: this, duration: _gateDuration)
       ..addListener(_tickAnimation);
+  }
+
+  @override
+  void didUpdateWidget(covariant _BlochWorkspace oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(
+        oldWidget.requestedInitialState, widget.requestedInitialState)) {
+      final requested = widget.requestedInitialState;
+      if (requested != null) {
+        _cancelMotion(restoreCurrent: false);
+        _history.reset(initial: requested);
+        setState(() {
+          _displayState = requested;
+          _selectedHistoryIndex = null;
+          _selectedHistoryEntry = null;
+          _interaction = 'Opened Notebook example result.';
+        });
+      }
+    }
   }
 
   @override
@@ -513,15 +1135,26 @@ class _BlochWorkspaceState extends State<_BlochWorkspace>
 
   void _syncHistory() {
     if (!mounted) return;
-    setState(() => _displayState = _history.state);
+    setState(() {
+      final selected = _selectedHistoryIndex;
+      if (selected != null &&
+          (selected > _history.index ||
+              selected >= _history.entries.length ||
+              !identical(_history.entries[selected], _selectedHistoryEntry))) {
+        _selectedHistoryIndex = null;
+        _selectedHistoryEntry = null;
+      }
+      _displayState = _history.state;
+    });
   }
 
   void _tickAnimation() {
     final start = _animationStart;
     final end = _animationEnd;
     if (!mounted || start == null || end == null) return;
-    setState(() =>
-        _displayState = BlochState.interpolate(start, end, _animation.value));
+    final progress = Curves.easeInOut.transform(_animation.value);
+    setState(
+        () => _displayState = BlochState.interpolate(start, end, progress));
   }
 
   void _cancelMotion({bool restoreCurrent = true}) {
@@ -548,6 +1181,7 @@ class _BlochWorkspaceState extends State<_BlochWorkspace>
 
   void _applyGate(SelectedGateType type) {
     _cancelMotion();
+    _clearHistoryPreview();
     final rotation = type == SelectedGateType.rx ||
         type == SelectedGateType.ry ||
         type == SelectedGateType.rz;
@@ -560,7 +1194,6 @@ class _BlochWorkspaceState extends State<_BlochWorkspace>
       gate: gate,
     );
     setState(() {
-      _selectedHistoryIndex = null;
       _interaction = 'Applied ${gate.label.replaceAll('\n', ' ')}.';
     });
     if (!_instant) _animate(source, destination, _gateDuration);
@@ -578,10 +1211,11 @@ class _BlochWorkspaceState extends State<_BlochWorkspace>
       if (!mounted || generation != _replayGeneration) return;
       setState(() {
         _activeHistoryIndex = startIndex + offset + 1;
-        _displayState = transition.source;
+        _displayState = _instant ? transition.destination : transition.source;
       });
+      _scrollActiveHistoryEntry();
       if (_instant) {
-        setState(() => _displayState = transition.destination);
+        await Future<void>.delayed(_replayGap);
       } else {
         _animationStart = transition.source;
         _animationEnd = transition.destination;
@@ -592,7 +1226,9 @@ class _BlochWorkspaceState extends State<_BlochWorkspace>
           return;
         }
       }
-      await Future<void>.delayed(_replayGap);
+      if (!_instant && offset + 1 < sequence.length) {
+        await Future<void>.delayed(_replayGap);
+      }
     }
     if (mounted && generation == _replayGeneration) {
       setState(() {
@@ -603,18 +1239,102 @@ class _BlochWorkspaceState extends State<_BlochWorkspace>
     }
   }
 
-  void _inspect(Gate gate) {
-    showDialog<void>(
-      context: context,
-      builder: (_) => GateInspectorDialog.forGate(
-        gate: gate,
-        info: GateEducationalCatalog.forType(gate.type),
+  void _clearHistoryPreview() {
+    if (_selectedHistoryIndex == null) return;
+    setState(() {
+      _selectedHistoryIndex = null;
+      _selectedHistoryEntry = null;
+      _displayState = _history.state;
+    });
+  }
+
+  void _selectHistory(int index) {
+    if (_replaying || index < 0 || index > _history.index) return;
+    setState(() {
+      if (_selectedHistoryIndex == index) {
+        _selectedHistoryIndex = null;
+        _selectedHistoryEntry = null;
+        _displayState = _history.state;
+      } else {
+        final entry = _history.entries[index];
+        _selectedHistoryIndex = index;
+        _selectedHistoryEntry = entry;
+        _displayState = entry.state;
+      }
+      _interaction = _selectedHistoryIndex == null
+          ? 'History preview cleared.'
+          : 'History step $index selected.';
+    });
+  }
+
+  Future<void> _inspectHistoryGate(int index) async {
+    if (_replaying || index <= 0 || index > _history.index) return;
+    final gate = _history.entries[index].gate;
+    if (gate == null) return;
+    final preceding = [
+      for (var step = 1; step < index; step++) _history.entries[step].label,
+    ];
+    final concise = preceding.length <= 4
+        ? preceding
+        : ['…', ...preceding.sublist(preceding.length - 4)];
+    await _inspect(
+      gate,
+      inspectionContext: GateInspectorContext(
+        title: 'History step $index of ${_history.index}',
+        description:
+            'Applied after: ${concise.isEmpty ? 'Start' : concise.join(' → ')}',
       ),
     );
   }
 
+  Future<void> _inspect(
+    Gate gate, {
+    GateInspectorContext? inspectionContext,
+  }) async {
+    final info = GateEducationalCatalog.forType(gate.type);
+    final notebookTitle = info?.notebookDiscoveryTitle;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => GateInspectorDialog.forGate(
+        gate: gate,
+        info: info,
+        inspectionContext: inspectionContext,
+        onOpenNotebook:
+            notebookTitle == null || widget.onOpenNotebookEntry == null
+                ? null
+                : () {
+                    Navigator.of(dialogContext).pop();
+                    widget.onOpenNotebookEntry!(notebookTitle);
+                  },
+        onOpenRelatedConcept: widget.onOpenNotebookEntry == null
+            ? null
+            : (title) {
+                Navigator.of(dialogContext).pop();
+                widget.onOpenNotebookEntry!(title);
+              },
+      ),
+    );
+  }
+
+  void _scrollActiveHistoryEntry() {
+    if (!_historyExpanded || _activeHistoryIndex == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_historyScrollController.hasClients) return;
+      final target = (_activeHistoryIndex! * 82.0).clamp(
+        0.0,
+        _historyScrollController.position.maxScrollExtent,
+      );
+      _historyScrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) => ListView(
+        key: const ValueKey('web-bloch-workspace-scroll'),
         padding: const EdgeInsets.all(24),
         children: [
           const _WorkspaceHeading(
@@ -624,35 +1344,51 @@ class _BlochWorkspaceState extends State<_BlochWorkspace>
           const SizedBox(height: 18),
           LayoutBuilder(
             builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 920;
+              final wide = constraints.maxWidth >= 1000;
+              final sphereHeight = wide
+                  ? (constraints.maxWidth * .48).clamp(470.0, 610.0)
+                  : (constraints.maxWidth * .72).clamp(350.0, 540.0);
               final sphere = _WorkspaceCard(
-                child: SizedBox(
-                  key: const ValueKey('web-bloch-sphere'),
-                  height: wide ? 500 : 390,
-                  child: BlochSpherePanel(
-                    state: _displayState,
-                    camera: _camera,
-                    onCameraChanged: (camera) => setState(() {
-                      _camera = camera;
-                      _interaction = 'Camera updated.';
-                    }),
-                    onStatePreview: (state) => setState(() {
-                      _displayState = state;
-                      _interaction = 'Vector preview updated.';
-                    }),
-                    onStateCommitted: (state) {
-                      _history.commit('Direct state', state);
-                      setState(() => _interaction = 'Vector state committed.');
-                    },
-                    onGestureStarted: _cancelMotion,
-                    onStateGestureStarted: () {
-                      _cancelMotion();
-                      return _history.state;
-                    },
+                child: MouseRegion(
+                  key: const ValueKey('web-bloch-sphere-pointer-area'),
+                  cursor: _replaying
+                      ? SystemMouseCursors.basic
+                      : SystemMouseCursors.grab,
+                  child: SizedBox(
+                    key: const ValueKey('web-bloch-sphere'),
+                    height: sphereHeight,
+                    child: IgnorePointer(
+                      ignoring: _replaying,
+                      child: BlochSpherePanel(
+                        reserveOverlaySafeRegions: wide,
+                        state: _displayState,
+                        camera: _camera,
+                        onCameraChanged: (camera) => setState(() {
+                          _camera = camera;
+                          _interaction = 'Camera updated.';
+                        }),
+                        onStatePreview: (state) => setState(() {
+                          _displayState = state;
+                          _interaction = 'Vector preview updated.';
+                        }),
+                        onStateCommitted: (state) {
+                          _history.commit('Direct state', state);
+                          setState(
+                              () => _interaction = 'Vector state committed.');
+                        },
+                        onGestureStarted: _cancelMotion,
+                        onStateGestureStarted: () {
+                          _cancelMotion();
+                          _clearHistoryPreview();
+                          return _history.state;
+                        },
+                      ),
+                    ),
                   ),
                 ),
               );
               final controls = Column(
+                key: const ValueKey('web-bloch-tools'),
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _WorkspaceCard(
@@ -665,6 +1401,7 @@ class _BlochWorkspaceState extends State<_BlochWorkspace>
                         _history.reset(initial: preset.blochState);
                         setState(() {
                           _selectedHistoryIndex = null;
+                          _selectedHistoryEntry = null;
                           _displayState = preset.blochState;
                           _interaction = 'Preset ${preset.label} selected.';
                         });
@@ -684,15 +1421,19 @@ class _BlochWorkspaceState extends State<_BlochWorkspace>
                       instant: _instant,
                       onUndo: () {
                         _cancelMotion();
+                        _clearHistoryPreview();
                         _history.undo();
                       },
                       onRedo: () {
                         _cancelMotion();
+                        _clearHistoryPreview();
                         _history.redo();
                       },
                       onReplay: _replay,
                       onReset: () {
                         _cancelMotion(restoreCurrent: false);
+                        _selectedHistoryIndex = null;
+                        _selectedHistoryEntry = null;
                         _history.reset();
                       },
                       onInstantChanged: (value) =>
@@ -708,19 +1449,12 @@ class _BlochWorkspaceState extends State<_BlochWorkspace>
                       activeReplayIndex: _activeHistoryIndex,
                       replayRunning: _replaying,
                       scrollController: _historyScrollController,
-                      onExpansionChanged: (_) {},
-                      onSelected: (index) {
-                        _cancelMotion(restoreCurrent: false);
-                        setState(() {
-                          _selectedHistoryIndex = index;
-                          _displayState = _history.entries[index].state;
-                          _interaction = 'History step $index selected.';
-                        });
+                      onExpansionChanged: (expanded) {
+                        _historyExpanded = expanded;
+                        if (expanded) _scrollActiveHistoryEntry();
                       },
-                      onInspect: (index) {
-                        final gate = _history.entries[index].gate;
-                        if (gate != null) _inspect(gate);
-                      },
+                      onSelected: _selectHistory,
+                      onInspect: _inspectHistoryGate,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -729,15 +1463,17 @@ class _BlochWorkspaceState extends State<_BlochWorkspace>
               );
               if (!wide) {
                 return Column(
+                  key: const ValueKey('web-bloch-stacked-layout'),
                   children: [sphere, const SizedBox(height: 12), controls],
                 );
               }
               return Row(
+                key: const ValueKey('web-bloch-wide-layout'),
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(flex: 6, child: sphere),
-                  const SizedBox(width: 16),
-                  Expanded(flex: 5, child: controls),
+                  Expanded(flex: 13, child: sphere),
+                  const SizedBox(width: 18),
+                  Expanded(flex: 10, child: controls),
                 ],
               );
             },

@@ -241,10 +241,10 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> {
         ? const <NotebookSearchResult>[]
         : _searchIndex.search(
             _searchQuery,
-            allowedEntryIds: {
-              for (final entry in notebookEntries)
-                if (_unlocked.contains(entry.discoveryTitle)) entry.id,
-            },
+            allowedEntryIds: notebookSearchAllowedEntryIds(
+              entries: notebookEntries,
+              unlockedDiscoveryTitles: _unlocked,
+            ),
           );
     return Scaffold(
       backgroundColor: const Color(0xFF00030A),
