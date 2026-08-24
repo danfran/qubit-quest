@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:quantumquiz/models/bloch_explorer_model.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
@@ -300,16 +301,18 @@ class _QubitQuestWordmark extends StatelessWidget {
   const _QubitQuestWordmark();
 
   @override
-  Widget build(BuildContext context) => const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.blur_circular, color: _cyan),
-          SizedBox(width: 10),
-          Text(
-            'Qubit Quest',
-            style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: .3),
+  Widget build(BuildContext context) => Semantics(
+        label: 'Qubit Quest',
+        image: true,
+        child: SvgPicture.asset(
+          'assets/images/logo.svg',
+          key: const ValueKey('web-qubit-quest-wordmark'),
+          height: 30,
+          colorFilter: const ColorFilter.mode(
+            Colors.white,
+            BlendMode.srcIn,
           ),
-        ],
+        ),
       );
 }
 
@@ -805,11 +808,11 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
           }
 
           final canvasHeight = math.max(
-            140.0,
+            72.0,
             QuantumCircuitPainter.requiredDrawingHeightFor(
                   _activeCircuit.currentLevel.numQubits,
                 ) +
-                28,
+                8,
           );
           final selectedGate = _selectedGateId == null
               ? null
@@ -894,6 +897,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
                           height: canvasHeight,
                           child: ComposerCircuitCanvas(
                             circuit: _activeCircuit,
+                            enableDesktopHorizontalScrolling: true,
                             selectedGateId: _selectedGateId,
                             onGateTap: (gate) => setState(() {
                               _selectedGateId = gate?.id;

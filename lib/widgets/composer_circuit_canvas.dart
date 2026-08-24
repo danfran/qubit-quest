@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/gate_id.dart';
@@ -33,6 +34,7 @@ class ComposerCircuitCanvas extends StatefulWidget {
     required this.onPlacedGateDragStarted,
     required this.onDeletePlacedGateRequested,
     this.onDragActiveChanged,
+    this.enableDesktopHorizontalScrolling = false,
   });
 
   final QuantumCircuit circuit;
@@ -42,6 +44,7 @@ class ComposerCircuitCanvas extends StatefulWidget {
   final ValueChanged<PlacedGateRef> onPlacedGateDragStarted;
   final ValueChanged<PlacedGateRef> onDeletePlacedGateRequested;
   final ValueChanged<bool>? onDragActiveChanged;
+  final bool enableDesktopHorizontalScrolling;
 
   @override
   State<ComposerCircuitCanvas> createState() => _ComposerCircuitCanvasState();
@@ -105,6 +108,80 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
 
   void _circuitChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _handlePointerSignal(PointerSignalEvent event) {
+    if (!widget.enableDesktopHorizontalScrolling ||
+        event is! PointerScrollEvent ||
+        !_scrollController.hasClients) {
+      return;
+    }
+    final delta = event.scrollDelta.dx.abs() > event.scrollDelta.dy.abs()
+        ? event.scrollDelta.dx
+        : event.scrollDelta.dy;
+    if (delta == 0) return;
+    final position = (_scrollController.offset + delta).clamp(
+      _scrollController.position.minScrollExtent,
+      _scrollController.position.maxScrollExtent,
+    );
+    _scrollController.jumpTo(position);
+  }
+
+  Widget _horizontalCircuitSurface({
+    required double width,
+    required double height,
+    required int maxPosition,
+  }) {
+    final scrollView = SingleChildScrollView(
+      key: const ValueKey('circuit-horizontal-scroll'),
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            CustomPaint(
+              painter: _CircuitGuidePainter(
+                numQubits: _numQubits,
+                columns: math.max(4, maxPosition + 4),
+                isDragging: _isDraggingGate,
+                destination: _draggingDestination,
+              ),
+            ),
+            CustomPaint(
+              painter: QuantumCircuitPainter(
+                widget.circuit,
+                previewGates: _isDraggingGate ? _dragPreview() : null,
+                selectedGateId: widget.selectedGateId,
+                ghostedGateId: _activeDragData?.isPlaced == true
+                    ? _activeDragData!.sourceId
+                    : null,
+                highlightedQubit: _draggingDestination?.location.qubit,
+              ),
+            ),
+            if (widget.circuit.isCircuitEmpty())
+              Align(
+                alignment: const Alignment(0, -0.42),
+                child: _EmptyCircuitPrompt(isDragging: _isDraggingGate),
+              ),
+            ..._placedGateDragOverlays(),
+          ],
+        ),
+      ),
+    );
+    if (!widget.enableDesktopHorizontalScrolling) return scrollView;
+    return Listener(
+      onPointerSignal: _handlePointerSignal,
+      child: Scrollbar(
+        controller: _scrollController,
+        thumbVisibility: true,
+        interactive: true,
+        scrollbarOrientation: ScrollbarOrientation.bottom,
+        child: scrollView,
+      ),
+    );
   }
 
   void _reportDragActive(bool active) {
@@ -407,48 +484,10 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    SingleChildScrollView(
-                      key: const ValueKey('circuit-horizontal-scroll'),
-                      controller: _scrollController,
-                      scrollDirection: Axis.horizontal,
-                      child: SizedBox(
-                        width: width,
-                        height: viewportHeight,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            CustomPaint(
-                              painter: _CircuitGuidePainter(
-                                numQubits: _numQubits,
-                                columns: math.max(4, maxPosition + 4),
-                                isDragging: _isDraggingGate,
-                                destination: _draggingDestination,
-                              ),
-                            ),
-                            CustomPaint(
-                              painter: QuantumCircuitPainter(
-                                widget.circuit,
-                                previewGates:
-                                    _isDraggingGate ? _dragPreview() : null,
-                                selectedGateId: widget.selectedGateId,
-                                ghostedGateId: _activeDragData?.isPlaced == true
-                                    ? _activeDragData!.sourceId
-                                    : null,
-                                highlightedQubit:
-                                    _draggingDestination?.location.qubit,
-                              ),
-                            ),
-                            if (widget.circuit.isCircuitEmpty())
-                              Align(
-                                alignment: const Alignment(0, -0.42),
-                                child: _EmptyCircuitPrompt(
-                                  isDragging: _isDraggingGate,
-                                ),
-                              ),
-                            ..._placedGateDragOverlays(),
-                          ],
-                        ),
-                      ),
+                    _horizontalCircuitSurface(
+                      width: width,
+                      height: viewportHeight,
+                      maxPosition: maxPosition,
                     ),
                     if (_placedDragOutsideCircuit &&
                         (_activeDragData?.isPlaced ?? false))

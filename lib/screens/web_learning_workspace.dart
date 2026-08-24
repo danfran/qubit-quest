@@ -1352,6 +1352,7 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
               ignoring: !widget.enabled,
               child: ComposerCircuitCanvas(
                 circuit: _circuit,
+                enableDesktopHorizontalScrolling: true,
                 selectedGateId: _selectedGateId,
                 onGateTap: (gate) => setState(() => _selectedGateId = gate?.id),
                 onDropRequested: _drop,

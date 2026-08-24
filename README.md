@@ -1,51 +1,88 @@
 # Qubit Quest
 
-A new Flutter project.
+Qubit Quest is an interactive Flutter application for learning quantum computing
+through guided lessons, circuit-building challenges, a searchable Quantum Notebook,
+Mastery Challenges, a free-form Composer, and a Bloch Sphere Explorer.
 
-## Getting Started
+## Web application
 
-This project is a starting point for a Flutter application.
+Qubit Quest Web 0.1 is published at:
 
-A few resources to get you started if this is your first Flutter project:
+**https://danfran.github.io/qubit-quest/**
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+The Web application is client-side. Progress, Notebook discoveries, Mastery state,
+preferences, and Composer workspaces are stored in the current browser through the
+shared application-storage abstraction. There is no account or cloud synchronization
+in Web 0.1.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Mobile application
 
+Qubit Quest also has a production Android application built from the same repository.
+The mobile and Web applications share canonical learning content, progression,
+quantum models, Composer behavior, Bloch mathematics, and persistence schemas while
+using platform-appropriate layouts. A public Google Play listing URL is not currently
+documented in this repository.
 
-## Create Release (AAB)
+## Local development
+
+Install a stable Flutter SDK, then run:
+
+```bash
+flutter pub get
+flutter analyze --no-fatal-infos
+flutter test
+```
+
+Run the mobile application on a connected device or emulator:
+
+```bash
+flutter run
+```
+
+Run Web locally on a stable origin:
+
+```bash
+flutter run -d chrome --web-port=8080
+```
+
+Build the GitHub Pages form locally:
+
+```bash
+flutter build web --release --base-href /qubit-quest/
+python3 -m http.server 8080 --directory build/web
+```
+
+When testing a subpath build locally, open
+`http://localhost:8080/qubit-quest/` only if the static server maps that path to the
+built artifact. For a direct `build/web` server, build with `/` as the base href or
+serve it beneath a `qubit-quest` directory.
+
+## Web deployment
+
+Pushes to `main` trigger [`.github/workflows/deploy-web.yml`](.github/workflows/deploy-web.yml).
+The workflow:
+
+1. installs stable Flutter;
+2. resolves dependencies;
+3. runs `flutter analyze --no-fatal-infos` (warnings and errors remain fatal);
+4. builds with `--base-href /qubit-quest/`;
+5. publishes `build/web` through GitHub Pages.
+
+The repository's Pages source must be configured as **GitHub Actions**. The static
+host requires no backend or server API. Qubit Quest currently uses workspace-local
+navigation, so the deployed entry point is the repository base path.
+
+## Project structure
+
+- `lib/models/` — canonical learning, progression, quantum, and persistence models
+- `lib/widgets/` — reusable Composer, Bloch, maths, and application components
+- `lib/screens/` — mobile and Web presentation/composition
+- `test/` — focused model, interaction, parity, persistence, and Web acceptance tests
+- `web/` — browser metadata and Qubit Quest branding assets
+- `docs/` — current technical notes and archived product-history material
+
+## Android release build
 
 ```bash
 flutter build appbundle --release
 ```
-
-### TODO Tasks
-
-* ~~fix start/continue~~
-* ~~add button "rate us"~~
-* ~~add button "privacy policy"~~
-* ~~fix the button for "next level" dialog~~
-* ~~interactive messages display~~
-* ~~"next level" dialog still has "select level option" - when that gets selected, the new level that has just been unlocked is still not unlocked~~
-* ~~"review solution" - when that gets selected, the new level that has just been unlocked is still not unlocked~~
-* ~~replace "print(...)" with "log.debug(...)"~~
-* ~~change CNOT placement, first target then control qubit~~
-* ~~CNOT dialog should be more consistent with CCNOT dialog~~
-* ~~in the task description add Latex visualisation and fix the H-S level text. Also, should open a task dialog if the text is tapped?~~
-* ~~the gates on the bottom of the compose should be wrapped in a horizontal scrollable area~~
-* add levels
-* add more gates
-* add app documentation
-* add composer qubit number as option
-* complete documentation gates
-* Documentation button in home page can be split in gates/app documentation
-* check "rate us" button if actually works - around the end
-* fix privacy policy web page
-* fix other documentation web pages
-* Level 5, the Tex formula for the target state is too small as font size - maybe should be used a dialog too?
-* ~~WHEN A LEVEL IS COMPLETED, PRESSING QUICKLY THE "NEXT LEVEL" BUTTON, UNLOCK MANY LEVEL - SHOULD BE ONLY THE NEXT ONE~~
-* ~~ADD IN THE DOCUMENTATION 4 BELL'S STATES~~
-* ~~FIX THE ISSUE THAT PRE-INSERTED GATES DO NOT GET APPLIED TO THE INITIAL STATE-VECTOR~~
