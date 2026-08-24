@@ -24,17 +24,17 @@ import 'package:quantumquiz/utils/complex_formatter.dart';
 import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/adaptive_learning_card.dart';
 import 'package:quantumquiz/widgets/circuit_canvas_metrics.dart';
+import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
+import 'package:quantumquiz/widgets/composer_gate_palette.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
-import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
-import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
+import 'package:quantumquiz/models/composer_gate_capabilities.dart';
 import 'package:quantumquiz/models/gate_id.dart';
-import 'package:quantumquiz/widgets/circuit_geometry.dart';
 
 import '../models/qq_level.dart';
 
@@ -127,7 +127,6 @@ class _QuantumComposerState extends State<QuantumComposer>
   static const Color qqCard = Color(0xFF111827);
   static const Color qqCard2 = Color(0xFF18233A);
   static const Color qqInner = Color(0xFF030814);
-  static const Color qqInner2 = Color(0xFF101A2D);
 
   static const Color qqBorder = Color(0x66344A73);
   static const Color qqBorderSoft = Color(0x3D344A73);
@@ -158,19 +157,8 @@ class _QuantumComposerState extends State<QuantumComposer>
   List<String> _hints = [];
   int _currentHintIndex = -1;
 
-  // State to manage the highlight box for drag-and-drop
-  Offset? _draggingOffset;
-  CircuitDropDestination? _draggingDestination;
-  LogicalMovePlan? _draggingMovePlan;
-  Offset? _latestCircuitDragGlobalPosition;
-  Gate _draggingGate = Gate.fromIdentifier(SelectedGateType.none);
   GateId? _selectedGateId;
-  CircuitDragData? _activeDragData;
-  Offset? _latestPlacedDragPointerPosition;
-  int _placedDragAnchorRowOffset = 0;
-  bool _placedDragOutsideCircuit = false;
-  bool _placedDragWasCancelled = false;
-  Rect? _circuitViewportBounds;
+  bool _isCircuitDragActive = false;
 
   String _currentInstructionMessage = "Drag a gate onto the circuit.";
   String? _checkFeedbackTitle;
@@ -180,13 +168,9 @@ class _QuantumComposerState extends State<QuantumComposer>
   bool _levelSolved = false;
   late bool _isCompleted;
 
-  late ScrollController _gatesScrollController;
-  late ScrollController _circuitScrollController;
   late AnimationController _notebookPulseController;
   late Animation<double> _notebookPulseScale;
 
-  bool _canScrollLeft = false;
-  bool _canScrollRight = false;
   bool _sharedNonZeroOnly = false;
   bool _hasUnopenedNotebookEntries = false;
   late AdaptiveLearningSession _adaptiveLearningSession;
@@ -204,10 +188,6 @@ class _QuantumComposerState extends State<QuantumComposer>
       level: widget.level,
       notebookEntry: _notebookEntryForLevel(),
     );
-    _gatesScrollController = ScrollController()
-      ..addListener(_updateScrollButtonStates);
-    _circuitScrollController = ScrollController()
-      ..addListener(_refreshCircuitDragDestinationAfterScroll);
     _notebookPulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 360),
@@ -223,7 +203,6 @@ class _QuantumComposerState extends State<QuantumComposer>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _updateScrollButtonStates();
       _loadNotebookAttentionState();
       if (runningAsQuantumComposer()) {
         _showComposerIntro();
@@ -262,11 +241,6 @@ class _QuantumComposerState extends State<QuantumComposer>
     WidgetsBinding.instance.removeObserver(this);
     widget.controller?._detach();
     _adaptiveInsightAutoDismissTimer?.cancel();
-    _gatesScrollController.removeListener(_updateScrollButtonStates);
-    _gatesScrollController.dispose(); // Dispose the controller
-    _circuitScrollController
-      ..removeListener(_refreshCircuitDragDestinationAfterScroll)
-      ..dispose();
     _notebookPulseController.dispose();
     super.dispose();
   }
@@ -385,71 +359,9 @@ class _QuantumComposerState extends State<QuantumComposer>
     debugPrint('Interaction mode set to: $_currentMode');
   }
 
-  // Method to handle a gate being dropped onto the circuit area
-  Offset? _gatePositionToViewport(Offset offset) {
-    final RenderBox? renderBox =
-        _gestureDetectorKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox != null && renderBox.attached) {
-      return renderBox.globalToLocal(offset);
-    }
-    final cachedBounds = _circuitViewportBounds;
-    if (cachedBounds != null) return offset - cachedBounds.topLeft;
-    debugPrint('Error: Could not resolve the circuit viewport bounds.');
-    return null;
-  }
-
-  void _captureCircuitViewportBounds() {
-    final renderBox =
-        _gestureDetectorKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null || !renderBox.attached) return;
-    _circuitViewportBounds =
-        renderBox.localToGlobal(Offset.zero) & renderBox.size;
-  }
-
-  Offset? _gatePositionToContent(Offset globalPosition) {
-    final viewportPosition = _gatePositionToViewport(globalPosition);
-    if (viewportPosition == null) return null;
-    final scrollOffset = _circuitScrollController.hasClients
-        ? _circuitScrollController.offset
-        : 0.0;
-    return CircuitCoordinateMapper.viewportToContent(
-      viewportPosition,
-      horizontalScrollOffset: scrollOffset,
-    );
-  }
-
-  CircuitDropDestination? _resolveCircuitDrop(Offset globalPosition) {
-    final contentPosition = _gatePositionToContent(globalPosition);
-    if (contentPosition == null) return null;
-    return CircuitGeometry.dropDestinationForPoint(
-      circuit: _circuit,
-      contentPoint: contentPosition,
-    );
-  }
-
-  // Method to handle a gate being dropped onto the circuit area
-  Future<void> _handleGateDrop(
-      DragTargetDetails<CircuitDragData> details) async {
-    // Corrected: Use details.offset for the local drop position
-    debugPrint(
-        'Gate dropped at local position: ${details.offset}'); // localPosition relative to the DragTarget
-    debugPrint(
-        'Dropped gate type: ${details.data}'); // The data from the Draggable
-
-    // DragTarget move/accept share this resolved content-space destination.
-    // Falling back keeps programmatic drops safe if no move event was delivered.
-    final fallbackDestination = _resolveCircuitDrop(details.offset);
-    final destination = _draggingDestination ??
-        (fallbackDestination == null
-            ? null
-            : _logicalMoveDestination(fallbackDestination, details.data));
-
-    if (destination == null) {
-      debugPrint('Error: Could not convert global position to local.');
-      return;
-    }
-
-    final droppedGate = details.data.gate;
+  Future<void> _handleGateDrop(ComposerCircuitDropIntent intent) async {
+    final destination = intent.destination;
+    final droppedGate = intent.data.gate;
     final droppedGateType = droppedGate.type;
     CircuitEditOutcome editOutcome = CircuitEditOutcome.same;
     final tappedQubitLine = destination.location.qubit;
@@ -458,9 +370,9 @@ class _QuantumComposerState extends State<QuantumComposer>
     debugPrint(
         'Dropped on Qubit line: $tappedQubitLine at insertion position: $insertionPosition');
 
-    if (details.data.isPlaced) {
-      final sourceId = details.data.sourceId!;
-      final plan = _draggingMovePlan ??
+    if (intent.data.isPlaced) {
+      final sourceId = intent.data.sourceId!;
+      final plan = intent.movePlan ??
           _circuit.planLogicalGateMove(
             sourceId,
             CircuitLocation(
@@ -746,26 +658,11 @@ class _QuantumComposerState extends State<QuantumComposer>
     _ccnotControl2Qubit = selectedQubits?['control2'];
   }
 
-  // ** Add a GlobalKey for the GestureDetector **
-  final GlobalKey _gestureDetectorKey = GlobalKey();
-  // *****************************************
-
-  void _handleCircuitTap(TapDownDetails details) {
+  void _handleCircuitTap(PlacedGateRef? hit) {
     debugPrint('Tap detected.');
-    // final localPosition = _gatePositionToLocal(details.globalPosition);
-    final localPosition = CircuitCoordinateMapper.viewportToContent(
-      details.localPosition,
-      horizontalScrollOffset: _circuitScrollController.hasClients
-          ? _circuitScrollController.offset
-          : 0,
-    );
-
-    debugPrint('Local tap position: $localPosition');
 
     if (_currentMode == SelectedGateType.delete) {
       debugPrint('In delete mode.');
-      // Use the painter's hit-testing method to find if a gate was tapped
-      final hit = CircuitGeometry.hitTestGate(_circuit, localPosition);
       final outcome = hit == null
           ? CircuitEditOutcome.notFound
           : _circuit.removeLogicalGateByIdWithOutcome(hit.id);
@@ -790,7 +687,6 @@ class _QuantumComposerState extends State<QuantumComposer>
       return; // Exit _handleCircuitTap if in delete mode
     }
 
-    final hit = CircuitGeometry.hitTestGate(_circuit, localPosition);
     setState(() {
       _selectedGateId = hit?.id;
       _currentInstructionMessage = hit == null
@@ -829,106 +725,9 @@ class _QuantumComposerState extends State<QuantumComposer>
     if (mounted) setState(_validateSelection);
   }
 
-  void _startPlacedDrag(PlacedGateRef source) {
-    final pointerPosition = _latestPlacedDragPointerPosition;
-    setState(() {
-      _selectedGateId = source.id;
-      _placedDragWasCancelled = false;
-      _activeDragData = CircuitDragData.placed(
-        sourceId: source.id,
-        gate: source.gate,
-      );
-      _placedDragOutsideCircuit = pointerPosition != null &&
-          _isClearlyOutsideCircuitForDeletion(pointerPosition);
-    });
-  }
-
-  void _finishPlacedDrag() {
-    if (!mounted) return;
-    setState(() {
-      _activeDragData = null;
-      _latestPlacedDragPointerPosition = null;
-      _placedDragAnchorRowOffset = 0;
-      _placedDragOutsideCircuit = false;
-      _placedDragWasCancelled = false;
-      _onDragLeaveStateOnly();
-    });
-  }
-
-  void _onDragLeaveStateOnly() {
-    _draggingOffset = null;
-    _draggingDestination = null;
-    _draggingMovePlan = null;
-    _latestCircuitDragGlobalPosition = null;
-    _draggingGate = Gate.fromIdentifier(SelectedGateType.none);
-  }
-
-  void _capturePlacedDragOrigin(
-    PointerDownEvent event,
-    LogicalGateFootprint footprint,
-  ) {
-    _latestPlacedDragPointerPosition = event.position;
-    final contentPosition = _gatePositionToContent(event.position);
-    final grabbedRow = contentPosition == null
-        ? null
-        : CircuitGeometry.qubitForPoint(contentPosition, _numQubits);
-    _placedDragAnchorRowOffset =
-        grabbedRow == null ? 0 : footprint.anchor.qubit - grabbedRow;
-  }
-
-  CircuitDropDestination _logicalMoveDestination(
-    CircuitDropDestination destination,
-    CircuitDragData data,
-  ) {
-    if (!data.isPlaced) return destination;
-    return CircuitDropDestination(
-      contentPoint: destination.contentPoint,
-      location: CircuitLocation(
-        qubit: destination.location.qubit + _placedDragAnchorRowOffset,
-        column: destination.location.column,
-      ),
-    );
-  }
-
-  bool _isValidMovePlan(LogicalMovePlan plan) =>
-      plan.status == CircuitEditStatus.changed ||
-      plan.status == CircuitEditStatus.same;
-
-  bool _isClearlyOutsideCircuitForDeletion(Offset pointerPosition) {
-    final renderBox =
-        _gestureDetectorKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null || !renderBox.attached) return false;
-    final circuitRect = renderBox.localToGlobal(Offset.zero) & renderBox.size;
-    return CircuitGeometry.isClearlyOutsideCircuitForDeletion(
-      circuitBounds: circuitRect,
-      pointerPosition: pointerPosition,
-    );
-  }
-
-  void _updatePlacedDragPosition(Offset pointerPosition) {
-    if (!mounted) return;
-    _latestPlacedDragPointerPosition = pointerPosition;
-    if (!(_activeDragData?.isPlaced ?? false)) return;
-    final shouldShowDelete =
-        _isClearlyOutsideCircuitForDeletion(pointerPosition);
-    if (_placedDragOutsideCircuit == shouldShowDelete) return;
-    setState(() {
-      _placedDragOutsideCircuit = shouldShowDelete;
-    });
-  }
-
-  void _handlePlacedDragCancelled(PlacedGateRef source) {
-    final pointerPosition = _latestPlacedDragPointerPosition;
-    if (!mounted ||
-        _placedDragWasCancelled ||
-        pointerPosition == null ||
-        !_isClearlyOutsideCircuitForDeletion(pointerPosition)) {
-      _finishPlacedDrag();
-      return;
-    }
+  void _handlePlacedGateDeleteRequested(PlacedGateRef source) {
     final result = _circuit.removeLogicalGateByIdWithOutcome(source.id);
     _handleCommittedCircuitEdit(result, clearSelection: true);
-    _finishPlacedDrag();
   }
 
   void _runSimulation({bool manualCheck = false}) {
@@ -1454,141 +1253,6 @@ class _QuantumComposerState extends State<QuantumComposer>
     );
   }
 
-  void _onDragEnter(Offset offset, CircuitDragData data) {
-    if (data.isPlaced) {
-      final source = _circuit.logicalGateById(data.sourceId!);
-      if (source == null || !source.isMovable) {
-        setState(_onDragLeaveStateOnly);
-        return;
-      }
-    }
-    final localPosition = _gatePositionToContent(offset);
-    if (localPosition == null) {
-      debugPrint('Error: Could not convert global position to local.');
-      return;
-    }
-    final rawDestination = CircuitGeometry.dropDestinationForPoint(
-      circuit: _circuit,
-      contentPoint: localPosition,
-    );
-    var destination = rawDestination == null
-        ? null
-        : _logicalMoveDestination(rawDestination, data);
-    final movePlan = data.isPlaced && destination != null
-        ? _circuit.planLogicalGateMove(data.sourceId!, destination.location)
-        : null;
-    if (movePlan != null && !_isValidMovePlan(movePlan)) {
-      destination = null;
-    }
-    setState(() {
-      _latestCircuitDragGlobalPosition = offset;
-      _draggingOffset = localPosition;
-      _draggingDestination = destination;
-      _draggingMovePlan = movePlan;
-      _draggingGate = data.gate;
-    });
-  }
-
-  void _refreshCircuitDragDestinationAfterScroll() {
-    final pointer = _latestCircuitDragGlobalPosition;
-    if (!mounted ||
-        pointer == null ||
-        _draggingGate.type == SelectedGateType.none) {
-      return;
-    }
-    final contentPosition = _gatePositionToContent(pointer);
-    if (contentPosition == null) return;
-    final rawDestination = CircuitGeometry.dropDestinationForPoint(
-      circuit: _circuit,
-      contentPoint: contentPosition,
-    );
-    final dragData = _activeDragData;
-    var destination = dragData == null
-        ? rawDestination
-        : rawDestination == null
-            ? null
-            : _logicalMoveDestination(rawDestination, dragData);
-    final movePlan = dragData?.isPlaced == true && destination != null
-        ? _circuit.planLogicalGateMove(
-            dragData!.sourceId!,
-            destination.location,
-          )
-        : null;
-    if (movePlan != null && !_isValidMovePlan(movePlan)) {
-      destination = null;
-    }
-    setState(() {
-      _draggingOffset = contentPosition;
-      _draggingDestination = destination;
-      _draggingMovePlan = movePlan;
-    });
-  }
-
-  void _onDragLeave() {
-    setState(() {
-      _onDragLeaveStateOnly();
-    });
-  }
-
-  void _updateScrollButtonStates() {
-    if (!_gatesScrollController.hasClients) {
-      return; // Ensure controller is attached to a view
-    }
-    final position = _gatesScrollController.position;
-
-    // Debug prints (helpful to see the values if issues persist)
-    debugPrint('Current Pixels: ${position.pixels}');
-    debugPrint('Min Scroll Extent: ${position.minScrollExtent}');
-    debugPrint('Max Scroll Extent: ${position.maxScrollExtent}');
-    debugPrint('Viewport Dimension: ${position.viewportDimension}');
-    debugPrint('Extent Before: ${position.extentBefore}');
-    debugPrint('Extent After: ${position.extentAfter}');
-    debugPrint('---');
-
-    // Determine if there's content to scroll before the current view
-    bool newCanScrollLeft =
-        position.extentBefore > 0.1; // If > 0.1, there's content to the left
-
-    // Determine if there's content to scroll after the current view
-    bool newCanScrollRight =
-        position.extentAfter > 0.1; // If > 0.1, there's content to the right
-
-    // Only call setState if the scrollability state has actually changed
-    if (_canScrollLeft != newCanScrollLeft ||
-        _canScrollRight != newCanScrollRight) {
-      setState(() {
-        _canScrollLeft = newCanScrollLeft;
-        _canScrollRight = newCanScrollRight;
-      });
-    }
-  }
-
-  void _scroll(double offset) {
-    if (!_gatesScrollController.hasClients) return;
-    final position = _gatesScrollController.position;
-    final target = (position.pixels + offset).clamp(
-      position.minScrollExtent,
-      position.maxScrollExtent,
-    );
-    _gatesScrollController.animateTo(
-      target,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
-    );
-  }
-
-  void _scrollLeft() {
-    if (!_gatesScrollController.hasClients) return;
-    double scrollAmount = _gatesScrollController.position.viewportDimension;
-    _scroll(-scrollAmount);
-  }
-
-  void _scrollRight() {
-    if (!_gatesScrollController.hasClients) return;
-    double scrollAmount = _gatesScrollController.position.viewportDimension;
-    _scroll(scrollAmount);
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool compactAppBar = MediaQuery.sizeOf(context).width < 900;
@@ -1691,7 +1355,7 @@ class _QuantumComposerState extends State<QuantumComposer>
             ],
             circuitSection,
             const SizedBox(height: sectionGap),
-            _buildGatePalette(compact: true, dense: true),
+            _buildGatePalette(dense: true),
             const SizedBox(height: sectionGap),
             Expanded(child: statePanel),
             if (!composer) ...[
@@ -1863,7 +1527,7 @@ class _QuantumComposerState extends State<QuantumComposer>
               SizedBox(height: gap),
               SizedBox(
                 height: toolbarHeight,
-                child: _buildGatePalette(compact: false, dense: short),
+                child: _buildGatePalette(dense: short),
               ),
             ],
           ),
@@ -1952,27 +1616,24 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   List<Widget> _buildAppBarActions(bool compact) {
+    final capabilities = ComposerSelectedGateCapabilities.forSelection(
+      _circuit,
+      _selectedGateId,
+    );
     return [
-      if (_selectedGateId != null) ...[
+      if (capabilities.supports(ComposerSelectedGateAction.inspect)) ...[
         _buildInspectGateHeaderAction(compact: compact),
         SizedBox(width: compact ? 6 : 8),
       ],
-      if (_selectedGateId != null &&
-          (_circuit.logicalGateById(_selectedGateId!)?.isEditable ?? false) &&
-          _circuit.availableSingleQubitReplacementTypes.any(
-            (type) => type != _circuit.logicalGateById(_selectedGateId!)?.type,
-          )) ...[
+      if (capabilities.supports(ComposerSelectedGateAction.replace)) ...[
         _buildReplaceGateHeaderAction(compact: compact),
         SizedBox(width: compact ? 6 : 8),
       ],
-      if (_selectedGateId != null &&
-          (_circuit.logicalGateById(_selectedGateId!)?.isParameterEditable ??
-              false)) ...[
+      if (capabilities.supports(ComposerSelectedGateAction.editAngle)) ...[
         _buildEditAngleHeaderAction(compact: compact),
         SizedBox(width: compact ? 6 : 8),
       ],
-      if (_selectedGateId != null &&
-          _circuit.canDuplicateLogicalGate(_selectedGateId!)) ...[
+      if (capabilities.supports(ComposerSelectedGateAction.duplicate)) ...[
         _buildDuplicateGateHeaderAction(compact: compact),
         SizedBox(width: compact ? 6 : 8),
       ],
@@ -2424,10 +2085,6 @@ class _QuantumComposerState extends State<QuantumComposer>
     bool compact = false,
     bool showHeader = true,
   }) {
-    final bool isDraggingGate = _draggingOffset != null &&
-        _draggingGate.type != SelectedGateType.none &&
-        _draggingGate.type != SelectedGateType.delete;
-
     return Container(
       decoration: BoxDecoration(
         color: qqCard,
@@ -2448,11 +2105,27 @@ class _QuantumComposerState extends State<QuantumComposer>
           if (showHeader) ...[
             _buildCircuitSurfaceHeader(
               compact: compact,
-              isDraggingGate: isDraggingGate,
+              isDraggingGate: _isCircuitDragActive,
             ),
             SizedBox(height: compact ? 5 : 7),
           ],
-          Expanded(child: _buildCircuitDragTarget()),
+          Expanded(
+            child: ComposerCircuitCanvas(
+              circuit: _circuit,
+              selectedGateId: _selectedGateId,
+              onGateTap: _handleCircuitTap,
+              onDropRequested: _handleGateDrop,
+              onPlacedGateDragStarted: (source) {
+                if (mounted) setState(() => _selectedGateId = source.id);
+              },
+              onDeletePlacedGateRequested: _handlePlacedGateDeleteRequested,
+              onDragActiveChanged: (active) {
+                if (mounted && _isCircuitDragActive != active) {
+                  setState(() => _isCircuitDragActive = active);
+                }
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -2747,359 +2420,12 @@ class _QuantumComposerState extends State<QuantumComposer>
     );
   }
 
-  Widget _buildCircuitDragTarget() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _captureCircuitViewportBounds();
-    });
-    final bool isDraggingGate = _draggingOffset != null &&
-        _draggingGate.type != SelectedGateType.none &&
-        _draggingGate.type != SelectedGateType.delete;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 140),
-      curve: Curves.easeOut,
-      decoration: BoxDecoration(
-        color: const Color(0xFF020713),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: qqComposerInnerBorder.color),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 10,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: LayoutBuilder(builder: (context, constraints) {
-        debugPrint("  LayoutBuilder constraints: $constraints");
-        final double availableContainerWidth = constraints.maxWidth;
-
-        final int maxPosition = _circuit.isCircuitEmpty()
-            ? -1
-            : _circuit.placedGates.map((e) => e.length).reduce(max);
-        final double minRequiredWidth = CircuitGeometry.contentWidth(_circuit);
-
-        final double sizedBoxWidth =
-            max(minRequiredWidth, availableContainerWidth);
-        final double sizedBoxHeight =
-            QuantumCircuitPainter.requiredDrawingHeightFor(_numQubits);
-        final double viewportHeight =
-            max(sizedBoxHeight, constraints.maxHeight);
-        final bool circuitIsEmpty = _circuit.isCircuitEmpty();
-        debugPrint(
-            "  Calculated SizedBox size: Size($sizedBoxWidth, $sizedBoxHeight)");
-
-        return DragTarget<CircuitDragData>(
-          onAcceptWithDetails: (details) async {
-            await _handleGateDrop(details);
-            _onDragLeave();
-          },
-          onLeave: (data) {
-            _onDragLeave();
-          },
-          onMove: (data) {
-            _onDragEnter(data.offset, data.data);
-          },
-          onWillAcceptWithDetails: (details) {
-            _onDragEnter(details.offset, details.data);
-            bool isNotDelete =
-                details.data.gate.type != SelectedGateType.delete;
-            return isNotDelete;
-          },
-          builder: (context, candidateData, rejectedData) {
-            return KeyedSubtree(
-              key: const ValueKey('circuit-interaction-surface'),
-              child: GestureDetector(
-                key: _gestureDetectorKey,
-                onTapDown: _handleCircuitTap,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    SingleChildScrollView(
-                      key: const ValueKey('circuit-horizontal-scroll'),
-                      controller: _circuitScrollController,
-                      scrollDirection: Axis.horizontal,
-                      child: SizedBox(
-                        width: sizedBoxWidth,
-                        height: viewportHeight,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            CustomPaint(
-                              painter: _CircuitGuidePainter(
-                                numQubits: _numQubits,
-                                columns: math.max(
-                                  4,
-                                  maxPosition + 4,
-                                ),
-                                isDragging: isDraggingGate,
-                                destination: _draggingDestination,
-                              ),
-                            ),
-                            CustomPaint(
-                              painter: QuantumCircuitPainter(
-                                _circuit,
-                                previewGates: isDraggingGate &&
-                                        _draggingDestination != null
-                                    ? _buildCircuitDragPreview()
-                                    : null,
-                                selectedGateId: _selectedGateId,
-                                ghostedGateId: _activeDragData?.isPlaced == true
-                                    ? _activeDragData!.sourceId
-                                    : null,
-                                highlightedQubit:
-                                    _draggingDestination?.location.qubit,
-                              ),
-                              child: ListenableBuilder(
-                                listenable: _circuit,
-                                builder: (context, child) {
-                                  debugPrint(
-                                      "ListenableBuilder rebuilding CustomPaint.");
-                                  return const SizedBox.expand();
-                                },
-                              ),
-                            ),
-                            if (circuitIsEmpty)
-                              Align(
-                                alignment: const Alignment(0, -0.42),
-                                child: _EmptyCircuitPrompt(
-                                    isDragging: isDraggingGate),
-                              ),
-                            ..._buildPlacedGateDragOverlays(),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (_placedDragOutsideCircuit &&
-                        (_activeDragData?.isPlaced ?? false))
-                      const Positioned(
-                        right: 12,
-                        top: 10,
-                        child: _ReleaseToRemovePill(),
-                      ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      }),
-    );
-  }
-
-  List<Widget> _buildPlacedGateDragOverlays() {
-    final draggableGates =
-        _circuit.logicalGates.where((gate) => gate.isDeletable);
-
-    return draggableGates.map((footprint) {
-      final placed = footprint.toPlacedGateRef();
-      final bounds = CircuitGeometry.logicalGateBounds(_circuit, placed.id);
-      if (bounds == null) return const SizedBox.shrink();
-      final isSelected = placed.id == _selectedGateId;
-      final isControlled = !placed.isSingleQubit;
-      return Positioned.fromRect(
-        rect: bounds.inflate(5),
-        child: Listener(
-          onPointerDown: (event) => _capturePlacedDragOrigin(event, footprint),
-          onPointerMove: (event) => _updatePlacedDragPosition(event.position),
-          onPointerCancel: (_) => _placedDragWasCancelled = true,
-          child: Semantics(
-            label: isSelected
-                ? 'Selected gate ${placed.gate.label}'
-                : 'Gate ${placed.gate.label}',
-            hint: isControlled
-                ? 'Drag to move. Drag outside circuit to remove.'
-                : 'Drag to move. Drag outside circuit to remove.',
-            child: Draggable<CircuitDragData>(
-              key: ValueKey('placed-gate-drag-${placed.id.value}'),
-              data: CircuitDragData.placed(
-                sourceId: placed.id,
-                gate: placed.gate,
-              ),
-              dragAnchorStrategy: pointerDragAnchorStrategy,
-              onDragStarted: () => _startPlacedDrag(placed),
-              onDragUpdate: (details) =>
-                  _updatePlacedDragPosition(details.globalPosition),
-              onDragCompleted: _finishPlacedDrag,
-              onDraggableCanceled: (velocity, offset) =>
-                  _handlePlacedDragCancelled(placed),
-              feedback: const SizedBox(
-                key: ValueKey('placed-drag-transparent-feedback'),
-                width: 1,
-                height: 1,
-              ),
-              childWhenDragging: const SizedBox.expand(),
-              child: Tooltip(
-                message: isSelected
-                    ? isControlled
-                        ? 'Selected gate • Drag to move'
-                        : 'Selected gate • Drag to move'
-                    : isControlled
-                        ? 'Drag gate to move'
-                        : 'Drag gate to move',
-                child: const SizedBox.expand(),
-              ),
-            ),
-          ),
-        ),
-      );
-    }).toList();
-  }
-
-  List<List<PlacedQuantumGate>>? _buildCircuitDragPreview() {
-    final destination = _draggingDestination;
-    if (destination == null) return null;
-    final dragData = _activeDragData;
-    if (dragData?.isPlaced ?? false) {
-      return _draggingMovePlan?.proposedRows;
-    }
-    return CircuitGeometry.insertionPreview(
-      circuit: _circuit,
-      destination: destination,
-      gate: _draggingGate,
-    );
-  }
-
-  Widget _buildPaletteUtilityButton({
-    required Key key,
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback? onPressed,
-    required bool dense,
-  }) {
-    final Color foreground = onPressed == null
-        ? Colors.white.withValues(alpha: 0.28)
-        : Colors.white.withValues(alpha: 0.78);
-
-    return IconButton(
-      key: key,
-      visualDensity: VisualDensity.compact,
-      padding: EdgeInsets.zero,
-      constraints: BoxConstraints.tightFor(
-        width: dense ? 18 : 24,
-        height: dense ? 20 : 24,
-      ),
-      iconSize: dense ? 15 : 17,
-      color: foreground.withValues(alpha: dense ? 0.70 : 0.84),
-      disabledColor: Colors.white.withValues(alpha: 0.28),
-      icon: Icon(icon),
-      onPressed: onPressed,
-      tooltip: tooltip,
-      splashRadius: dense ? 15 : 16,
-    );
-  }
-
-  Widget _buildGatePalette({required bool compact, required bool dense}) {
-    final Widget gateRow = Row(
-      children: [
-        _buildPaletteUtilityButton(
-          key: const ValueKey('palette-scroll-left'),
-          icon: Icons.chevron_left_rounded,
-          tooltip: 'Scroll gates left',
-          onPressed: _canScrollLeft ? _scrollLeft : null,
-          dense: dense,
-        ),
-        SizedBox(width: dense ? 0 : 1),
-        Expanded(
-          child: ScrollbarTheme(
-            data: ScrollbarThemeData(
-              thumbColor: WidgetStatePropertyAll(
-                Colors.white.withValues(alpha: 0.24),
-              ),
-              trackVisibility: const WidgetStatePropertyAll(false),
-            ),
-            child: Scrollbar(
-              key: const ValueKey('gate-palette-scrollbar'),
-              controller: _gatesScrollController,
-              thumbVisibility: true,
-              thickness: 2,
-              radius: const Radius.circular(99),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                controller: _gatesScrollController,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 13),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      ..._availableGates.map((gateType) {
-                        return Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: dense ? 1.0 : 2.0,
-                          ),
-                          child: _buildDraggableGateButton(
-                            gateType,
-                            dense: dense,
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        SizedBox(width: dense ? 0 : 1),
-        _buildPaletteUtilityButton(
-          key: const ValueKey('palette-scroll-right'),
-          icon: Icons.chevron_right_rounded,
-          tooltip: 'Scroll gates right',
-          onPressed: _canScrollRight ? _scrollRight : null,
-          dense: dense,
-        ),
-      ],
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool hasBoundedHeight = constraints.hasBoundedHeight;
-
-        return Container(
-          padding: EdgeInsets.fromLTRB(4, dense ? 4 : 8, 4, dense ? 4 : 9),
-          decoration: BoxDecoration(
-            color: qqCard,
-            borderRadius: BorderRadius.circular(dense ? 12 : 14),
-            border: Border.all(color: qqComposerCardBorder.color),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.16),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: dense ? 18 : 34,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Gates",
-                    style: TextStyle(
-                      fontSize: dense ? 11.5 : 14,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: dense ? 0 : 3),
-              if (hasBoundedHeight)
-                Flexible(
-                  fit: FlexFit.loose,
-                  child: gateRow,
-                )
-              else
-                gateRow,
-            ],
-          ),
-        );
-      },
+  Widget _buildGatePalette({required bool dense}) {
+    return ComposerGatePalette(
+      gates: _availableGates,
+      dense: dense,
+      onGateTap: (_) => _setInteractionMode(SelectedGateType.none),
+      onInspectGate: _inspectPaletteGate,
     );
   }
 
@@ -3154,161 +2480,6 @@ class _QuantumComposerState extends State<QuantumComposer>
         nonZeroOnlyOverride: nonZeroOnly,
         visibilityControlOverride: visibilityControl,
         dense: dense,
-      ),
-    );
-  }
-
-  Widget _buildDraggableGateButton(Gate gate, {bool dense = false}) {
-    double fontSizeW;
-    if (gate.type == SelectedGateType.ccnot) {
-      fontSizeW = dense ? 11 : 14;
-    } else if ((gate.type == SelectedGateType.rx ||
-            gate.type == SelectedGateType.ry ||
-            gate.type == SelectedGateType.rz) &&
-        gate.angle != null) {
-      fontSizeW = dense ? 8.5 : 10;
-    } else {
-      fontSizeW = dense ? 14 : 18;
-    }
-
-    final double buttonSize = dense ? 38 : 52;
-    return Draggable<CircuitDragData>(
-      // Draggable for Hadamard
-      data: CircuitDragData.palette(gate), // Data carried by the drag
-      feedback: Material(
-        color: Colors.transparent,
-        child: QubitQuestGateTile(
-          gate: gate,
-          size: buttonSize,
-          fontSize: fontSizeW,
-          onPressed: null,
-        ),
-      ),
-      childWhenDragging: Opacity(
-        opacity: 0.46,
-        child: _GatePaletteButton(
-          gate: gate,
-          buttonSize: buttonSize,
-          fontSize: fontSizeW,
-          onPressed: () => _setInteractionMode(SelectedGateType.none),
-          onInspect: () => _inspectPaletteGate(gate),
-        ),
-      ),
-      child: _GatePaletteButton(
-        gate: gate,
-        buttonSize: buttonSize,
-        fontSize: fontSizeW,
-        onPressed: () => _setInteractionMode(
-            SelectedGateType.none), // Tapping button resets mode
-        onInspect: () => _inspectPaletteGate(gate),
-      ),
-    );
-  }
-}
-
-class _GatePaletteButton extends StatelessWidget {
-  final Gate gate;
-  final double buttonSize;
-  final double fontSize;
-  final VoidCallback onPressed;
-  final VoidCallback onInspect;
-
-  const _GatePaletteButton({
-    required this.gate,
-    required this.buttonSize,
-    required this.fontSize,
-    required this.onPressed,
-    required this.onInspect,
-  });
-
-  @override
-  Widget build(BuildContext context) => QubitQuestGateTile(
-        gate: gate,
-        size: buttonSize,
-        fontSize: fontSize,
-        onPressed: onPressed,
-        onInspect: onInspect,
-      );
-}
-
-class _ReleaseToRemovePill extends StatelessWidget {
-  const _ReleaseToRemovePill();
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      key: const ValueKey('release-to-remove'),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEF5350).withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: const Color(0xFFEF5350).withValues(alpha: 0.72),
-        ),
-      ),
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.delete_outline, color: Color(0xFFFFB4B1), size: 14),
-            SizedBox(width: 5),
-            Text(
-              'Release to remove',
-              style: TextStyle(
-                color: Color(0xFFFFDAD8),
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyCircuitPrompt extends StatelessWidget {
-  final bool isDragging;
-
-  const _EmptyCircuitPrompt({required this.isDragging});
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-        decoration: BoxDecoration(
-          color: isDragging
-              ? _QuantumComposerState.qqCyan.withValues(alpha: 0.10)
-              : _QuantumComposerState.qqCard2,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: isDragging
-                ? _QuantumComposerState.qqCyan.withValues(alpha: 0.46)
-                : _QuantumComposerState.qqComposerInnerBorder.color,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isDragging ? Icons.add_circle_outline : Icons.touch_app_outlined,
-              color: _QuantumComposerState.qqCyan,
-              size: 15,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              isDragging ? 'Release on a slot' : 'Drag a gate here',
-              style: const TextStyle(
-                color: Color(0xFFD6E3F8),
-                fontSize: 11.5,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -3554,100 +2725,5 @@ class _MasteryChallengeCompletionBodyState
         ],
       ],
     );
-  }
-}
-
-class _CircuitGuidePainter extends CustomPainter {
-  final int numQubits;
-  final int columns;
-  final bool isDragging;
-  final CircuitDropDestination? destination;
-
-  const _CircuitGuidePainter({
-    required this.numQubits,
-    required this.columns,
-    required this.isDragging,
-    required this.destination,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint lanePaint = Paint()
-      ..color = _QuantumComposerState.qqInner2.withValues(alpha: 0.28)
-      ..style = PaintingStyle.fill;
-    final Paint depthGuidePaint = Paint()
-      ..color = _QuantumComposerState.qqCyan.withValues(alpha: 0.025)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    final Paint activeSlotPaint = Paint()
-      ..color = _QuantumComposerState.qqCyan.withValues(alpha: 0.55)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    final Paint activeSlotFillPaint = Paint()
-      ..color = _QuantumComposerState.qqCyan.withValues(alpha: 0.08)
-      ..style = PaintingStyle.fill;
-    final Paint activeLanePaint = Paint()
-      ..color = _QuantumComposerState.qqCyan.withValues(alpha: 0.06)
-      ..style = PaintingStyle.fill;
-
-    final activeQubit = destination?.location.qubit;
-    final activeColumn = destination?.location.column;
-
-    if (isDragging) {
-      for (int column = 0; column < columns; column++) {
-        final double centerX = QuantumCircuitPainter.padding +
-            column * QuantumCircuitPainter.gateSpacing +
-            QuantumCircuitPainter.gateSpacing / 2;
-        canvas.drawLine(
-          Offset(centerX, 0),
-          Offset(centerX, size.height),
-          depthGuidePaint,
-        );
-      }
-    }
-
-    for (int qubit = 0; qubit < numQubits; qubit++) {
-      final double centerY = QuantumCircuitPainter.qubitCenterYFor(qubit);
-      final Rect laneRect = Rect.fromLTRB(
-        0,
-        centerY - QuantumCircuitPainter.hitTolerance,
-        size.width,
-        centerY + QuantumCircuitPainter.hitTolerance,
-      );
-
-      if (qubit.isEven) {
-        canvas.drawRect(laneRect, lanePaint);
-      }
-
-      if (isDragging && activeQubit == qubit) {
-        canvas.drawRect(laneRect, activeLanePaint);
-      }
-
-      for (int column = 0; column < columns; column++) {
-        final double centerX = QuantumCircuitPainter.padding +
-            column * QuantumCircuitPainter.gateSpacing +
-            QuantumCircuitPainter.gateSpacing / 2;
-        final Rect slotRect = Rect.fromCenter(
-          center: Offset(centerX, centerY),
-          width: QuantumCircuitPainter.gateSize + 4,
-          height: QuantumCircuitPainter.gateSize + 4,
-        );
-        final RRect slotRRect =
-            RRect.fromRectAndRadius(slotRect, const Radius.circular(7));
-
-        if (isDragging && activeQubit == qubit && activeColumn == column) {
-          canvas.drawRRect(slotRRect, activeSlotFillPaint);
-          canvas.drawRRect(slotRRect, activeSlotPaint);
-        }
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _CircuitGuidePainter oldDelegate) {
-    return oldDelegate.numQubits != numQubits ||
-        oldDelegate.columns != columns ||
-        oldDelegate.isDragging != isDragging ||
-        oldDelegate.destination != destination;
   }
 }

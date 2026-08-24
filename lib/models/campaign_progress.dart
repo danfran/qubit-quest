@@ -4,7 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:quantumquiz/models/discovery_catalog.dart' as discovery_catalog;
 import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:quantumquiz/storage/app_storage.dart';
+import 'package:quantumquiz/storage/shared_preferences_app_storage.dart';
 
 @immutable
 class CampaignProgressState {
@@ -404,7 +405,11 @@ abstract class CampaignProgressStore {
 }
 
 class SharedPreferencesCampaignProgressStore implements CampaignProgressStore {
-  const SharedPreferencesCampaignProgressStore();
+  const SharedPreferencesCampaignProgressStore({
+    this.storage = const SharedPreferencesAppStorage(),
+  });
+
+  final AppStorage storage;
 
   static const schemaVersionKey = 'qq_progress_schema_version';
   static const maxUnlockedLevelKey = 'qq_progress_max_unlocked_level';
@@ -428,11 +433,10 @@ class SharedPreferencesCampaignProgressStore implements CampaignProgressStore {
 
   @override
   Future<CampaignProgressState> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasCanonical = prefs.containsKey(schemaVersionKey);
-    final canonical = hasCanonical ? _loadCanonical(prefs) : null;
+    final hasCanonical = await storage.readInt(schemaVersionKey) != null;
+    final canonical = hasCanonical ? await _loadCanonical() : null;
     final legacy =
-        hasCanonical ? CampaignProgressState.fresh() : _loadLegacy(prefs);
+        hasCanonical ? CampaignProgressState.fresh() : await _loadLegacy();
 
     final merged = CampaignProgressPolicy.normalize(
       CampaignProgressState(
@@ -479,49 +483,47 @@ class SharedPreferencesCampaignProgressStore implements CampaignProgressStore {
 
   @override
   Future<void> save(CampaignProgressState state) async {
-    final prefs = await SharedPreferences.getInstance();
     final normalized = CampaignProgressPolicy.normalize(state);
 
-    await prefs.setInt(
+    await storage.writeInt(
       schemaVersionKey,
       CampaignProgressState.currentSchemaVersion,
     );
-    await prefs.setInt(maxUnlockedLevelKey, normalized.maxUnlockedLevel);
-    await prefs.setStringList(
+    await storage.writeInt(maxUnlockedLevelKey, normalized.maxUnlockedLevel);
+    await storage.writeStringList(
       completedLessonIdsKey,
       _sortedIntStrings(normalized.completedLessonIds),
     );
-    await prefs.setStringList(
+    await storage.writeStringList(
       completedChallengeIdsKey,
       _sortedIntStrings(normalized.completedChallengeIds),
     );
-    await prefs.setStringList(
+    await storage.writeStringList(
       unlockedDiscoveryIdsKey,
       _sortedStrings(normalized.explicitlyUnlockedDiscoveryIds),
     );
-    await prefs.setStringList(
+    await storage.writeStringList(
       legacyUnlockedDiscoveryTitlesKey,
       _sortedStrings(normalized.legacyUnlockedDiscoveryTitles),
     );
-    await prefs.setStringList(
+    await storage.writeStringList(
       openedDiscoveryIdsKey,
       _sortedStrings(normalized.openedDiscoveryIds),
     );
-    await prefs.setStringList(
+    await storage.writeStringList(
       legacyOpenedDiscoveryTitlesKey,
       _sortedStrings(normalized.legacyOpenedDiscoveryTitles),
     );
-    await prefs.setBool(
+    await storage.writeBool(
       masteryCompleteDialogShownKey,
       normalized.masteryCompleteDialogShown,
     );
 
-    await _saveLegacyMirror(prefs, normalized);
+    await _saveLegacyMirror(normalized);
   }
 
   @override
   Future<void> reset() async {
-    final prefs = await SharedPreferences.getInstance();
     for (final key in const [
       schemaVersionKey,
       maxUnlockedLevelKey,
@@ -538,45 +540,47 @@ class SharedPreferencesCampaignProgressStore implements CampaignProgressStore {
       legacyUnlockedDiscoveriesKey,
       legacyOpenedNotebookEntriesKey,
     ]) {
-      await prefs.remove(key);
+      await storage.delete(key);
     }
     await save(CampaignProgressState.fresh());
   }
 
-  CampaignProgressState? _loadCanonical(SharedPreferences prefs) {
+  Future<CampaignProgressState?> _loadCanonical() async {
     return CampaignProgressPolicy.normalize(
       CampaignProgressState(
-        schemaVersion: prefs.getInt(schemaVersionKey) ??
+        schemaVersion: await storage.readInt(schemaVersionKey) ??
             CampaignProgressState.currentSchemaVersion,
         maxUnlockedLevel: CampaignProgressPolicy.clampFrontier(
-            prefs.getInt(maxUnlockedLevelKey) ?? 1),
+            await storage.readInt(maxUnlockedLevelKey) ?? 1),
         completedLessonIds:
-            _parseInts(prefs.getStringList(completedLessonIdsKey)),
+            _parseInts(await storage.readStringList(completedLessonIdsKey)),
         completedChallengeIds:
-            _parseInts(prefs.getStringList(completedChallengeIdsKey)),
-        explicitlyUnlockedDiscoveryIds:
-            _validDiscoveryIds(prefs.getStringList(unlockedDiscoveryIdsKey)),
+            _parseInts(await storage.readStringList(completedChallengeIdsKey)),
+        explicitlyUnlockedDiscoveryIds: _validDiscoveryIds(
+            await storage.readStringList(unlockedDiscoveryIdsKey)),
         legacyUnlockedDiscoveryTitles:
-            (prefs.getStringList(legacyUnlockedDiscoveryTitlesKey) ?? const [])
+            (await storage.readStringList(legacyUnlockedDiscoveryTitlesKey) ??
+                    const [])
                 .map((title) => title.trim())
                 .where((title) => title.isNotEmpty)
                 .toSet(),
-        openedDiscoveryIds:
-            _validDiscoveryIds(prefs.getStringList(openedDiscoveryIdsKey)),
+        openedDiscoveryIds: _validDiscoveryIds(
+            await storage.readStringList(openedDiscoveryIdsKey)),
         legacyOpenedDiscoveryTitles:
-            (prefs.getStringList(legacyOpenedDiscoveryTitlesKey) ?? const [])
+            (await storage.readStringList(legacyOpenedDiscoveryTitlesKey) ??
+                    const [])
                 .map((title) => title.trim())
                 .where((title) => title.isNotEmpty)
                 .toSet(),
         masteryCompleteDialogShown:
-            prefs.getBool(masteryCompleteDialogShownKey) ?? false,
+            await storage.readBool(masteryCompleteDialogShownKey) ?? false,
       ),
     );
   }
 
-  CampaignProgressState _loadLegacy(SharedPreferences prefs) {
+  Future<CampaignProgressState> _loadLegacy() async {
     final maxUnlocked = CampaignProgressPolicy.clampFrontier(
-      prefs.getInt(legacyMaxUnlockedCampaignLevelKey) ?? 1,
+      await storage.readInt(legacyMaxUnlockedCampaignLevelKey) ?? 1,
     );
     final completedLessons = <int>{
       for (int id = 1;
@@ -588,45 +592,44 @@ class SharedPreferencesCampaignProgressStore implements CampaignProgressStore {
     };
 
     final migratedUnlocked = _migrateDiscoveryTitles(
-      prefs.getStringList(legacyUnlockedDiscoveriesKey),
+      await storage.readStringList(legacyUnlockedDiscoveriesKey),
     );
     final migratedOpened = _migrateDiscoveryTitles(
-      prefs.getStringList(legacyOpenedNotebookEntriesKey),
+      await storage.readStringList(legacyOpenedNotebookEntriesKey),
     );
 
     return CampaignProgressState(
       maxUnlockedLevel: maxUnlocked,
       completedLessonIds: completedLessons,
-      completedChallengeIds:
-          _parseInts(prefs.getStringList(legacyCompletedMasteryLevelsKey)),
+      completedChallengeIds: _parseInts(
+          await storage.readStringList(legacyCompletedMasteryLevelsKey)),
       explicitlyUnlockedDiscoveryIds: migratedUnlocked.ids,
       legacyUnlockedDiscoveryTitles: migratedUnlocked.legacyTitles,
       openedDiscoveryIds: migratedOpened.ids,
       legacyOpenedDiscoveryTitles: migratedOpened.legacyTitles,
       masteryCompleteDialogShown:
-          prefs.getBool(legacyMasteryCompleteDialogShownKey) ?? false,
+          await storage.readBool(legacyMasteryCompleteDialogShownKey) ?? false,
     );
   }
 
   Future<void> _saveLegacyMirror(
-    SharedPreferences prefs,
     CampaignProgressState state,
   ) async {
-    await prefs.setInt(
+    await storage.writeInt(
         legacyMaxUnlockedCampaignLevelKey, state.maxUnlockedLevel);
-    await prefs.setStringList(
+    await storage.writeStringList(
       legacyCompletedMasteryLevelsKey,
       _sortedIntStrings(state.completedChallengeIds),
     );
-    await prefs.setBool(
+    await storage.writeBool(
       legacyMasteryCompleteDialogShownKey,
       state.masteryCompleteDialogShown,
     );
-    await prefs.setStringList(
+    await storage.writeStringList(
       legacyUnlockedDiscoveriesKey,
       _sortedStrings(CampaignProgressPolicy.unlockedDiscoveryTitles(state)),
     );
-    await prefs.setStringList(
+    await storage.writeStringList(
       legacyOpenedNotebookEntriesKey,
       _sortedStrings(CampaignProgressPolicy.openedDiscoveryTitles(state)),
     );
@@ -704,8 +707,13 @@ class CampaignProgressController extends ChangeNotifier {
   CampaignProgressController({CampaignProgressStore? store})
       : _store = store ?? const SharedPreferencesCampaignProgressStore();
 
-  static final CampaignProgressController instance =
-      CampaignProgressController();
+  static CampaignProgressController _instance = CampaignProgressController();
+
+  static CampaignProgressController get instance => _instance;
+
+  static void configureSharedInstance(CampaignProgressController controller) {
+    _instance = controller;
+  }
 
   final CampaignProgressStore _store;
   CampaignProgressState _state = CampaignProgressState.fresh();

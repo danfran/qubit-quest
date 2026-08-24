@@ -13,9 +13,9 @@ import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
+import 'package:quantumquiz/models/tutorial_flags_store.dart';
 import 'package:quantumquiz/screens/learning_flow_widgets.dart';
 import 'package:quantumquiz/screens/webview_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
@@ -26,7 +26,17 @@ import '../models/qq_levels.dart';
 import '../models/qq_levels_category.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  HomePage({
+    super.key,
+    CampaignProgressController? progressController,
+    this.sandboxPersistenceStore = const SandboxPersistenceStore(),
+    this.tutorialFlagsStore = const TutorialFlagsStore(),
+  }) : progressController =
+            progressController ?? CampaignProgressController.instance;
+
+  final CampaignProgressController progressController;
+  final SandboxPersistenceStore sandboxPersistenceStore;
+  final TutorialFlagsStore tutorialFlagsStore;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -126,8 +136,8 @@ class _HomePageState extends State<HomePage> {
       ProgressionRules.guidedDiscoveryLevelCount;
   static const int _journeyLevelCount = ProgressionRules.journeyLevelCount;
 
-  final CampaignProgressController _progressController =
-      CampaignProgressController.instance;
+  CampaignProgressController get _progressController =>
+      widget.progressController;
   CampaignProgressState _progressState = CampaignProgressState.fresh();
   int _maxUnlockedLevel = 1;
   bool _isLoadingLevels = true; // To show loading state
@@ -383,7 +393,7 @@ class _HomePageState extends State<HomePage> {
     ).then((selectedNumQubits) async {
       if (!mounted) return;
       if (selectedNumQubits != null) {
-        final snapshot = await const SandboxPersistenceStore()
+        final snapshot = await widget.sandboxPersistenceStore
             .loadSnapshot(selectedNumQubits);
         if (!mounted) return;
         await Navigator.of(context).push<void>(
@@ -397,6 +407,7 @@ class _HomePageState extends State<HomePage> {
               onLevelUnlocked: null,
               sessionOwnership: ComposerSessionOwnership.sandbox,
               initialSandboxSnapshot: snapshot,
+              sandboxPersistenceStore: widget.sandboxPersistenceStore,
             ),
           ),
         );
@@ -1516,10 +1527,8 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
 
     if (_isChapter1InformationLevel(level)) {
-      final prefs = await SharedPreferences.getInstance();
       const seenKey = 'chapter_intro_seen_chapter_1_information_vertical_slice';
-      if (prefs.getBool(seenKey) != true) {
-        await prefs.setBool(seenKey, true);
+      if (await widget.tutorialFlagsStore.markSeenIfNeeded(seenKey)) {
         if (!mounted) return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
@@ -1534,11 +1543,9 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } else if (_isChapter2HiddenChangeLevel(level)) {
-      final prefs = await SharedPreferences.getInstance();
       const seenKey =
           'chapter_intro_seen_chapter_2_hidden_change_vertical_slice';
-      if (prefs.getBool(seenKey) != true) {
-        await prefs.setBool(seenKey, true);
+      if (await widget.tutorialFlagsStore.markSeenIfNeeded(seenKey)) {
         if (!mounted) return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
@@ -1553,11 +1560,9 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } else if (_isChapter3SuperpositionLevel(level)) {
-      final prefs = await SharedPreferences.getInstance();
       const seenKey =
           'chapter_intro_seen_chapter_3_superposition_vertical_slice';
-      if (prefs.getBool(seenKey) != true) {
-        await prefs.setBool(seenKey, true);
+      if (await widget.tutorialFlagsStore.markSeenIfNeeded(seenKey)) {
         if (!mounted) return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
@@ -1572,11 +1577,9 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } else if (_isChapter4InterferenceLevel(level)) {
-      final prefs = await SharedPreferences.getInstance();
       const seenKey =
           'chapter_intro_seen_chapter_4_interference_vertical_slice';
-      if (prefs.getBool(seenKey) != true) {
-        await prefs.setBool(seenKey, true);
+      if (await widget.tutorialFlagsStore.markSeenIfNeeded(seenKey)) {
         if (!mounted) return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
@@ -1591,11 +1594,9 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } else if (_isChapter5EntanglementLevel(level)) {
-      final prefs = await SharedPreferences.getInstance();
       const seenKey =
           'chapter_intro_seen_chapter_5_entanglement_vertical_slice';
-      if (prefs.getBool(seenKey) != true) {
-        await prefs.setBool(seenKey, true);
+      if (await widget.tutorialFlagsStore.markSeenIfNeeded(seenKey)) {
         if (!mounted) return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
@@ -1610,11 +1611,9 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } else if (_isChapter6InformationFlowLevel(level)) {
-      final prefs = await SharedPreferences.getInstance();
       const seenKey =
           'chapter_intro_seen_chapter_6_information_flow_vertical_slice';
-      if (prefs.getBool(seenKey) != true) {
-        await prefs.setBool(seenKey, true);
+      if (await widget.tutorialFlagsStore.markSeenIfNeeded(seenKey)) {
         if (!mounted) return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
@@ -1629,10 +1628,8 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } else if (_isChapter7GhzStatesLevel(level)) {
-      final prefs = await SharedPreferences.getInstance();
       const seenKey = 'chapter_intro_seen_chapter_7_ghz_states_vertical_slice';
-      if (prefs.getBool(seenKey) != true) {
-        await prefs.setBool(seenKey, true);
+      if (await widget.tutorialFlagsStore.markSeenIfNeeded(seenKey)) {
         if (!mounted) return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
@@ -1647,11 +1644,9 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } else if (_isChapter8PhaseKickbackLevel(level)) {
-      final prefs = await SharedPreferences.getInstance();
       const seenKey =
           'chapter_intro_seen_chapter_8_phase_kickback_vertical_slice';
-      if (prefs.getBool(seenKey) != true) {
-        await prefs.setBool(seenKey, true);
+      if (await widget.tutorialFlagsStore.markSeenIfNeeded(seenKey)) {
         if (!mounted) return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
@@ -1666,11 +1661,9 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } else if (_isChapter9OracleThinkingLevel(level)) {
-      final prefs = await SharedPreferences.getInstance();
       const seenKey =
           'chapter_intro_seen_chapter_9_oracle_thinking_vertical_slice';
-      if (prefs.getBool(seenKey) != true) {
-        await prefs.setBool(seenKey, true);
+      if (await widget.tutorialFlagsStore.markSeenIfNeeded(seenKey)) {
         if (!mounted) return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
@@ -1685,11 +1678,9 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } else if (_isChapter10AmplitudeAmplificationLevel(level)) {
-      final prefs = await SharedPreferences.getInstance();
       const seenKey =
           'chapter_intro_seen_chapter_10_amplitude_amplification_vertical_slice';
-      if (prefs.getBool(seenKey) != true) {
-        await prefs.setBool(seenKey, true);
+      if (await widget.tutorialFlagsStore.markSeenIfNeeded(seenKey)) {
         if (!mounted) return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
@@ -1704,11 +1695,9 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } else if (_isChapter11GroverLoopIntuitionLevel(level)) {
-      final prefs = await SharedPreferences.getInstance();
       const seenKey =
           'chapter_intro_seen_chapter_11_grover_loop_intuition_vertical_slice';
-      if (prefs.getBool(seenKey) != true) {
-        await prefs.setBool(seenKey, true);
+      if (await widget.tutorialFlagsStore.markSeenIfNeeded(seenKey)) {
         if (!mounted) return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
@@ -1723,11 +1712,9 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } else if (_isChapter12QuantumAlgorithmStructureLevel(level)) {
-      final prefs = await SharedPreferences.getInstance();
       const seenKey =
           'chapter_intro_seen_chapter_12_quantum_algorithm_structure_vertical_slice';
-      if (prefs.getBool(seenKey) != true) {
-        await prefs.setBool(seenKey, true);
+      if (await widget.tutorialFlagsStore.markSeenIfNeeded(seenKey)) {
         if (!mounted) return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(

@@ -97,7 +97,8 @@ class _ExecutableNotebookExampleViewState
               icon: const Icon(Icons.restart_alt_rounded, size: 18),
               label: const Text('Reset'),
             ),
-            if (example.allowOpenInComposer && widget.onOpenInComposer != null)
+            if (example.supports(ExecutableNotebookCapability.composer) &&
+                widget.onOpenInComposer != null)
               OutlinedButton.icon(
                 key: ValueKey('composer-example-${example.id}'),
                 onPressed: () => widget.onOpenInComposer!(example),
@@ -105,7 +106,7 @@ class _ExecutableNotebookExampleViewState
                 label: const Text('Open in Composer'),
               ),
             if (_result != null &&
-                example.allowOpenInBlochExplorer &&
+                example.supports(ExecutableNotebookCapability.blochExplorer) &&
                 widget.onOpenInBlochExplorer != null)
               OutlinedButton.icon(
                 key: ValueKey('bloch-example-${example.id}'),

@@ -11,6 +11,15 @@ enum NotebookSearchMatchKind {
   body,
 }
 
+Set<String> notebookSearchAllowedEntryIds({
+  required Iterable<NotebookEntry> entries,
+  required Set<String> unlockedDiscoveryTitles,
+}) =>
+    {
+      for (final entry in entries)
+        if (unlockedDiscoveryTitles.contains(entry.discoveryTitle)) entry.id,
+    };
+
 class NotebookSearchDocument {
   NotebookSearchDocument({
     required this.entry,

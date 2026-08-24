@@ -23,6 +23,13 @@ class ExecutableNotebookResult {
   List<Complex> get state => circuit.currentState.stateVector;
 }
 
+enum ExecutableNotebookCapability {
+  run,
+  reset,
+  composer,
+  blochExplorer,
+}
+
 /// Immutable, display-neutral authored circuit example.
 class ExecutableNotebookExample {
   ExecutableNotebookExample({
@@ -50,6 +57,17 @@ class ExecutableNotebookExample {
   final String? relatedConcept;
   final bool allowOpenInComposer;
   final bool allowOpenInBlochExplorer;
+
+  Set<ExecutableNotebookCapability> get capabilities => Set.unmodifiable({
+        ExecutableNotebookCapability.run,
+        ExecutableNotebookCapability.reset,
+        if (allowOpenInComposer) ExecutableNotebookCapability.composer,
+        if (allowOpenInBlochExplorer)
+          ExecutableNotebookCapability.blochExplorer,
+      });
+
+  bool supports(ExecutableNotebookCapability capability) =>
+      capabilities.contains(capability);
 
   List<Complex> get initialState {
     final dimension = 1 << qubitCount;

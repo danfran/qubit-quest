@@ -1,5 +1,4 @@
 import 'package:advance_math/advance_math.dart';
-import 'package:flutter/cupertino.dart';
 
 import 'package:quantumquiz/utils/math_utils.dart'; // Import math for sqrt
 
