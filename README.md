@@ -72,6 +72,9 @@ The repository's Pages source must be configured as **GitHub Actions**. The stat
 host requires no backend or server API. Qubit Quest currently uses workspace-local
 navigation, so the deployed entry point is the repository base path.
 
+The build also copies `docs/public/` into the Pages artifact so the established mobile
+privacy-policy and documentation URLs remain available alongside the Flutter app.
+
 ## Project structure
 
 - `lib/models/` — canonical learning, progression, quantum, and persistence models
@@ -79,7 +82,7 @@ navigation, so the deployed entry point is the repository base path.
 - `lib/screens/` — mobile and Web presentation/composition
 - `test/` — focused model, interaction, parity, persistence, and Web acceptance tests
 - `web/` — browser metadata and Qubit Quest branding assets
-- `docs/` — current technical notes and archived product-history material
+- `docs/` — public mobile documentation, technical notes, and archived product history
 
 ## Android release build
 
