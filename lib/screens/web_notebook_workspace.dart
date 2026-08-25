@@ -10,13 +10,14 @@ import 'package:quantumquiz/models/notebook_search.dart';
 import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/executable_notebook_example_view.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
-const _background = Color(0xFF00030A);
-const _surface = Color(0xFF111827);
+const _background = QubitQuestColors.background;
+const _surface = QubitQuestColors.surface;
 const _inner = Color(0xFF07101F);
-const _border = Color(0x66344A73);
-const _cyan = Color(0xFF22D3EE);
-const _purple = Color(0xFF9B7BFF);
+const _border = QubitQuestColors.border;
+const _cyan = QubitQuestColors.accentInteractive;
+const _purple = QubitQuestColors.accentStrong;
 const _muted = Color(0xFF9BAAC4);
 
 class WebNotebookWorkspace extends StatefulWidget {

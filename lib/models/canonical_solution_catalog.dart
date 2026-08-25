@@ -117,26 +117,16 @@ final Map<int, CanonicalComposerSolution> canonicalComposerSolutionCatalog = {
   47: _q([_s(SelectedGateType.hadamard, 0)]),
   48: _q([_c(SelectedGateType.cz, 0, 1), _s(SelectedGateType.hadamard, 0)]),
 
-  // Mastery Challenges. IDs 61, 74, 78, 88, 98, 102 and 103 already
+  // Mastery Challenges. Non-Composer challenges intentionally have no
+  // canonical circuit entry. IDs 65, 74, 78, 88, 98, 102 and 103 already
   // carry inline phase-one metadata and are deliberately not duplicated here.
-  62: _q([_s(SelectedGateType.z, 0)]),
-  63: _q([_s(SelectedGateType.y, 0)]),
-  64: _q([_s(SelectedGateType.y, 0)]),
   65: _q([
     _s(SelectedGateType.x, 0),
     _s(SelectedGateType.z, 0),
     _s(SelectedGateType.x, 0)
   ]),
-  66: _q([_s(SelectedGateType.hadamard, 0)]),
   67: _q([_s(SelectedGateType.hadamard, 0), _s(SelectedGateType.t, 0)]),
-  68: _q([_s(SelectedGateType.hadamard, 0), _s(SelectedGateType.s, 0)]),
-  69: _q([_s(SelectedGateType.hadamard, 0), _s(SelectedGateType.z, 0)]),
   70: _q([_s(SelectedGateType.hadamard, 1), _s(SelectedGateType.x, 0)]),
-  71: _q([
-    _s(SelectedGateType.hadamard, 0),
-    _s(SelectedGateType.s, 0),
-    _s(SelectedGateType.z, 0)
-  ]),
   72: _q([
     _s(SelectedGateType.s, 0),
     _s(SelectedGateType.hadamard, 0),
@@ -210,8 +200,7 @@ final Map<int, CanonicalComposerSolution> canonicalComposerSolutionCatalog = {
   104: _q([_s(SelectedGateType.ry, 0, math.pi / 2)]),
   105: _q([_s(SelectedGateType.rz, 1, math.pi / 4)]),
   106: _q([
-    _s(SelectedGateType.rx, 0, math.pi / 2),
-    _s(SelectedGateType.ry, 0, math.pi / 4),
+    _s(SelectedGateType.ry, 0, math.pi / 3),
     _s(SelectedGateType.rz, 0, math.pi / 2)
   ]),
 };

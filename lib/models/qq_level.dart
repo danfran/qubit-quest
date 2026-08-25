@@ -9,6 +9,7 @@ import 'package:quantumquiz/utils/math_utils.dart';
 
 enum ValidationMode {
   finalState,
+  physicalState,
   unitary,
 }
 
@@ -237,6 +238,20 @@ class ComposerLevel extends QQLevel {
           finalReason: stateMatches
               ? 'final state matches target'
               : 'final state mismatch',
+        );
+      case ValidationMode.physicalState:
+        final physicalStateMatches = stateMatches || globalPhaseMatches;
+        return ComposerValidationResult(
+          success: physicalStateMatches,
+          stateMatches: stateMatches,
+          tolerance: eps,
+          withinTolerance: physicalStateMatches,
+          globalPhaseMatches: globalPhaseMatches,
+          explicitConstraintMatches: true,
+          explicitConstraint: 'physical state up to global phase',
+          finalReason: physicalStateMatches
+              ? 'physical state matches target up to global phase'
+              : 'physical state mismatch',
         );
       case ValidationMode.unitary:
         if (targetUnitary == null) {

@@ -28,11 +28,14 @@ import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
+import 'package:quantumquiz/widgets/lesson_content_safe_area.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
+import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/models/composer_gate_capabilities.dart';
 import 'package:quantumquiz/models/gate_id.dart';
 
@@ -123,22 +126,23 @@ class QuantumComposer extends StatefulWidget {
 class _QuantumComposerState extends State<QuantumComposer>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   // Qubit Quest composer visual system tokens. Use these exact colours for composer surfaces.
-  static const Color qqBlack = Color(0xFF00030A);
-  static const Color qqCard = Color(0xFF111827);
-  static const Color qqCard2 = Color(0xFF18233A);
-  static const Color qqInner = Color(0xFF030814);
+  // Compatibility aliases. QubitQuestColors is the canonical authority.
+  static const Color qqBlack = QubitQuestColors.background;
+  static const Color qqCard = QubitQuestColors.surface;
+  static const Color qqCard2 = QubitQuestColors.surfaceRaised;
+  static const Color qqInner = QubitQuestColors.surfaceInset;
 
-  static const Color qqBorder = Color(0x66344A73);
-  static const Color qqBorderSoft = Color(0x3D344A73);
+  static const Color qqBorder = QubitQuestColors.border;
+  static const Color qqBorderSoft = QubitQuestColors.borderSoft;
   static const BorderSide qqComposerCardBorder =
       BorderSide(color: qqBorder, width: 1);
   static const BorderSide qqComposerInnerBorder =
       BorderSide(color: qqBorderSoft, width: 1);
 
-  static const Color qqCyan = Color(0xFF56CCF2);
-  static const Color qqPurple = Color(0xFFB388FF);
-  static const Color qqGreen = Color(0xFF7CFFB2);
-  static const Color qqYellow = Color(0xFFFFD54F);
+  static const Color qqCyan = QubitQuestColors.accentInteractive;
+  static const Color qqPurple = QubitQuestColors.accentStrong;
+  static const Color qqGreen = QubitQuestColors.success;
+  static const Color qqYellow = QubitQuestColors.warning;
 
   late int _numQubits;
   late String _taskDescription;
@@ -1270,7 +1274,7 @@ class _QuantumComposerState extends State<QuantumComposer>
           isCompleted: _isCompleted,
           actions: _buildAppBarActions(compactAppBar),
         ),
-        body: SafeArea(
+        body: LessonContentSafeArea(
           child: LayoutBuilder(builder: (context, constraints) {
             final bool compact = constraints.maxWidth < 720;
             final bool short = constraints.maxHeight < 560;
@@ -1556,6 +1560,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     if (_checkFeedbackTitle != null) {
       return short ? 98 : 108;
     }
+    if (_usesEarlyMasteryVisualGrammar) return 48;
     return short ? 40 : 44;
   }
 
@@ -1963,6 +1968,9 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   bool runningAsQuantumComposer() => widget.levelId == -1;
 
+  bool get _usesEarlyMasteryVisualGrammar =>
+      const {65, 67, 70, 72, 73}.contains(widget.levelId);
+
   String _goalTitle() {
     if (runningAsQuantumComposer()) {
       return 'Composer';
@@ -2244,6 +2252,18 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   Widget _buildCheckResultButton({required bool compact}) {
+    if (_usesEarlyMasteryVisualGrammar) {
+      return QubitQuestActionButton(
+        key: ValueKey('mastery-composer-check-${widget.levelId}'),
+        label: 'Check Result',
+        icon: _levelSolved
+            ? Icons.check_circle_outline
+            : Icons.play_arrow_rounded,
+        onPressed:
+            _isShowingCompletionDialog ? null : _handleCheckResultPressed,
+      );
+    }
+
     const Color checkSurfaceTop = Color(0xFFA855F7);
     const Color checkSurfaceMiddle = Color(0xFF8B4BE8);
     const Color checkSurfaceBottom = Color(0xFF5B21B6);
@@ -2321,7 +2341,7 @@ class _QuantumComposerState extends State<QuantumComposer>
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          height: compact ? 32 : 34,
+          height: _usesEarlyMasteryVisualGrammar ? 48 : (compact ? 32 : 34),
           child: _buildCheckResultButton(compact: true),
         ),
         if (_checkFeedbackTitle != null) ...[
@@ -2346,7 +2366,7 @@ class _QuantumComposerState extends State<QuantumComposer>
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          height: compact ? 40 : 44,
+          height: _usesEarlyMasteryVisualGrammar ? 48 : (compact ? 40 : 44),
           child: _buildCheckResultButton(compact: compact),
         ),
         if (_checkFeedbackTitle != null) ...[

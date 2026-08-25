@@ -61,7 +61,9 @@ void main() {
       },
       (QuantumCircuit circuit) {
         circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.y), 0, 0);
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.s), 1, 0);
       },
       (QuantumCircuit circuit) {
         // 5
@@ -315,7 +317,7 @@ void main() {
       (QuantumCircuit circuit) {
         // Solution: Rz(pi/2) on Q0
         circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2), 0, 0);
+            Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2), 1, 0);
       },
       (QuantumCircuit circuit) {
         // Solution: Ry(-pi/2) on Q0
@@ -338,13 +340,11 @@ void main() {
             Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 4), 2, 1);
       },
       (QuantumCircuit circuit) {
-        // Solution: Rx(pi/2), Ry(pi/4), then Rz(pi/2) on Q0.
+        // Solution: Ry(pi/3), then Rz(pi/2) on Q0.
         circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2), 0, 0);
+            Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 3), 0, 0);
         circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 4), 1, 0);
-        circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2), 2, 0);
+            Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2), 1, 0);
       },
     ];
 
@@ -384,7 +384,18 @@ void main() {
     });
 
     test('mastery challenge levels preserve the expected mixed types', () {
-      for (int levelNumber = 61; levelNumber <= 106; levelNumber++) {
+      expect(getQQLevelById(61), isA<CircuitReadingLevel>());
+      expect(getQQLevelById(62), isA<McqLevel>());
+      expect(getQQLevelById(63), isA<CircuitReadingLevel>());
+      expect(getQQLevelById(64), isA<FillTheGateLevel>());
+      expect(getQQLevelById(65), isA<ComposerLevel>());
+      expect(getQQLevelById(66), isA<CircuitReadingLevel>());
+      expect(getQQLevelById(67), isA<ComposerLevel>());
+      expect(getQQLevelById(68), isA<FillTheGateLevel>());
+      expect(getQQLevelById(69), isA<MeasurementLabLevel>());
+      expect(getQQLevelById(70), isA<ComposerLevel>());
+      expect(getQQLevelById(71), isA<CircuitReadingLevel>());
+      for (int levelNumber = 72; levelNumber <= 106; levelNumber++) {
         expect(getQQLevelById(levelNumber), isA<ComposerLevel>());
       }
       expect(getQQLevelById(107), isA<McqLevel>());
@@ -2341,34 +2352,31 @@ void main() {
       );
     });
 
-    test('Rz phase challenge labels e^(i*pi/4)|1> correctly', () {
+    test('Rz challenge uses relative phase on a superposition', () {
       final level = getQQLevelById(102)! as ComposerLevel;
 
       expect(level.title, equals('Rz — Phase Rotation'));
-      expect(level.taskDescription, contains(r'e^{i\pi/4}|1\rangle'));
-      expect(level.taskDescription, isNot(contains(r'|i\rangle')));
+      expect(level.taskDescription, contains(r'|+i\rangle'));
       expect(
         level.targetStateExpression,
-        equals('e^{iπ/4}|1⟩ = ((1+i)/√2)|1⟩'),
+        equals('|+i⟩ = (|0⟩ + i|1⟩)/√2'),
       );
-      expect(level.solutionFinalVector[0][0], equals(Complex.zero()));
+      expect(level.validationMode, ValidationMode.physicalState);
       expect(
-        level.solutionFinalVector[1][0],
-        equals(Complex(math.sqrt1_2, math.sqrt1_2)),
+        level.solutionFinalVector[0][0],
+        equals(Complex(math.sqrt1_2, 0)),
       );
+      expect(level.solutionFinalVector[1][0], equals(Complex(0, math.sqrt1_2)));
     });
 
-    test('precise rotation challenge identifies global phase accurately', () {
+    test('precise rotation challenge targets relative phase', () {
       final level = getQQLevelById(106)! as ComposerLevel;
 
-      expect(level.title, equals('Precise State-Vector Phase'));
-      expect(level.targetStateLabel, equals('Global-phase |+⟩'));
-      expect(level.conceptIntro, contains('same physical Bloch-sphere point'));
+      expect(level.title, equals('Precise Relative-Phase State'));
+      expect(level.targetStateLabel, contains('relative phase'));
       expect(level.conceptIntro, contains('global phase'));
-      expect(
-        level.solutionExplanation,
-        contains('physically the same Bloch-sphere point as |+⟩'),
-      );
+      expect(level.validationMode, ValidationMode.physicalState);
+      expect(level.solutionExplanation, contains('relative phase'));
     });
 
     test('guided Bell state text matches the configured Bell targets', () {
@@ -2447,7 +2455,7 @@ void main() {
     });
 
     test('mastery challenges start after guided discovery', () {
-      expect(getQQLevelById(61)!.title, equals('Bit Flip'));
+      expect(getQQLevelById(61)!.title, equals('A Change That Cancels'));
       expect(getQQLevelById(107)!.title, equals('What is Superposition?'));
       expect(getQQLevelById(114)!.title, equals('Read: Bell State'));
     });

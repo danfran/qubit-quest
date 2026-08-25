@@ -10,6 +10,7 @@ import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/circuit_geometry.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
 @immutable
 class ComposerCircuitDropIntent {
@@ -51,10 +52,10 @@ class ComposerCircuitCanvas extends StatefulWidget {
 }
 
 class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
-  static const Color _innerColor = Color(0xFF101A2D);
-  static const Color _cardColor = Color(0xFF18233A);
-  static const Color _cyan = Color(0xFF56CCF2);
-  static const Color _borderSoft = Color(0x3D344A73);
+  static const Color _innerColor = QubitQuestColors.surfaceInsetRaised;
+  static const Color _cardColor = QubitQuestColors.surfaceRaised;
+  static const Color _cyan = QubitQuestColors.accentInteractive;
+  static const Color _borderSoft = QubitQuestColors.borderSoft;
 
   final GlobalKey _gestureDetectorKey = GlobalKey();
   late final ScrollController _scrollController;

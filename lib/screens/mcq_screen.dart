@@ -10,8 +10,11 @@ import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/screens/learning_flow_widgets.dart';
 import 'package:quantumquiz/widgets/adaptive_learning_card.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/lesson_content_safe_area.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
+import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
 
 class McqScreen extends StatefulWidget {
   final int levelId;
@@ -66,16 +69,178 @@ class _McqScreenState extends State<McqScreen> {
     super.dispose();
   }
 
+  bool get _usesCanonicalVisualGrammar => widget.levelId == 62;
+
+  void _finish() {
+    if (_isCorrect) {
+      setState(() {
+        _isCompleted = LevelHeaderRouter.isMasteryLevel(widget.levelId)
+            ? true
+            : _isCompleted;
+      });
+      widget.onLevelUnlocked?.call(widget.levelId + 1);
+    }
+    Navigator.of(context).pop(
+      _isCorrect
+          ? LevelCompletionAction.nextLevel
+          : LevelCompletionAction.levelSelect,
+    );
+  }
+
+  Widget _buildCanonicalM2(
+    BuildContext context, {
+    required bool compact,
+    required bool compactAppBar,
+  }) {
+    final horizontalPadding =
+        compact ? QubitQuestSpacing.component : QubitQuestSpacing.section;
+
+    return Scaffold(
+      backgroundColor: QubitQuestColors.background,
+      appBar: _buildAppBar(compact: compactAppBar),
+      body: LessonContentSafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 920),
+            child: CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    horizontalPadding,
+                    horizontalPadding,
+                    0,
+                  ),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      if (widget.level.conceptIntro case final intro?) ...[
+                        QubitQuestCallout(
+                          key: const ValueKey('m2-supporting-callout'),
+                          variant: QubitQuestCalloutVariant.insight,
+                          message: intro,
+                        ),
+                        const SizedBox(height: QubitQuestSpacing.component),
+                      ],
+                      QubitQuestActivityQuestion(
+                        key: const ValueKey('m2-activity-question'),
+                        activityLabel: _badgeLabel.toUpperCase(),
+                        question: LatexText(
+                          math: widget.level.taskDescription,
+                          textStyle: QubitQuestTypography.question,
+                          inlineMathHeight: 22,
+                        ),
+                      ),
+                      const SizedBox(height: QubitQuestSpacing.component),
+                      for (final (idx, option) in widget.level.options.indexed)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            bottom: idx + 1 < widget.level.options.length
+                                ? QubitQuestSpacing.compact
+                                : 0,
+                          ),
+                          child: QubitQuestChoiceCard(
+                            key: ValueKey('mcq-option-$idx'),
+                            indexLabel: String.fromCharCode(65 + idx),
+                            state: QubitQuestChoiceState.forAnswer(
+                              answered: _answered,
+                              isSelected: _selected == idx,
+                              isCorrect: idx == widget.level.correctOptionIndex,
+                            ),
+                            onPressed: _answered
+                                ? null
+                                : () => setState(() => _selected = idx),
+                            child: LatexText(
+                              math: option,
+                              textStyle: QubitQuestTypography.body.copyWith(
+                                color: QubitQuestColors.textPrimary,
+                                fontSize: 15,
+                              ),
+                              inlineMathHeight: 16,
+                            ),
+                          ),
+                        ),
+                      if (_answered &&
+                          widget.level.solutionExplanation != null) ...[
+                        const SizedBox(height: QubitQuestSpacing.component),
+                        QubitQuestCallout(
+                          key: const ValueKey('m2-answer-feedback'),
+                          variant: _isCorrect
+                              ? QubitQuestCalloutVariant.success
+                              : QubitQuestCalloutVariant.info,
+                          message: widget.level.solutionExplanation!,
+                        ),
+                      ],
+                      if (_answered &&
+                          _adaptiveInsight != null &&
+                          !_adaptiveInsightDismissed) ...[
+                        const SizedBox(height: QubitQuestSpacing.component),
+                        AdaptiveLearningCard(
+                          insight: _adaptiveInsight!,
+                          compact: compact,
+                          onReviewNotebook: _openQuantumNotebook,
+                          onDismiss: _dismissAdaptiveInsight,
+                        ),
+                      ],
+                    ]),
+                  ),
+                ),
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          horizontalPadding,
+                          QubitQuestSpacing.component,
+                          horizontalPadding,
+                          QubitQuestSpacing.component,
+                        ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: QubitQuestActionButton(
+                            key: const ValueKey('m2-primary-action'),
+                            label: _answered
+                                ? (_isCorrect ? 'Continue' : 'Back')
+                                : 'Confirm Answer',
+                            onPressed: _answered
+                                ? _finish
+                                : _selected == null
+                                    ? null
+                                    : _confirmAnswer,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
     final compact = media.size.width < 680;
     final compactAppBar = media.size.width < 900;
 
+    if (_usesCanonicalVisualGrammar) {
+      return _buildCanonicalM2(
+        context,
+        compact: compact,
+        compactAppBar: compactAppBar,
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF00030A),
       appBar: _buildAppBar(compact: compactAppBar),
-      body: SafeArea(
+      body: LessonContentSafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 920),

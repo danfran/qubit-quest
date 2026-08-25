@@ -20,6 +20,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 import 'package:quantumquiz/widgets/responsive_dashboard_grid.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
 import '../models/qq_level.dart';
 import '../models/qq_levels.dart';
@@ -43,11 +44,12 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  static const Color qqBlack = Color(0xFF00030A);
-  static const Color qqCard = Color(0xFF111827);
-  static const Color qqCard2 = Color(0xFF18233A);
-  static const Color qqBorder = Color(0x66344A73);
-  static const Color qqCyan = Color(0xFF56CCF2);
+  // Compatibility aliases. QubitQuestColors is the canonical authority.
+  static const Color qqBlack = QubitQuestColors.background;
+  static const Color qqCard = QubitQuestColors.surface;
+  static const Color qqCard2 = QubitQuestColors.surfaceRaised;
+  static const Color qqBorder = QubitQuestColors.border;
+  static const Color qqCyan = QubitQuestColors.accentInteractive;
   static const Set<String> _chapter1DiscoveryTitles = {
     'Information',
     'Reversibility',

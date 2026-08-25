@@ -98,152 +98,145 @@ final List<List<Complex>> _ghzStarPlusTargetUnitary = [
 ];
 
 final List<QQLevel> _authoredQQLevels = [
-  // X
-  ComposerLevel.fromBinaryString(
-    title: 'Bit Flip',
+  // M1 — prediction and reversibility.
+  CircuitReadingLevel(
+    title: 'A Change That Cancels',
     taskDescription:
-        r"Your first quantum challenge! Apply a gate to transform \( |0\rangle \) to \( |1\rangle \).",
-    targetStateExpression: "|1⟩",
+        r'The circuit starts in \( |0\rangle \) and applies the same bit-changing operation twice. What physical state leaves the circuit?',
     conceptIntro:
-        'Quantum gates are the elementary operations that transform qubit states. '
-        'Just as classical computers have logic gates (AND, OR, NOT), quantum computers have '
-        'single-qubit gates that flip or rotate a qubit state. '
-        'The simplest kind of transformation maps one basis state directly to the other — '
-        'your job is to find which gate in your toolbar achieves the required flip.',
-    hints: [
-      'Think of a classical NOT gate — what does it do to a 0 bit?',
-      'The X gate swaps the two basis states: X|0⟩ = |1⟩ and X|1⟩ = |0⟩.',
+        'Quantum operations are reversible. Instead of choosing a gate, trace the displayed circuit from left to right and decide whether its changes survive.',
+    numQubits: 1,
+    initialQubitsStateString: '0',
+    circuit: (circuit) {
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.x),
+        0,
+        0,
+        isDeletable: false,
+      );
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.x),
+        1,
+        0,
+        isDeletable: false,
+      );
+    },
+    options: const [
+      r'\( |0\rangle \)',
+      r'\( |1\rangle \)',
+      r'\( |+\rangle = (|0\rangle+|1\rangle)/\sqrt{2} \)',
+      r'\( |-\rangle = (|0\rangle-|1\rangle)/\sqrt{2} \)',
+    ],
+    correctOptionIndex: 0,
+    hints: const [
+      'Track the state after each operation rather than judging either gate in isolation.',
+      'The first operation swaps the basis state. What does the same swap do a second time?',
     ],
     solutionExplanation:
-        'Applying the X (Pauli-X) gate flips the qubit: X|0⟩ = |1⟩. '
-        'This is the quantum equivalent of a classical NOT. '
-        'Notice that applying X twice returns to the original state — every quantum gate is unitary and therefore invertible — X happens to be its own inverse (X² = I), a property called being self-inverse.',
-    numQubits: 1,
-    initialQubitsStateString: "0",
-    availableGates: [
-      Gate.fromIdentifier(SelectedGateType.x),
-      Gate.fromIdentifier(SelectedGateType.hadamard),
-      Gate.fromIdentifier(SelectedGateType.y)
-    ],
-    canonicalSolution: CanonicalComposerSolution([
-      const CanonicalCircuitStep.single(
-        SelectedGateType.x,
-        targetQubit: 0,
-      ),
-    ]),
-    solutionFinalVector: [
-      [Complex.zero()],
-      [Complex.one()]
-    ], // Target: |1> state
+        'X sends |0⟩ to |1⟩, and the second X sends |1⟩ back to |0⟩. Thus X² = I: the circuit contains real reversible actions whose combined effect cancels.',
   ),
-  // Z
-  ComposerLevel.fromBinaryString(
-    title: 'Phase Flip',
+  // M2 — operator action versus physical-state representation.
+  McqLevel(
+    title: 'Different Vectors, Same Qubit',
     taskDescription:
-        r"Let's change now only the phase of \( |1\rangle \) without flipping the bit. Transform \( |1\rangle \) to \( -|1\rangle \).",
-    targetStateLabel: "-|1⟩",
-    targetStateExpression: "-|1⟩",
+        r'After valid gate operations, three calculations display \( |1\rangle \), \( -|1\rangle \), and \( i|1\rangle \). Which interpretation is physically correct?',
     conceptIntro:
-        'Not every quantum operation changes which basis state a qubit occupies. '
-        'Some gates leave the bit value completely unchanged while introducing a phase factor '
-        '(a complex multiplier) to one of the amplitudes. '
-        'A phase change is invisible in a single measurement — |−1|² = 1 — '
-        'but has real physical consequences when qubits interfere with each other. '
-        'Look at the target state and the available gates: which one changes only the phase?',
-    hints: [
-      'Z does not change which state you are in — it only changes the sign of |1⟩.',
-      'Z|0⟩ = |0⟩ and Z|1⟩ = −|1⟩. You are already in |1⟩, so apply Z directly.',
+        'A gate can change the vector written on the page even when the resulting pure state differs only by one phase multiplying every amplitude.',
+    options: const [
+      'They are three physically distinguishable pure states because their vectors are different.',
+      'They represent the same physical pure state; the different global factors still record genuine operator actions.',
+      'Only |1⟩ and −|1⟩ are equivalent; an imaginary global factor changes later measurements.',
+      'They are equivalent only when measured immediately, but later gates can reveal which global factor was present.',
+    ],
+    correctOptionIndex: 1,
+    hints: const [
+      'Ask whether the factor changes one amplitude relative to another, or multiplies the entire state.',
+      'Every possible prediction is unchanged when a whole pure-state vector is multiplied by a unit-magnitude complex number.',
     ],
     solutionExplanation:
-        'Z|1⟩ = −|1⟩. The Z gate flips the phase of the |1⟩ component without touching |0⟩. '
-        'This is called a phase flip — it changes the sign (phase) of the amplitude but not the measurement probability.',
+        '|1⟩, −|1⟩, and i|1⟩ are different vector representatives of the same physical pure state. Z and Y still perform definite unitary actions; quantum physics simply identifies vectors that differ only by a global phase.',
+  ),
+  // M3 — Y on superposition exposes a relative sign.
+  CircuitReadingLevel(
+    title: 'Trace the Complex Flip',
+    taskDescription:
+        r'The circuit prepares an equal superposition and then applies Y. Ignoring any overall global factor, which physical state leaves the circuit?',
+    conceptIntro:
+        'On a basis state, Y produces a bit change and an overall factor of ±i. With two amplitudes present, trace both components before deciding what part is global and what part is relative.',
     numQubits: 1,
-    initialQubitsStateString: "1",
-    availableGates: [
+    initialQubitsStateString: '0',
+    circuit: (circuit) {
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+        isDeletable: false,
+      );
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.y),
+        1,
+        0,
+        isDeletable: false,
+      );
+    },
+    options: const [
+      r'\( |+\rangle = (|0\rangle+|1\rangle)/\sqrt{2} \)',
+      r'\( |-\rangle = (|0\rangle-|1\rangle)/\sqrt{2} \)',
+      r'\( |+i\rangle = (|0\rangle+i|1\rangle)/\sqrt{2} \)',
+      r'\( |-i\rangle = (|0\rangle-i|1\rangle)/\sqrt{2} \)',
+    ],
+    correctOptionIndex: 1,
+    hints: const [
+      'Apply Y separately to the |0⟩ and |1⟩ components, then factor out anything common to the whole vector.',
+      'Y|+⟩ = i|1⟩/√2 − i|0⟩/√2. Factor out the common global phase before comparing the relative sign.',
+    ],
+    solutionExplanation:
+        'Y|+⟩ = (i|1⟩−i|0⟩)/√2 = −i(|0⟩−|1⟩)/√2 = −i|−⟩. The factor −i is global, but the minus sign between the two components is relative, so the physical output is |−⟩ rather than |+⟩.',
+  ),
+  // M4 — infer the missing quarter-turn phase operation.
+  FillTheGateLevel(
+    title: 'A Quarter Turn',
+    taskDescription:
+        r'The first gate creates \( |+\rangle \). Which missing gate changes only the relative phase to produce \( |+i\rangle \)?',
+    conceptIntro:
+        'The magnitudes are already balanced. The missing operation must rotate the |1⟩ amplitude by the required amount without changing the balance.',
+    numQubits: 1,
+    initialQubitsStateString: '0',
+    preBuiltGates: (circuit) {
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+        isDeletable: false,
+      );
+    },
+    correctGate: Gate.fromIdentifier(SelectedGateType.s),
+    options: [
       Gate.fromIdentifier(SelectedGateType.z),
+      Gate.fromIdentifier(SelectedGateType.t),
+      Gate.fromIdentifier(SelectedGateType.s),
       Gate.fromIdentifier(SelectedGateType.x),
-      Gate.fromIdentifier(SelectedGateType.y)
     ],
     solutionFinalVector: [
-      [Complex.zero()],
-      [negOne]
-    ], // Target: |1> state
-  ),
-  // Y
-  ComposerLevel.fromBinaryString(
-    title: 'Bit & Phase Flip',
-    taskDescription:
-        r"Let's change now the phase and flipping the bit from \( |1\rangle \) to \( |0\rangle \).",
-    targetStateLabel: "-i|0⟩",
-    targetStateExpression: "-i|0⟩",
-    conceptIntro:
-        'The three Pauli gates — X, Y, and Z — form a family of fundamental single-qubit operations. '
-        'You have already met two of them: X is a pure bit flip, and Z is a pure phase flip. '
-        'The third Pauli gate combines both effects in a single step: it flips the bit '
-        'and simultaneously introduces an imaginary phase factor of ±i. '
-        'Examine the target state carefully — the required combination of bit flip and phase '
-        'will tell you which gate to use.',
-    hints: [
-      'Y both flips the qubit AND adds a complex phase of ±i.',
-      'Y|1⟩ = −i|0⟩. The result is |0⟩ with a phase of −i.',
+      [Complex(sqrt1_2, 0)],
+      [Complex(0, sqrt1_2)],
+    ],
+    hints: const [
+      'Compare the relative phase in |+⟩ with the relative phase in |+i⟩; their amplitude magnitudes are unchanged.',
+      'You need a +π/2 rotation of the |1⟩ amplitude.',
+      'S supplies the required quarter turn: S|+⟩ = |+i⟩.',
     ],
     solutionExplanation:
-        'Y|1⟩ = −i|0⟩. The Y gate flips the qubit from |1⟩ to |0⟩ and simultaneously '
-        'attaches a phase of −i to the amplitude. '
-        'Pauli matrices X, Y, Z all satisfy Y = iXZ.',
-    numQubits: 1,
-    initialQubitsStateString: "1",
-    availableGates: [
-      Gate.fromIdentifier(SelectedGateType.hadamard),
-      Gate.fromIdentifier(SelectedGateType.x),
-      Gate.fromIdentifier(SelectedGateType.y)
-    ],
-    solutionFinalVector: [
-      [negI],
-      [Complex.zero()]
-    ], // Target: |1> state
-  ),
-  // Y
-  ComposerLevel.fromBinaryString(
-    title: 'The i-State',
-    taskDescription:
-        r"From \( |0\rangle \), reach \( |1\rangle \) with a phase of \( i \). This state is \( |i\rangle \).",
-    targetStateLabel: "|i⟩",
-    targetStateExpression: "|i⟩ = i|1⟩",
-    conceptIntro: 'A quantum state can have any complex amplitude. '
-        'The imaginary unit i appears naturally as a phase factor in quantum mechanics — '
-        'states like i|1⟩ are physically distinct from |1⟩ because the phase matters '
-        'when states combine through interference. '
-        'Not every gate produces complex phases: some map basis states to states with only real amplitudes, '
-        'while others introduce factors of i or −i. '
-        'Inspect each available gate to reason about what phase it produces.',
-    hints: [
-      'The X gate gives |1⟩ but without the phase i. You need a gate that also adds the imaginary phase.',
-      'Y|0⟩ = i|1⟩. The Y gate is the only single gate here that produces the required phase.',
-    ],
-    solutionExplanation:
-        'Y|0⟩ = i|1⟩. The Y gate maps |0⟩ to i|1⟩, producing the so-called |i⟩ state. '
-        'This is a 180° rotation around the Y-axis of the Bloch sphere (Y = i·Ry(π)).',
-    numQubits: 1,
-    initialQubitsStateString: "0",
-    availableGates: [
-      Gate.fromIdentifier(SelectedGateType.x),
-      Gate.fromIdentifier(SelectedGateType.y),
-      Gate.fromIdentifier(SelectedGateType.z)
-    ],
-    solutionFinalVector: [
-      [Complex.zero()],
-      [Complex.i()]
-    ], // Target: |i> state (Y|0> = i|1>)
+        'H first creates |+⟩. S leaves the |0⟩ amplitude unchanged and multiplies the |1⟩ amplitude by i, producing (|0⟩+i|1⟩)/√2 = |+i⟩. This is relative phase, not a global factor.',
   ),
   // X + Z + X
   ComposerLevel.fromBinaryString(
     // 5
     title: 'Phase Sandwich',
     taskDescription:
-        r"Starting from \( |0\rangle \), achieve \( -|0\rangle \).",
-    targetStateLabel: "-|0⟩",
-    targetStateExpression: "-|0⟩",
+        r"Build the operator sandwich \( XZX \) and identify why its matrix is \( -Z \) but its physical action is equivalent to Z.",
+    targetStateLabel: "Operator sandwich",
+    targetStateExpression: "XZX = -Z ~ Z",
     conceptIntro:
         'Gates compose: applying multiple gates in sequence multiplies their matrices. '
         'Some operations cannot be applied directly to the current state — '
@@ -258,8 +251,9 @@ final List<QQLevel> _authoredQQLevels = [
     ],
     solutionExplanation: 'XZX|0⟩ = −|0⟩. '
         'Step by step: X|0⟩ = |1⟩, then Z|1⟩ = −|1⟩, then X(−|1⟩) = −|0⟩. '
-        'This is the canonical example of gate composition and the "conjugation" pattern: '
-        'UGU† applies gate G in the basis defined by U.',
+        'As matrices XZX = −Z. The overall minus sign is global phase, so XZX and Z implement '
+        'the same physical transformation on a closed quantum state. The useful lesson is the '
+        'conjugation identity, not treating −|0⟩ as a distinct physical target.',
     numQubits: 1,
     initialQubitsStateString: "0",
     availableGates: [
@@ -271,46 +265,50 @@ final List<QQLevel> _authoredQQLevels = [
       [negOne],
       [Complex.zero()]
     ], // Target: -|0> state (e.g., XZX)
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [Complex(-1, 0), Complex.zero()],
+      [Complex.zero(), Complex.one()],
+    ],
   ),
-  // H
-  ComposerLevel.fromBinaryString(
-    title: 'Superposition',
+  // M6 — compare the two basis inputs to H through prediction.
+  CircuitReadingLevel(
+    title: 'Same Balance, Different Sign',
     taskDescription:
-        r"Create a superposition! Turn \( |0\rangle \) into \( |+\rangle \).",
-    targetStateLabel: "|+⟩",
-    targetStateExpression: "|+⟩ = (|0⟩ + |1⟩)/√2",
-    conceptIntro: 'Superposition is a defining feature of quantum computing. '
-        'Unlike a classical bit that is always exactly 0 or 1, a qubit can exist in a '
-        'combination of both states at once — described by complex probability amplitudes. '
-        'When you measure a qubit in superposition, the outcome is probabilistic: '
-        'the chance of each result equals the squared magnitude of its amplitude (Born rule: P = |amplitude|²). '
-        'The notation |+⟩ is the standard label for the equal-weight superposition that is your target here.',
-    hints: [
-      'There is exactly one gate in your toolbar that creates an equal superposition from a basis state.',
-      'It is the H (Hadamard) gate. H|0⟩ = (|0⟩+|1⟩)/√2 = |+⟩.',
-    ],
-    solutionExplanation: 'H|0⟩ = (|0⟩+|1⟩)/√2 = |+⟩. '
-        'Both amplitudes are 1/√2, so |1/√2|² = 0.5 — a 50% chance of measuring either outcome. '
-        'H is its own inverse: H² = I, so applying H twice returns to |0⟩.',
+        r'The circuit applies H to \( |1\rangle \). Which equal-weight state leaves the circuit?',
+    conceptIntro:
+        'H creates equal magnitudes from either basis input, but the input determines the relative sign. Predict the whole state, not only its measurement probabilities.',
     numQubits: 1,
-    initialQubitsStateString: "0",
-    availableGates: [
-      Gate.fromIdentifier(SelectedGateType.x),
-      Gate.fromIdentifier(SelectedGateType.hadamard),
-      Gate.fromIdentifier(SelectedGateType.z)
+    initialQubitsStateString: '1',
+    circuit: (circuit) {
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+        isDeletable: false,
+      );
+    },
+    options: const [
+      r'\( |+\rangle = (|0\rangle+|1\rangle)/\sqrt{2} \)',
+      r'\( |-\rangle = (|0\rangle-|1\rangle)/\sqrt{2} \)',
+      r'\( |+i\rangle = (|0\rangle+i|1\rangle)/\sqrt{2} \)',
+      r'\( |1\rangle \)',
     ],
-    solutionFinalVector: [
-      [Complex(sqrt1_2)],
-      [Complex(sqrt1_2)]
-    ], // Target: |+> state
+    correctOptionIndex: 1,
+    hints: const [
+      'Equal computational-basis probabilities do not determine the relative sign.',
+      'Compare the two Hadamard identities H|0⟩ = |+⟩ and H|1⟩ = |−⟩.',
+    ],
+    solutionExplanation:
+        'H|1⟩ = (|0⟩−|1⟩)/√2 = |−⟩. H|0⟩ and H|1⟩ both give 50/50 computational-basis probabilities, but their relative signs differ and can later interfere differently.',
   ),
   // H + T
   ComposerLevel.fromBinaryString(
-    title: 'T Gate Phase',
+    title: 'An Eighth Turn',
     taskDescription:
-        r"You're at \( |0\rangle \). Apply gates to reach a state where the \( |1\rangle \) amplitude has a phase of \( e^{i\pi/4} \). This is \( (|0\rangle + e^{i\pi/4}|1\rangle)/\sqrt{2} \).",
-    targetStateLabel: "T|+⟩",
-    targetStateExpression: "T|+⟩ = (|0⟩ + e^{iπ/4}|1⟩)/√2",
+        r"From \( |0\rangle \), create equal amplitudes whose \( |1\rangle \) component is one eighth of a full turn ahead: \( (|0\rangle + e^{i\pi/4}|1\rangle)/\sqrt{2} \).",
+    targetStateLabel: "45° relative phase",
+    targetStateExpression: "(|0⟩ + e^{iπ/4}|1⟩)/√2",
     conceptIntro:
         'Phase gates rotate only the phase of the |1⟩ amplitude by a fixed angle, leaving |0⟩ unchanged. '
         'On their own, phase gates are invisible to a single measurement — |e^(iφ)|² = 1 regardless of φ. '
@@ -318,9 +316,10 @@ final List<QQLevel> _authoredQQLevels = [
         'the relative phase between |0⟩ and |1⟩ then affects how amplitudes interfere in subsequent steps. '
         'The target state has a specific phase on the |1⟩ component — '
         'use the target amplitudes to reason about which gate and angle you need.',
-    hints: [
-      'First use H to put the qubit in superposition (|0⟩+|1⟩)/√2 — this gives both amplitudes.',
-      'Then apply T: it leaves |0⟩ alone and multiplies |1⟩ by e^(iπ/4), rotating its phase by 45°.',
+    hints: const [
+      'Separate the job into creating equal magnitudes and then changing only their relative phase.',
+      'Look for the available phase operation whose angle is π/4 rather than π/2 or π.',
+      'After H creates |+⟩, T supplies the required π/4 relative-phase turn.',
     ],
     solutionExplanation:
         'H creates (|0⟩+|1⟩)/√2. T then multiplies the |1⟩ amplitude by e^(iπ/4), '
@@ -339,90 +338,99 @@ final List<QQLevel> _authoredQQLevels = [
       [Complex(0.5, 0.5)]
     ], // Target: |+> state
   ),
-  // H + S
-  ComposerLevel.fromBinaryString(
-    title: 'S Gate — 90° Phase',
+  // M8 — apply the same quarter-turn idea from a different balanced state.
+  FillTheGateLevel(
+    title: 'Turn from the Opposite Side',
     taskDescription:
-        r"Transform the initial state of the qubit from \( |0\rangle \) to the target state \( |+i\rangle = (|0\rangle + |i\rangle)/\sqrt{2} \).",
-    targetStateLabel: "|+i⟩",
-    targetStateExpression: "|+i⟩ = (|0⟩ + i|1⟩)/√2",
+        r'The fixed gates prepare \( |-\rangle \). Which missing gate advances the relative phase by a quarter turn to produce \( |-i\rangle \)?',
     conceptIntro:
-        'The S gate is a phase gate that applies a 90° rotation to the |1⟩ amplitude: S|1⟩ = i|1⟩. '
-        'Like all phase gates, S cannot create superposition on its own — '
-        'it only affects the phase of an existing |1⟩ amplitude. '
-        'The four cardinal equatorial states |+⟩, |−⟩, |+i⟩, |−i⟩ are related to each other '
-        'by 90° phase steps on the Bloch sphere. '
-        'Think about which sequence of gates takes you from |0⟩ to the target state.',
-    hints: [
-      'First create superposition with H so both amplitudes are active.',
-      'S multiplies only the |1⟩ amplitude by i, rotating its phase by 90°: (|0⟩+|1⟩)/√2 → (|0⟩+i|1⟩)/√2.',
-    ],
-    solutionExplanation: 'H|0⟩ = (|0⟩+|1⟩)/√2. '
-        'S then rotates |1⟩ by 90°: S(|0⟩+|1⟩)/√2 = (|0⟩+i|1⟩)/√2 = |+i⟩. '
-        'This state is also called |R⟩ (right circular polarisation) on the Bloch sphere.',
+        'A quarter-turn phase operation acts on every equatorial starting point, not only |+⟩. Trace the phase already present before choosing the missing gate.',
     numQubits: 1,
-    initialQubitsStateString: "0",
-    availableGates: [
-      Gate.fromIdentifier(SelectedGateType.x),
-      Gate.fromIdentifier(SelectedGateType.hadamard),
-      Gate.fromIdentifier(SelectedGateType.s),
-      Gate.fromIdentifier(SelectedGateType.z)
-    ],
-    solutionFinalVector: [
-      [Complex(sqrt1_2)],
-      [Complex(0, sqrt1_2)]
-    ], // Target: |+> state
-  ),
-  // H + Z
-  ComposerLevel.fromBinaryString(
-    title: 'The Minus State',
-    taskDescription: r"Transform \( |+\rangle \) to \( |-\rangle \).",
-    targetStateLabel: "|-⟩",
-    targetStateExpression: "|-⟩ = (|0⟩ - |1⟩)/√2",
-    conceptIntro:
-        'The |-⟩ state is (|0⟩−|1⟩)/√2 — a superposition where the |1⟩ amplitude carries a negative sign. '
-        'Together with |+⟩, |+i⟩, and |−i⟩, it forms the four cardinal "compass points" '
-        'on the equatorial plane of the Bloch sphere. '
-        'Think about what kind of operation selectively adjusts the relative phase between '
-        'the |0⟩ and |1⟩ amplitudes without changing their magnitudes.',
-    hints: [
-      'Start by creating |+⟩ with H, then you need to flip the sign of |1⟩.',
-      'Z|1⟩ = −|1⟩ and Z|0⟩ = |0⟩, so Z turns (|0⟩+|1⟩)/√2 into (|0⟩−|1⟩)/√2 = |-⟩.',
-    ],
-    solutionExplanation: 'H|0⟩ = (|0⟩+|1⟩)/√2 = |+⟩. '
-        'Z then flips the sign of |1⟩: Z|+⟩ = (|0⟩−|1⟩)/√2 = |−⟩. '
-        '|+⟩ and |−⟩ are called the Hadamard basis (or X-basis) states — they are the eigenstates of the X gate.',
-    numQubits: 1,
-    initialQubitsStateString: "0",
-    availableGates: [
-      Gate.fromIdentifier(SelectedGateType.hadamard),
+    initialQubitsStateString: '0',
+    preBuiltGates: (circuit) {
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+        isDeletable: false,
+      );
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.z),
+        1,
+        0,
+        isDeletable: false,
+      );
+    },
+    correctGate: Gate.fromIdentifier(SelectedGateType.s),
+    options: [
+      Gate.fromIdentifier(SelectedGateType.t),
       Gate.fromIdentifier(SelectedGateType.z),
-      Gate.fromIdentifier(SelectedGateType.y),
-      Gate.fromIdentifier(SelectedGateType.x)
+      Gate.fromIdentifier(SelectedGateType.s),
+      Gate.fromIdentifier(SelectedGateType.x),
     ],
     solutionFinalVector: [
       [Complex(sqrt1_2, 0)],
-      [Complex(-sqrt1_2, 0)]
-    ], // Target: |-> state (H then Z)
+      [Complex(0, -sqrt1_2)],
+    ],
+    hints: const [
+      'The fixed circuit has already placed the |1⟩ amplitude at phase π relative to |0⟩.',
+      'The target relative phase is −π/2, which is the same direction as 3π/2. How large is the required additional turn?',
+      'A +π/2 phase turn maps |−⟩ to |−i⟩, so the missing gate is S.',
+    ],
+    solutionExplanation:
+        'H then Z prepares |−⟩, whose |1⟩ amplitude has phase π. S adds π/2, giving 3π/2 ≡ −π/2 and therefore |−i⟩. This transfers the quarter-turn idea to a different balanced starting state.',
+  ),
+  // M9 — computational-basis sampling cannot expose relative phase.
+  MeasurementLabLevel(
+    title: 'What the Histogram Hides',
+    taskDescription:
+        r'This circuit prepares a balanced state with a relative minus sign. Measure it repeatedly in the computational basis and inspect the histogram before reading the explanation.',
+    conceptIntro:
+        'A measurement histogram reveals amplitude magnitudes in the chosen basis. Run enough trials to decide what the data does—and does not—tell you about the phase in the prepared state.',
+    numQubits: 1,
+    initialQubitsStateString: '0',
+    preBuiltCircuit: (circuit) {
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+        isDeletable: false,
+      );
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.z),
+        1,
+        0,
+        isDeletable: false,
+      );
+    },
+    requiredMeasurements: 20,
+    hints: const [
+      'Watch whether either computational-basis result is favoured as the sample count grows.',
+      'Computational-basis probabilities depend on amplitude magnitudes, not directly on their relative sign.',
+      'The |+⟩ and |−⟩ states both produce a 50/50 Z-basis histogram; a basis-changing operation is needed to reveal their relative phase.',
+    ],
+    solutionExplanation:
+        'The circuit prepares |−⟩, yet repeated computational-basis measurements approach 50% |0⟩ and 50% |1⟩—the same histogram as |+⟩. The states are physically different because of relative phase, but this measurement basis cannot distinguish them. Interference after a basis change can.',
   ),
   // H(1) + X(0)
   ComposerLevel.fromBinaryString(
     // 10
-    title: '2-Qubit Product State',
+    title: 'Independent, Not Entangled',
     taskDescription:
-        r"From \( |00\rangle \), create the product state \( |+\rangle \otimes |1\rangle = (|01\rangle + |11\rangle)/\sqrt{2} \).",
+        r"From \( |00\rangle \), create \( (|01\rangle + |11\rangle)/\sqrt{2} \) using only independent single-qubit preparation.",
     targetStateLabel: "|+⟩⊗|1⟩",
     targetStateExpression: "|+⟩⊗|1⟩ = (|01⟩ + |11⟩)/√2",
     conceptIntro: 'Two-qubit systems are described by tensor products. '
         'When no controlled gate connects them, each qubit can be operated independently. '
         'The full state vector has 2² = 4 entries: |00⟩, |01⟩, |10⟩, |11⟩. '
         'A product (non-entangled) state like |+⟩⊗|1⟩ factors into separate single-qubit states.',
-    hints: [
-      'You need to act on both qubits separately — no controlled gate is required here.',
-      'Apply H to Q0 (qubit 0) to create superposition, and X to Q1 (qubit 1) to flip it to |1⟩. The result is |+⟩⊗|1⟩.',
+    hints: const [
+      'Factor the target into a state for each qubit. One factor is fixed while the other is balanced.',
+      'No conditional relationship is needed: prepare each factor locally.',
+      'H on Q1 creates the balanced factor; X on Q0 prepares the fixed |1⟩ factor.',
     ],
     solutionExplanation:
-        'H on Q0 gives (|0⟩+|1⟩)/√2 on qubit 0. X on Q1 flips qubit 1 to |1⟩. '
+        'H on Q1 gives (|0⟩+|1⟩)/√2 on qubit 1. X on Q0 flips qubit 0 to |1⟩. '
         'Combining via tensor product: (|0⟩+|1⟩)/√2 ⊗ |1⟩ = (|01⟩+|11⟩)/√2. '
         'This is a product state — the two qubits are independent and not entangled.',
     numQubits: 2,
@@ -440,41 +448,49 @@ final List<QQLevel> _authoredQQLevels = [
       [Complex(sqrt1_2, 0)],
     ], // Target: (1/sqrt(2))|01> + (1/sqrt(2))|11> (Solution: H on Q0, X on Q1, CNOT(0,1))
   ),
-  // H + S + Z
-  ComposerLevel.fromBinaryString(
-    title: 'The −i State',
+  // M11 — trace accumulated relative phase without Composer trial-and-error.
+  CircuitReadingLevel(
+    title: 'Follow the Phase Around',
     taskDescription:
-        r"From \( |+\rangle \), achieve \( |-i\rangle = (|0\rangle - i|1\rangle)/\sqrt{2} \).",
-    targetStateLabel: "|-i⟩",
-    targetStateExpression: "|-i⟩ = (|0⟩ - i|1⟩)/√2",
+        r'Trace the fixed H → S → Z circuit from \( |0\rangle \). Which equatorial state is the output?',
     conceptIntro:
-        'You have seen |+i⟩ = (|0⟩+i|1⟩)/√2 — now aim for its mirror: |-i⟩ = (|0⟩−i|1⟩)/√2. '
-        'The four cardinal equatorial states |+⟩, |−⟩, |+i⟩, |−i⟩ each differ by a 90° phase step on |1⟩. '
-        'To reach |−i⟩ you need a net phase of −i on the |1⟩ component. '
-        'Phase angles add when gates are applied in sequence — '
-        'think about which combination of available phase gates accumulates to that total rotation.',
-    hints: [
-      'Start with H to create superposition |+⟩. Then you need to rotate |1⟩\'s phase to −i.',
-      'Apply Z first (flips |1⟩ sign), then S (multiplies by i): together they give −i on |1⟩. '
-          'Sequence: H → Z → S.',
-    ],
-    solutionExplanation: 'H|0⟩ = (|0⟩+|1⟩)/√2. '
-        'Z flips |1⟩: (|0⟩−|1⟩)/√2. '
-        'S multiplies |1⟩ by i: (|0⟩ − i|1⟩)/√2 = |-i⟩. '
-        '|-i⟩ is also called the |L⟩ (left circular) state on the Bloch sphere.',
+        'Phase operations accumulate in order. Keep the |0⟩ amplitude as a reference and follow only how the |1⟩ amplitude turns.',
     numQubits: 1,
-    initialQubitsStateString: "0", // Requires H and ZS or YS or something
-    availableGates: [
-      Gate.fromIdentifier(SelectedGateType.hadamard),
-      Gate.fromIdentifier(SelectedGateType.s),
-      Gate.fromIdentifier(SelectedGateType.z),
-      Gate.fromIdentifier(SelectedGateType.x),
-      Gate.fromIdentifier(SelectedGateType.y)
+    initialQubitsStateString: '0',
+    circuit: (circuit) {
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+        isDeletable: false,
+      );
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.s),
+        1,
+        0,
+        isDeletable: false,
+      );
+      circuit.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.z),
+        2,
+        0,
+        isDeletable: false,
+      );
+    },
+    options: const [
+      r'\( |+\rangle = (|0\rangle+|1\rangle)/\sqrt{2} \)',
+      r'\( |-\rangle = (|0\rangle-|1\rangle)/\sqrt{2} \)',
+      r'\( |+i\rangle = (|0\rangle+i|1\rangle)/\sqrt{2} \)',
+      r'\( |-i\rangle = (|0\rangle-i|1\rangle)/\sqrt{2} \)',
     ],
-    solutionFinalVector: [
-      [Complex(sqrt1_2, 0)],
-      [Complex(0, -sqrt1_2)]
-    ], // Target: |-i> state (e.g., HZ then S)
+    correctOptionIndex: 3,
+    hints: const [
+      'After H, both amplitudes are present. S and Z then change only their relative phase.',
+      'Add the phase turns on |1⟩: π/2 followed by π.',
+      'The total is 3π/2, equivalent to −π/2, so the |1⟩ amplitude is −i relative to |0⟩.',
+    ],
+    solutionExplanation:
+        'H creates |+⟩. S advances the |1⟩ amplitude by π/2 to produce |+i⟩; Z adds π more. The accumulated phase is 3π/2 ≡ −π/2, so the output is |−i⟩.',
   ),
   // (H + S + Z) + S + H + X
   ComposerLevel.fromBinaryString(
@@ -1138,7 +1154,7 @@ final List<QQLevel> _authoredQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'Bell State Φ⁻',
     taskDescription:
-        r"From \( |00\rangle \), prepare the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle)/\sqrt{2} \). You need only one solution although it can have 2 solutions potenially, due to entanglement.",
+        r"From \( |00\rangle \), prepare the Bell state \( |\Phi^-\rangle = (|00\rangle - |11\rangle)/\sqrt{2} \). Either qubit can receive the final Z phase flip, so two equivalent circuit solutions are possible.",
     targetStateLabel: "|Φ⁻⟩",
     targetStateExpression: "|Φ⁻⟩ = (|00⟩ - |11⟩)/√2",
     conceptIntro:
@@ -1893,30 +1909,30 @@ final List<QQLevel> _authoredQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'Rz — Phase Rotation',
     taskDescription:
-        r"Apply a phase shift to the state \( |1\rangle \) to transform it to \( e^{i\pi/4}|1\rangle \). This requires an Rz gate.",
-    targetStateLabel: "e^{iπ/4}|1⟩",
-    targetStateExpression: "e^{iπ/4}|1⟩ = ((1+i)/√2)|1⟩",
+        r"Starting from \( |+\rangle \), use Rz to create the physical state \( |+i\rangle \).",
+    targetStateLabel: "|+i⟩",
+    targetStateExpression: "|+i⟩ = (|0⟩ + i|1⟩)/√2",
     conceptIntro:
         'Rz(θ) rotates around the Z-axis: Rz(θ)|0⟩ = e^(−iθ/2)|0⟩ and Rz(θ)|1⟩ = e^(iθ/2)|1⟩. '
-        'Since |0⟩ and |1⟩ get opposite phases, Rz only creates a relative phase — '
-        'it does not mix them. '
+        'On a superposition, those opposite factors change the relative phase between amplitudes. '
+        'On a basis state alone, the same formula contributes only an unobservable global phase. '
         'Z, S, and T are all special cases of Rz: '
-        'Z = Rz(π), S = Rz(π/2), T = Rz(π/4) (up to global phase). '
-        'Here you start in |1⟩ and need to rotate its phase by π/4.',
+        'Z = Rz(π), S = Rz(π/2), T = Rz(π/4), up to global phase.',
     hints: [
-      'You only need to add a phase to |1⟩. Rz(θ)|1⟩ = e^(iθ/2)|1⟩. '
-          'Look at the target amplitude on |1⟩ and work out what θ gives that phase.',
-      'Target |1⟩ amplitude: (1+i)/√2 = e^(iπ/4). '
-          'So e^(iθ/2) = e^(iπ/4) → θ/2 = π/4 → θ = π/2. '
-          'Use Rz(π/2). This is equivalent to the S gate.',
+      'The fixed H gate has prepared |+⟩, so both amplitudes are present.',
+      'Rz(π/2)|+⟩ = e^(−iπ/4)(|0⟩+i|1⟩)/√2. '
+          'Ignore the common factor e^(−iπ/4): the physical state is |+i⟩.',
     ],
-    solutionExplanation:
-        'Rz(π/2)|1⟩ = e^(iπ/4)|1⟩ = (cos(π/4)+i·sin(π/4))|1⟩ = (1+i)/√2·|1⟩. '
-        'Rz(π/2) is the continuous-angle equivalent of the S gate (S = Rz(π/2) up to global phase). '
-        'The Z-rotation family: T = Rz(π/4), S = Rz(π/2), Z = Rz(π). '
-        'As phase gates they are equivalent up to global phase to changing the relative phase of the |1⟩ component.',
+    solutionExplanation: 'Rz(π/2)|+⟩ = e^(−iπ/4)(|0⟩+i|1⟩)/√2. '
+        'The common factor e^(−iπ/4) is global phase, so the result is physically |+i⟩. '
+        'The relative phase of +i between the two amplitudes is what moves the Bloch vector.',
     numQubits: 1,
-    initialQubitsStateString: "1",
+    initialQubitsStateString: "0",
+    preInsertedGates: (circuit) {
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0,
+          isDeletable: false);
+    },
     availableGates: [
       Gate.fromIdentifier(SelectedGateType.z),
       Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2),
@@ -1930,9 +1946,10 @@ final List<QQLevel> _authoredQQLevels = [
       ),
     ]),
     solutionFinalVector: [
-      [Complex.zero()],
-      [Complex(sqrt1_2, sqrt1_2)],
-    ], // Target: e^{iπ/4}|1⟩ = (1+i)|1⟩/√2
+      [Complex(sqrt1_2, 0)],
+      [Complex(0, sqrt1_2)],
+    ],
+    validationMode: ValidationMode.physicalState,
   ),
   ComposerLevel.fromBinaryString(
     title: 'Inverse Rotation',
@@ -2080,54 +2097,38 @@ final List<QQLevel> _authoredQQLevels = [
     ], // Target: (1/sqrt(2))|00> + (e^(i*pi/4)/sqrt(2))|11>
   ),
   ComposerLevel.fromBinaryString(
-    title: 'Precise State-Vector Phase',
+    title: 'Precise Relative-Phase State',
     taskDescription:
-        r"Transform the initial state to the exact state vector \( e^{-i\pi/8}(|0\rangle + |1\rangle)/\sqrt{2} \). This has the same physical Bloch-sphere point as \( |+\rangle \), but the displayed state vector includes a global phase.",
-    targetStateLabel: "Global-phase |+⟩",
-    targetStateExpression: "e^{-iπ/8}(|0⟩ + |1⟩)/√2",
+        r"Use rotations around two axes to prepare \( (\sqrt{3}|0\rangle+i|1\rangle)/2 \).",
+    targetStateLabel: "Unequal amplitudes + relative phase",
+    targetStateExpression: "(√3|0⟩ + i|1⟩)/2",
     conceptIntro:
-        'The Bloch sphere represents states up to global phase, so e^{-iπ/8}|+⟩ and |+⟩ are the same physical Bloch-sphere point. '
-        'This challenge asks for the exact displayed state vector, where both amplitudes share the same global phase e^{-iπ/8}. '
-        'Do not confuse equal measurement probabilities with matching the full complex state vector. '
-        'Inspect the available rotations and think about how each axis changes the complex amplitudes.',
+        'A general single-qubit state needs both a balance between |0⟩ and |1⟩ and a relative phase. '
+        'First use a Y rotation to set the unequal magnitudes, then a Z rotation to turn the '
+        '|1⟩ amplitude a quarter-turn relative to |0⟩. Any common phase on both amplitudes '
+        'is global phase: it only changes the vector representation, not the physical target.',
     hints: [
-      'The target has both amplitudes equal in magnitude (1/√2) and both carry the same complex phase e^{-iπ/8}. '
-          'Start with Rx(π/2) to create the superposition (|0⟩ − i|1⟩)/√2, '
-          'then Ry(π/4) rotates the amplitudes, '
-          'and finally Rz(π/2) makes the two displayed amplitudes equal.',
-      'Rx(π/2)|0⟩ = (|0⟩ − i|1⟩)/√2. '
-          'Ry(π/4) then gives amplitudes e^(iπ/8)/√2 and −i·e^(iπ/8)/√2. '
-          'Rz(π/2) applies phases e^(−iπ/4) and e^(iπ/4): '
-          'both components become e^(−iπ/8)/√2. '
-          'Three gates: Rx(π/2) → Ry(π/4) → Rz(π/2).',
+      'Ry(π/3)|0⟩ = (√3/2)|0⟩ + (1/2)|1⟩.',
+      'Then Rz(π/2) adds a relative phase of i. The simulator may display a common '
+          'factor e^(−iπ/4); that global phase represents the same physical state.',
     ],
-    solutionExplanation: 'Rx(π/2)|0⟩ = (|0⟩ − i|1⟩)/√2. '
-        'Ry(π/4) rotates further: component 0 → e^(iπ/8)/√2, component 1 → −i·e^(iπ/8)/√2. '
-        'Rz(π/2) applies phases e^(−iπ/4) and e^(iπ/4), making both components equal: '
-        'e^(−iπ/8)/√2 = (cos(π/8) − i·sin(π/8))/√2. '
-        'The final vector is e^(−iπ/8)|+⟩: physically the same Bloch-sphere point as |+⟩, but with the exact global phase shown in the target. '
-        'The three-gate sequence Rx → Ry → Rz controls the displayed complex amplitudes; '
-        'any single-qubit gate has an Euler decomposition Rz(α)·Ry(β)·Rz(γ), '
-        'and Rx → Ry → Rz here is an alternative three-axis factorisation for this target. '
-        'VQE and QAOA circuits use exactly this parameterised gate structure.',
+    solutionExplanation:
+        'Ry(π/3) sets the amplitudes to √3/2 and 1/2. Rz(π/2) then gives their '
+        'relative phase a quarter-turn, producing a vector globally equivalent to '
+        '(√3|0⟩+i|1⟩)/2. The unequal probabilities and the relative phase both describe '
+        'the physical Bloch-sphere point; a common phase multiplying both entries does not.',
     numQubits: 1,
     initialQubitsStateString: "0",
     availableGates: [
       Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2),
-      Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 8),
-      Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 4),
+      Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 3),
       Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2)
     ],
     solutionFinalVector: [
-      [
-        Complex(
-            sqrt1_2 * math.cos(math.pi / 8), -sqrt1_2 * math.sin(math.pi / 8))
-      ],
-      [
-        Complex(
-            sqrt1_2 * math.cos(math.pi / 8), -sqrt1_2 * math.sin(math.pi / 8))
-      ],
-    ], // Target: e^{-iπ/8}|+⟩
+      [Complex(math.sqrt(3) / 2, 0)],
+      [Complex(0, 0.5)],
+    ],
+    validationMode: ValidationMode.physicalState,
   ),
 
   // ── Concept Checks (MCQ) ──────────────────────────────────────────────────
@@ -2231,7 +2232,8 @@ final List<QQLevel> _authoredQQLevels = [
         r'Press Measure at least 20 times. Notice that you only ever see |00⟩ or |11⟩ — never |01⟩ or |10⟩.',
     conceptIntro:
         'Entangled qubits are perfectly correlated. No matter how many times you measure, '
-        'the two qubits always agree — both 0 or both 1. This cannot happen with classical random bits.',
+        'the two qubits always agree — both 0 or both 1. Classically correlated random bits can '
+        'show the same statistics in this one basis, so this histogram alone does not prove nonclassicality.',
     numQubits: 2,
     initialQubitsStateString: '00',
     preBuiltCircuit: (circuit) {
@@ -2249,12 +2251,15 @@ final List<QQLevel> _authoredQQLevels = [
           'The Born rule says zero amplitude means zero probability — '
           'those outcomes can never occur.',
       'Compare with two independent 50/50 coins: you\'d sometimes get "heads-tails" or "tails-heads". '
-          'Entanglement forbids those mixed outcomes — both qubits are always perfectly correlated.',
+          'A shared classical random source could also force agreement, so stronger evidence for entanglement '
+          'compares correlations in incompatible measurement bases.',
     ],
     solutionExplanation:
         'The Bell state has zero amplitude for |01⟩ and |10⟩, so you can never measure those. '
         'The two qubits are entangled — their outcomes are always correlated. '
-        'Each outcome |00⟩ and |11⟩ has probability |1/√2|² = 0.5.',
+        'Each outcome |00⟩ and |11⟩ has probability |1/√2|² = 0.5. '
+        'These Z-basis results are consistent with entanglement, but identical one-basis statistics '
+        'can be produced by classically correlated bits; the quantum distinction appears across incompatible bases.',
   ),
 
   // ── Fill the Gate ─────────────────────────────────────────────────────────
@@ -2609,18 +2614,19 @@ final List<QQLevel> _authoredQQLevels = [
   ComposerLevel(
     title: 'Control Affects Control',
     taskDescription:
-        r'Use one CX on \( |1\rangle|−\rangle \). The target is flipped conditionally, but the visible state should only gain phase.',
-    targetStateExpression: '-|1⟩|−⟩',
+        r'Use one CX on \( |1\rangle|−\rangle \). Interpret the resulting minus sign before the control is put into superposition.',
+    targetStateExpression: 'CX|1⟩|−⟩ = -|1⟩|−⟩ ~ |1⟩|−⟩',
     mysteryTitle: 'Can the target setup affect the control logic?',
     mysteryText:
         'The target is prepared as |−⟩. Apply CX and notice that the conditional flip does not show up as an ordinary target bit change.',
     discoveryTitle: 'Phase Carrier',
     discoveryText:
-        '|−⟩ is a phase-sensitive target. When CX tries to flip it, the effect appears as phase rather than as a visible target-bit change.',
+        '|−⟩ is an X eigenstate with eigenvalue −1, so the controlled flip contributes a minus sign. '
+        'With the control fixed at |1⟩, that sign is still global phase and does not yet encode observable information.',
     keyInsight:
-        'A phase-sensitive target can turn conditional bit logic into phase logic.',
+        'The target supplies a phase factor; it becomes meaningful kickback only when different control branches can receive it differently.',
     whyItMatters:
-        'Phase kickback depends on target preparation. The controlled operation is the same, but the target state determines whether the computation writes a phase.',
+        'This eigenvalue is the mechanism behind phase kickback. The next level puts the control in superposition so the factor becomes relative phase.',
     nextMystery:
         'What happens when the control is in superposition and only one branch receives that phase?',
     hints: [
@@ -2628,7 +2634,9 @@ final List<QQLevel> _authoredQQLevels = [
       'The target is |−⟩, so a conditional flip becomes a phase effect.',
     ],
     solutionExplanation:
-        'CX with control q0 and target q1 maps |1⟩|−⟩ to -|1⟩|−⟩. The visible values are unchanged, but the controlled operation has written phase.',
+        'CX maps |1⟩|−⟩ to −|1⟩|−⟩ because X|−⟩ = −|−⟩. Since every amplitude '
+        'of this product state receives the same minus sign, the output is physically equivalent '
+        'to the input. With a superposed control, only one branch receives that factor and it becomes observable relative phase.',
     numQubits: 2,
     initialQubitsStateStr: '|1⟩|−⟩',
     initialQubitsState: [
@@ -3721,26 +3729,29 @@ final List<QQLevel> _authoredQQLevels = [
   ComposerLevel.fromBinaryString(
     title: 'The Invisible Difference',
     taskDescription:
-        r'How can two states look identical but behave differently later? Change \( |1\rangle \) without changing its measurement.',
-    targetStateExpression: '-|1⟩',
+        r'Apply Z to \( |1\rangle \). Did the physical state change, or only its vector representation?',
+    targetStateExpression: 'Z|1⟩ = -|1⟩ ~ |1⟩',
     mysteryTitle:
-        'How can two states look identical but behave differently later?',
+        'Can two different vectors represent the same physical state?',
     mysteryText:
         'Now try the same gate on |1⟩. The measured bit will not flip, but watch the state expression for a trace that was missing before.',
     discoveryTitle: 'Invisible Difference',
     discoveryText:
-        'The bit value stayed 1, but the state picked up a minus sign. Measurement of this single basis state hides the sign; the state display reveals it.',
+        'The displayed vector picked up a minus sign, but that sign multiplies the whole state. '
+        '|1⟩ and −|1⟩ are two mathematical representatives of the same physical pure state.',
     keyInsight:
-        'Quantum state descriptions can contain signs that measurement probabilities ignore.',
+        'Quantum mechanics ignores an overall global phase applied equally to every amplitude.',
     whyItMatters:
-        'This is the first visible trace of phase. By itself it is quiet, but in a state with multiple pieces a sign can change what happens next.',
+        'This prevents a common mistake: only phase relationships between components can change later physical predictions.',
     nextMystery: 'What happens when only one piece gets the sign?',
     hints: [
       'Use the same gate as before, but start from the state where its sign effect appears.',
       'Z does not flip |1⟩ into |0⟩; it attaches a minus sign to |1⟩.',
     ],
     solutionExplanation:
-        'Z changes |1⟩ into -|1⟩. The measured bit stays fixed, while the state expression exposes the sign.',
+        'Z writes |1⟩ as −|1⟩. The vectors differ by a global phase of π, so they represent '
+        'the same physical pure state and the same Bloch-sphere point. In the next level, Z changes '
+        'only one component of a superposition; that relative phase is physically meaningful.',
     numQubits: 1,
     initialQubitsStateString: '1',
     availableGates: [
@@ -3749,6 +3760,11 @@ final List<QQLevel> _authoredQQLevels = [
     solutionFinalVector: [
       [Complex.zero()],
       [Complex(-1, 0)],
+    ],
+    validationMode: ValidationMode.unitary,
+    targetUnitary: [
+      [Complex.one(), Complex.zero()],
+      [Complex.zero(), Complex(-1, 0)],
     ],
   ),
 
@@ -3837,8 +3853,9 @@ final List<QQLevel> _authoredQQLevels = [
         'You have changed values, signs, and relationships. Now build the reveal: make phase affect the measured bit.',
     discoveryTitle: 'Phase',
     discoveryText:
-        'Z created the phase relationship, then H changed how the state was read. The hidden phase became the visible outcome |1⟩.',
-    keyInsight: 'Phase is hidden until another operation makes it observable.',
+        'Z created a relative-phase relationship, then H recombined the amplitudes so they interfered. The hidden phase became the visible outcome |1⟩.',
+    keyInsight:
+        'Relative phase becomes observable when later operations make amplitudes interfere.',
     whyItMatters:
         'This is the bridge into the next chapters: quantum circuits can store useful structure in phase, then reveal it through later transformations.',
     nextMystery: 'Can a qubit be more than 0 or 1?',

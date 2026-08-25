@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/lesson_content_safe_area.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
+import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
 
 class MeasurementLabScreen extends StatefulWidget {
   final int levelId;
@@ -75,8 +78,151 @@ class _MeasurementLabScreenState extends State<MeasurementLabScreen> {
     });
   }
 
+  bool get _usesCanonicalVisualGrammar => widget.levelId == 69;
+
+  Widget _buildCanonicalMastery(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 680;
+    final horizontalPadding =
+        compact ? QubitQuestSpacing.component : QubitQuestSpacing.section;
+    final required = widget.level.requiredMeasurements;
+    final progress = (_total / required).clamp(0.0, 1.0);
+    final explanation = widget.level.solutionExplanation;
+
+    return Scaffold(
+      backgroundColor: QubitQuestColors.background,
+      appBar: LevelHeaderRouter.headerFor(
+        level: widget.level,
+        levelId: widget.levelId,
+        compact: false,
+        isCompleted: _isCompleted,
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            QubitQuestSpacing.compact,
+            horizontalPadding,
+            QubitQuestSpacing.component,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: QubitQuestActionButton(
+                  key: const ValueKey('mastery-measure-action'),
+                  label: 'Measure',
+                  icon: Icons.science_outlined,
+                  role: _unlocked
+                      ? QubitQuestActionRole.secondary
+                      : QubitQuestActionRole.primary,
+                  onPressed: _onMeasure,
+                ),
+              ),
+              if (_unlocked) ...[
+                const SizedBox(width: QubitQuestSpacing.regular),
+                Expanded(
+                  child: QubitQuestActionButton(
+                    key: const ValueKey('mastery-measure-continue'),
+                    label: 'Continue',
+                    icon: Icons.arrow_forward,
+                    onPressed: () => Navigator.of(context)
+                        .pop(LevelCompletionAction.nextLevel),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      body: LessonContentSafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 920),
+            child: ListView(
+              padding: EdgeInsets.all(horizontalPadding),
+              children: [
+                if (widget.level.conceptIntro case final intro?) ...[
+                  QubitQuestCallout(
+                    key: const ValueKey('mastery-measure-support'),
+                    variant: QubitQuestCalloutVariant.insight,
+                    message: intro,
+                  ),
+                  const SizedBox(height: QubitQuestSpacing.component),
+                ],
+                QubitQuestActivityQuestion(
+                  key: const ValueKey('mastery-measure-question'),
+                  activityLabel: 'MEASUREMENT',
+                  question: LatexText(
+                    math: widget.level.taskDescription,
+                    textStyle: QubitQuestTypography.question,
+                    inlineMathHeight: 21,
+                  ),
+                ),
+                const SizedBox(height: QubitQuestSpacing.section),
+                Row(
+                  children: [
+                    Text(
+                      'Measurements: $_total / $required',
+                      style: QubitQuestTypography.supporting,
+                    ),
+                    const SizedBox(width: QubitQuestSpacing.regular),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: QubitQuestRadii.pill,
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 8,
+                          backgroundColor: QubitQuestColors.surfaceInset,
+                          color: _unlocked
+                              ? QubitQuestColors.success
+                              : QubitQuestColors.accentInteractive,
+                        ),
+                      ),
+                    ),
+                    if (_unlocked) ...[
+                      const SizedBox(width: QubitQuestSpacing.compact),
+                      const Icon(
+                        Icons.check_circle,
+                        color: QubitQuestColors.success,
+                        size: 20,
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: QubitQuestSpacing.component),
+                QubitQuestPanel(
+                  level: QubitQuestSurfaceLevel.inset,
+                  child: _counts.isEmpty
+                      ? SizedBox(
+                          height: 120,
+                          child: Center(
+                            child: Text(
+                              'Press Measure to start',
+                              style: QubitQuestTypography.supporting,
+                            ),
+                          ),
+                        )
+                      : _buildHistogram(),
+                ),
+                if (_unlocked && explanation != null) ...[
+                  const SizedBox(height: QubitQuestSpacing.component),
+                  QubitQuestCallout(
+                    key: const ValueKey('mastery-measure-feedback'),
+                    variant: QubitQuestCalloutVariant.success,
+                    message: explanation,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_usesCanonicalVisualGrammar) return _buildCanonicalMastery(context);
     final int required = widget.level.requiredMeasurements;
     final double progress = (_total / required).clamp(0.0, 1.0);
 
@@ -135,145 +281,149 @@ class _MeasurementLabScreenState extends State<MeasurementLabScreen> {
       ),
 
       // ── Body ─────────────────────────────────────────────────────────────
-      body: LayoutBuilder(
-        builder: (context, constraints) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Scrollable header: concept intro + task + progress bar
-            // ConstrainedBox gives it a bounded maxHeight so SingleChildScrollView
-            // actually scrolls instead of expanding to full content height.
-            ConstrainedBox(
-              constraints:
-                  BoxConstraints(maxHeight: constraints.maxHeight * 0.42),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (widget.level.conceptIntro != null)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 20),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2D2E40),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF5D5FE6)),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(Icons.info_outline,
-                                color: Color(0xFF5D5FE6), size: 20),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                widget.level.conceptIntro!,
-                                style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 14,
-                                    height: 1.5),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    LatexText(
-                      math: widget.level.taskDescription,
-                      textStyle: const TextStyle(
-                          color: Colors.white, fontSize: 16, height: 1.5),
-                      inlineMathHeight: 18,
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Text(
-                          'Measurements: $_total / $required',
-                          style: const TextStyle(
-                              color: Colors.white70, fontSize: 14),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: progress,
-                              backgroundColor: Colors.white12,
-                              color: _unlocked
-                                  ? Colors.green
-                                  : const Color(0xFF5D5FE6),
-                              minHeight: 8,
-                            ),
-                          ),
-                        ),
-                        if (_unlocked)
-                          const Padding(
-                            padding: EdgeInsets.only(left: 8),
-                            child: Icon(Icons.check_circle,
-                                color: Colors.green, size: 20),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
-            ), // ConstrainedBox
-
-            // Histogram + solution explanation — scrollable so explanation
-            // never pushes content off-screen after unlock
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+      body: LessonContentSafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Scrollable header: concept intro + task + progress bar
+              // ConstrainedBox gives it a bounded maxHeight so SingleChildScrollView
+              // actually scrolls instead of expanding to full content height.
+              ConstrainedBox(
+                constraints:
+                    BoxConstraints(maxHeight: constraints.maxHeight * 0.42),
                 child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _counts.isEmpty
-                          ? SizedBox(
-                              height: 120,
-                              child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.touch_app,
-                                        size: 48, color: Colors.white24),
-                                    const SizedBox(height: 12),
-                                    const Text(
-                                      'Press Measure to start',
-                                      style: TextStyle(
-                                          color: Colors.white38, fontSize: 16),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )
-                          : _buildHistogram(),
-                      if (_unlocked && widget.level.solutionExplanation != null)
+                      if (widget.level.conceptIntro != null)
                         Container(
-                          margin: const EdgeInsets.only(top: 16),
-                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 20),
+                          padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: const Color(0xFF2D2E40),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white12),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF5D5FE6)),
                           ),
-                          child: Text(
-                            widget.level.solutionExplanation!,
-                            style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                                height: 1.5),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.info_outline,
+                                  color: Color(0xFF5D5FE6), size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  widget.level.conceptIntro!,
+                                  style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
+                                      height: 1.5),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      const SizedBox(height: 16),
+                      LatexText(
+                        math: widget.level.taskDescription,
+                        textStyle: const TextStyle(
+                            color: Colors.white, fontSize: 16, height: 1.5),
+                        inlineMathHeight: 18,
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Text(
+                            'Measurements: $_total / $required',
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 14),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: progress,
+                                backgroundColor: Colors.white12,
+                                color: _unlocked
+                                    ? Colors.green
+                                    : const Color(0xFF5D5FE6),
+                                minHeight: 8,
+                              ),
+                            ),
+                          ),
+                          if (_unlocked)
+                            const Padding(
+                              padding: EdgeInsets.only(left: 8),
+                              child: Icon(Icons.check_circle,
+                                  color: Colors.green, size: 20),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
-              ),
-            ), // Expanded
-          ],
-        ), // Column
-      ), // LayoutBuilder
+              ), // ConstrainedBox
+
+              // Histogram + solution explanation — scrollable so explanation
+              // never pushes content off-screen after unlock
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _counts.isEmpty
+                            ? SizedBox(
+                                height: 120,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.touch_app,
+                                          size: 48, color: Colors.white24),
+                                      const SizedBox(height: 12),
+                                      const Text(
+                                        'Press Measure to start',
+                                        style: TextStyle(
+                                            color: Colors.white38,
+                                            fontSize: 16),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : _buildHistogram(),
+                        if (_unlocked &&
+                            widget.level.solutionExplanation != null)
+                          Container(
+                            margin: const EdgeInsets.only(top: 16),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2D2E40),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.white12),
+                            ),
+                            child: Text(
+                              widget.level.solutionExplanation!,
+                              style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                  height: 1.5),
+                            ),
+                          ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ), // Expanded
+            ],
+          ), // Column
+        ), // LayoutBuilder
+      ),
     );
   }
 

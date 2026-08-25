@@ -23,12 +23,13 @@ import 'package:quantumquiz/widgets/composer_gate_palette.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
-const _background = Color(0xFF00030A);
-const _panel = Color(0xFF111827);
-const _border = Color(0x66344A73);
-const _cyan = Color(0xFF22D3EE);
-const _purple = Color(0xFF9B7BFF);
+const _background = QubitQuestColors.background;
+const _panel = QubitQuestColors.surface;
+const _border = QubitQuestColors.border;
+const _cyan = QubitQuestColors.accentInteractive;
+const _purple = QubitQuestColors.accentStrong;
 
 enum _JourneyView { map, chapter }
 

@@ -263,16 +263,19 @@ const List<NotebookEntry> notebookEntries = [
     chapterTitle: 'Chapter 2 - Hidden Change',
     title: 'Invisible Difference',
     summary:
-        'Two states can give the same measurement result while still being different quantum states.',
+        'Different state vectors can represent exactly the same physical pure state when they differ only by global phase.',
     intuition: NotebookSection(
       title: 'Intuition',
       body:
-          'Imagine two cards that both show "1" on the front. One card has a hidden mark on the back. If you only look at the front, they seem identical. But a later rule can use the hidden mark. The minus sign on −|1⟩ works like that hidden mark.',
+          'Think of writing the same direction arrow at two different scales or with one overall sign. '
+          'Quantum mechanics identifies vectors that differ only by one common phase. The minus sign '
+          'on −|1⟩ is not hidden physical information: it is another representation of |1⟩.',
     ),
     whatChanged: NotebookSection(
       title: 'What Changed?',
       body:
-          'The measured bit stayed 1. The state description changed by gaining a minus sign.',
+          'The displayed vector gained a minus sign. The physical state, its Bloch-sphere point, '
+          'and every possible experimental prediction stayed unchanged.',
       examples: [
         NotebookExample(label: 'Before', notation: '|1⟩'),
         NotebookExample(label: 'After', notation: '−|1⟩'),
@@ -285,7 +288,9 @@ const List<NotebookEntry> notebookEntries = [
     quantumView: NotebookSection(
       title: 'Quantum View',
       body:
-          'Z leaves |0⟩ alone and gives |1⟩ a minus sign. For a single basis state, that sign does not change the measurement probability. Later, when there are multiple parts to compare, signs can affect how the state behaves.',
+          'Z leaves |0⟩ alone and writes |1⟩ as −|1⟩. For this basis-state input, the sign '
+          'multiplies the whole vector and is global phase. With multiple nonzero amplitudes, Z can '
+          'instead change one component relative to another, and that relative phase is physical.',
       examples: [
         NotebookExample(
           label: 'Z gate action',
@@ -296,7 +301,10 @@ const List<NotebookEntry> notebookEntries = [
     advancedNotes: NotebookSection(
       title: 'Advanced Notes',
       body:
-          'A single overall sign is not directly visible as a different measurement result. The useful lesson here is preparatory: signs become meaningful when they become relationships between parts of a state.',
+          'More generally, |ψ⟩ and e^(iφ)|ψ⟩ represent the same pure state for every φ. '
+          'Global phase multiplies all amplitudes equally, changes no probability or later prediction, '
+          'and maps to the same Bloch-sphere point. Relative phase changes ratios between amplitudes '
+          'and can alter interference after a basis change.',
     ),
     relatedDiscoveryTitles: [
       'Hidden Change',
@@ -1640,16 +1648,19 @@ const List<NotebookEntry> notebookEntries = [
     chapterTitle: 'Chapter 8 - Phase Kickback',
     title: 'Phase On The Control',
     summary:
-        'Phase kickback happens when a controlled operation causes the control qubit to acquire phase because of how the target is prepared.',
+        'Phase kickback happens when a controlled operation gives different control branches a relative phase because of how the target is prepared.',
     intuition: NotebookSection(
       title: 'Intuition',
       body:
-          'The target qubit may look like the place where the gate acts, but the meaningful phase mark can appear on the control. The control becomes the carrier of the written information.',
+          'The target qubit may look like the place where the gate acts, but its eigenvalue can become a phase factor on a control branch. '
+          'If the control is fixed at |1⟩, that factor multiplies the whole state and is only global phase. '
+          'If the control is in superposition, the |1⟩ branch receives the factor relative to the |0⟩ branch, so the control carries useful information.',
     ),
     whatChanged: NotebookSection(
       title: 'What Changed?',
       body:
-          'The important change is assigned to the control qubit, not to a visible flip of the target. This keeps the lesson separate from ordinary conditional bit changes.',
+          'The fixed-control example first exposes the target eigenvalue without creating a new physical state. '
+          'The superposed-control example turns the same factor into a relative phase on the control, rather than a visible flip of the target.',
       examples: [
         NotebookExample(label: 'Gate shape', notation: 'control -> target'),
         NotebookExample(
@@ -1659,7 +1670,8 @@ const List<NotebookEntry> notebookEntries = [
     quantumView: NotebookSection(
       title: 'Quantum View',
       body:
-          'When the target is prepared in the right phase-sensitive state, the controlled operation writes a phase factor back onto the control branch. The control wire carries the computational mark.',
+          'For a target |−⟩, X|−⟩ = −|−⟩. Controlled-X therefore multiplies the control-|1⟩ branch by −1. '
+          'A common factor on the only occupied branch is global phase; a factor that differs between occupied control branches is relative phase and can be decoded later.',
       examples: [
         NotebookExample(
             label: 'Visual cue', notation: 'phase highlight on control wire'),

@@ -4,15 +4,16 @@ import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
 class _ResultPalette {
   // Qubit Quest composer result tokens mirror the exact composer visual system.
-  static const Color qqInner = Color(0xFF030814);
-  static const Color qqInner2 = Color(0xFF101A2D);
+  static const Color qqInner = QubitQuestColors.surfaceInset;
+  static const Color qqInner2 = QubitQuestColors.surfaceInsetRaised;
   static const Color qqBorderSoft = Color(0xFF253755);
-  static const Color qqCyan = Color(0xFF56CCF2);
-  static const Color qqPurple = Color(0xFFB388FF);
-  static const Color qqGreen = Color(0xFF7CFFB2);
+  static const Color qqCyan = QubitQuestColors.accentInteractive;
+  static const Color qqPurple = QubitQuestColors.accentStrong;
+  static const Color qqGreen = QubitQuestColors.success;
 }
 
 enum StateVectorDisplayTone {

@@ -21,6 +21,7 @@ import 'package:quantumquiz/screens/web_learning_workspace.dart';
 import 'package:quantumquiz/screens/web_notebook_workspace.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
 import 'package:quantumquiz/storage/shared_preferences_app_storage.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/widgets/bloch_explorer_panels.dart';
 import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
@@ -29,10 +30,10 @@ import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 
-const _background = Color(0xFF00030A);
-const _surface = Color(0xFF111827);
-const _cyan = Color(0xFF22D3EE);
-const _purple = Color(0xFF9B7BFF);
+const _background = QubitQuestColors.background;
+const _surface = QubitQuestColors.surface;
+const _cyan = QubitQuestColors.accentInteractive;
+const _purple = QubitQuestColors.accentStrong;
 
 enum WebDestination { journey, notebook, mastery, composer, bloch }
 
@@ -55,20 +56,7 @@ class QubitQuestWebApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
         title: 'Qubit Quest',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          brightness: Brightness.dark,
-          useMaterial3: true,
-          scaffoldBackgroundColor: _background,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: _cyan,
-            brightness: Brightness.dark,
-            surface: _surface,
-          ),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: _background,
-            surfaceTintColor: Colors.transparent,
-          ),
-        ),
+        theme: QubitQuestTheme.web(),
         home: QubitQuestWebShell(
           progressController: progressController,
           sandboxPersistenceStore: sandboxPersistenceStore,

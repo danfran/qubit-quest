@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
 class ComposerHeader extends StatelessWidget implements PreferredSizeWidget {
   const ComposerHeader({
@@ -282,15 +283,16 @@ class LevelHeaderAttentionBadge extends StatelessWidget {
 class LevelHeaderTokens {
   const LevelHeaderTokens._();
 
-  static const Color black = Color(0xFF00030A);
-  static const Color card = Color(0xFF18233A);
-  static const Color inner = Color(0xFF101A2D);
-  static const Color border = Color(0x66344A73);
-  static const Color borderSoft = Color(0x3D344A73);
-  static const Color cyan = Color(0xFF56CCF2);
-  static const Color purple = Color(0xFFB388FF);
-  static const Color green = Color(0xFF7CFFB2);
-  static const Color yellow = Color(0xFFFFD54F);
+  // Compatibility aliases. QubitQuestColors is the canonical authority.
+  static const Color black = QubitQuestColors.background;
+  static const Color card = QubitQuestColors.surfaceRaised;
+  static const Color inner = QubitQuestColors.surfaceInsetRaised;
+  static const Color border = QubitQuestColors.border;
+  static const Color borderSoft = QubitQuestColors.borderSoft;
+  static const Color cyan = QubitQuestColors.accentInteractive;
+  static const Color purple = QubitQuestColors.accentStrong;
+  static const Color green = QubitQuestColors.success;
+  static const Color yellow = QubitQuestColors.warning;
 }
 
 class _CompactLearningHeader extends StatelessWidget
