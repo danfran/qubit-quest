@@ -74,7 +74,7 @@ void main() {
 
       expect(find.byType(QubitQuestCallout), findsNWidgets(5));
       expect(find.byIcon(Icons.info_outline_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.auto_awesome_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.lightbulb_outline_rounded), findsOneWidget);
       expect(find.byIcon(Icons.check_circle_outline_rounded), findsOneWidget);
       expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
       expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);

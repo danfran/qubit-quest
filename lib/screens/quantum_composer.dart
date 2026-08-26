@@ -28,12 +28,14 @@ import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
+import 'package:quantumquiz/widgets/level_type_headers.dart';
 import 'package:quantumquiz/widgets/lesson_content_safe_area.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
+import 'package:quantumquiz/widgets/qubit_quest_activity_shell.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/models/composer_gate_capabilities.dart';
@@ -130,7 +132,6 @@ class _QuantumComposerState extends State<QuantumComposer>
   static const Color qqBlack = QubitQuestColors.background;
   static const Color qqCard = QubitQuestColors.surface;
   static const Color qqCard2 = QubitQuestColors.surfaceRaised;
-  static const Color qqInner = QubitQuestColors.surfaceInset;
 
   static const Color qqBorder = QubitQuestColors.border;
   static const Color qqBorderSoft = QubitQuestColors.borderSoft;
@@ -1261,63 +1262,72 @@ class _QuantumComposerState extends State<QuantumComposer>
   Widget build(BuildContext context) {
     final bool compactAppBar = MediaQuery.sizeOf(context).width < 900;
 
-    return Scaffold(
-        backgroundColor: qqBlack,
-        appBar: LevelHeaderRouter.headerFor(
-          level: widget.level,
-          levelId: widget.levelId,
-          compact: compactAppBar,
-          title: runningAsQuantumComposer()
-              ? 'Composer'
-              : LevelHeaderRouter.displayLabel(widget.levelId),
-          subtitle: runningAsQuantumComposer() ? '' : _goalTitle(),
-          isCompleted: _isCompleted,
-          actions: _buildAppBarActions(compactAppBar),
-        ),
-        body: LessonContentSafeArea(
-          child: LayoutBuilder(builder: (context, constraints) {
-            final bool compact = constraints.maxWidth < 720;
-            final bool short = constraints.maxHeight < 560;
-            final Widget circuitCard = _buildCircuitCard(
-              compact: short,
-              showHeader: false,
-            );
-            final Widget statePanel = _buildPortraitStateSection(short: short);
-            final double contentTopPadding = short ? 3 : 5;
-            final double contentBottomPadding = short ? 6 : (compact ? 8 : 10);
-            final double contentHeight = math.max(
-              0,
-              constraints.maxHeight - contentTopPadding - contentBottomPadding,
-            );
+    final reviewedMastery = LevelHeaderRouter.isMasteryLevel(widget.levelId) &&
+        LevelHeaderRouter.masteryChallengeNumber(widget.levelId) <= 13;
+    final header = LevelHeaderRouter.headerFor(
+      level: widget.level,
+      levelId: widget.levelId,
+      compact: compactAppBar,
+      title: runningAsQuantumComposer()
+          ? 'Composer'
+          : LevelHeaderRouter.displayLabel(widget.levelId),
+      subtitle: runningAsQuantumComposer() ? '' : _goalTitle(),
+      isCompleted: _isCompleted,
+      actions: _buildAppBarActions(reviewedMastery ? true : compactAppBar),
+    );
+    final body = LayoutBuilder(builder: (context, constraints) {
+      final bool compact = constraints.maxWidth < 720;
+      final bool short = constraints.maxHeight < 560;
+      final Widget circuitCard = _buildCircuitCard(
+        compact: short,
+        showHeader: false,
+      );
+      final Widget statePanel = _buildPortraitStateSection(short: short);
+      final double contentTopPadding = short ? 3 : 5;
+      final double contentBottomPadding = short ? 6 : (compact ? 8 : 10);
+      final double contentHeight = math.max(
+        0,
+        constraints.maxHeight - contentTopPadding - contentBottomPadding,
+      );
 
-            return Padding(
-              padding: EdgeInsets.fromLTRB(
-                compact ? 12 : 16,
-                contentTopPadding,
-                compact ? 12 : 16,
-                contentBottomPadding,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: compact
-                        ? _buildPortraitComposerLayout(
-                            circuitCard: circuitCard,
-                            statePanel: statePanel,
-                            short: short,
-                          )
-                        : _buildLandscapeComposerLayout(
-                            circuitCard: circuitCard,
-                            short: short,
-                            availableHeight: contentHeight,
-                          ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ));
+      return Padding(
+        padding: EdgeInsets.fromLTRB(
+          compact ? 12 : 16,
+          contentTopPadding,
+          compact ? 12 : 16,
+          contentBottomPadding,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: compact
+                  ? _buildPortraitComposerLayout(
+                      circuitCard: circuitCard,
+                      statePanel: statePanel,
+                      short: short,
+                    )
+                  : _buildLandscapeComposerLayout(
+                      circuitCard: circuitCard,
+                      short: short,
+                      availableHeight: contentHeight,
+                    ),
+            ),
+          ],
+        ),
+      );
+    });
+    if (reviewedMastery) {
+      return QubitQuestActivityShell(
+        header: header,
+        body: body,
+      );
+    }
+    return Scaffold(
+      backgroundColor: qqBlack,
+      appBar: header,
+      body: LessonContentSafeArea(child: body),
+    );
   }
 
   Widget _buildPortraitGoalSection({required bool short}) {
@@ -1996,7 +2006,7 @@ class _QuantumComposerState extends State<QuantumComposer>
       child: Row(
         children: [
           Icon(
-            Icons.lightbulb_outline,
+            Icons.flag_outlined,
             color: qqYellow,
             size: compact ? 18 : 20,
           ),
@@ -2350,7 +2360,9 @@ class _QuantumComposerState extends State<QuantumComposer>
         ],
         if (_adaptiveInsight != null && !_adaptiveInsightDismissed) ...[
           SizedBox(height: compact ? 5 : 6),
-          _buildAdaptiveLearningCard(compact: compact),
+          Flexible(
+            child: _buildAdaptiveLearningCard(compact: compact),
+          ),
         ],
       ],
     );
@@ -2375,7 +2387,9 @@ class _QuantumComposerState extends State<QuantumComposer>
         ],
         if (_adaptiveInsight != null && !_adaptiveInsightDismissed) ...[
           SizedBox(height: compact ? 6 : 8),
-          _buildAdaptiveLearningCard(compact: compact),
+          Flexible(
+            child: _buildAdaptiveLearningCard(compact: compact),
+          ),
         ],
       ],
     );
@@ -2397,8 +2411,8 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   Widget _buildCheckFeedbackBanner({required bool compact}) {
     final Color accent = _checkFeedbackSuccess
-        ? const Color(0xFF66BB6A)
-        : const Color(0xFFFFB74D);
+        ? QubitQuestColors.success
+        : QubitQuestColors.warning;
     final IconData icon =
         _checkFeedbackSuccess ? Icons.emoji_events_outlined : Icons.refresh;
 
@@ -2410,9 +2424,9 @@ class _QuantumComposerState extends State<QuantumComposer>
         vertical: compact ? 7 : 9,
       ),
       decoration: BoxDecoration(
-        color: qqInner,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: qqComposerInnerBorder.color),
+        color: QubitQuestColors.surfaceInsetRaised,
+        borderRadius: QubitQuestRadii.card,
+        border: Border.fromBorderSide(QubitQuestBorders.soft),
       ),
       child: Row(
         children: [
@@ -2426,10 +2440,9 @@ class _QuantumComposerState extends State<QuantumComposer>
           Expanded(
             child: Text(
               '${_checkFeedbackTitle!}: ${_checkFeedbackMessage!}',
-              style: TextStyle(
-                color: const Color(0xFFD6E3F8),
+              style: QubitQuestTypography.supporting.copyWith(
+                color: QubitQuestColors.textBody,
                 fontSize: compact ? 11 : 12,
-                fontWeight: FontWeight.w700,
               ),
               maxLines: compact ? 1 : 2,
               overflow: TextOverflow.ellipsis,
@@ -2516,6 +2529,9 @@ class _HeaderActionShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (CanonicalMasteryHeaderActionScope.isActive(context)) {
+      return LevelHeaderActionShell(size: 44, child: child);
+    }
     return Container(
       width: size,
       height: size,

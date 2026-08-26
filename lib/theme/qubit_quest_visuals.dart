@@ -123,6 +123,11 @@ abstract final class QubitQuestSpacing {
   static const workspace = 32.0;
 }
 
+abstract final class QubitQuestLayout {
+  static const activityMaxContentWidth = 920.0;
+  static const activityCompactBreakpoint = 680.0;
+}
+
 abstract final class QubitQuestRadii {
   static const controlValue = 10.0;
   static const cardValue = 12.0;

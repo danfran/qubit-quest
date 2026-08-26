@@ -5,10 +5,13 @@ import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
+import 'package:quantumquiz/widgets/circuit_preview.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/lesson_content_safe_area.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
+import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
+import 'package:quantumquiz/widgets/qubit_quest_activity_shell.dart';
 
 class FillTheGateScreen extends StatefulWidget {
   final int levelId;
@@ -33,11 +36,29 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
   bool _answered = false;
   bool _correct = false;
   late bool _isCompleted;
+  QuantumCircuit? _displayCircuit;
 
   @override
   void initState() {
     super.initState();
     _isCompleted = widget.isCompleted;
+    if (_usesCanonicalVisualGrammar) {
+      _displayCircuit = QuantumCircuit(
+        currentLevel: ComposerLevel.fromBinaryString(
+          taskDescription: widget.level.taskDescription,
+          initialQubitsStateString: widget.level.initialQubitsStateString,
+          availableGates: const [],
+          solutionFinalVector: const [],
+          preInsertedGates: widget.level.preBuiltGates,
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _displayCircuit?.dispose();
+    super.dispose();
   }
 
   /// Simulate the circuit with the chosen gate and compare to the solution.
@@ -93,120 +114,106 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
     final horizontalPadding =
         compact ? QubitQuestSpacing.component : QubitQuestSpacing.section;
 
-    return Scaffold(
-      backgroundColor: QubitQuestColors.background,
-      appBar: LevelHeaderRouter.headerFor(
+    return QubitQuestActivityShell(
+      header: LevelHeaderRouter.headerFor(
         level: widget.level,
         levelId: widget.levelId,
         compact: false,
         isCompleted: _isCompleted,
       ),
-      body: LessonContentSafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 920),
-            child: CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    horizontalPadding,
-                    horizontalPadding,
-                    horizontalPadding,
-                    0,
+      body: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              horizontalPadding,
+              horizontalPadding,
+              0,
+            ),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                if (widget.level.conceptIntro case final intro?) ...[
+                  QubitQuestCallout(
+                    key: ValueKey('mastery-fill-support-${widget.levelId}'),
+                    variant: QubitQuestCalloutVariant.insight,
+                    message: intro,
                   ),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      if (widget.level.conceptIntro case final intro?) ...[
-                        QubitQuestCallout(
-                          key: ValueKey(
-                              'mastery-fill-support-${widget.levelId}'),
-                          variant: QubitQuestCalloutVariant.insight,
-                          message: intro,
-                        ),
-                        const SizedBox(height: QubitQuestSpacing.component),
-                      ],
-                      QubitQuestActivityQuestion(
-                        key:
-                            ValueKey('mastery-fill-question-${widget.levelId}'),
-                        activityLabel: 'FILL THE GATE',
-                        question: LatexText(
-                          math: widget.level.taskDescription,
-                          textStyle: QubitQuestTypography.question,
-                          inlineMathHeight: 21,
-                        ),
-                      ),
-                      const SizedBox(height: QubitQuestSpacing.component),
-                      QubitQuestPanel(
-                        level: QubitQuestSurfaceLevel.inset,
-                        child: _buildCircuitSchematic(canonical: true),
-                      ),
-                      const SizedBox(height: QubitQuestSpacing.section),
-                      Text(
-                        'Choose the missing gate',
-                        style: QubitQuestTypography.heading,
-                      ),
-                      const SizedBox(height: QubitQuestSpacing.regular),
-                      Wrap(
-                        spacing: QubitQuestSpacing.regular,
-                        runSpacing: QubitQuestSpacing.regular,
-                        children: [
-                          for (final (index, gate)
-                              in widget.level.options.indexed)
-                            _CanonicalGateChoice(
-                              key: ValueKey('fill-gate-option-$index'),
-                              gate: gate,
-                              state: _gateState(index, gate),
-                              onPressed: _answered
-                                  ? null
-                                  : () => _onOptionSelected(index, gate),
-                            ),
-                        ],
-                      ),
-                      if (_answered) ...[
-                        const SizedBox(height: QubitQuestSpacing.component),
-                        QubitQuestCallout(
-                          key: ValueKey(
-                              'mastery-fill-feedback-${widget.levelId}'),
-                          variant: _correct
-                              ? QubitQuestCalloutVariant.success
-                              : QubitQuestCalloutVariant.info,
-                          message: _correct
-                              ? 'Correct! ${widget.level.solutionExplanation ?? ''}'
-                              : 'Not quite — the correct gate is ${widget.level.correctGate.label}. '
-                                  '${widget.level.solutionExplanation ?? ''}',
-                        ),
-                      ],
-                    ]),
+                  const SizedBox(height: QubitQuestSpacing.component),
+                ],
+                QubitQuestActivityQuestion(
+                  key: ValueKey('mastery-fill-question-${widget.levelId}'),
+                  activityLabel: 'FILL THE GATE',
+                  question: LatexText(
+                    math: widget.level.taskDescription,
+                    textStyle: QubitQuestTypography.question,
+                    inlineMathHeight: 21,
                   ),
                 ),
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: SafeArea(
-                      top: false,
-                      child: Padding(
-                        padding: EdgeInsets.all(horizontalPadding),
-                        child: _answered
-                            ? SizedBox(
-                                width: double.infinity,
-                                child: QubitQuestActionButton(
-                                  key: ValueKey(
-                                    'mastery-fill-action-${widget.levelId}',
-                                  ),
-                                  label: _correct ? 'Continue' : 'Back',
-                                  onPressed: _finish,
-                                ),
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    ),
-                  ),
+                const SizedBox(height: QubitQuestSpacing.component),
+                QubitQuestPanel(
+                  level: QubitQuestSurfaceLevel.inset,
+                  child: _buildCircuitSchematic(canonical: true),
                 ),
-              ],
+                const SizedBox(height: QubitQuestSpacing.section),
+                Text(
+                  'Choose the missing gate',
+                  style: QubitQuestTypography.heading,
+                ),
+                const SizedBox(height: QubitQuestSpacing.regular),
+                Wrap(
+                  spacing: QubitQuestSpacing.regular,
+                  runSpacing: QubitQuestSpacing.regular,
+                  children: [
+                    for (final (index, gate) in widget.level.options.indexed)
+                      _CanonicalGateChoice(
+                        key: ValueKey('fill-gate-option-$index'),
+                        gate: gate,
+                        state: _gateState(index, gate),
+                        onPressed: _answered
+                            ? null
+                            : () => _onOptionSelected(index, gate),
+                      ),
+                  ],
+                ),
+                if (_answered) ...[
+                  const SizedBox(height: QubitQuestSpacing.component),
+                  QubitQuestCallout(
+                    key: ValueKey('mastery-fill-feedback-${widget.levelId}'),
+                    variant: QubitQuestCalloutVariant.info,
+                    message: _correct
+                        ? widget.level.solutionExplanation ?? ''
+                        : 'The correct gate is ${widget.level.correctGate.label}. '
+                            '${widget.level.solutionExplanation ?? ''}',
+                  ),
+                ],
+              ]),
             ),
           ),
-        ),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: EdgeInsets.all(horizontalPadding),
+                  child: _answered
+                      ? SizedBox(
+                          width: double.infinity,
+                          child: QubitQuestActionButton(
+                            key: ValueKey(
+                              'mastery-fill-action-${widget.levelId}',
+                            ),
+                            label: _correct ? 'Continue' : 'Back',
+                            onPressed: _finish,
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -437,6 +444,15 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
 
   /// Builds a simple text schematic of the circuit showing the blank slot.
   Widget _buildCircuitSchematic({bool canonical = false}) {
+    if (canonical) {
+      final circuit = _displayCircuit!;
+      return QubitQuestCircuitPreview(
+        key: ValueKey('fill-gate-circuit-${widget.levelId}'),
+        circuit: circuit,
+        missingGateColumn: circuit.maxCircuitDepth(),
+      );
+    }
+
     // Build a temporary circuit to inspect what pre-built gates look like
     final tempLevel = ComposerLevel.fromBinaryString(
       taskDescription: widget.level.taskDescription,
@@ -529,44 +545,44 @@ class _CanonicalGateChoice extends StatelessWidget {
     };
 
     return Semantics(
+      label: 'Gate ${gate.label}',
       button: true,
       selected: state == QubitQuestChoiceState.selected,
       enabled: onPressed != null,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: QubitQuestRadii.control,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          width: 76,
-          height: 76,
-          decoration: BoxDecoration(
-            color: gate.color.withValues(
-              alpha: state == QubitQuestChoiceState.disabled ? 0.28 : 0.78,
-            ),
-            borderRadius: QubitQuestRadii.control,
-            border: Border.all(
-              color: semanticColor,
-              width: state == QubitQuestChoiceState.neutral ? 1 : 2,
-            ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: state == QubitQuestChoiceState.disabled
+              ? QubitQuestColors.disabled.withValues(alpha: 0.24)
+              : Colors.transparent,
+          borderRadius: QubitQuestRadii.card,
+          border: Border.all(
+            color: semanticColor,
+            width: state == QubitQuestChoiceState.neutral ? 1 : 2,
           ),
-          child: Stack(
-            children: [
-              Center(
-                child: Text(
-                  gate.label,
-                  style: QubitQuestTypography.heading.copyWith(
-                    color: QubitQuestColors.textPrimary,
-                  ),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            ExcludeSemantics(
+              child: Opacity(
+                opacity: state == QubitQuestChoiceState.disabled ? 0.42 : 1,
+                child: QubitQuestGateTile(
+                  gate: gate,
+                  size: 66,
+                  tooltip: 'Choose ${gate.label} gate',
+                  onPressed: onPressed,
                 ),
               ),
-              if (icon != null)
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: Icon(icon, size: 16, color: semanticColor),
-                ),
-            ],
-          ),
+            ),
+            if (icon != null)
+              Positioned(
+                top: -5,
+                right: -5,
+                child: Icon(icon, size: 17, color: semanticColor),
+              ),
+          ],
         ),
       ),
     );

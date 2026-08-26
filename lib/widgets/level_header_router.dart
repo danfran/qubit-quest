@@ -61,6 +61,15 @@ class LevelHeaderRouter {
     );
     final isMastery = LevelHeaderRouter.isMasteryLevel(levelId);
 
+    if (isMastery && masteryChallengeNumber(levelId) <= 13) {
+      return MasteryActivityHeader(
+        title: title ?? displayLabel,
+        subtitle: subtitle ?? resolvedTitle,
+        isCompleted: isCompleted,
+        actions: actions,
+      );
+    }
+
     return switch (level) {
       ComposerLevel _ => ComposerHeader(
           compact: compact,

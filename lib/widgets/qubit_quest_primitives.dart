@@ -78,7 +78,7 @@ class QubitQuestCallout extends StatelessWidget {
       icon ??
       switch (variant) {
         QubitQuestCalloutVariant.info => Icons.info_outline_rounded,
-        QubitQuestCalloutVariant.insight => Icons.auto_awesome_outlined,
+        QubitQuestCalloutVariant.insight => Icons.lightbulb_outline_rounded,
         QubitQuestCalloutVariant.success => Icons.check_circle_outline_rounded,
         QubitQuestCalloutVariant.warning => Icons.warning_amber_rounded,
         QubitQuestCalloutVariant.error => Icons.error_outline_rounded,

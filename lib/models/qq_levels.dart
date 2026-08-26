@@ -141,7 +141,7 @@ final List<QQLevel> _authoredQQLevels = [
     taskDescription:
         r'After valid gate operations, three calculations display \( |1\rangle \), \( -|1\rangle \), and \( i|1\rangle \). Which interpretation is physically correct?',
     conceptIntro:
-        'A gate can change the vector written on the page even when the resulting pure state differs only by one phase multiplying every amplitude.',
+        'A gate can change the mathematical state vector without changing the physical quantum state, when the only difference is a single global phase multiplying every amplitude.',
     options: const [
       'They are three physically distinguishable pure states because their vectors are different.',
       'They represent the same physical pure state; the different global factors still record genuine operator actions.',

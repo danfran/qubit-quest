@@ -8,6 +8,7 @@ import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/lesson_content_safe_area.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
 import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
+import 'package:quantumquiz/widgets/qubit_quest_activity_shell.dart';
 
 class MeasurementLabScreen extends StatefulWidget {
   final int levelId;
@@ -88,134 +89,117 @@ class _MeasurementLabScreenState extends State<MeasurementLabScreen> {
     final progress = (_total / required).clamp(0.0, 1.0);
     final explanation = widget.level.solutionExplanation;
 
-    return Scaffold(
-      backgroundColor: QubitQuestColors.background,
-      appBar: LevelHeaderRouter.headerFor(
+    return QubitQuestActivityShell(
+      header: LevelHeaderRouter.headerFor(
         level: widget.level,
         levelId: widget.levelId,
         compact: false,
         isCompleted: _isCompleted,
       ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            horizontalPadding,
-            QubitQuestSpacing.compact,
-            horizontalPadding,
-            QubitQuestSpacing.component,
+      bottomAction: Row(
+        children: [
+          Expanded(
+            child: QubitQuestActionButton(
+              key: const ValueKey('mastery-measure-action'),
+              label: 'Measure',
+              icon: Icons.science_outlined,
+              role: _unlocked
+                  ? QubitQuestActionRole.secondary
+                  : QubitQuestActionRole.primary,
+              onPressed: _onMeasure,
+            ),
           ),
-          child: Row(
+          if (_unlocked) ...[
+            const SizedBox(width: QubitQuestSpacing.regular),
+            Expanded(
+              child: QubitQuestActionButton(
+                key: const ValueKey('mastery-measure-continue'),
+                label: 'Continue',
+                icon: Icons.arrow_forward,
+                onPressed: () =>
+                    Navigator.of(context).pop(LevelCompletionAction.nextLevel),
+              ),
+            ),
+          ],
+        ],
+      ),
+      body: ListView(
+        padding: EdgeInsets.all(horizontalPadding),
+        children: [
+          if (widget.level.conceptIntro case final intro?) ...[
+            QubitQuestCallout(
+              key: const ValueKey('mastery-measure-support'),
+              variant: QubitQuestCalloutVariant.insight,
+              message: intro,
+            ),
+            const SizedBox(height: QubitQuestSpacing.component),
+          ],
+          QubitQuestActivityQuestion(
+            key: const ValueKey('mastery-measure-question'),
+            activityLabel: 'MEASUREMENT',
+            question: LatexText(
+              math: widget.level.taskDescription,
+              textStyle: QubitQuestTypography.question,
+              inlineMathHeight: 21,
+            ),
+          ),
+          const SizedBox(height: QubitQuestSpacing.section),
+          Row(
+            key: const ValueKey('mastery-measure-progress'),
             children: [
+              Text(
+                'Measurements: $_total / $required',
+                style: QubitQuestTypography.supporting,
+              ),
+              const SizedBox(width: QubitQuestSpacing.regular),
               Expanded(
-                child: QubitQuestActionButton(
-                  key: const ValueKey('mastery-measure-action'),
-                  label: 'Measure',
-                  icon: Icons.science_outlined,
-                  role: _unlocked
-                      ? QubitQuestActionRole.secondary
-                      : QubitQuestActionRole.primary,
-                  onPressed: _onMeasure,
+                child: ClipRRect(
+                  borderRadius: QubitQuestRadii.pill,
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 8,
+                    backgroundColor: QubitQuestColors.surfaceInset,
+                    color: _unlocked
+                        ? QubitQuestColors.success
+                        : QubitQuestColors.accentInteractive,
+                  ),
                 ),
               ),
               if (_unlocked) ...[
-                const SizedBox(width: QubitQuestSpacing.regular),
-                Expanded(
-                  child: QubitQuestActionButton(
-                    key: const ValueKey('mastery-measure-continue'),
-                    label: 'Continue',
-                    icon: Icons.arrow_forward,
-                    onPressed: () => Navigator.of(context)
-                        .pop(LevelCompletionAction.nextLevel),
-                  ),
+                const SizedBox(width: QubitQuestSpacing.compact),
+                const Icon(
+                  Icons.check_circle,
+                  color: QubitQuestColors.success,
+                  size: 20,
                 ),
               ],
             ],
           ),
-        ),
-      ),
-      body: LessonContentSafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 920),
-            child: ListView(
-              padding: EdgeInsets.all(horizontalPadding),
-              children: [
-                if (widget.level.conceptIntro case final intro?) ...[
-                  QubitQuestCallout(
-                    key: const ValueKey('mastery-measure-support'),
-                    variant: QubitQuestCalloutVariant.insight,
-                    message: intro,
-                  ),
-                  const SizedBox(height: QubitQuestSpacing.component),
-                ],
-                QubitQuestActivityQuestion(
-                  key: const ValueKey('mastery-measure-question'),
-                  activityLabel: 'MEASUREMENT',
-                  question: LatexText(
-                    math: widget.level.taskDescription,
-                    textStyle: QubitQuestTypography.question,
-                    inlineMathHeight: 21,
-                  ),
-                ),
-                const SizedBox(height: QubitQuestSpacing.section),
-                Row(
-                  children: [
-                    Text(
-                      'Measurements: $_total / $required',
-                      style: QubitQuestTypography.supporting,
-                    ),
-                    const SizedBox(width: QubitQuestSpacing.regular),
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: QubitQuestRadii.pill,
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          minHeight: 8,
-                          backgroundColor: QubitQuestColors.surfaceInset,
-                          color: _unlocked
-                              ? QubitQuestColors.success
-                              : QubitQuestColors.accentInteractive,
-                        ),
+          const SizedBox(height: QubitQuestSpacing.component),
+          QubitQuestPanel(
+            key: const ValueKey('mastery-measure-histogram'),
+            level: QubitQuestSurfaceLevel.inset,
+            child: _counts.isEmpty
+                ? SizedBox(
+                    height: 120,
+                    child: Center(
+                      child: Text(
+                        'Press Measure to start',
+                        style: QubitQuestTypography.supporting,
                       ),
                     ),
-                    if (_unlocked) ...[
-                      const SizedBox(width: QubitQuestSpacing.compact),
-                      const Icon(
-                        Icons.check_circle,
-                        color: QubitQuestColors.success,
-                        size: 20,
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: QubitQuestSpacing.component),
-                QubitQuestPanel(
-                  level: QubitQuestSurfaceLevel.inset,
-                  child: _counts.isEmpty
-                      ? SizedBox(
-                          height: 120,
-                          child: Center(
-                            child: Text(
-                              'Press Measure to start',
-                              style: QubitQuestTypography.supporting,
-                            ),
-                          ),
-                        )
-                      : _buildHistogram(),
-                ),
-                if (_unlocked && explanation != null) ...[
-                  const SizedBox(height: QubitQuestSpacing.component),
-                  QubitQuestCallout(
-                    key: const ValueKey('mastery-measure-feedback'),
-                    variant: QubitQuestCalloutVariant.success,
-                    message: explanation,
-                  ),
-                ],
-              ],
-            ),
+                  )
+                : _buildHistogram(),
           ),
-        ),
+          if (_unlocked && explanation != null) ...[
+            const SizedBox(height: QubitQuestSpacing.component),
+            QubitQuestCallout(
+              key: const ValueKey('mastery-measure-feedback'),
+              variant: QubitQuestCalloutVariant.info,
+              message: explanation,
+            ),
+          ],
+        ],
       ),
     );
   }

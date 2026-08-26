@@ -8,6 +8,7 @@ import 'package:quantumquiz/widgets/level_header_router.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
+import 'package:quantumquiz/widgets/qubit_quest_activity_shell.dart';
 
 class CircuitReadingScreen extends StatefulWidget {
   final int levelId;
@@ -112,125 +113,115 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
     final horizontalPadding =
         compact ? QubitQuestSpacing.component : QubitQuestSpacing.section;
 
-    return Scaffold(
-      backgroundColor: QubitQuestColors.background,
-      appBar: LevelHeaderRouter.headerFor(
+    return QubitQuestActivityShell(
+      header: LevelHeaderRouter.headerFor(
         level: widget.level,
         levelId: widget.levelId,
         compact: false,
         isCompleted: _isCompleted,
       ),
-      body: LessonContentSafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 920),
-            child: CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    horizontalPadding,
-                    horizontalPadding,
-                    horizontalPadding,
-                    0,
+      body: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              horizontalPadding,
+              horizontalPadding,
+              0,
+            ),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                if (widget.level.conceptIntro case final intro?) ...[
+                  QubitQuestCallout(
+                    key: ValueKey(_canonicalKey('support')),
+                    variant: QubitQuestCalloutVariant.insight,
+                    message: intro,
                   ),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      if (widget.level.conceptIntro case final intro?) ...[
-                        QubitQuestCallout(
-                          key: ValueKey(_canonicalKey('support')),
-                          message: intro,
-                        ),
-                        const SizedBox(height: QubitQuestSpacing.component),
-                      ],
-                      QubitQuestActivityQuestion(
-                        key: ValueKey(_canonicalKey('question')),
-                        activityLabel: 'CIRCUIT READING',
-                        question: LatexText(
-                          math: widget.level.taskDescription,
-                          textStyle: QubitQuestTypography.question,
-                          inlineMathHeight: 21,
-                        ),
-                      ),
-                      const SizedBox(height: QubitQuestSpacing.component),
-                      _canonicalCircuit(),
-                      const SizedBox(height: QubitQuestSpacing.section),
-                      for (final (idx, option) in widget.level.options.indexed)
-                        Padding(
-                          padding: EdgeInsets.only(
-                            bottom: idx + 1 < widget.level.options.length
-                                ? QubitQuestSpacing.compact
-                                : 0,
-                          ),
-                          child: QubitQuestChoiceCard(
-                            key: ValueKey('circuit-reading-option-$idx'),
-                            indexLabel: String.fromCharCode(65 + idx),
-                            state: QubitQuestChoiceState.forAnswer(
-                              answered: _answered,
-                              isSelected: _selected == idx,
-                              isCorrect: idx == widget.level.correctOptionIndex,
-                            ),
-                            onPressed: _answered
-                                ? null
-                                : () => setState(() => _selected = idx),
-                            child: LatexText(
-                              math: option,
-                              textStyle: QubitQuestTypography.body.copyWith(
-                                color: QubitQuestColors.textPrimary,
-                                fontSize: 15,
-                              ),
-                              inlineMathHeight: 16,
-                            ),
-                          ),
-                        ),
-                      if (_answered &&
-                          widget.level.solutionExplanation != null) ...[
-                        const SizedBox(height: QubitQuestSpacing.component),
-                        QubitQuestCallout(
-                          key: ValueKey(_canonicalKey('feedback')),
-                          variant: _isCorrect
-                              ? QubitQuestCalloutVariant.success
-                              : QubitQuestCalloutVariant.info,
-                          message: widget.level.solutionExplanation!,
-                        ),
-                      ],
-                    ]),
+                  const SizedBox(height: QubitQuestSpacing.component),
+                ],
+                QubitQuestActivityQuestion(
+                  key: ValueKey(_canonicalKey('question')),
+                  activityLabel: 'CIRCUIT READING',
+                  question: LatexText(
+                    math: widget.level.taskDescription,
+                    textStyle: QubitQuestTypography.question,
+                    inlineMathHeight: 21,
                   ),
                 ),
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: SafeArea(
-                      top: false,
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          horizontalPadding,
-                          QubitQuestSpacing.component,
-                          horizontalPadding,
-                          QubitQuestSpacing.component,
+                const SizedBox(height: QubitQuestSpacing.component),
+                _canonicalCircuit(),
+                const SizedBox(height: QubitQuestSpacing.section),
+                for (final (idx, option) in widget.level.options.indexed)
+                  Padding(
+                    padding: EdgeInsets.only(
+                      bottom: idx + 1 < widget.level.options.length
+                          ? QubitQuestSpacing.compact
+                          : 0,
+                    ),
+                    child: QubitQuestChoiceCard(
+                      key: ValueKey('circuit-reading-option-$idx'),
+                      indexLabel: String.fromCharCode(65 + idx),
+                      state: QubitQuestChoiceState.forAnswer(
+                        answered: _answered,
+                        isSelected: _selected == idx,
+                        isCorrect: idx == widget.level.correctOptionIndex,
+                      ),
+                      onPressed: _answered
+                          ? null
+                          : () => setState(() => _selected = idx),
+                      child: LatexText(
+                        math: option,
+                        textStyle: QubitQuestTypography.body.copyWith(
+                          color: QubitQuestColors.textPrimary,
+                          fontSize: 15,
                         ),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: QubitQuestActionButton(
-                            key: ValueKey(_canonicalKey('action')),
-                            label: _answered
-                                ? (_isCorrect ? 'Continue' : 'Back')
-                                : 'Confirm',
-                            onPressed: _answered
-                                ? _finish
-                                : _selected == null
-                                    ? null
-                                    : () => setState(() => _answered = true),
-                          ),
-                        ),
+                        inlineMathHeight: 16,
                       ),
                     ),
                   ),
-                ),
-              ],
+                if (_answered && widget.level.solutionExplanation != null) ...[
+                  const SizedBox(height: QubitQuestSpacing.component),
+                  QubitQuestCallout(
+                    key: ValueKey(_canonicalKey('feedback')),
+                    variant: QubitQuestCalloutVariant.info,
+                    message: widget.level.solutionExplanation!,
+                  ),
+                ],
+              ]),
             ),
           ),
-        ),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    QubitQuestSpacing.component,
+                    horizontalPadding,
+                    QubitQuestSpacing.component,
+                  ),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: QubitQuestActionButton(
+                      key: ValueKey(_canonicalKey('action')),
+                      label: _answered
+                          ? (_isCorrect ? 'Continue' : 'Back')
+                          : 'Confirm',
+                      onPressed: _answered
+                          ? _finish
+                          : _selected == null
+                              ? null
+                              : () => setState(() => _answered = true),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
