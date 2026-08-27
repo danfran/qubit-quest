@@ -19,6 +19,22 @@ void main() {
       index.search(query)[position].entry.id;
 
   group('NotebookSearchIndex', () {
+    test('mobile and Web filtering derives from one unlocked-entry contract',
+        () {
+      final unlocked = {
+        notebookEntries.first.discoveryTitle,
+        notebookEntries[1].discoveryTitle,
+      };
+      final allowed = notebookSearchAllowedEntryIds(
+        entries: notebookEntries,
+        unlockedDiscoveryTitles: unlocked,
+      );
+      expect(allowed, {notebookEntries.first.id, notebookEntries[1].id});
+      final resultIds = index
+          .search('quantum', allowedEntryIds: allowed)
+          .map((result) => result.entry.id);
+      expect(resultIds.every(allowed.contains), isTrue);
+    });
     test('indexes the complete authored corpus and passes its content audit',
         () {
       final audit = NotebookSearchIndex.audit(
