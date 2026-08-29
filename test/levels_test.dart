@@ -293,13 +293,13 @@ void main() {
             Gate.fromIdentifier(SelectedGateType.cz), 1, 1, 0);
       },
       (QuantumCircuit circuit) {
-        // double solution
+        // Undo the fixed H(q0), H(q1), CZ prefix in reverse order.
         circuit.insertDoublePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.cz), 2, 1, 0);
+            Gate.fromIdentifier(SelectedGateType.cz), 3, 1, 0);
         circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.hadamard), 3, 0);
+            Gate.fromIdentifier(SelectedGateType.hadamard), 4, 0);
         circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.hadamard), 3, 1);
+            Gate.fromIdentifier(SelectedGateType.hadamard), 4, 1);
       },
       (QuantumCircuit circuit) {
         // 40

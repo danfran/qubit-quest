@@ -147,7 +147,10 @@ String quantumStateNotationToLatex(String value) {
       // Percent is ordinary authored probability notation in Qubit Quest,
       // but starts a comment in TeX and would hide the rest of the target.
       .replaceAllMapped(RegExp(r'(?<!\\)%'), (_) => r'\%')
-      .replaceAll('√2', r'\sqrt{2}')
+      .replaceAllMapped(
+        RegExp(r'√([0-9]+)'),
+        (match) => r'\sqrt{' + match.group(1)! + '}',
+      )
       .replaceAll('π', r'\pi ')
       .replaceAll('⊗', r'\otimes ')
       .replaceAll('†', r'^{\dagger}')

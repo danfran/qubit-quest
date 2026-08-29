@@ -129,7 +129,10 @@ void main() {
     await tester.pump();
     expect(find.byType(WebMasteryWorkspace), findsOneWidget);
     expect(
-        find.byKey(const ValueKey('web-mastery-activity-61')), findsOneWidget);
+        find.byKey(
+          const ValueKey('web-mastery-activity-global_phase_equivalence'),
+        ),
+        findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));

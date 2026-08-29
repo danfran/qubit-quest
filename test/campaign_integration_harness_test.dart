@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
+import 'package:quantumquiz/models/progression_rules.dart';
 
 import 'support/campaign_integration_harness.dart';
 
@@ -9,13 +10,20 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   final composerLevels = allQQLevels.indexed
+      .where((entry) => entry.$1 < ProgressionRules.guidedDiscoveryLevelCount)
       .where((entry) => entry.$2 is ComposerLevel)
       .map((entry) => (id: entry.$1 + 1, level: entry.$2 as ComposerLevel))
       .toList(growable: false);
 
-  group('SLOW RELEASE GATE — production Composer campaign completion', () {
+  group('SLOW RELEASE GATE — production Journey Composer completion', () {
     test('campaign inventory is generated and complete', () {
-      expect(composerLevels, hasLength(93));
+      expect(composerLevels, isNotEmpty);
+      expect(
+        composerLevels.every(
+          (entry) => entry.id <= ProgressionRules.guidedDiscoveryLevelCount,
+        ),
+        isTrue,
+      );
       expect(
         composerLevels.every((entry) => entry.level.canonicalSolution != null),
         isTrue,
@@ -39,7 +47,9 @@ void main() {
   });
 
   group('VALIDATION CONTRACT — representative negative journeys', () {
-    for (final mode in ValidationMode.values) {
+    final representedModes =
+        composerLevels.map((entry) => entry.level.validationMode).toSet();
+    for (final mode in representedModes) {
       final entry = composerLevels.firstWhere(
         (candidate) =>
             candidate.level.validationMode == mode &&

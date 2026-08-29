@@ -101,11 +101,11 @@ void main() {
       );
     });
 
-    test('Mastery 44-46 keep semantic labels out of maths input', () {
+    test('representative semantic labels stay out of maths input', () {
       final expectedLabels = {
         104: 'Complex equator state',
         105: 'Phased Bell pair',
-        106: 'Global-phase |+⟩',
+        106: 'Unequal amplitudes + relative phase',
       };
 
       for (final id in [104, 105, 106]) {
