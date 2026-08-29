@@ -263,5 +263,8 @@ void main() {
     await tester.pump();
     expect(find.textContaining('Not yet'), findsOneWidget);
     expect(find.byType(AdaptiveLearningCard), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 10));
+    expect(find.byType(AdaptiveLearningCard), findsOneWidget);
   });
 }

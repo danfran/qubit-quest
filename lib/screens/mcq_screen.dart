@@ -1,9 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/adaptive_learning.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
+import 'package:quantumquiz/models/mastery_challenge_catalogue.dart';
+import 'package:quantumquiz/models/mastery_2_presentation.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/qq_level.dart';
@@ -11,6 +11,7 @@ import 'package:quantumquiz/screens/learning_flow_widgets.dart';
 import 'package:quantumquiz/widgets/adaptive_learning_card.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/lesson_content_safe_area.dart';
+import 'package:quantumquiz/widgets/mastery_evidence_view.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
 import 'package:quantumquiz/widgets/level_type_headers.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
@@ -23,6 +24,7 @@ class McqScreen extends StatefulWidget {
   final McqLevel level;
   final Function(int)? onLevelUnlocked;
   final bool isCompleted;
+  final MasteryChallengeDefinition? masteryChallenge;
 
   const McqScreen({
     super.key,
@@ -30,6 +32,7 @@ class McqScreen extends StatefulWidget {
     required this.level,
     required this.onLevelUnlocked,
     this.isCompleted = false,
+    this.masteryChallenge,
   });
 
   @override
@@ -41,10 +44,11 @@ class _McqScreenState extends State<McqScreen> {
   bool _answered = false;
   late bool _isCompleted;
   bool _hasUnopenedNotebookEntries = false;
+  bool _canReviewMappedNotebookEntry = false;
+  late final NotebookEntry? _mappedNotebookEntry;
   late AdaptiveLearningSession _adaptiveLearningSession;
   AdaptiveLearningInsight? _adaptiveInsight;
   bool _adaptiveInsightDismissed = false;
-  Timer? _adaptiveInsightAutoDismissTimer;
 
   bool get _isCorrect => _selected == widget.level.correctOptionIndex;
 
@@ -58,27 +62,25 @@ class _McqScreenState extends State<McqScreen> {
   void initState() {
     super.initState();
     _isCompleted = widget.isCompleted;
+    _mappedNotebookEntry = _notebookEntryForLevel(widget.level);
     _adaptiveLearningSession = AdaptiveLearningSession(
       level: widget.level,
-      notebookEntry: _notebookEntryForLevel(widget.level),
+      notebookEntry: _mappedNotebookEntry,
     );
     _loadNotebookAttentionState();
   }
 
-  @override
-  void dispose() {
-    _adaptiveInsightAutoDismissTimer?.cancel();
-    super.dispose();
-  }
+  bool get _isMastery =>
+      widget.masteryChallenge != null ||
+      LevelHeaderRouter.isMasteryLevel(widget.levelId);
 
-  bool get _usesCanonicalVisualGrammar => widget.levelId == 62;
+  bool get _usesCanonicalVisualGrammar =>
+      widget.masteryChallenge != null || widget.levelId == 62;
 
   void _finish() {
     if (_isCorrect) {
       setState(() {
-        _isCompleted = LevelHeaderRouter.isMasteryLevel(widget.levelId)
-            ? true
-            : _isCompleted;
+        _isCompleted = _isMastery ? true : _isCompleted;
       });
       widget.onLevelUnlocked?.call(widget.levelId + 1);
     }
@@ -94,6 +96,9 @@ class _McqScreenState extends State<McqScreen> {
     required bool compact,
     required bool compactAppBar,
   }) {
+    final presentation = widget.masteryChallenge == null
+        ? null
+        : mastery2Presentations[widget.masteryChallenge!.semanticId];
     final horizontalPadding =
         compact ? QubitQuestSpacing.component : QubitQuestSpacing.section;
 
@@ -121,10 +126,17 @@ class _McqScreenState extends State<McqScreen> {
                 QubitQuestActivityQuestion(
                   key: const ValueKey('m2-activity-question'),
                   activityLabel: _badgeLabel.toUpperCase(),
+                  evidence: presentation == null
+                      ? null
+                      : MasteryEvidenceView(presentation: presentation),
                   question: LatexText(
-                    math: widget.level.taskDescription,
-                    textStyle: QubitQuestTypography.question,
-                    inlineMathHeight: 22,
+                    math:
+                        presentation?.question ?? widget.level.taskDescription,
+                    textStyle: QubitQuestTypography.question.copyWith(
+                      fontSize: 16.5,
+                      height: 1.34,
+                    ),
+                    inlineMathHeight: 18,
                   ),
                 ),
                 const SizedBox(height: QubitQuestSpacing.component),
@@ -150,9 +162,8 @@ class _McqScreenState extends State<McqScreen> {
                         math: option,
                         textStyle: QubitQuestTypography.body.copyWith(
                           color: QubitQuestColors.textPrimary,
-                          fontSize: 15,
                         ),
-                        inlineMathHeight: 16,
+                        inlineMathHeight: 15,
                       ),
                     ),
                   ),
@@ -171,7 +182,9 @@ class _McqScreenState extends State<McqScreen> {
                   AdaptiveLearningCard(
                     insight: _adaptiveInsight!,
                     compact: compact,
-                    onReviewNotebook: _openQuantumNotebook,
+                    onReviewNotebook: _canReviewMappedNotebookEntry
+                        ? _openQuantumNotebook
+                        : null,
                     onDismiss: _dismissAdaptiveInsight,
                   ),
                 ],
@@ -272,7 +285,9 @@ class _McqScreenState extends State<McqScreen> {
                         AdaptiveLearningCard(
                           insight: _adaptiveInsight!,
                           compact: compact,
-                          onReviewNotebook: _openQuantumNotebook,
+                          onReviewNotebook: _canReviewMappedNotebookEntry
+                              ? _openQuantumNotebook
+                              : null,
                           onDismiss: _dismissAdaptiveInsight,
                         ),
                       ],
@@ -344,6 +359,7 @@ class _McqScreenState extends State<McqScreen> {
       compact: compact,
       actions: _buildAppBarActions(compact),
       isCompleted: _isCompleted,
+      masteryDisplayOrder: widget.masteryChallenge?.displayOrder,
     );
   }
 
@@ -472,19 +488,24 @@ class _McqScreenState extends State<McqScreen> {
   }
 
   Future<void> _loadNotebookAttentionState() async {
-    final discoveryTitle = widget.level.discoveryTitle?.trim();
-    if (discoveryTitle == null || discoveryTitle.isEmpty) return;
-    final hasUnopened =
-        await DiscoveryProgress.hasUnopenedNotebookEntries({discoveryTitle});
+    final entry = _mappedNotebookEntry;
+    if (entry == null) return;
+    final unlocked = await DiscoveryProgress.loadUnlocked();
+    final canReview = unlocked.contains(entry.discoveryTitle);
+    final hasUnopened = canReview &&
+        await DiscoveryProgress.hasUnopenedNotebookEntries({
+          entry.discoveryTitle,
+        });
     if (!mounted) return;
     setState(() {
+      _canReviewMappedNotebookEntry = canReview;
       _hasUnopenedNotebookEntries = hasUnopened;
     });
   }
 
   Future<void> _openQuantumNotebook() async {
     _adaptiveLearningSession.recordNotebookOpened();
-    final entry = _notebookEntryForLevel(widget.level);
+    final entry = _mappedNotebookEntry;
     final unlocked = await DiscoveryProgress.loadUnlocked();
     if (!mounted) return;
 
@@ -504,20 +525,7 @@ class _McqScreenState extends State<McqScreen> {
     );
   }
 
-  void _scheduleAdaptiveInsightAutoDismiss(AdaptiveLearningInsight? insight) {
-    _adaptiveInsightAutoDismissTimer?.cancel();
-    if (insight == null) return;
-
-    _adaptiveInsightAutoDismissTimer = Timer(const Duration(seconds: 9), () {
-      if (!mounted || _adaptiveInsight != insight) return;
-      setState(() {
-        _adaptiveInsightDismissed = true;
-      });
-    });
-  }
-
   void _dismissAdaptiveInsight() {
-    _adaptiveInsightAutoDismissTimer?.cancel();
     if (!mounted) return;
     setState(() {
       _adaptiveInsightDismissed = true;
@@ -554,7 +562,6 @@ class _McqScreenState extends State<McqScreen> {
       _adaptiveInsight = adaptiveInsight;
       _adaptiveInsightDismissed = false;
     });
-    _scheduleAdaptiveInsightAutoDismiss(adaptiveInsight);
   }
 }
 

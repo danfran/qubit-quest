@@ -132,10 +132,12 @@ class QubitQuestActivityQuestion extends StatelessWidget {
     super.key,
     required this.question,
     this.activityLabel,
+    this.evidence,
     this.supportingText,
   });
 
   final String? activityLabel;
+  final Widget? evidence;
   final Widget question;
   final String? supportingText;
 
@@ -146,6 +148,10 @@ class QubitQuestActivityQuestion extends StatelessWidget {
           if (activityLabel case final label?) ...[
             Text(label, style: QubitQuestTypography.label),
             const SizedBox(height: QubitQuestSpacing.compact),
+          ],
+          if (evidence case final evidence?) ...[
+            evidence,
+            const SizedBox(height: QubitQuestSpacing.regular),
           ],
           DefaultTextStyle(
             style: QubitQuestTypography.question,

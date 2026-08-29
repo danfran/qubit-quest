@@ -9,6 +9,7 @@ import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/logical_gate_footprint.dart';
+import 'package:quantumquiz/models/mastery_challenge_catalogue.dart';
 import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
@@ -108,6 +109,7 @@ class QuantumComposer extends StatefulWidget {
   final ComposerSessionOwnership sessionOwnership;
   final SandboxCircuitSnapshot? initialSandboxSnapshot;
   final SandboxPersistenceStore sandboxPersistenceStore;
+  final MasteryChallengeDefinition? masteryChallenge;
 
   const QuantumComposer({
     super.key,
@@ -119,6 +121,7 @@ class QuantumComposer extends StatefulWidget {
     this.sessionOwnership = ComposerSessionOwnership.campaign,
     this.initialSandboxSnapshot,
     this.sandboxPersistenceStore = const SandboxPersistenceStore(),
+    this.masteryChallenge,
   });
 
   @override
@@ -144,6 +147,10 @@ class _QuantumComposerState extends State<QuantumComposer>
   static const Color qqPurple = QubitQuestColors.accentStrong;
   static const Color qqGreen = QubitQuestColors.success;
   static const Color qqYellow = QubitQuestColors.warning;
+
+  bool get _isMastery =>
+      widget.masteryChallenge != null ||
+      LevelHeaderRouter.isMasteryLevel(widget.levelId);
 
   late int _numQubits;
   late String _taskDescription;
@@ -176,12 +183,11 @@ class _QuantumComposerState extends State<QuantumComposer>
   late AnimationController _notebookPulseController;
   late Animation<double> _notebookPulseScale;
 
-  bool _sharedNonZeroOnly = false;
+  late bool _sharedNonZeroOnly;
   bool _hasUnopenedNotebookEntries = false;
   late AdaptiveLearningSession _adaptiveLearningSession;
   AdaptiveLearningInsight? _adaptiveInsight;
   bool _adaptiveInsightDismissed = false;
-  Timer? _adaptiveInsightAutoDismissTimer;
   Future<void> _sandboxSaveQueue = Future<void>.value();
 
   @override
@@ -222,6 +228,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     _circuit = _createInitialCircuit();
     final activeLevel = _circuit.currentLevel;
     _numQubits = activeLevel.numQubits;
+    _sharedNonZeroOnly = defaultNonZeroOnlyForQubitCount(_numQubits);
     _taskDescription = activeLevel.taskDescription;
     _initialState = activeLevel.initialQubitsState;
     _availableGates = activeLevel.availableGates;
@@ -245,7 +252,6 @@ class _QuantumComposerState extends State<QuantumComposer>
     }
     WidgetsBinding.instance.removeObserver(this);
     widget.controller?._detach();
-    _adaptiveInsightAutoDismissTimer?.cancel();
     _notebookPulseController.dispose();
     super.dispose();
   }
@@ -811,23 +817,9 @@ class _QuantumComposerState extends State<QuantumComposer>
       _adaptiveInsight = adaptiveInsight;
       _adaptiveInsightDismissed = false;
     });
-    _scheduleAdaptiveInsightAutoDismiss(adaptiveInsight);
-  }
-
-  void _scheduleAdaptiveInsightAutoDismiss(AdaptiveLearningInsight? insight) {
-    _adaptiveInsightAutoDismissTimer?.cancel();
-    if (insight == null) return;
-
-    _adaptiveInsightAutoDismissTimer = Timer(const Duration(seconds: 9), () {
-      if (!mounted || _adaptiveInsight != insight) return;
-      setState(() {
-        _adaptiveInsightDismissed = true;
-      });
-    });
   }
 
   void _dismissAdaptiveInsight() {
-    _adaptiveInsightAutoDismissTimer?.cancel();
     if (!mounted) return;
     setState(() {
       _adaptiveInsightDismissed = true;
@@ -847,21 +839,13 @@ class _QuantumComposerState extends State<QuantumComposer>
 
       setState(() {
         _levelSolved = true;
-        _checkFeedbackTitle = LevelHeaderRouter.isMasteryLevel(widget.levelId)
-            ? 'Challenge Complete'
-            : null;
-        _checkFeedbackMessage = LevelHeaderRouter.isMasteryLevel(widget.levelId)
-            ? keyInsight
-            : null;
-        _checkFeedbackSuccess =
-            LevelHeaderRouter.isMasteryLevel(widget.levelId);
+        _checkFeedbackTitle = _isMastery ? 'Challenge Complete' : null;
+        _checkFeedbackMessage = _isMastery ? keyInsight : null;
+        _checkFeedbackSuccess = _isMastery;
         _adaptiveInsight = null;
         _adaptiveInsightDismissed = false;
-        _isCompleted = LevelHeaderRouter.isMasteryLevel(widget.levelId)
-            ? true
-            : _isCompleted;
+        _isCompleted = _isMastery ? true : _isCompleted;
       });
-      _adaptiveInsightAutoDismissTimer?.cancel();
       if (unlocksNotebookEntry) {
         _playNotebookUnlockPulse();
       }
@@ -873,7 +857,7 @@ class _QuantumComposerState extends State<QuantumComposer>
 
         widget.onLevelUnlocked?.call(widget.levelId + 1);
 
-        if (LevelHeaderRouter.isMasteryLevel(widget.levelId)) {
+        if (_isMastery) {
           final action = await _showMasteryChallengeCompletionDialog(
             keyInsight: keyInsight,
           );
@@ -911,7 +895,6 @@ class _QuantumComposerState extends State<QuantumComposer>
           _adaptiveInsight = null;
           _adaptiveInsightDismissed = false;
         });
-        _adaptiveInsightAutoDismissTimer?.cancel();
       }
     }
   }
@@ -1119,7 +1102,6 @@ class _QuantumComposerState extends State<QuantumComposer>
     _checkFeedbackMessage = null;
     _adaptiveInsight = null;
     _adaptiveInsightDismissed = false;
-    _adaptiveInsightAutoDismissTimer?.cancel();
     _handleCommittedCircuitEdit(outcome, clearSelection: true);
   }
 
@@ -1262,17 +1244,22 @@ class _QuantumComposerState extends State<QuantumComposer>
   Widget build(BuildContext context) {
     final bool compactAppBar = MediaQuery.sizeOf(context).width < 900;
 
-    final reviewedMastery = LevelHeaderRouter.isMasteryLevel(widget.levelId) &&
-        LevelHeaderRouter.masteryChallengeNumber(widget.levelId) <= 13;
+    final reviewedMastery = _isMastery &&
+        (widget.masteryChallenge?.displayOrder ??
+                LevelHeaderRouter.masteryChallengeNumber(widget.levelId)) <=
+            20;
     final header = LevelHeaderRouter.headerFor(
       level: widget.level,
       levelId: widget.levelId,
       compact: compactAppBar,
       title: runningAsQuantumComposer()
           ? 'Composer'
-          : LevelHeaderRouter.displayLabel(widget.levelId),
+          : widget.masteryChallenge == null
+              ? LevelHeaderRouter.displayLabel(widget.levelId)
+              : null,
       subtitle: runningAsQuantumComposer() ? '' : _goalTitle(),
       isCompleted: _isCompleted,
+      masteryDisplayOrder: widget.masteryChallenge?.displayOrder,
       actions: _buildAppBarActions(reviewedMastery ? true : compactAppBar),
     );
     final body = LayoutBuilder(builder: (context, constraints) {
@@ -1282,7 +1269,11 @@ class _QuantumComposerState extends State<QuantumComposer>
         compact: short,
         showHeader: false,
       );
-      final Widget statePanel = _buildPortraitStateSection(short: short);
+      final bool contentDrivenPortraitState = widget.masteryChallenge != null;
+      final Widget statePanel = _buildPortraitStateSection(
+        short: short,
+        contentDriven: contentDrivenPortraitState,
+      );
       final double contentTopPadding = short ? 3 : 5;
       final double contentBottomPadding = short ? 6 : (compact ? 8 : 10);
       final double contentHeight = math.max(
@@ -1306,6 +1297,7 @@ class _QuantumComposerState extends State<QuantumComposer>
                       circuitCard: circuitCard,
                       statePanel: statePanel,
                       short: short,
+                      contentDrivenState: contentDrivenPortraitState,
                     )
                   : _buildLandscapeComposerLayout(
                       circuitCard: circuitCard,
@@ -1343,6 +1335,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     required Widget circuitCard,
     required Widget statePanel,
     required bool short,
+    required bool contentDrivenState,
   }) {
     const double sectionGap = 8;
 
@@ -1371,7 +1364,10 @@ class _QuantumComposerState extends State<QuantumComposer>
             const SizedBox(height: sectionGap),
             _buildGatePalette(dense: true),
             const SizedBox(height: sectionGap),
-            Expanded(child: statePanel),
+            if (contentDrivenState)
+              Flexible(fit: FlexFit.loose, child: statePanel)
+            else
+              Expanded(child: statePanel),
             if (!composer) ...[
               const SizedBox(height: sectionGap),
               _buildPortraitCheckArea(compact: short),
@@ -1382,7 +1378,10 @@ class _QuantumComposerState extends State<QuantumComposer>
     );
   }
 
-  Widget _buildPortraitStateSection({required bool short}) {
+  Widget _buildPortraitStateSection({
+    required bool short,
+    required bool contentDriven,
+  }) {
     final List<Complex>? targetStateVector =
         runningAsQuantumComposer() ? null : _targetStateVector();
     final String? targetExpression = _targetStateDisplayExpression();
@@ -1396,14 +1395,53 @@ class _QuantumComposerState extends State<QuantumComposer>
         showToggleInSummary: true,
         showSummarySubtitle: false,
         dense: true,
+        contentDriven: contentDriven,
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: _buildStatePanel(
+    if (!contentDriven) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _buildStatePanel(
+              summaryTitle: 'Current State',
+              tone: StateVectorDisplayTone.current,
+              showHeader: false,
+              showToggleInSummary: true,
+              showSummarySubtitle: false,
+              showVisibilityControl: false,
+              nonZeroOnly: _sharedNonZeroOnly,
+              visibilityControl: _buildSharedStateFilterControl(),
+              dense: true,
+            ),
+          ),
+          SizedBox(height: short ? 6 : 8),
+          Expanded(
+            child: _buildStatePanel(
+              stateVector: targetStateVector,
+              summaryTitle: 'Target State',
+              stateExpressionLabel: targetExpressionLabel,
+              stateExpression: targetExpression,
+              tone: StateVectorDisplayTone.target,
+              showHeader: false,
+              showToggleInSummary: true,
+              showSummarySubtitle: false,
+              showVisibilityControl: false,
+              nonZeroOnly: _sharedNonZeroOnly,
+              dense: true,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return SingleChildScrollView(
+      key: const ValueKey('portrait-state-section-scroll'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildStatePanel(
             summaryTitle: 'Current State',
             tone: StateVectorDisplayTone.current,
             showHeader: false,
@@ -1413,11 +1451,10 @@ class _QuantumComposerState extends State<QuantumComposer>
             nonZeroOnly: _sharedNonZeroOnly,
             visibilityControl: _buildSharedStateFilterControl(),
             dense: true,
+            contentDriven: true,
           ),
-        ),
-        SizedBox(height: short ? 6 : 8),
-        Expanded(
-          child: _buildStatePanel(
+          SizedBox(height: short ? 6 : 8),
+          _buildStatePanel(
             stateVector: targetStateVector,
             summaryTitle: 'Target State',
             stateExpressionLabel: targetExpressionLabel,
@@ -1429,9 +1466,10 @@ class _QuantumComposerState extends State<QuantumComposer>
             showVisibilityControl: false,
             nonZeroOnly: _sharedNonZeroOnly,
             dense: true,
+            contentDriven: true,
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1978,8 +2016,20 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   bool runningAsQuantumComposer() => widget.levelId == -1;
 
-  bool get _usesEarlyMasteryVisualGrammar =>
-      const {65, 67, 70, 72, 73}.contains(widget.levelId);
+  bool get _usesEarlyMasteryVisualGrammar => const {
+        65,
+        67,
+        70,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80
+      }.contains(widget.levelId);
 
   String _goalTitle() {
     if (runningAsQuantumComposer()) {
@@ -2483,8 +2533,14 @@ class _QuantumComposerState extends State<QuantumComposer>
     bool? nonZeroOnly,
     Widget? visibilityControl,
     bool dense = false,
+    bool contentDriven = false,
   }) {
     return Container(
+      key: ValueKey(
+        summaryTitle == 'Target State'
+            ? 'composer-target-state-panel'
+            : 'composer-current-state-panel',
+      ),
       padding: EdgeInsets.all(dense ? 4.0 : (secondary ? 5.0 : 7.0)),
       decoration: BoxDecoration(
         color: secondary ? qqCard.withValues(alpha: 0.78) : qqCard,
@@ -2513,6 +2569,7 @@ class _QuantumComposerState extends State<QuantumComposer>
         nonZeroOnlyOverride: nonZeroOnly,
         visibilityControlOverride: visibilityControl,
         dense: dense,
+        contentDriven: contentDriven,
       ),
     );
   }

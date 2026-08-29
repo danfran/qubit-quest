@@ -688,42 +688,45 @@ final List<QQLevel> _authoredQQLevels = [
       [Complex.one()], [Complex.zero()], [Complex.zero()], [Complex.zero()],
     ],
   ),
-  // CX(0,1) + X(0)
+  // Fixed CX(0,1) + CX(0,1)
   ComposerLevel.fromBinaryString(
     title: 'Uncomputing with CNOT',
     taskDescription:
-        r"From \( |11\rangle \), transform the state to \( |00\rangle \).",
-    targetStateExpression: "|00⟩",
+        r"A fixed CNOT changed \( |11\rangle \) into \( |01\rangle \). Restore \( |11\rangle \).",
+    targetStateExpression: "|11⟩",
     conceptIntro:
-        'Reaching any two-qubit basis state from any other requires the right combination of gates '
-        'applied in the correct order. '
-        'Unlike single-qubit gates, the order in which you apply two-qubit and single-qubit operations '
-        'generally matters — different orderings produce different results. '
-        'Think carefully about which qubit needs to change first and what the intermediate '
-        'state looks like after each gate.',
+        'CNOT is reversible and self-inverse: applying the same controlled operation twice gives the identity, '
+        'CNOT·CNOT = I. The fixed CNOT uses Q0 as control and Q1 as target, so it has already changed '
+        '|11⟩ to |01⟩. Use CNOT\'s inverse behaviour to restore what came before.',
     hints: [
-      'Try CNOT(Q0→Q1) on |11⟩ first: Q0=1 flips Q1: 1→0, giving |01⟩. Now you only need to fix Q0.',
-      'After CNOT gives |01⟩, apply X on Q0: 1→0. Final state: |00⟩. Total: CNOT(Q0→Q1) then X on Q0.',
+      'The fixed operation was CNOT(Q0→Q1). Its control Q0 is still 1 in |01⟩.',
+      'Apply the same CNOT(Q0→Q1) again. Q0=1 makes Q1 flip 0→1, restoring |11⟩.',
     ],
-    solutionExplanation: 'CNOT(Q0→Q1)|11⟩ = |01⟩ (Q0=1 flips Q1: 1→0). '
-        'X on Q0: |01⟩ → |00⟩. '
-        'Two gates are sufficient. Note the alternative order does NOT work: '
-        'X on Q0 first gives |10⟩, then CNOT(Q0→Q1) leaves it as |10⟩ (Q0=0, condition never triggers — wrong!). '
-        'So CNOT first is the correct order here.',
+    solutionExplanation:
+        'The fixed CNOT(Q0→Q1) changed |11⟩ to |01⟩. Applying the identical CNOT again '
+        'flips Q1 back from 0 to 1 because Q0 remains 1: |01⟩ → |11⟩. '
+        'Therefore CNOT(Q0→Q1)·CNOT(Q0→Q1) = I for this state, demonstrating how a controlled computation can be uncomputed.',
     numQubits: 2,
     initialQubitsStateString: "11",
+    preInsertedGates: (QuantumCircuit circuit) {
+      circuit.insertDoublePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.cnot),
+        0,
+        1,
+        0,
+        isDeletable: false,
+      );
+    },
     availableGates: [
       Gate.fromIdentifier(SelectedGateType.cnot),
-      Gate.fromIdentifier(SelectedGateType.x),
       Gate.fromIdentifier(SelectedGateType.z),
-      Gate.fromIdentifier(SelectedGateType.y)
     ],
     solutionFinalVector: [
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
       [Complex.one()],
-      [Complex.zero()],
-      [Complex.zero()],
-      [Complex.zero()],
-    ], // Target: |01>
+    ], // Target: |11> (apply the fixed CNOT topology again)
   ),
   // CCX (1,0,2)
   ComposerLevel.fromBinaryString(
@@ -855,33 +858,31 @@ final List<QQLevel> _authoredQQLevels = [
       ],
     ],
   ),
-  // CCX(0,1,2)
+  // CCX(0,3,1)
   ComposerLevel.fromBinaryString(
     title: 'Toffoli: Choose Your Controls',
     taskDescription:
-        r"From \( |011\rangle \), transform the state to \( |111\rangle \).",
-    targetStateExpression: "|111⟩",
+        r"From \( |1001\rangle \), transform the state to \( |1011\rangle \).",
+    targetStateExpression: "|1011⟩",
     conceptIntro:
         'The Toffoli gate is flexible — any two qubits can be the controls and '
-        'any distinct third qubit can be the target. '
-        'Before applying CCX, identify which two qubits satisfy the AND condition '
-        '(both must be |1⟩) and which qubit needs to be flipped. '
-        'Compare the initial state with the target to determine the correct qubit assignments.',
+        'any distinct qubit can be the target. Compare the initial and target kets to identify '
+        'which qubit must change, then choose two controls that are both |1⟩. '
+        'A control on the unchanged Q2=0 wire would prevent CCX from firing.',
     hints: [
-      'In |011⟩: Q2=0, Q1=1, Q0=1. The two |1⟩ qubits are Q0 and Q1. Q2 needs to flip to 1.',
-      'Set Q0 and Q1 as controls, Q2 as target. Both controls are 1, so Q2 flips: 0→1. '
-          'CCX(ctrl:Q0,Q1; target:Q2)|011⟩ = |111⟩.',
+      'Compare |1001⟩ with |1011⟩: only Q1 must change. Q0 and Q3 are 1, while Q2 is 0.',
+      'Set Q0 and Q3 as controls and Q1 as target. Both controls are 1, so Q1 flips: 0→1. '
+          'Using Q2 as a control would leave the state unchanged.',
     ],
-    solutionExplanation: 'CCX(ctrl:Q0,Q1; target:Q2)|011⟩ = |111⟩. '
-        'Q0=1 AND Q1=1 → Q2 flips: 0→1. '
-        'Compare with level 18 (controls Q0,Q2; target Q1) — same gate type, different qubit assignment. '
-        'Choosing controls flexibly is essential for implementing quantum arithmetic circuits.',
-    numQubits: 3,
-    initialQubitsStateString: "011",
+    solutionExplanation:
+        'CCX(ctrl:Q0,Q3; target:Q1)|1001⟩ = |1011⟩. Comparing the kets identifies Q1 as the target. '
+        'Q0=1 AND Q3=1 activates the gate, while choosing Q2=0 as either control would prevent the target from flipping. '
+        'Unlike the first Toffoli challenge, this requires inferring the topology among four possible wires.',
+    numQubits: 4,
+    initialQubitsStateString: "1001",
     availableGates: [
       Gate.fromIdentifier(SelectedGateType.ccnot),
-      Gate.fromIdentifier(SelectedGateType.y),
-      Gate.fromIdentifier(SelectedGateType.z)
+      Gate.fromIdentifier(SelectedGateType.z),
     ],
     solutionFinalVector: [
       [Complex.zero()],
@@ -891,11 +892,16 @@ final List<QQLevel> _authoredQQLevels = [
       [Complex.zero()],
       [Complex.zero()],
       [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
       [Complex.one()],
-    ], // Target: |111>
-    // Solution (for your internal reference):
-    // Apply CCNOT with Qubit 1 as Control 1, Qubit 2 as Control 2, and Qubit 0 as Target.
-    // |011> --(CCNOT_{1,2;0})--> |111>
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+      [Complex.zero()],
+    ], // Target: |1011>
   ),
   // (CCNOT(0,1,2)) + CCNOT(0,1,2)
   ComposerLevel.fromBinaryString(
@@ -5201,8 +5207,8 @@ final List<QQLevelsCategory> groupedLevels = [
     from: 60,
     to: 113,
     categoryIntro:
-        'Phase 2 turns the guided discoveries into integrated practice. These advanced challenges combine earlier ideas so you can recognise and use them together.',
-    phaseTitle: 'Phase 2 - Mastery Challenges',
+        'Independent challenges for testing, combining, and reinforcing quantum concepts through practice.',
+    phaseTitle: 'Mastery Challenges',
     phasePurpose: 'Concept Integration',
     isMasteryPhase: true,
   ),

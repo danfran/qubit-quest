@@ -27,7 +27,6 @@ import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
-import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 
 const _background = QubitQuestColors.background;
@@ -108,30 +107,6 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
   }
 
   void _openMastery() {
-    if (!widget.progressController.isLoaded ||
-        !widget.progressController.masteryChallengesUnlocked) {
-      showDialog<void>(
-        context: context,
-        builder: (dialogContext) => QubitQuestDialog(
-          title: 'Mastery Challenges Locked',
-          actions: [
-            QubitQuestDialogButton.primary(
-              label: 'Continue Journey',
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                _select(WebDestination.journey);
-              },
-            ),
-          ],
-          child: const Text(
-            'Complete Guided Discovery to unlock Mastery Challenges. '
-            'They apply combined concepts after Chapter 12 Level 5.',
-            style: TextStyle(height: 1.45),
-          ),
-        ),
-      );
-      return;
-    }
     _select(WebDestination.mastery);
   }
 
@@ -201,8 +176,7 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
             animation: widget.progressController,
             builder: (context, _) => _WebNavigation(
               selected: _destination,
-              masteryUnlocked: widget.progressController.isLoaded &&
-                  widget.progressController.masteryChallengesUnlocked,
+              masteryUnlocked: true,
               onSelected: (destination) {
                 if (!wide) Navigator.of(context).pop();
                 if (destination == WebDestination.mastery) {

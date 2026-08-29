@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/qq_level.dart';
+import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/utils/math_utils.dart';
@@ -45,13 +46,33 @@ void main() {
       });
     }
 
-    test('top Q0 wire receives the rightmost binary-string bit', () {
+    test('wire labels explicitly map |10> to top q0=0 and bottom q1=1', () {
       expect(
         QuantumCircuitPainter.initialQubitLabelsFor(
           initialQubitsStateStr: '10',
           numQubits: 2,
         ),
-        ['|0⟩', '|1⟩'],
+        ['q0 |0⟩', 'q1 |1⟩'],
+      );
+    });
+
+    test('wire labels explicitly map |01> to top q0=1 and bottom q1=0', () {
+      expect(
+        QuantumCircuitPainter.initialQubitLabelsFor(
+          initialQubitsStateStr: '01',
+          numQubits: 2,
+        ),
+        ['q0 |1⟩', 'q1 |0⟩'],
+      );
+    });
+
+    test('wire labels explicitly map |101> in Q0-top order', () {
+      expect(
+        QuantumCircuitPainter.initialQubitLabelsFor(
+          initialQubitsStateStr: '101',
+          numQubits: 3,
+        ),
+        ['q0 |1⟩', 'q1 |0⟩', 'q2 |1⟩'],
       );
     });
 
@@ -95,6 +116,64 @@ void main() {
           Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 1);
       circuit.runSimulation();
       expectBasisState(circuit, 3);
+    });
+
+    test('M14 display, authored CNOT, and result share one convention', () {
+      final level = getQQLevelById(74)! as ComposerLevel;
+      expect(level.initialQubitsStateStr, '10');
+      expect(
+        QuantumCircuitPainter.initialQubitLabelsFor(
+          initialQubitsStateStr: level.initialQubitsStateStr,
+          numQubits: level.numQubits,
+        ),
+        ['q0 |0⟩', 'q1 |1⟩'],
+      );
+
+      final step = level.canonicalSolution!.steps.single;
+      expect(step.gateType, SelectedGateType.cnot);
+      expect(step.controlQubit, 1);
+      expect(step.targetQubit, 0);
+
+      final circuit = QuantumCircuit(currentLevel: level);
+      circuit.insertDoublePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.cnot),
+        0,
+        step.targetQubit,
+        step.controlQubit!,
+      );
+      circuit.runSimulation();
+      expectBasisState(circuit, 3);
+      expect(level.validateCircuit(circuit), isTrue);
+    });
+
+    test('M16, M18, and M20 authored topology follows Q0-LSB ordering', () {
+      final m16 = getQQLevelById(76)! as ComposerLevel;
+      expect(m16.initialQubitsStateStr, '101');
+      expect(
+        QuantumCircuitPainter.initialQubitLabelsFor(
+          initialQubitsStateStr: m16.initialQubitsStateStr,
+          numQubits: m16.numQubits,
+        ),
+        ['q0 |1⟩', 'q1 |0⟩', 'q2 |1⟩'],
+      );
+      expect(m16.canonicalSolution!.steps.single.controlQubit, 2);
+      expect(m16.canonicalSolution!.steps.single.targetQubit, 0);
+
+      final m18 = getQQLevelById(78)! as ComposerLevel;
+      final m18Step = m18.canonicalSolution!.steps.single;
+      expect(m18.initialQubitsStateStr, '101');
+      expect(m18Step.controlQubit, 0);
+      expect(m18Step.secondControlQubit, 2);
+      expect(m18Step.targetQubit, 1);
+
+      final m20 = getQQLevelById(80)! as ComposerLevel;
+      final m20Circuit = QuantumCircuit(currentLevel: m20);
+      final fixed = m20Circuit.logicalGates.single;
+      expect(m20.initialQubitsStateStr, '110');
+      expect(fixed.controlQubit, 1);
+      expect(fixed.secondControlQubit, 2);
+      expect(fixed.targetQubit, 0);
+      expectBasisState(m20Circuit, 7); // Fixed CCX maps |110> to |111>.
     });
 
     test('CZ changes only the phase of |11>', () {

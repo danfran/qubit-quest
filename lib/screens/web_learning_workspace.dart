@@ -7,6 +7,9 @@ import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/gate_id.dart';
+import 'package:quantumquiz/models/mastery_2_catalogue.dart';
+import 'package:quantumquiz/models/mastery_2_presentation.dart';
+import 'package:quantumquiz/models/mastery_challenge_catalogue.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:quantumquiz/models/qq_level.dart';
@@ -21,6 +24,7 @@ import 'package:quantumquiz/screens/learning_map_screen.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/mastery_evidence_view.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
@@ -172,42 +176,32 @@ class WebMasteryWorkspace extends StatefulWidget {
 }
 
 class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
-  static final QQLevelsCategory _category = groupedLevels.firstWhere(
-    (category) => category.isMasteryPhase,
-  );
+  String? _selectedSemanticId;
 
-  int? _selectedLevelId;
+  List<MasteryChallengeDefinition> get _challenges =>
+      mastery2Catalogue.orderedDefinitions;
 
-  List<int> get _challengeIds => [
-        for (var index = _category.from; index <= _category.to; index++)
-          index + 1,
-      ];
-
-  int _preferredChallenge(CampaignProgressState state) =>
-      _challengeIds.firstWhere(
-        (id) => !state.completedChallengeIds.contains(id),
-        orElse: () => _challengeIds.first,
+  MasteryChallengeDefinition _preferredChallenge(
+    CampaignProgressState state,
+  ) =>
+      _challenges.firstWhere(
+        (challenge) =>
+            !state.completedMasterySemanticIds.contains(challenge.semanticId),
+        orElse: () => _challenges.first,
       );
 
-  bool _isUnlocked(int levelId, CampaignProgressState state) =>
-      CampaignProgressPolicy.isLevelUnlocked(state, levelId);
-
-  void _selectChallenge(int levelId, CampaignProgressState state) {
-    if (!_isUnlocked(levelId, state)) return;
-    setState(() => _selectedLevelId = levelId);
-  }
-
-  Future<void> _complete(int levelId) async {
-    await widget.progressController.completeChallenge(levelId);
+  Future<void> _complete(String semanticId) async {
+    await widget.progressController.completeMasteryChallenge(semanticId);
     if (mounted) setState(() {});
   }
 
   void _nextChallenge(CampaignProgressState state) {
-    final current = _selectedLevelId;
+    final current = _selectedSemanticId;
     if (current == null) return;
-    final next = current + 1;
-    if (_challengeIds.contains(next) && _isUnlocked(next, state)) {
-      setState(() => _selectedLevelId = next);
+    final index =
+        _challenges.indexWhere((challenge) => challenge.semanticId == current);
+    if (index >= 0 && index + 1 < _challenges.length) {
+      setState(() => _selectedSemanticId = _challenges[index + 1].semanticId);
     }
   }
 
@@ -219,25 +213,18 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
             return const Center(child: CircularProgressIndicator());
           }
           final state = widget.progressController.state;
-          final unlocked =
-              CampaignProgressPolicy.getMasteryChallengesUnlocked(state);
-          if (!unlocked) {
-            return _MasteryLockedWorkspace(
-              onBackToJourney: widget.onBackToJourney,
-            );
-          }
-          final selected = _selectedLevelId != null &&
-                  _challengeIds.contains(_selectedLevelId) &&
-                  _isUnlocked(_selectedLevelId!, state)
-              ? _selectedLevelId!
-              : _preferredChallenge(state);
-          _selectedLevelId = selected;
+          final selected =
+              mastery2Catalogue.bySemanticId(_selectedSemanticId ?? '') ??
+                  _preferredChallenge(state);
+          _selectedSemanticId = selected.semanticId;
           final activity = WebLessonWorkspace(
-            key: ValueKey('web-mastery-activity-$selected'),
-            levelId: selected,
-            level: getQQLevelById(selected)!,
-            alreadyCompleted: state.completedChallengeIds.contains(selected),
-            onCompleted: () => _complete(selected),
+            key: ValueKey('web-mastery-activity-${selected.semanticId}'),
+            levelId: selected.displayOrder,
+            masteryChallenge: selected,
+            level: selected.levelDefinition,
+            alreadyCompleted:
+                state.completedMasterySemanticIds.contains(selected.semanticId),
+            onCompleted: () => _complete(selected.semanticId),
             onNextLesson: () => _nextChallenge(
               widget.progressController.state,
             ),
@@ -245,18 +232,18 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
             onOpenNotebook: widget.onOpenNotebook,
             onOpenNotebookEntry: widget.onOpenNotebookEntry,
           );
-          return ColoredBox(
+          return Material(
             color: _background,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final wide = constraints.maxWidth >= 940;
                 final challengeList = _MasteryChallengeList(
-                  challengeIds: _challengeIds,
-                  selectedLevelId: selected,
-                  currentLevelId: _preferredChallenge(state),
+                  challenges: _challenges,
+                  selectedSemanticId: selected.semanticId,
+                  currentSemanticId: _preferredChallenge(state).semanticId,
                   progressState: state,
                   horizontal: !wide,
-                  onSelected: (id) => _selectChallenge(id, state),
+                  onSelected: (id) => setState(() => _selectedSemanticId = id),
                 );
                 return Column(
                   key: ValueKey(
@@ -269,8 +256,8 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
                     SizedBox(
                       height: wide ? 126 : 148,
                       child: _MasteryHeader(
-                        completed: state.completedChallengeIds.length,
-                        total: _challengeIds.length,
+                        completed: state.completedMasterySemanticIds.length,
+                        total: _challenges.length,
                         onBackToJourney: widget.onBackToJourney,
                       ),
                     ),
@@ -303,46 +290,6 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
             ),
           );
         },
-      );
-}
-
-class _MasteryLockedWorkspace extends StatelessWidget {
-  const _MasteryLockedWorkspace({required this.onBackToJourney});
-
-  final VoidCallback onBackToJourney;
-
-  @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-        key: const ValueKey('web-mastery-locked-workspace'),
-        padding: const EdgeInsets.all(16),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: _ContentCard(
-              title: 'Mastery Challenges Locked',
-              icon: Icons.lock_outline,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'Complete Guided Discovery to unlock Mastery Challenges. '
-                    'They apply combined concepts after Chapter 12 Level 5.',
-                    style: TextStyle(height: 1.45),
-                  ),
-                  const SizedBox(height: 14),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: FilledButton.icon(
-                      onPressed: onBackToJourney,
-                      icon: const Icon(Icons.route_outlined),
-                      label: const Text('Continue Journey'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
       );
 }
 
@@ -382,7 +329,7 @@ class _MasteryHeader extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _WebMasteryWorkspaceState._category.categoryIntro ?? '',
+                    'Independent quantum reasoning challenges.',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(color: Colors.white70, height: 1.3),
@@ -417,31 +364,31 @@ class _MasteryHeader extends StatelessWidget {
 
 class _MasteryChallengeList extends StatelessWidget {
   const _MasteryChallengeList({
-    required this.challengeIds,
-    required this.selectedLevelId,
-    required this.currentLevelId,
+    required this.challenges,
+    required this.selectedSemanticId,
+    required this.currentSemanticId,
     required this.progressState,
     required this.horizontal,
     required this.onSelected,
   });
 
-  final List<int> challengeIds;
-  final int selectedLevelId;
-  final int currentLevelId;
+  final List<MasteryChallengeDefinition> challenges;
+  final String selectedSemanticId;
+  final String currentSemanticId;
   final CampaignProgressState progressState;
   final bool horizontal;
-  final ValueChanged<int> onSelected;
+  final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) {
     final children = [
-      for (final id in challengeIds)
+      for (final challenge in challenges)
         _MasteryChallengeItem(
-          levelId: id,
-          selected: id == selectedLevelId,
-          current: id == currentLevelId,
-          completed: progressState.completedChallengeIds.contains(id),
-          unlocked: CampaignProgressPolicy.isLevelUnlocked(progressState, id),
+          challenge: challenge,
+          selected: challenge.semanticId == selectedSemanticId,
+          current: challenge.semanticId == currentSemanticId,
+          completed: progressState.completedMasterySemanticIds
+              .contains(challenge.semanticId),
           onSelected: onSelected,
         ),
     ];
@@ -476,33 +423,31 @@ class _MasteryChallengeList extends StatelessWidget {
 
 class _MasteryChallengeItem extends StatelessWidget {
   const _MasteryChallengeItem({
-    required this.levelId,
+    required this.challenge,
     required this.selected,
     required this.current,
     required this.completed,
-    required this.unlocked,
     required this.onSelected,
   });
 
-  final int levelId;
+  final MasteryChallengeDefinition challenge;
   final bool selected;
   final bool current;
   final bool completed;
-  final bool unlocked;
-  final ValueChanged<int> onSelected;
+  final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    final level = getQQLevelById(levelId)!;
-    final number = ProgressionRules.masteryChallengeNumber(levelId);
+    final level = challenge.levelDefinition;
+    final number = challenge.displayOrder;
     return Padding(
       padding: const EdgeInsets.only(right: 6, bottom: 6),
       child: Material(
         color: selected ? const Color(0x2222D3EE) : Colors.transparent,
         borderRadius: BorderRadius.circular(11),
         child: InkWell(
-          key: ValueKey('web-mastery-challenge-$number'),
-          onTap: unlocked ? () => onSelected(levelId) : null,
+          key: ValueKey('web-mastery-challenge-${challenge.semanticId}'),
+          onTap: () => onSelected(challenge.semanticId),
           borderRadius: BorderRadius.circular(11),
           child: Container(
             constraints: const BoxConstraints(minWidth: 190, maxWidth: 258),
@@ -516,17 +461,11 @@ class _MasteryChallengeItem extends StatelessWidget {
                 Icon(
                   completed
                       ? Icons.check_circle
-                      : unlocked
-                          ? current
-                              ? Icons.play_circle_outline
-                              : Icons.circle_outlined
-                          : Icons.lock_outline,
+                      : current
+                          ? Icons.play_circle_outline
+                          : Icons.circle_outlined,
                   size: 20,
-                  color: completed
-                      ? Colors.greenAccent
-                      : unlocked
-                          ? _cyan
-                          : Colors.white30,
+                  color: completed ? Colors.greenAccent : _cyan,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -535,7 +474,7 @@ class _MasteryChallengeItem extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: unlocked ? Colors.white : Colors.white38,
+                      color: Colors.white,
                       fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                     ),
                   ),
@@ -855,6 +794,7 @@ class WebLessonWorkspace extends StatefulWidget {
     required this.onBackToChapter,
     required this.onOpenNotebook,
     this.onOpenNotebookEntry,
+    this.masteryChallenge,
   });
 
   final int levelId;
@@ -865,6 +805,7 @@ class WebLessonWorkspace extends StatefulWidget {
   final VoidCallback onBackToChapter;
   final VoidCallback onOpenNotebook;
   final ValueChanged<String>? onOpenNotebookEntry;
+  final MasteryChallengeDefinition? masteryChallenge;
 
   @override
   State<WebLessonWorkspace> createState() => _WebLessonWorkspaceState();
@@ -885,15 +826,47 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
     });
   }
 
+  MasteryChallengePresentation? get _masteryPresentation {
+    final challenge = widget.masteryChallenge;
+    return challenge == null
+        ? null
+        : mastery2Presentations[challenge.semanticId];
+  }
+
+  Widget _taskContent() {
+    final presentation = _masteryPresentation;
+    if (presentation == null) {
+      return LatexText(
+        math: widget.level.taskDescription,
+        textStyle: const TextStyle(color: Colors.white, height: 1.5),
+        inlineMathHeight: 18,
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MasteryEvidenceView(presentation: presentation),
+        const SizedBox(height: QubitQuestSpacing.regular),
+        LatexText(
+          math: presentation.question,
+          textStyle: QubitQuestTypography.question.copyWith(fontSize: 16.5),
+          inlineMathHeight: 18,
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) => ListView(
         key: ValueKey('web-lesson-content-${widget.levelId}'),
         padding: const EdgeInsets.all(22),
         children: [
           Text(
-            ProgressionRules.isMasteryLevel(widget.levelId)
-                ? 'Mastery Challenge ${ProgressionRules.masteryChallengeNumber(widget.levelId)}'
-                : 'Lesson ${widget.levelId}',
+            widget.masteryChallenge != null
+                ? 'Mastery Challenge ${widget.masteryChallenge!.displayOrder}'
+                : ProgressionRules.isMasteryLevel(widget.levelId)
+                    ? 'Mastery Challenge ${ProgressionRules.masteryChallengeNumber(widget.levelId)}'
+                    : 'Lesson ${widget.levelId}',
             style: const TextStyle(
               color: _purple,
               fontWeight: FontWeight.w900,
@@ -934,11 +907,7 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
           _ContentCard(
             title: 'Task',
             icon: Icons.flag_outlined,
-            child: LatexText(
-              math: widget.level.taskDescription,
-              textStyle: const TextStyle(color: Colors.white, height: 1.5),
-              inlineMathHeight: 18,
-            ),
+            child: _taskContent(),
           ),
           if ((widget.level.targetStateLabel ?? '').trim().isNotEmpty ||
               (widget.level.targetStateExpression ?? '').trim().isNotEmpty) ...[
@@ -987,7 +956,8 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
             const SizedBox(height: 16),
             _SuccessPanel(
               level: widget.level,
-              isMastery: ProgressionRules.isMasteryLevel(widget.levelId),
+              isMastery: widget.masteryChallenge != null ||
+                  ProgressionRules.isMasteryLevel(widget.levelId),
               onOpenNotebook: widget.onOpenNotebook,
               onOpenNotebookEntry: widget.onOpenNotebookEntry,
               onNext: widget.onNextLesson,

@@ -43,7 +43,7 @@ void main() {
     await tester.pump();
   }
 
-  test('M1-M13 route to one canonical header and M14 does not', () {
+  test('M1-M13 retain canonical headers after the M14-M20 migration', () {
     for (var levelId = 61; levelId <= 73; levelId++) {
       expect(
         LevelHeaderRouter.headerFor(
@@ -57,8 +57,8 @@ void main() {
     }
     expect(
       LevelHeaderRouter.headerFor(
-        level: getQQLevelById(74)!,
-        levelId: 74,
+        level: getQQLevelById(81)!,
+        levelId: 81,
         compact: false,
       ),
       isNot(isA<MasteryActivityHeader>()),

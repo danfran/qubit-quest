@@ -21,6 +21,57 @@ class LearningMapConceptLink {
       : '$fromChapter -> $toChapter';
 }
 
+@immutable
+class LearningMapConnectorGeometry {
+  const LearningMapConnectorGeometry({
+    required this.routePoints,
+    required this.arrowHead,
+  });
+
+  final List<Offset> routePoints;
+  final List<Offset> arrowHead;
+
+  Offset get start => routePoints.first;
+  Offset get destination => routePoints.last;
+
+  static LearningMapConnectorGeometry between({
+    required Size size,
+    required bool compact,
+    required int sourceChapter,
+  }) {
+    final sourceIsLeft = compact || sourceChapter.isOdd;
+    final destinationIsLeft = compact || !sourceIsLeft;
+    final sourceX = _anchorX(size.width, compact, sourceIsLeft);
+    final destinationX = _anchorX(size.width, compact, destinationIsLeft);
+    final middleY = size.height / 2;
+    const arrowWidth = 9.0;
+    const arrowHeight = 7.0;
+    final destination = Offset(destinationX, size.height);
+
+    return LearningMapConnectorGeometry(
+      routePoints: [
+        Offset(sourceX, 0),
+        Offset(sourceX, middleY),
+        Offset(destinationX, middleY),
+        destination,
+      ],
+      arrowHead: [
+        destination,
+        Offset(destination.dx - arrowWidth / 2, destination.dy - arrowHeight),
+        Offset(destination.dx + arrowWidth / 2, destination.dy - arrowHeight),
+      ],
+    );
+  }
+
+  static double _anchorX(double width, bool compact, bool alignLeft) {
+    if (compact) return width / 2;
+    const cardWidthFactor = 0.74;
+    final cardWidth = width * cardWidthFactor;
+    final cardLeft = alignLeft ? 0.0 : width - cardWidth;
+    return cardLeft + cardWidth / 2;
+  }
+}
+
 class LearningMapScreen extends StatelessWidget {
   const LearningMapScreen({
     super.key,
@@ -173,7 +224,7 @@ class LearningHeaderSystem extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Learn concepts, combine concepts, then master them through integrated challenges. The path stays continuous from Guided Discovery into Mastery Challenges.',
+                        'Follow the chapter connections across the Learning Journey. Mastery Challenges remain a separate practice destination for applying these concepts.',
                         style: TextStyle(
                           color: Color(0xFFD6E3F8),
                           fontSize: 14,
@@ -376,39 +427,39 @@ class _LearningMapPath extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return Column(
       children: [
-        Positioned.fill(
-          child: IgnorePointer(
-            child: CustomPaint(
-              painter: _LearningMapConnectionsPainter(
-                chapterCount: chapters.length,
-                compact: compact,
+        for (int index = 0; index < chapters.length; index++) ...[
+          _LearningMapNode(
+            chapterNumber: index + 1,
+            category: chapters[index],
+            status: _statusFor(chapters[index]),
+            compact: compact,
+            onTap: () async {
+              final firstLevel = chapters[index].from + 1;
+              if (_statusFor(chapters[index]) == _ChapterMapStatus.locked) {
+                return;
+              }
+              await onStartChapter(firstLevel);
+            },
+          ),
+          if (index < chapters.length - 1)
+            SizedBox(
+              key: ValueKey('learning-map-connector-${index + 1}-${index + 2}'),
+              height: compact ? 16 : 18,
+              width: double.infinity,
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: LearningMapConnectorPainter(
+                    compact: compact,
+                    sourceChapter: index + 1,
+                    completed: _statusFor(chapters[index]) ==
+                        _ChapterMapStatus.completed,
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-        Column(
-          children: [
-            for (int index = 0; index < chapters.length; index++) ...[
-              _LearningMapNode(
-                chapterNumber: index + 1,
-                category: chapters[index],
-                status: _statusFor(chapters[index]),
-                compact: compact,
-                onTap: () async {
-                  final firstLevel = chapters[index].from + 1;
-                  if (_statusFor(chapters[index]) == _ChapterMapStatus.locked) {
-                    return;
-                  }
-                  await onStartChapter(firstLevel);
-                },
-              ),
-              if (index < chapters.length - 1)
-                SizedBox(height: compact ? 16 : 18),
-            ],
-          ],
-        ),
+        ],
       ],
     );
   }
@@ -460,6 +511,7 @@ class _LearningMapNode extends StatelessWidget {
       child: FractionallySizedBox(
         widthFactor: compact ? 1 : 0.74,
         child: InkWell(
+          key: ValueKey('learning-map-chapter-$chapterNumber'),
           onTap: locked ? null : onTap,
           borderRadius: BorderRadius.circular(18),
           child: AnimatedContainer(
@@ -630,75 +682,58 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
-class _LearningMapConnectionsPainter extends CustomPainter {
-  const _LearningMapConnectionsPainter({
-    required this.chapterCount,
+class LearningMapConnectorPainter extends CustomPainter {
+  const LearningMapConnectorPainter({
     required this.compact,
+    required this.sourceChapter,
+    required this.completed,
   });
 
-  final int chapterCount;
   final bool compact;
+  final int sourceChapter;
+  final bool completed;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (chapterCount < 2) return;
-
+    final geometry = LearningMapConnectorGeometry.between(
+      size: size,
+      compact: compact,
+      sourceChapter: sourceChapter,
+    );
+    final color = completed
+        ? const Color(0xFF7CFFB2).withValues(alpha: 0.72)
+        : QubitQuestDialog.mutedText.withValues(alpha: 0.52);
     final paint = Paint()
-      ..color = QubitQuestDialog.borderColor
-      ..strokeWidth = 1.2
+      ..color = color
+      ..strokeWidth = 2.8
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
-    final dependencyPaint = Paint()
-      ..color = QubitQuestDialog.purple.withValues(alpha: 0.22)
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-
-    final centers = _centers(size);
-    for (int i = 0; i < centers.length - 1; i++) {
-      canvas.drawLine(centers[i], centers[i + 1], paint);
+    final route = geometry.routePoints;
+    final path = Path()..moveTo(route.first.dx, route.first.dy);
+    for (final point in route.skip(1)) {
+      path.lineTo(point.dx, point.dy);
     }
+    canvas.drawPath(path, paint);
 
-    for (final (from, to) in const [
-      (2, 4),
-      (3, 4),
-      (5, 7),
-      (9, 11),
-      (10, 11),
-      (12, 13),
-    ]) {
-      if (from <= centers.length && to <= centers.length) {
-        final start = centers[from - 1];
-        final end = centers[to - 1];
-        final control = Offset(
-          compact ? size.width - 18 : size.width / 2,
-          (start.dy + end.dy) / 2,
-        );
-        final path = Path()
-          ..moveTo(start.dx, start.dy)
-          ..quadraticBezierTo(control.dx, control.dy, end.dx, end.dy);
-        canvas.drawPath(path, dependencyPaint);
-      }
+    final arrow = Path()
+      ..moveTo(geometry.arrowHead.first.dx, geometry.arrowHead.first.dy);
+    for (final point in geometry.arrowHead.skip(1)) {
+      arrow.lineTo(point.dx, point.dy);
     }
-  }
-
-  List<Offset> _centers(Size size) {
-    final gap = compact ? 16.0 : 18.0;
-    final approximateNodeHeight = compact ? 154.0 : 146.0;
-    final step = approximateNodeHeight + gap;
-    return List.generate(chapterCount, (index) {
-      final alignLeft = compact || (index + 1).isOdd;
-      final x = compact
-          ? 24.0
-          : alignLeft
-              ? size.width * 0.13
-              : size.width * 0.87;
-      final y = approximateNodeHeight / 2 + index * step;
-      return Offset(x, y);
-    });
+    arrow.close();
+    canvas.drawPath(
+      arrow,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.fill,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant _LearningMapConnectionsPainter oldDelegate) {
-    return oldDelegate.chapterCount != chapterCount ||
-        oldDelegate.compact != compact;
+  bool shouldRepaint(covariant LearningMapConnectorPainter oldDelegate) {
+    return oldDelegate.compact != compact ||
+        oldDelegate.sourceChapter != sourceChapter ||
+        oldDelegate.completed != completed;
   }
 }

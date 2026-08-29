@@ -144,9 +144,7 @@ void main() {
       },
       (QuantumCircuit circuit) {
         circuit.insertDoublePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
-        circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.x), 1, 0);
+            Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
       },
       (QuantumCircuit circuit) {
         circuit.insertTriplePlacedGateAt(
@@ -154,12 +152,12 @@ void main() {
       },
       (QuantumCircuit circuit) {
         circuit.insertTriplePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.ccnot), 0, 2, 1, 0);
+            Gate.fromIdentifier(SelectedGateType.ccnot), 0, 1, 0, 3);
       },
       (QuantumCircuit circuit) {
         // 20
         circuit.insertTriplePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.ccnot), 0, 0, 1, 2);
+            Gate.fromIdentifier(SelectedGateType.ccnot), 1, 0, 1, 2);
       },
       (QuantumCircuit circuit) {
         // more than one solution, example X(0) + X(1)
@@ -468,7 +466,8 @@ void main() {
       }
     });
 
-    test('Progression locks Mastery Challenges on fresh install', () {
+    test('Progression keeps lessons gated but opens Mastery on fresh install',
+        () {
       const freshInstallMaxUnlockedLevel = 1;
 
       expect(
@@ -490,14 +489,14 @@ void main() {
           levelNumber: 61,
           maxUnlockedLevel: freshInstallMaxUnlockedLevel,
         ),
-        isFalse,
+        isTrue,
       );
       expect(
         ProgressionRules.isLevelUnlocked(
           levelNumber: 114,
           maxUnlockedLevel: freshInstallMaxUnlockedLevel,
         ),
-        isFalse,
+        isTrue,
       );
     });
 
@@ -1103,27 +1102,28 @@ void main() {
       expect(result.fixPlan, isNotEmpty);
     });
 
-    test('initial qubit labels preserve authored ket tokens', () {
+    test('initial wire labels identify Q0-top and preserve authored states',
+        () {
       expect(
         QuantumCircuitPainter.initialQubitLabelsFor(
           initialQubitsStateStr: '|1⟩|−⟩',
           numQubits: 2,
         ),
-        equals(['|1⟩', '|−⟩']),
+        equals(['q0 |−⟩', 'q1 |1⟩']),
       );
       expect(
         QuantumCircuitPainter.initialQubitLabelsFor(
           initialQubitsStateStr: '|+⟩',
           numQubits: 1,
         ),
-        equals(['|+⟩']),
+        equals(['q0 |+⟩']),
       );
       expect(
         QuantumCircuitPainter.initialQubitLabelsFor(
           initialQubitsStateStr: '10',
           numQubits: 2,
         ),
-        equals(['|0⟩', '|1⟩']),
+        equals(['q0 |0⟩', 'q1 |1⟩']),
       );
     });
 

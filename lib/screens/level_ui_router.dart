@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:quantumquiz/models/qq_level.dart';
+import 'package:quantumquiz/models/mastery_challenge_catalogue.dart';
 import 'package:quantumquiz/screens/circuit_reading_screen.dart';
 import 'package:quantumquiz/screens/fill_the_gate_screen.dart';
 import 'package:quantumquiz/screens/mcq_screen.dart';
@@ -32,6 +33,7 @@ class LevelUIRouter {
     required int levelId,
     required Function(int)? onLevelUnlocked,
     bool isCompleted = false,
+    MasteryChallengeDefinition? masteryChallenge,
   }) {
     return switch (level) {
       ComposerLevel l => QuantumComposer(
@@ -39,18 +41,21 @@ class LevelUIRouter {
           level: l,
           onLevelUnlocked: onLevelUnlocked,
           isCompleted: isCompleted,
+          masteryChallenge: masteryChallenge,
         ),
       ConceptCheckLevel l => McqScreen(
           levelId: levelId,
           level: l,
           onLevelUnlocked: onLevelUnlocked,
           isCompleted: isCompleted,
+          masteryChallenge: masteryChallenge,
         ),
       McqLevel l => McqScreen(
           levelId: levelId,
           level: l,
           onLevelUnlocked: onLevelUnlocked,
           isCompleted: isCompleted,
+          masteryChallenge: masteryChallenge,
         ),
       FillTheGateLevel l => FillTheGateScreen(
           levelId: levelId,

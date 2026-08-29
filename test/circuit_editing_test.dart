@@ -1863,8 +1863,7 @@ void main() {
           unrelatedBefore.id);
     });
 
-    test('protected, unavailable, unknown, and protected obstacle are atomic',
-        () {
+    test('protected, unavailable, and unknown duplication is safe', () {
       final model = duplicationCircuit(qubits: 2);
       final protected = model.insertSingleGateWithOutcome(
         Gate.fromIdentifier(SelectedGateType.hadamard),
@@ -1894,9 +1893,9 @@ void main() {
           CircuitEditStatus.protected);
       expect(
           model.duplicateLogicalGateWithOutcome(source.affectedGateId!).status,
-          CircuitEditStatus.protected);
-      expect(model.logicalGates, hasLength(3));
-      expect(notifications, 0);
+          CircuitEditStatus.changed);
+      expect(model.logicalGates, hasLength(4));
+      expect(notifications, 1);
 
       final restricted = circuit(1);
       final unavailable = restricted.insertSingleGateWithOutcome(

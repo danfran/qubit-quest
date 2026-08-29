@@ -13,12 +13,16 @@ class QubitQuestCircuitPreview extends StatelessWidget {
     this.missingGateColumn,
     this.missingGateQubit = 0,
     this.minimumWidth = 260,
+    this.showInitialStateValues = true,
+    this.centerWhenFitted = false,
   });
 
   final QuantumCircuit circuit;
   final int? missingGateColumn;
   final int missingGateQubit;
   final double minimumWidth;
+  final bool showInitialStateValues;
+  final bool centerWhenFitted;
 
   @override
   Widget build(BuildContext context) {
@@ -39,32 +43,47 @@ class QubitQuestCircuitPreview extends StatelessWidget {
         builder: (context, constraints) {
           final width =
               contentWidth < minimumWidth ? minimumWidth : contentWidth;
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: width,
-              height: height,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: QuantumCircuitPainter(circuit),
+          final circuitCanvas = SizedBox(
+            key: const ValueKey('circuit-preview-canvas'),
+            width: width,
+            height: height,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: QuantumCircuitPainter(
+                      circuit,
+                      showInitialStateValues: showInitialStateValues,
                     ),
                   ),
-                  if (missingGateColumn case final column?)
-                    Positioned(
-                      left: CircuitLayoutMetrics.padding +
-                          column * CircuitLayoutMetrics.gateSpacing +
-                          (CircuitLayoutMetrics.gateSpacing -
-                                  CircuitLayoutMetrics.gateSize) /
-                              2,
-                      top: CircuitLayoutMetrics.wireCenterY(missingGateQubit) -
-                          CircuitLayoutMetrics.gateSize / 2,
-                      child: const QubitQuestMissingGateSlot(),
-                    ),
-                ],
-              ),
+                ),
+                if (missingGateColumn case final column?)
+                  Positioned(
+                    left: CircuitLayoutMetrics.padding +
+                        column * CircuitLayoutMetrics.gateSpacing +
+                        (CircuitLayoutMetrics.gateSpacing -
+                                CircuitLayoutMetrics.gateSize) /
+                            2,
+                    top: CircuitLayoutMetrics.wireCenterY(missingGateQubit) -
+                        CircuitLayoutMetrics.gateSize / 2,
+                    child: const QubitQuestMissingGateSlot(),
+                  ),
+              ],
             ),
+          );
+
+          if (centerWhenFitted &&
+              constraints.maxWidth.isFinite &&
+              width <= constraints.maxWidth) {
+            return Center(
+              key: const ValueKey('centered-circuit-preview'),
+              child: circuitCanvas,
+            );
+          }
+
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: circuitCanvas,
           );
         },
       ),

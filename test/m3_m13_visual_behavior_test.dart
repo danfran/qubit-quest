@@ -218,8 +218,8 @@ void main() {
     }
   });
 
-  test('M14 remains outside the migration batch', () {
-    expect(getQQLevelById(74), isA<ComposerLevel>());
-    expect(74, greaterThan(73));
+  test('M21 remains outside the current migration batch', () {
+    expect(getQQLevelById(81), isA<ComposerLevel>());
+    expect(81, greaterThan(80));
   });
 }
