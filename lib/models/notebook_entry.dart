@@ -29,6 +29,8 @@ class NotebookEntry {
 
   String get chapterIdentity {
     switch (chapterIndex) {
+      case 0:
+        return 'Recurring notation and terms used throughout Qubit Quest';
       case 1:
         return 'How quantum information is stored and transformed';
       case 2:
@@ -76,9 +78,29 @@ class NotebookExample {
     required this.label,
     required this.notation,
     this.explanation,
-  });
+    this.comparisonGroup,
+  })  : presentation = NotebookExamplePresentation.prose,
+        latex = null;
+
+  const NotebookExample.math({
+    required this.label,
+    required this.notation,
+    this.latex,
+    this.explanation,
+    this.comparisonGroup,
+  }) : presentation = NotebookExamplePresentation.math;
 
   final String label;
+
+  /// Plain, searchable and accessible representation of this example.
   final String notation;
+
+  /// Authored TeX used when [presentation] is mathematical. When omitted, the
+  /// shared quantum-notation converter renders [notation].
+  final String? latex;
   final String? explanation;
+  final String? comparisonGroup;
+  final NotebookExamplePresentation presentation;
 }
+
+enum NotebookExamplePresentation { prose, math }

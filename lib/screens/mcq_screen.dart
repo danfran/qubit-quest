@@ -4,6 +4,7 @@ import 'package:quantumquiz/models/discovery_progress.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/models/mastery_challenge_catalogue.dart';
 import 'package:quantumquiz/models/mastery_2_presentation.dart';
+import 'package:quantumquiz/models/mastery_2_reinforcement.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/qq_level.dart';
@@ -544,6 +545,10 @@ class _McqScreenState extends State<McqScreen> {
   }
 
   NotebookEntry? _notebookEntryForLevel(McqLevel level) {
+    final mastery = widget.masteryChallenge;
+    if (mastery != null) {
+      return mastery2ReinforcementNotebookEntry(mastery.semanticId);
+    }
     final discoveryTitle = level.discoveryTitle?.trim();
     if (discoveryTitle == null || discoveryTitle.isEmpty) return null;
     return notebookEntriesByDiscoveryTitle[discoveryTitle];

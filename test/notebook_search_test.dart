@@ -29,7 +29,11 @@ void main() {
         entries: notebookEntries,
         unlockedDiscoveryTitles: unlocked,
       );
-      expect(allowed, {notebookEntries.first.id, notebookEntries[1].id});
+      expect(allowed, {
+        notebookEntries.first.id,
+        notebookEntries[1].id,
+        notebookReferenceEntryId,
+      });
       final resultIds = index
           .search('quantum', allowedEntryIds: allowed)
           .map((result) => result.entry.id);

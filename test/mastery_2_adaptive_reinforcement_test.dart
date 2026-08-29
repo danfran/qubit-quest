@@ -3,14 +3,33 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/mastery_2_catalogue.dart';
 import 'package:quantumquiz/models/mastery_challenge_catalogue.dart';
-import 'package:quantumquiz/models/notebook_entries.dart';
+import 'package:quantumquiz/models/mastery_2_reinforcement.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/screens/learning_flow_widgets.dart';
 import 'package:quantumquiz/screens/mcq_screen.dart';
 import 'package:quantumquiz/widgets/adaptive_learning_card.dart';
 
 void main() {
-  Future<void> configureProgress({String? unlockedDiscovery}) async {
+  const genericFallbackLevel = McqLevel(
+    title: 'Generic reinforcement fixture',
+    taskDescription: 'Choose the supported conclusion.',
+    options: ['Unsupported', 'Also unsupported', 'Supported'],
+    correctOptionIndex: 2,
+    solutionExplanation: 'The third conclusion follows from the evidence.',
+  );
+  final genericFallbackDefinition = MasteryChallengeDefinition(
+    semanticId: 'generic_reinforcement_fixture',
+    displayOrder: 99,
+    title: 'Generic reinforcement fixture',
+    difficulty: MasteryDifficulty.integration,
+    conceptTags: const {MasteryConceptTag.reversibility},
+    interactionType: MasteryInteractionType.evidence,
+    levelDefinition: genericFallbackLevel,
+  );
+
+  Future<CampaignProgressController> configureProgress({
+    String? unlockedDiscovery,
+  }) async {
     final controller = CampaignProgressController(
       store: InMemoryCampaignProgressStore(),
     );
@@ -19,6 +38,7 @@ void main() {
       await controller.unlockDiscovery(unlockedDiscovery);
     }
     CampaignProgressController.configureSharedInstance(controller);
+    return controller;
   }
 
   Future<void> pumpChallenge(
@@ -52,9 +72,14 @@ void main() {
     await tester.pump();
   }
 
-  Future<void> answerIncorrectly(WidgetTester tester) async {
-    await reveal(tester, find.byKey(const ValueKey('mcq-option-1')));
-    await tester.tap(find.byKey(const ValueKey('mcq-option-1')));
+  Future<void> answerIncorrectly(
+    WidgetTester tester,
+    McqLevel level,
+  ) async {
+    final wrongIndex = level.correctOptionIndex == 0 ? 1 : 0;
+    final option = find.byKey(ValueKey('mcq-option-$wrongIndex'));
+    await reveal(tester, option);
+    await tester.tap(option);
     await reveal(tester, find.byKey(const ValueKey('m2-primary-action')));
     await tester.tap(find.byKey(const ValueKey('m2-primary-action')));
     await tester.pump();
@@ -68,12 +93,12 @@ void main() {
 
   testWidgets('unmapped Mastery insight has no dead Notebook action',
       (tester) async {
-    final definition = mastery2Catalogue.requireBySemanticId(
-      'oracle_marked_state_inference',
+    await pumpChallenge(
+      tester,
+      level: genericFallbackLevel,
+      definition: genericFallbackDefinition,
     );
-    final level = definition.levelDefinition as McqLevel;
-    await pumpChallenge(tester, level: level, definition: definition);
-    await answerIncorrectly(tester);
+    await answerIncorrectly(tester, genericFallbackLevel);
 
     expect(find.byType(AdaptiveLearningCard), findsOneWidget);
     expect(find.text('Review notebook entry'), findsNothing);
@@ -86,35 +111,19 @@ void main() {
 
   testWidgets('mapped and unlocked Notebook destination keeps its action',
       (tester) async {
-    final entry = notebookEntries.first;
-    await configureProgress(unlockedDiscovery: entry.discoveryTitle);
-    const level = McqLevel(
-      title: 'Mapped reinforcement fixture',
-      discoveryTitle: 'PLACEHOLDER',
-      taskDescription: 'Choose the correct answer.',
-      options: ['Correct', 'Incorrect'],
-      correctOptionIndex: 0,
-      solutionExplanation: 'The first answer is correct.',
+    final definition = mastery2Catalogue.requireBySemanticId(
+      'global_phase_equivalence',
     );
-    final mappedLevel = McqLevel(
-      title: level.title,
-      discoveryTitle: entry.discoveryTitle,
-      taskDescription: level.taskDescription,
-      options: level.options,
-      correctOptionIndex: level.correctOptionIndex,
-      solutionExplanation: level.solutionExplanation,
-    );
-    final definition = MasteryChallengeDefinition(
-      semanticId: 'mapped_reinforcement_fixture',
-      displayOrder: 99,
-      title: mappedLevel.title!,
-      difficulty: MasteryDifficulty.foundation,
-      conceptTags: const {MasteryConceptTag.superposition},
-      interactionType: MasteryInteractionType.evidence,
-      levelDefinition: mappedLevel,
-    );
-    await pumpChallenge(tester, level: mappedLevel, definition: definition);
-    await answerIncorrectly(tester);
+    final level = definition.levelDefinition as McqLevel;
+    final entry = mastery2ReinforcementNotebookEntry(definition.semanticId)!;
+    final controller =
+        await configureProgress(unlockedDiscovery: entry.discoveryTitle);
+    await controller.completeLesson(3);
+    final journeyFrontier = controller.state.maxUnlockedLevel;
+    final completedLessons = controller.state.completedLessonIds;
+    final completedMastery = controller.state.completedMasterySemanticIds;
+    await pumpChallenge(tester, level: level, definition: definition);
+    await answerIncorrectly(tester, level);
 
     expect(find.text('Review notebook entry'), findsOneWidget);
     expect(
@@ -127,19 +136,38 @@ void main() {
     await tester.tap(find.text('Review notebook entry'));
     await tester.pumpAndSettle();
     expect(find.byType(NotebookEntryScreen), findsOneWidget);
+    expect(controller.state.maxUnlockedLevel, journeyFrontier);
+    expect(controller.state.completedLessonIds, completedLessons);
+    expect(controller.state.completedMasterySemanticIds, completedMastery);
+  });
+
+  testWidgets('mapped but locked Notebook destination has no unusable action',
+      (tester) async {
+    final definition = mastery2Catalogue.requireBySemanticId(
+      'global_phase_equivalence',
+    );
+    final level = definition.levelDefinition as McqLevel;
+    await pumpChallenge(tester, level: level, definition: definition);
+    await answerIncorrectly(tester, level);
+
+    expect(find.byType(AdaptiveLearningCard), findsOneWidget);
+    expect(find.text('Review notebook entry'), findsNothing);
+    expect(
+      tester
+          .widget<AdaptiveLearningCard>(find.byType(AdaptiveLearningCard))
+          .onReviewNotebook,
+      isNull,
+    );
   });
 
   testWidgets('reinforcement survives rebuild, elapsed time, and scrolling',
       (tester) async {
-    final definition = mastery2Catalogue.requireBySemanticId(
-      'oracle_marked_state_inference',
-    );
     await pumpChallenge(
       tester,
-      level: definition.levelDefinition as McqLevel,
-      definition: definition,
+      level: genericFallbackLevel,
+      definition: genericFallbackDefinition,
     );
-    await answerIncorrectly(tester);
+    await answerIncorrectly(tester, genericFallbackLevel);
 
     await tester.pump(const Duration(seconds: 10));
     expect(find.byType(AdaptiveLearningCard), findsOneWidget);
@@ -150,15 +178,12 @@ void main() {
 
   testWidgets('card body and non-action content do not dismiss reinforcement',
       (tester) async {
-    final definition = mastery2Catalogue.requireBySemanticId(
-      'oracle_marked_state_inference',
-    );
     await pumpChallenge(
       tester,
-      level: definition.levelDefinition as McqLevel,
-      definition: definition,
+      level: genericFallbackLevel,
+      definition: genericFallbackDefinition,
     );
-    await answerIncorrectly(tester);
+    await answerIncorrectly(tester, genericFallbackLevel);
 
     await tester.tap(
       find.byKey(const ValueKey('adaptive-reinforcement-surface')),
@@ -179,15 +204,12 @@ void main() {
 
   testWidgets('explicit dismissal persists through rebuild and scrolling',
       (tester) async {
-    final definition = mastery2Catalogue.requireBySemanticId(
-      'oracle_marked_state_inference',
-    );
     await pumpChallenge(
       tester,
-      level: definition.levelDefinition as McqLevel,
-      definition: definition,
+      level: genericFallbackLevel,
+      definition: genericFallbackDefinition,
     );
-    await answerIncorrectly(tester);
+    await answerIncorrectly(tester, genericFallbackLevel);
     await tester.tap(find.byTooltip('Dismiss adaptive reinforcement'));
     await tester.pump();
 
@@ -200,34 +222,35 @@ void main() {
 
   testWidgets('a new failed attempt may show reinforcement again',
       (tester) async {
-    final definition = mastery2Catalogue.requireBySemanticId(
-      'oracle_marked_state_inference',
+    await pumpChallenge(
+      tester,
+      level: genericFallbackLevel,
+      definition: genericFallbackDefinition,
     );
-    final level = definition.levelDefinition as McqLevel;
-    await pumpChallenge(tester, level: level, definition: definition);
-    await answerIncorrectly(tester);
+    await answerIncorrectly(tester, genericFallbackLevel);
     await tester.tap(find.byTooltip('Dismiss adaptive reinforcement'));
     await tester.pump();
     expect(find.byType(AdaptiveLearningCard), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
-    await pumpChallenge(tester, level: level, definition: definition);
-    await answerIncorrectly(tester);
+    await pumpChallenge(
+      tester,
+      level: genericFallbackLevel,
+      definition: genericFallbackDefinition,
+    );
+    await answerIncorrectly(tester, genericFallbackLevel);
     expect(find.byType(AdaptiveLearningCard), findsOneWidget);
   });
 
   testWidgets('correct answer remains free of adaptive reinforcement',
       (tester) async {
-    final definition = mastery2Catalogue.requireBySemanticId(
-      'oracle_marked_state_inference',
-    );
     await pumpChallenge(
       tester,
-      level: definition.levelDefinition as McqLevel,
-      definition: definition,
+      level: genericFallbackLevel,
+      definition: genericFallbackDefinition,
     );
-    await reveal(tester, find.byKey(const ValueKey('mcq-option-0')));
-    await tester.tap(find.byKey(const ValueKey('mcq-option-0')));
+    await reveal(tester, find.byKey(const ValueKey('mcq-option-2')));
+    await tester.tap(find.byKey(const ValueKey('mcq-option-2')));
     await reveal(tester, find.byKey(const ValueKey('m2-primary-action')));
     await tester.tap(find.byKey(const ValueKey('m2-primary-action')));
     await tester.pump();

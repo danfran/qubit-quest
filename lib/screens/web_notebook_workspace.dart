@@ -79,7 +79,7 @@ class _WebNotebookWorkspaceState extends State<WebNotebookWorkspace> {
       widget.progressController.unlockedDiscoveryTitles();
 
   bool _isUnlocked(NotebookEntry entry) =>
-      _unlocked.contains(entry.discoveryTitle);
+      isNotebookEntryAvailable(entry, _unlocked);
 
   void _honorRequest() {
     final title = widget.requestedDiscoveryTitle;
@@ -333,7 +333,7 @@ class _NotebookIndex extends StatelessWidget {
           for (final entry in chapter)
             _EntryTile(
               entry: entry,
-              unlocked: unlocked.contains(entry.discoveryTitle),
+              unlocked: isNotebookEntryAvailable(entry, unlocked),
               selected: selectedEntry?.id == entry.id,
               onSelected: onSelected,
             ),
@@ -359,7 +359,7 @@ class _ChapterHeading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = entries
-        .where((entry) => unlocked.contains(entry.discoveryTitle))
+        .where((entry) => isNotebookEntryAvailable(entry, unlocked))
         .length;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -602,9 +602,9 @@ class _NotebookEntryPane extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                LatexText(
-                  math: formatQuantumNotationForPlainText(entry.summary),
-                  textStyle: const TextStyle(
+                Text(
+                  formatQuantumNotationForPlainText(entry.summary),
+                  style: const TextStyle(
                     color: Color(0xFFD6E3F8),
                     fontSize: 16,
                     height: 1.45,
@@ -670,14 +670,9 @@ class _SectionCard extends StatelessWidget {
   final NotebookSection section;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => Padding(
         key: ValueKey('web-notebook-section-${section.title}'),
-        padding: const EdgeInsets.all(17),
-        decoration: BoxDecoration(
-          color: _surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _border),
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -685,9 +680,9 @@ class _SectionCard extends StatelessWidget {
                 style:
                     const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
-            LatexText(
-              math: formatQuantumNotationForPlainText(section.body),
-              textStyle: const TextStyle(
+            Text(
+              formatQuantumNotationForPlainText(section.body),
+              style: const TextStyle(
                 color: Color(0xFFD6E3F8),
                 fontSize: 14,
                 height: 1.5,
@@ -703,42 +698,133 @@ class _ExamplesCard extends StatelessWidget {
   final List<NotebookExample> examples;
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _inner,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _cyan.withValues(alpha: .25)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('Key Examples',
-                style: TextStyle(fontWeight: FontWeight.w900)),
-            const SizedBox(height: 10),
-            for (final example in examples) ...[
-              Text(example.label,
-                  style: const TextStyle(
-                      color: _cyan, fontSize: 12, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                clipBehavior: Clip.hardEdge,
-                child: LatexText(
-                  math: formatQuantumNotationForPlainText(example.notation),
-                  textStyle: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w800),
+  Widget build(BuildContext context) {
+    final blocks = <Widget>[];
+    var index = 0;
+    while (index < examples.length) {
+      final example = examples[index];
+      if (example.comparisonGroup case final group?) {
+        final grouped = <NotebookExample>[];
+        while (index < examples.length &&
+            examples[index].comparisonGroup == group) {
+          grouped.add(examples[index]);
+          index++;
+        }
+        blocks.add(_WebNotebookComparison(examples: grouped));
+      } else {
+        blocks.add(_WebNotebookExampleBlock(example: example));
+        index++;
+      }
+    }
+    return Padding(
+      key: const ValueKey('web-notebook-key-examples'),
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text('Key Examples',
+              style: TextStyle(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 10),
+          for (var index = 0; index < blocks.length; index++) ...[
+            blocks[index],
+            if (index != blocks.length - 1)
+              const Divider(height: 18, color: _border),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _WebNotebookExampleBlock extends StatelessWidget {
+  const _WebNotebookExampleBlock({required this.example});
+
+  final NotebookExample example;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            example.label,
+            style: const TextStyle(
+              color: _cyan,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          if (example.presentation == NotebookExamplePresentation.math)
+            Semantics(
+              label: example.notation,
+              child: ExcludeSemantics(
+                child: Center(
+                  child: LatexText(
+                    math: r'\[' +
+                        (example.latex ??
+                            notebookMathNotationToLatex(
+                              example.notation,
+                            )) +
+                        r'\]',
+                    textStyle: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    displayMathHeight: 22,
+                  ),
                 ),
               ),
-              if ((example.explanation ?? '').trim().isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(example.explanation!,
-                    style: const TextStyle(color: _muted, height: 1.35)),
-              ],
-              const SizedBox(height: 10),
-            ],
+            )
+          else
+            Text(
+              formatQuantumNotationForPlainText(example.notation),
+              style: const TextStyle(
+                color: Colors.white,
+                height: 1.4,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          if ((example.explanation ?? '').trim().isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(example.explanation!,
+                style: const TextStyle(color: _muted, height: 1.35)),
           ],
-        ),
+        ],
+      );
+}
+
+class _WebNotebookComparison extends StatelessWidget {
+  const _WebNotebookComparison({required this.examples});
+
+  final List<NotebookExample> examples;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final useColumns =
+              constraints.maxWidth >= 430 && examples.length == 2;
+          if (!useColumns) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var index = 0; index < examples.length; index++) ...[
+                  _WebNotebookExampleBlock(example: examples[index]),
+                  if (index != examples.length - 1) const SizedBox(height: 8),
+                ],
+              ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var index = 0; index < examples.length; index++) ...[
+                Expanded(
+                    child: _WebNotebookExampleBlock(example: examples[index])),
+                if (index != examples.length - 1) const SizedBox(width: 20),
+              ],
+            ],
+          );
+        },
       );
 }
 
@@ -760,9 +846,9 @@ class _AdvancedSection extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w900)),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           children: [
-            LatexText(
-              math: formatQuantumNotationForPlainText(section.body),
-              textStyle: const TextStyle(color: Color(0xFFD6E3F8), height: 1.5),
+            Text(
+              formatQuantumNotationForPlainText(section.body),
+              style: const TextStyle(color: Color(0xFFD6E3F8), height: 1.5),
             ),
           ],
         ),

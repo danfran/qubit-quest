@@ -10,6 +10,7 @@ import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 import 'package:quantumquiz/widgets/executable_notebook_example_view.dart';
+import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/screens/bloch_explorer_screen.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 
@@ -323,8 +324,10 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> {
                           title: chapter.title,
                           identity: chapter.identity,
                           unlockedCount: chapter.entries
-                              .where((entry) =>
-                                  _unlocked.contains(entry.discoveryTitle))
+                              .where(
+                                (entry) =>
+                                    isNotebookEntryAvailable(entry, _unlocked),
+                              )
                               .length,
                           totalCount: chapter.entries.length,
                         ),
@@ -332,7 +335,8 @@ class _DiscoveriesScreenState extends State<DiscoveriesScreen> {
                         for (final entry in chapter.entries) ...[
                           _NotebookEntryTile(
                             entry: entry,
-                            unlocked: _unlocked.contains(entry.discoveryTitle),
+                            unlocked:
+                                isNotebookEntryAvailable(entry, _unlocked),
                             onTap: () {
                               Navigator.of(context).push<void>(
                                 MaterialPageRoute(
@@ -804,29 +808,23 @@ class _NotebookSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: QubitQuestDialog.cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: QubitQuestDialog.borderSoftColor),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              section.title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-              ),
+    return Padding(
+      key: ValueKey('notebook-section-${section.title}'),
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            section.title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
             ),
-            const SizedBox(height: 8),
-            _NotebookBodyText(section.body),
-          ],
-        ),
+          ),
+          const SizedBox(height: 7),
+          _NotebookBodyText(section.body),
+        ],
       ),
     );
   }
@@ -839,35 +837,47 @@ class _NotebookKeyExamples extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: QubitQuestDialog.innerColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: QubitQuestDialog.cyan.withValues(alpha: 0.28),
+    final blocks = <Widget>[];
+    var index = 0;
+    while (index < examples.length) {
+      final example = examples[index];
+      final group = example.comparisonGroup;
+      if (group != null) {
+        final grouped = <NotebookExample>[];
+        while (index < examples.length &&
+            examples[index].comparisonGroup == group) {
+          grouped.add(examples[index]);
+          index++;
+        }
+        blocks.add(_NotebookExampleComparison(examples: grouped));
+      } else {
+        blocks.add(_NotebookExampleBlock(example: example));
+        index++;
+      }
+    }
+
+    return Column(
+      key: const ValueKey('notebook-key-examples'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Key Examples',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Key Examples',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.w900,
-              ),
+        const SizedBox(height: 8),
+        for (var index = 0; index < blocks.length; index++) ...[
+          blocks[index],
+          if (index != blocks.length - 1)
+            Divider(
+              height: 17,
+              color: QubitQuestDialog.borderSoftColor.withValues(alpha: 0.65),
             ),
-            const SizedBox(height: 10),
-            for (final example in examples) ...[
-              _NotebookExampleBlock(example: example),
-              if (example != examples.last) const SizedBox(height: 8),
-            ],
-          ],
-        ),
-      ),
+        ],
+      ],
     );
   }
 }
@@ -877,115 +887,107 @@ class _NotebookExampleBlock extends StatelessWidget {
 
   final NotebookExample example;
 
-  _NotebookExampleKind get _kind {
-    final notation = example.notation;
-    if (notation.contains('P(') || example.label.contains('Measurement')) {
-      return _NotebookExampleKind.probability;
-    }
-    if (notation.contains('→')) {
-      return _NotebookExampleKind.transformation;
-    }
-    if (notation.contains('=')) {
-      return _NotebookExampleKind.formula;
-    }
-    return _NotebookExampleKind.state;
+  @override
+  Widget build(BuildContext context) {
+    final isMath = example.presentation == NotebookExamplePresentation.math;
+
+    return Padding(
+      key: ValueKey('notebook-example-${example.label}'),
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            example.label,
+            style: TextStyle(
+              color: isMath ? QubitQuestDialog.cyan : const Color(0xFFD6E3F8),
+              fontSize: 12,
+              letterSpacing: 0.1,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          if (isMath)
+            Semantics(
+              label: example.notation,
+              child: ExcludeSemantics(
+                child: Center(
+                  child: LatexText(
+                    math: r'\[' +
+                        (example.latex ??
+                            notebookMathNotationToLatex(example.notation)) +
+                        r'\]',
+                    textStyle: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      height: 1.35,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    inlineMathHeight: 17,
+                    displayMathHeight: 22,
+                  ),
+                ),
+              ),
+            )
+          else
+            Text(
+              _formatNotebookDisplayText(example.notation),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                height: 1.38,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          if ((example.explanation ?? '').trim().isNotEmpty) ...[
+            const SizedBox(height: 5),
+            Text(
+              _formatNotebookDisplayText(example.explanation!),
+              style: const TextStyle(
+                color: Color(0xFFD6E3F8),
+                fontSize: 13,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
+}
+
+class _NotebookExampleComparison extends StatelessWidget {
+  const _NotebookExampleComparison({required this.examples});
+
+  final List<NotebookExample> examples;
 
   @override
   Widget build(BuildContext context) {
-    final kind = _kind;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: kind.backgroundColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kind.borderColor),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(13),
-        child: IntrinsicHeight(
-          child: Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useColumns = constraints.maxWidth >= 430 && examples.length == 2;
+        if (!useColumns) {
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: kind.accentColor.withValues(alpha: 0.70),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const SizedBox(width: 4),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: kind.accentColor.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(9),
-                  border: Border.all(
-                    color: kind.accentColor.withValues(alpha: 0.32),
-                  ),
-                ),
-                child: Icon(kind.icon, size: 16, color: kind.accentColor),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            example.label,
-                            style: TextStyle(
-                              color: kind.accentColor,
-                              fontSize: 11,
-                              letterSpacing: 0.2,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          kind.displayLabel,
-                          style: TextStyle(
-                            color: kind.accentColor.withValues(alpha: 0.78),
-                            fontSize: 10,
-                            letterSpacing: 0.4,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 7),
-                    SelectableText(
-                      _formatNotebookDisplayText(example.notation),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        height: 1.35,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    if ((example.explanation ?? '').trim().isNotEmpty) ...[
-                      const SizedBox(height: 7),
-                      Text(
-                        _formatNotebookDisplayText(example.explanation!),
-                        style: const TextStyle(
-                          color: Color(0xFFD6E3F8),
-                          fontSize: 13,
-                          height: 1.35,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+              for (var index = 0; index < examples.length; index++) ...[
+                _NotebookExampleBlock(example: examples[index]),
+                if (index != examples.length - 1) const SizedBox(height: 8),
+              ],
             ],
-          ),
-        ),
-      ),
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var index = 0; index < examples.length; index++) ...[
+              Expanded(child: _NotebookExampleBlock(example: examples[index])),
+              if (index != examples.length - 1) const SizedBox(width: 20),
+            ],
+          ],
+        );
+      },
     );
   }
 }
@@ -1091,67 +1093,6 @@ class _NotebookWarningCallout extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-enum _NotebookExampleKind {
-  state,
-  formula,
-  probability,
-  transformation;
-
-  Color get accentColor {
-    switch (this) {
-      case _NotebookExampleKind.probability:
-        return const Color(0xFFFFD54F);
-      case _NotebookExampleKind.transformation:
-        return const Color(0xFF7CFFB2);
-      case _NotebookExampleKind.formula:
-        return QubitQuestDialog.cyan;
-      case _NotebookExampleKind.state:
-        return const Color(0xFFD6E3F8);
-    }
-  }
-
-  Color get backgroundColor {
-    switch (this) {
-      case _NotebookExampleKind.probability:
-        return const Color(0xFFFFD54F).withValues(alpha: 0.08);
-      case _NotebookExampleKind.transformation:
-        return const Color(0xFF7CFFB2).withValues(alpha: 0.07);
-      case _NotebookExampleKind.formula:
-        return QubitQuestDialog.cyan.withValues(alpha: 0.08);
-      case _NotebookExampleKind.state:
-        return QubitQuestDialog.cardColor;
-    }
-  }
-
-  Color get borderColor => accentColor.withValues(alpha: 0.24);
-
-  IconData get icon {
-    switch (this) {
-      case _NotebookExampleKind.probability:
-        return Icons.percent_rounded;
-      case _NotebookExampleKind.transformation:
-        return Icons.trending_flat_rounded;
-      case _NotebookExampleKind.formula:
-        return Icons.functions_rounded;
-      case _NotebookExampleKind.state:
-        return Icons.memory_rounded;
-    }
-  }
-
-  String get displayLabel {
-    switch (this) {
-      case _NotebookExampleKind.probability:
-        return 'PROBABILITY';
-      case _NotebookExampleKind.transformation:
-        return 'TRANSFORM';
-      case _NotebookExampleKind.formula:
-        return 'FORMULA';
-      case _NotebookExampleKind.state:
-        return 'STATE';
-    }
   }
 }
 

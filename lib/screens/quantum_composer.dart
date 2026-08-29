@@ -10,6 +10,7 @@ import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/logical_gate_footprint.dart';
 import 'package:quantumquiz/models/mastery_challenge_catalogue.dart';
+import 'package:quantumquiz/models/mastery_2_reinforcement.dart';
 import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
@@ -185,6 +186,7 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   late bool _sharedNonZeroOnly;
   bool _hasUnopenedNotebookEntries = false;
+  bool _canReviewMappedNotebookEntry = false;
   late AdaptiveLearningSession _adaptiveLearningSession;
   AdaptiveLearningInsight? _adaptiveInsight;
   bool _adaptiveInsightDismissed = false;
@@ -956,12 +958,16 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   Future<void> _loadNotebookAttentionState() async {
+    final mappedEntry = _notebookEntryForLevel();
+    final unlocked = await DiscoveryProgress.loadUnlocked();
     final hasUnopened = await DiscoveryProgress.hasUnopenedNotebookEntries(
       notebookEntriesByDiscoveryTitle.keys,
     );
     if (!mounted) return;
     setState(() {
       _hasUnopenedNotebookEntries = hasUnopened;
+      _canReviewMappedNotebookEntry =
+          mappedEntry != null && unlocked.contains(mappedEntry.discoveryTitle);
     });
     if (hasUnopened) {
       _playNotebookUnlockPulse();
@@ -969,6 +975,10 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   NotebookEntry? _notebookEntryForLevel() {
+    final mastery = widget.masteryChallenge;
+    if (mastery != null) {
+      return mastery2ReinforcementNotebookEntry(mastery.semanticId);
+    }
     final discoveryTitle = widget.level.discoveryTitle?.trim();
     if (discoveryTitle == null || discoveryTitle.isEmpty) return null;
     return notebookEntriesByDiscoveryTitle[discoveryTitle];
@@ -2453,7 +2463,8 @@ class _QuantumComposerState extends State<QuantumComposer>
       child: AdaptiveLearningCard(
         insight: _adaptiveInsight!,
         compact: compact,
-        onReviewNotebook: _openQuantumNotebook,
+        onReviewNotebook:
+            _canReviewMappedNotebookEntry ? _openQuantumNotebook : null,
         onDismiss: _dismissAdaptiveInsight,
       ),
     );

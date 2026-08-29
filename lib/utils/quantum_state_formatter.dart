@@ -167,6 +167,40 @@ String quantumStateNotationToLatex(String value) {
   return result.trim();
 }
 
+/// Converts an explicitly-authored Notebook mathematical example to TeX.
+///
+/// This is deliberately not a math detector. Notebook authors opt an example
+/// into mathematical presentation with `NotebookExample.math`; this helper
+/// only normalises the app's compact Unicode quantum notation.
+String notebookMathNotationToLatex(String value) {
+  String convertLine(String line) {
+    var result = quantumStateNotationToLatex(line)
+        .replaceAll('²', '^{2}')
+        .replaceAll('⁻¹', '^{-1}')
+        .replaceAll('⁺', '^{+}')
+        .replaceAll('⁻', '^{-}')
+        .replaceAll('→', r'\rightarrow ')
+        .replaceAll('×', r'\times ')
+        .replaceAll('Φ', r'\Phi ')
+        .replaceAll('φ', r'\phi ')
+        .replaceAll('α', r'\alpha ')
+        .replaceAll('β', r'\beta ');
+    result = result.replaceAllMapped(
+      RegExp(r'\(([^()]*)\)/\\sqrt\{2\}'),
+      (match) => '\\frac{${match.group(1)!}}{\\sqrt{2}}',
+    );
+    result = result
+        .replaceAll(RegExp(r'(?<![A-Za-z])1/2'), r'\frac{1}{2}')
+        .replaceAll('CNOT', r'\operatorname{CNOT}')
+        .replaceAll('CX', r'\operatorname{CX}');
+    return result;
+  }
+
+  final lines = value.split('\n').map(convertLine).toList(growable: false);
+  if (lines.length == 1) return lines.single;
+  return r'\begin{gathered}' + lines.join(r' \\ ') + r'\end{gathered}';
+}
+
 /// Reports structural problems in the exact source passed to the Target State
 /// maths renderer. This intentionally validates presentation syntax only; it
 /// does not interpret or alter quantum-state semantics.
