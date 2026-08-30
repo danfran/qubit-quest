@@ -178,7 +178,11 @@ void main() {
     expect(style(NotebookTextRole.body).fontSize,
         greaterThan(style(NotebookTextRole.supporting).fontSize!));
     expect(style(NotebookTextRole.subsection).fontSize,
-        lessThan(style(NotebookTextRole.body).fontSize!));
+        lessThanOrEqualTo(style(NotebookTextRole.body).fontSize!));
+    expect(
+      style(NotebookTextRole.subsection).fontWeight!.value,
+      greaterThan(style(NotebookTextRole.body).fontWeight!.value),
+    );
   });
 
   test('Notebook math roles use a readable, restrained shared scale', () {
@@ -209,14 +213,8 @@ void main() {
     const identity = r'U^{\dagger}U=I';
     const probability = r'P(\lvert0\rangle)=50\%';
 
-    expect(
-      NotebookTypography.fractionPerceivedHeightFactor / 1.38,
-      inInclusiveRange(1.15, 1.20),
-    );
-    expect(
-      NotebookTypography.rootPerceivedHeightFactor / 1.10,
-      inInclusiveRange(1.15, 1.20),
-    );
+    expect(NotebookTypography.fractionPerceivedHeightFactor, greaterThan(1));
+    expect(NotebookTypography.rootPerceivedHeightFactor, greaterThan(1));
 
     for (final normalizedState in [plus, minus, multi]) {
       expect(

@@ -642,8 +642,15 @@ void main() {
           equals('Hidden Information'));
 
       for (final entry in notebookEntries) {
+        if (entry.chapterIndex == 0) {
+          expect(entry.id, notebookReferenceEntryId);
+          expect(isNotebookEntryAvailable(entry, const {}), isTrue);
+          continue;
+        }
         expect(
-            DiscoveryProgress.discoveryOrder, contains(entry.discoveryTitle));
+          DiscoveryProgress.discoveryOrder,
+          contains(entry.discoveryTitle),
+        );
       }
     });
 
@@ -930,9 +937,11 @@ void main() {
       expect(ghzEntry.whatChanged!.body,
           contains('allowed vs forbidden global outcomes'));
       expect(ghzEntry.advancedNotes!.body,
-          contains('state space restriction interpretation'));
+          contains('relative phase between its two global branches'));
       expect(synthesisEntry.whatChanged!.body,
           contains('forbidden global outcomes'));
+      expect(synthesisEntry.quantumView!.body,
+          contains('restriction on the full state space'));
       expect(synthesisEntry.quantumView!.examples.first.label,
           contains('State space restriction interpretation'));
     });
