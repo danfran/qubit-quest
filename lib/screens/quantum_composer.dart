@@ -1279,10 +1279,8 @@ class _QuantumComposerState extends State<QuantumComposer>
         compact: short,
         showHeader: false,
       );
-      final bool contentDrivenPortraitState = widget.masteryChallenge != null;
       final Widget statePanel = _buildPortraitStateSection(
         short: short,
-        contentDriven: contentDrivenPortraitState,
       );
       final double contentTopPadding = short ? 3 : 5;
       final double contentBottomPadding = short ? 6 : (compact ? 8 : 10);
@@ -1298,25 +1296,24 @@ class _QuantumComposerState extends State<QuantumComposer>
           compact ? 12 : 16,
           contentBottomPadding,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: compact
-                  ? _buildPortraitComposerLayout(
-                      circuitCard: circuitCard,
-                      statePanel: statePanel,
-                      short: short,
-                      contentDrivenState: contentDrivenPortraitState,
-                    )
-                  : _buildLandscapeComposerLayout(
-                      circuitCard: circuitCard,
-                      short: short,
-                      availableHeight: contentHeight,
-                    ),
-            ),
-          ],
-        ),
+        child: compact
+            ? SingleChildScrollView(
+                key: const ValueKey('portrait-composer-page-scroll'),
+                child: _buildPortraitComposerLayout(
+                  circuitCard: circuitCard,
+                  statePanel: statePanel,
+                  short: short,
+                  availableHeight: contentHeight,
+                ),
+              )
+            : SizedBox(
+                height: contentHeight,
+                child: _buildLandscapeComposerLayout(
+                  circuitCard: circuitCard,
+                  short: short,
+                  availableHeight: contentHeight,
+                ),
+              ),
       );
     });
     if (reviewedMastery) {
@@ -1345,52 +1342,40 @@ class _QuantumComposerState extends State<QuantumComposer>
     required Widget circuitCard,
     required Widget statePanel,
     required bool short,
-    required bool contentDrivenState,
+    required double availableHeight,
   }) {
     const double sectionGap = 8;
+    final bool composer = runningAsQuantumComposer();
+    final metrics = CircuitCanvasMetrics.calculate(
+      qubitCount: _numQubits,
+      orientation: Orientation.portrait,
+      availableHeight: availableHeight,
+      cardPadding: _circuitCardPadding(compact: short),
+    );
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool composer = runningAsQuantumComposer();
-        final metrics = CircuitCanvasMetrics.calculate(
-          qubitCount: _numQubits,
-          orientation: Orientation.portrait,
-          availableHeight: constraints.maxHeight,
-          cardPadding: _circuitCardPadding(compact: short),
-        );
-        final Widget circuitSection = SizedBox(
-          height: metrics.height,
-          child: circuitCard,
-        );
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (!composer) ...[
-              _buildPortraitGoalSection(short: short),
-              const SizedBox(height: sectionGap),
-            ],
-            circuitSection,
-            const SizedBox(height: sectionGap),
-            _buildGatePalette(dense: true),
-            const SizedBox(height: sectionGap),
-            if (contentDrivenState)
-              Flexible(fit: FlexFit.loose, child: statePanel)
-            else
-              Expanded(child: statePanel),
-            if (!composer) ...[
-              const SizedBox(height: sectionGap),
-              _buildPortraitCheckArea(compact: short),
-            ],
-          ],
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!composer) ...[
+          _buildPortraitGoalSection(short: short),
+          const SizedBox(height: sectionGap),
+        ],
+        SizedBox(height: metrics.height, child: circuitCard),
+        const SizedBox(height: sectionGap),
+        _buildGatePalette(dense: true),
+        const SizedBox(height: sectionGap),
+        statePanel,
+        if (!composer) ...[
+          const SizedBox(height: sectionGap),
+          _buildPortraitCheckArea(compact: short),
+        ],
+      ],
     );
   }
 
   Widget _buildPortraitStateSection({
     required bool short,
-    required bool contentDriven,
   }) {
     final List<Complex>? targetStateVector =
         runningAsQuantumComposer() ? null : _targetStateVector();
@@ -1405,81 +1390,43 @@ class _QuantumComposerState extends State<QuantumComposer>
         showToggleInSummary: true,
         showSummarySubtitle: false,
         dense: true,
-        contentDriven: contentDriven,
+        contentDriven: true,
       );
     }
 
-    if (!contentDriven) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: _buildStatePanel(
-              summaryTitle: 'Current State',
-              tone: StateVectorDisplayTone.current,
-              showHeader: false,
-              showToggleInSummary: true,
-              showSummarySubtitle: false,
-              showVisibilityControl: false,
-              nonZeroOnly: _sharedNonZeroOnly,
-              visibilityControl: _buildSharedStateFilterControl(),
-              dense: true,
-            ),
-          ),
-          SizedBox(height: short ? 6 : 8),
-          Expanded(
-            child: _buildStatePanel(
-              stateVector: targetStateVector,
-              summaryTitle: 'Target State',
-              stateExpressionLabel: targetExpressionLabel,
-              stateExpression: targetExpression,
-              tone: StateVectorDisplayTone.target,
-              showHeader: false,
-              showToggleInSummary: true,
-              showSummarySubtitle: false,
-              showVisibilityControl: false,
-              nonZeroOnly: _sharedNonZeroOnly,
-              dense: true,
-            ),
-          ),
-        ],
-      );
-    }
-
-    return SingleChildScrollView(
-      key: const ValueKey('portrait-state-section-scroll'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildStatePanel(
-            summaryTitle: 'Current State',
-            tone: StateVectorDisplayTone.current,
-            showHeader: false,
-            showToggleInSummary: true,
-            showSummarySubtitle: false,
-            showVisibilityControl: false,
-            nonZeroOnly: _sharedNonZeroOnly,
-            visibilityControl: _buildSharedStateFilterControl(),
-            dense: true,
-            contentDriven: true,
-          ),
-          SizedBox(height: short ? 6 : 8),
-          _buildStatePanel(
-            stateVector: targetStateVector,
-            summaryTitle: 'Target State',
-            stateExpressionLabel: targetExpressionLabel,
-            stateExpression: targetExpression,
-            tone: StateVectorDisplayTone.target,
-            showHeader: false,
-            showToggleInSummary: true,
-            showSummarySubtitle: false,
-            showVisibilityControl: false,
-            nonZeroOnly: _sharedNonZeroOnly,
-            dense: true,
-            contentDriven: true,
-          ),
-        ],
-      ),
+    return Column(
+      key: const ValueKey('portrait-state-section'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildStatePanel(
+          summaryTitle: 'Current State',
+          tone: StateVectorDisplayTone.current,
+          showHeader: false,
+          showToggleInSummary: true,
+          showSummarySubtitle: false,
+          showVisibilityControl: false,
+          nonZeroOnly: _sharedNonZeroOnly,
+          visibilityControl: _buildSharedStateFilterControl(),
+          dense: true,
+          contentDriven: true,
+        ),
+        SizedBox(height: short ? 6 : 8),
+        _buildStatePanel(
+          stateVector: targetStateVector,
+          summaryTitle: 'Target State',
+          stateExpressionLabel: targetExpressionLabel,
+          stateExpression: targetExpression,
+          tone: StateVectorDisplayTone.target,
+          showHeader: false,
+          showToggleInSummary: true,
+          showSummarySubtitle: false,
+          showVisibilityControl: false,
+          nonZeroOnly: _sharedNonZeroOnly,
+          dense: true,
+          contentDriven: true,
+        ),
+      ],
     );
   }
 

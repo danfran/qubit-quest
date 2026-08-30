@@ -4,6 +4,7 @@ import 'package:quantumquiz/models/mastery_2_catalogue.dart';
 import 'package:quantumquiz/models/mastery_2_presentation.dart';
 import 'package:quantumquiz/models/mastery_challenge_catalogue.dart';
 import 'package:quantumquiz/models/qq_level.dart';
+import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/screens/level_ui_router.dart';
 import 'package:quantumquiz/screens/mcq_screen.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
@@ -61,6 +62,32 @@ void main() {
           level: definition.levelDefinition,
           levelId: definition.displayOrder,
           masteryChallenge: definition,
+          onLevelUnlocked: null,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> pumpJourneyComposer(WidgetTester tester, Size size,
+      {int qubitCount = 1}) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = size;
+    addTearDown(tester.view.reset);
+    final indexedLevel = allQQLevels.asMap().entries.firstWhere(
+          (entry) =>
+              entry.key < 60 &&
+              entry.value is ComposerLevel &&
+              (entry.value as ComposerLevel).numQubits == qubitCount,
+        );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: QubitQuestTheme.mobile(),
+        home: LevelUIRouter.buildLevelUI(
+          level: indexedLevel.value,
+          levelId: indexedLevel.key + 1,
+          masteryChallenge: null,
           onLevelUnlocked: null,
         ),
       ),
@@ -355,6 +382,86 @@ void main() {
   });
 
   group('Composer state panel geometry', () {
+    testWidgets('Journey portrait uses shared content-driven state panels',
+        (tester) async {
+      const viewport = Size(390, 844);
+      await pumpJourneyComposer(tester, viewport);
+
+      final currentFinder =
+          find.byKey(const ValueKey('composer-current-state-panel'));
+      final targetFinder =
+          find.byKey(const ValueKey('composer-target-state-panel'));
+      final current = tester.getRect(currentFinder);
+      final target = tester.getRect(targetFinder);
+      for (final panel in [current, target]) {
+        expect(panel.height, greaterThan(60));
+        expect(panel.height, lessThan(viewport.height * 0.25));
+      }
+      expect(current.height + target.height, lessThan(viewport.height * 0.5));
+      expect(
+        tester
+            .widgetList<StateVectorDisplay>(find.byType(StateVectorDisplay))
+            .every((display) => display.contentDriven),
+        isTrue,
+      );
+      expect(
+        find.descendant(of: currentFinder, matching: find.byType(Scrollbar)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: targetFinder, matching: find.byType(Scrollbar)),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('portrait-composer-page-scroll')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('portrait-state-section-scroll')),
+          findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Journey portrait scrolls the page instead of state panels',
+        (tester) async {
+      await pumpJourneyComposer(
+        tester,
+        const Size(390, 560),
+        qubitCount: 3,
+      );
+      expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
+      await tester.tap(find.byType(Checkbox));
+      await tester.pump();
+      expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
+
+      final pageScroll =
+          find.byKey(const ValueKey('portrait-composer-page-scroll'));
+      final scrollable = find
+          .descendant(
+            of: pageScroll,
+            matching: find.byWidgetPredicate(
+              (widget) =>
+                  widget is Scrollable &&
+                  widget.axisDirection == AxisDirection.down,
+            ),
+          )
+          .first;
+      expect(scrollable, findsOneWidget);
+      expect(
+        tester.state<ScrollableState>(scrollable).position.maxScrollExtent,
+        greaterThan(0),
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('portrait-state-section')),
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Scrollable &&
+                widget.axisDirection == AxisDirection.down,
+          ),
+        ),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('one-qubit portrait panels size to their content',
         (tester) async {
       await pumpMasteryScreen(
@@ -410,9 +517,11 @@ void main() {
         isTrue,
       );
       expect(
-        find.byKey(const ValueKey('portrait-state-section-scroll')),
+        find.byKey(const ValueKey('portrait-composer-page-scroll')),
         findsOneWidget,
       );
+      expect(find.byKey(const ValueKey('portrait-state-section-scroll')),
+          findsNothing);
       expect(tester.takeException(), isNull);
     });
 
@@ -434,6 +543,13 @@ void main() {
       expect(target.height, greaterThan(40));
       expect(current.bottom, lessThanOrEqualTo(390));
       expect(target.bottom, lessThanOrEqualTo(390));
+      expect(
+        tester
+            .widgetList<StateVectorDisplay>(find.byType(StateVectorDisplay))
+            .every((display) => !display.contentDriven),
+        isTrue,
+      );
+      expect(find.byType(Scrollbar), findsWidgets);
       expect(tester.takeException(), isNull);
     });
   });
