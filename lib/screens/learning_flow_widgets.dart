@@ -10,7 +10,7 @@ import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 import 'package:quantumquiz/widgets/executable_notebook_example_view.dart';
-import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/notebook_typography.dart';
 import 'package:quantumquiz/screens/bloch_explorer_screen.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 
@@ -622,9 +622,12 @@ class _NotebookEntryScreenState extends State<NotebookEntryScreen> {
         backgroundColor: const Color(0xFF00030A),
         surfaceTintColor: Colors.transparent,
         foregroundColor: Colors.white,
-        title: const Text(
+        title: Text(
           'Quantum Notebook',
-          style: TextStyle(fontWeight: FontWeight.w900),
+          style: NotebookTypography.text(
+            NotebookTextRole.pageTitle,
+            color: Colors.white,
+          ),
         ),
       ),
       body: SafeArea(
@@ -633,30 +636,25 @@ class _NotebookEntryScreenState extends State<NotebookEntryScreen> {
           children: [
             Text(
               widget.entry.chapterTitle,
-              style: const TextStyle(
+              style: NotebookTypography.text(
+                NotebookTextRole.context,
                 color: QubitQuestDialog.mutedText,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               widget.entry.title,
-              style: const TextStyle(
+              style: NotebookTypography.text(
+                NotebookTextRole.entryTitle,
                 color: Colors.white,
-                fontSize: 26,
-                height: 1.08,
-                fontWeight: FontWeight.w900,
               ),
             ),
             const SizedBox(height: 10),
             Text(
               _formatNotebookDisplayText(widget.entry.summary),
-              style: const TextStyle(
-                color: Color(0xFFD6E3F8),
-                fontSize: 15,
-                height: 1.4,
-                fontWeight: FontWeight.w700,
+              style: NotebookTypography.text(
+                NotebookTextRole.lead,
+                color: const Color(0xFFD6E3F8),
               ),
             ),
             const SizedBox(height: 18),
@@ -665,12 +663,11 @@ class _NotebookEntryScreenState extends State<NotebookEntryScreen> {
               const SizedBox(height: 12),
             ],
             if (_executableExamples.isNotEmpty) ...[
-              const Text(
+              Text(
                 'Try it',
-                style: TextStyle(
+                style: NotebookTypography.text(
+                  NotebookTextRole.sectionHeading,
                   color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 8),
@@ -816,10 +813,9 @@ class _NotebookSectionCard extends StatelessWidget {
         children: [
           Text(
             section.title,
-            style: const TextStyle(
+            style: NotebookTypography.text(
+              NotebookTextRole.sectionHeading,
               color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 7),
@@ -860,12 +856,11 @@ class _NotebookKeyExamples extends StatelessWidget {
       key: const ValueKey('notebook-key-examples'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
+        Text(
           'Key Examples',
-          style: TextStyle(
+          style: NotebookTypography.text(
+            NotebookTextRole.sectionHeading,
             color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.w900,
           ),
         ),
         const SizedBox(height: 8),
@@ -899,55 +894,29 @@ class _NotebookExampleBlock extends StatelessWidget {
         children: [
           Text(
             example.label,
-            style: TextStyle(
+            style: NotebookTypography.text(
+              NotebookTextRole.subsection,
               color: isMath ? QubitQuestDialog.cyan : const Color(0xFFD6E3F8),
-              fontSize: 12,
-              letterSpacing: 0.1,
-              fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 4),
           if (isMath)
-            Semantics(
-              label: example.notation,
-              child: ExcludeSemantics(
-                child: Center(
-                  child: LatexText(
-                    math: r'\[' +
-                        (example.latex ??
-                            notebookMathNotationToLatex(example.notation)) +
-                        r'\]',
-                    textStyle: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      height: 1.35,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    inlineMathHeight: 17,
-                    displayMathHeight: 22,
-                  ),
-                ),
-              ),
-            )
+            NotebookMathEvidence(example: example)
           else
             Text(
               _formatNotebookDisplayText(example.notation),
-              style: const TextStyle(
+              style: NotebookTypography.text(
+                NotebookTextRole.lead,
                 color: Colors.white,
-                fontSize: 15,
-                height: 1.38,
-                fontWeight: FontWeight.w700,
               ),
             ),
           if ((example.explanation ?? '').trim().isNotEmpty) ...[
             const SizedBox(height: 5),
             Text(
               _formatNotebookDisplayText(example.explanation!),
-              style: const TextStyle(
-                color: Color(0xFFD6E3F8),
-                fontSize: 13,
-                height: 1.35,
-                fontWeight: FontWeight.w600,
+              style: NotebookTypography.text(
+                NotebookTextRole.supporting,
+                color: const Color(0xFFD6E3F8),
               ),
             ),
           ],
@@ -1006,11 +975,9 @@ class _NotebookBodyText extends StatelessWidget {
     if (warningIndex < 0) {
       return Text(
         formattedText,
-        style: const TextStyle(
-          color: Color(0xFFD6E3F8),
-          fontSize: 14,
-          height: 1.42,
-          fontWeight: FontWeight.w600,
+        style: NotebookTypography.text(
+          NotebookTextRole.body,
+          color: const Color(0xFFD6E3F8),
         ),
       );
     }
@@ -1025,11 +992,9 @@ class _NotebookBodyText extends StatelessWidget {
         if (before.isNotEmpty) ...[
           Text(
             before,
-            style: const TextStyle(
-              color: Color(0xFFD6E3F8),
-              fontSize: 14,
-              height: 1.42,
-              fontWeight: FontWeight.w600,
+            style: NotebookTypography.text(
+              NotebookTextRole.body,
+              color: const Color(0xFFD6E3F8),
             ),
           ),
           const SizedBox(height: 10),
@@ -1039,11 +1004,9 @@ class _NotebookBodyText extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             after,
-            style: const TextStyle(
-              color: Color(0xFFD6E3F8),
-              fontSize: 14,
-              height: 1.42,
-              fontWeight: FontWeight.w600,
+            style: NotebookTypography.text(
+              NotebookTextRole.body,
+              color: const Color(0xFFD6E3F8),
             ),
           ),
         ],
@@ -1117,10 +1080,9 @@ class _AdvancedNotebookSection extends StatelessWidget {
           collapsedIconColor: QubitQuestDialog.mutedText,
           title: Text(
             section.title,
-            style: const TextStyle(
+            style: NotebookTypography.text(
+              NotebookTextRole.sectionHeading,
               color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
             ),
           ),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -1129,11 +1091,9 @@ class _AdvancedNotebookSection extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 _formatNotebookDisplayText(section.body),
-                style: const TextStyle(
-                  color: Color(0xFFD6E3F8),
-                  fontSize: 14,
-                  height: 1.42,
-                  fontWeight: FontWeight.w600,
+                style: NotebookTypography.text(
+                  NotebookTextRole.body,
+                  color: const Color(0xFFD6E3F8),
                 ),
               ),
             ),

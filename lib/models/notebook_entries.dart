@@ -60,12 +60,16 @@ const List<NotebookEntry> notebookEntries = [
         NotebookExample.math(
           label: 'X progression',
           notation: '|0⟩ → X → |1⟩ → X → |0⟩',
+          mathRole: NotebookMathRole.emphasis,
         ),
         NotebookExample.math(
           label: 'Reverse a sequence',
           notation: 'A → B → C  is undone by  C† → B† → A†',
-          latex:
-              r'A \rightarrow B \rightarrow C \qquad C^{\dagger} \rightarrow B^{\dagger} \rightarrow A^{\dagger}',
+          latexLines: [
+            r'A \rightarrow B \rightarrow C',
+            r'C^{\dagger} \rightarrow B^{\dagger} \rightarrow A^{\dagger}',
+          ],
+          mathRole: NotebookMathRole.emphasis,
         ),
       ],
     ),
@@ -297,8 +301,10 @@ const List<NotebookEntry> notebookEntries = [
         NotebookExample.math(
           label: 'Measurement',
           notation: 'P(|1⟩) = 100% before\nP(|1⟩) = 100% after',
-          latex:
-              r'\begin{gathered}P(\lvert1\rangle)_{\mathrm{before}}=100\% \\ P(\lvert1\rangle)_{\mathrm{after}}=100\%\end{gathered}',
+          latexLines: [
+            r'P(\lvert1\rangle)_{\mathrm{before}}=100\%',
+            r'P(\lvert1\rangle)_{\mathrm{after}}=100\%',
+          ],
         ),
       ],
     ),
@@ -429,7 +435,7 @@ const List<NotebookEntry> notebookEntries = [
         NotebookExample.math(
           label: 'Quarter turns',
           notation: 'i² = −1\n(−i)i = 1',
-          latex: r'\begin{gathered}i^{2}=-1 \\ (-i)i=1\end{gathered}',
+          latexLines: [r'i^{2}=-1', r'(-i)i=1'],
         ),
       ],
     ),
@@ -866,8 +872,10 @@ const List<NotebookEntry> notebookEntries = [
           label: 'Probability change',
           notation:
               'Before H: P(|0⟩) = 50%, P(|1⟩) = 50%\nAfter H: P(|0⟩) = 0%, P(|1⟩) = 100%',
-          latex:
-              r'\begin{gathered}\mathrm{Before}\ H:\ P(\lvert0\rangle)=50\%,\ P(\lvert1\rangle)=50\% \\ \mathrm{After}\ H:\ P(\lvert0\rangle)=0\%,\ P(\lvert1\rangle)=100\%\end{gathered}',
+          latexLines: [
+            r'\mathrm{Before}\ H:\ P(\lvert0\rangle)=50\%,\ P(\lvert1\rangle)=50\%',
+            r'\mathrm{After}\ H:\ P(\lvert0\rangle)=0\%,\ P(\lvert1\rangle)=100\%',
+          ],
         ),
       ],
     ),
@@ -1632,8 +1640,12 @@ const List<NotebookEntry> notebookEntries = [
         NotebookExample.math(
           label: 'Global branch phase',
           notation: '(|000⟩ + |111⟩)/√2 → Z on one wire → (|000⟩ − |111⟩)/√2',
-          latex:
-              r'\frac{\lvert000\rangle+\lvert111\rangle}{\sqrt{2}}\xrightarrow{Z\ \mathrm{on\ one\ wire}}\frac{\lvert000\rangle-\lvert111\rangle}{\sqrt{2}}',
+          latexLines: [
+            r'\frac{\lvert000\rangle+\lvert111\rangle}{\sqrt{2}}',
+            r'\xrightarrow{Z\ \mathrm{on\ one\ wire}}',
+            r'\frac{\lvert000\rangle-\lvert111\rangle}{\sqrt{2}}',
+          ],
+          mathRole: NotebookMathRole.emphasis,
         ),
       ],
     ),

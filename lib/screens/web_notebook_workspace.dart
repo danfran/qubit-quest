@@ -9,7 +9,7 @@ import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/notebook_search.dart';
 import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/executable_notebook_example_view.dart';
-import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/notebook_typography.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
 const _background = QubitQuestColors.background;
@@ -250,10 +250,13 @@ class _NotebookHeader extends StatelessWidget {
           children: [
             const Icon(Icons.menu_book_outlined, color: _cyan, size: 26),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Text(
                 'Quantum Notebook',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                style: NotebookTypography.text(
+                  NotebookTextRole.pageTitle,
+                  color: Colors.white,
+                ),
               ),
             ),
             ConstrainedBox(
@@ -585,29 +588,26 @@ class _NotebookEntryPane extends StatelessWidget {
                   ),
                 Text(
                   entry.chapterTitle,
-                  style: const TextStyle(
+                  style: NotebookTypography.text(
+                    NotebookTextRole.context,
                     color: _cyan,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 7),
                 Text(
                   entry.title,
                   key: const ValueKey('web-notebook-entry-title'),
-                  style: const TextStyle(
-                    fontSize: 30,
-                    height: 1.08,
-                    fontWeight: FontWeight.w900,
+                  style: NotebookTypography.text(
+                    NotebookTextRole.entryTitle,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   formatQuantumNotationForPlainText(entry.summary),
-                  style: const TextStyle(
-                    color: Color(0xFFD6E3F8),
-                    fontSize: 16,
-                    height: 1.45,
+                  style: NotebookTypography.text(
+                    NotebookTextRole.lead,
+                    color: const Color(0xFFD6E3F8),
                   ),
                 ),
                 if (examples.isNotEmpty) ...[
@@ -676,16 +676,19 @@ class _SectionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(section.title,
-                style:
-                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+            Text(
+              section.title,
+              style: NotebookTypography.text(
+                NotebookTextRole.sectionHeading,
+                color: Colors.white,
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
               formatQuantumNotationForPlainText(section.body),
-              style: const TextStyle(
-                color: Color(0xFFD6E3F8),
-                fontSize: 14,
-                height: 1.5,
+              style: NotebookTypography.text(
+                NotebookTextRole.body,
+                color: const Color(0xFFD6E3F8),
               ),
             ),
           ],
@@ -722,8 +725,13 @@ class _ExamplesCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Key Examples',
-              style: TextStyle(fontWeight: FontWeight.w900)),
+          Text(
+            'Key Examples',
+            style: NotebookTypography.text(
+              NotebookTextRole.sectionHeading,
+              color: Colors.white,
+            ),
+          ),
           const SizedBox(height: 10),
           for (var index = 0; index < blocks.length; index++) ...[
             blocks[index],
@@ -747,47 +755,29 @@ class _WebNotebookExampleBlock extends StatelessWidget {
         children: [
           Text(
             example.label,
-            style: const TextStyle(
+            style: NotebookTypography.text(
+              NotebookTextRole.subsection,
               color: _cyan,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 4),
           if (example.presentation == NotebookExamplePresentation.math)
-            Semantics(
-              label: example.notation,
-              child: ExcludeSemantics(
-                child: Center(
-                  child: LatexText(
-                    math: r'\[' +
-                        (example.latex ??
-                            notebookMathNotationToLatex(
-                              example.notation,
-                            )) +
-                        r'\]',
-                    textStyle: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    displayMathHeight: 22,
-                  ),
-                ),
-              ),
-            )
+            NotebookMathEvidence(example: example)
           else
             Text(
               formatQuantumNotationForPlainText(example.notation),
-              style: const TextStyle(
+              style: NotebookTypography.text(
+                NotebookTextRole.lead,
                 color: Colors.white,
-                height: 1.4,
-                fontWeight: FontWeight.w700,
               ),
             ),
           if ((example.explanation ?? '').trim().isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(example.explanation!,
-                style: const TextStyle(color: _muted, height: 1.35)),
+                style: NotebookTypography.text(
+                  NotebookTextRole.supporting,
+                  color: _muted,
+                )),
           ],
         ],
       );
@@ -842,13 +832,21 @@ class _AdvancedSection extends StatelessWidget {
         ),
         child: ExpansionTile(
           initiallyExpanded: true,
-          title: Text(section.title,
-              style: const TextStyle(fontWeight: FontWeight.w900)),
+          title: Text(
+            section.title,
+            style: NotebookTypography.text(
+              NotebookTextRole.sectionHeading,
+              color: Colors.white,
+            ),
+          ),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           children: [
             Text(
               formatQuantumNotationForPlainText(section.body),
-              style: const TextStyle(color: Color(0xFFD6E3F8), height: 1.5),
+              style: NotebookTypography.text(
+                NotebookTextRole.body,
+                color: const Color(0xFFD6E3F8),
+              ),
             ),
           ],
         ),

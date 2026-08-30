@@ -80,12 +80,16 @@ class NotebookExample {
     this.explanation,
     this.comparisonGroup,
   })  : presentation = NotebookExamplePresentation.prose,
-        latex = null;
+        latex = null,
+        latexLines = const [],
+        mathRole = NotebookMathRole.display;
 
   const NotebookExample.math({
     required this.label,
     required this.notation,
     this.latex,
+    this.latexLines = const [],
+    this.mathRole = NotebookMathRole.display,
     this.explanation,
     this.comparisonGroup,
   }) : presentation = NotebookExamplePresentation.math;
@@ -98,9 +102,17 @@ class NotebookExample {
   /// Authored TeX used when [presentation] is mathematical. When omitted, the
   /// shared quantum-notation converter renders [notation].
   final String? latex;
+  final List<String> latexLines;
+  final NotebookMathRole mathRole;
   final String? explanation;
   final String? comparisonGroup;
   final NotebookExamplePresentation presentation;
 }
 
 enum NotebookExamplePresentation { prose, math }
+
+/// Semantic importance for authored Notebook mathematics.
+///
+/// Use [display] by default. [emphasis] is reserved for a major state or
+/// circuit transformation, never merely because an expression is long.
+enum NotebookMathRole { inline, display, emphasis }
