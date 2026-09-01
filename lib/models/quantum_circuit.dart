@@ -73,6 +73,21 @@ class QuantumCircuit extends ChangeNotifier {
 
   int maxCircuitDepth() => placedGates.map((e) => e.length).reduce(max);
 
+  /// The first column in which learner-authored operations may appear.
+  ///
+  /// Protected operations are authored challenge content and form an immutable
+  /// prefix of the circuit. Empty cells within that prefix still represent its
+  /// shared time columns, so learner operations must not compact into them.
+  int get learnerEditableStartColumn {
+    var boundary = 0;
+    for (final footprint in logicalGates) {
+      if (!footprint.isDeletable) {
+        boundary = max(boundary, footprint.column + 1);
+      }
+    }
+    return boundary;
+  }
+
   bool isCircuitEmpty() => maxCircuitDepth() == 0;
 
   // New method to insert a placed gate at a specific position
@@ -109,6 +124,10 @@ class QuantumCircuit extends ChangeNotifier {
       return CircuitEditOutcome.invalid;
     }
 
+    if (isDeletable) {
+      insertionPosition = max(insertionPosition, learnerEditableStartColumn);
+    }
+
     final resolvedId = gateId ?? _allocateGateId();
     PlacedQuantumGate gateToInsert = PlacedQuantumGate(
       id: resolvedId,
@@ -117,9 +136,7 @@ class QuantumCircuit extends ChangeNotifier {
     );
 
     if (placedGates[tappedQubitIndex].length <= insertionPosition) {
-      insertionPosition =
-          min(insertionPosition, placedGates[tappedQubitIndex].length);
-      placedGates[tappedQubitIndex].insert(insertionPosition, gateToInsert);
+      insertGateAt(gateToInsert, insertionPosition, tappedQubitIndex);
     } else if (placedGates[tappedQubitIndex][insertionPosition].gate.type ==
         SelectedGateType.none) {
       placedGates[tappedQubitIndex][insertionPosition] = gateToInsert;
@@ -326,6 +343,12 @@ class QuantumCircuit extends ChangeNotifier {
     if (requestedLocation == footprint.anchor) {
       return rejected(
           CircuitEditStatus.same, 'Destination is the source slot.');
+    }
+    if (destination.column < learnerEditableStartColumn) {
+      return rejected(
+        CircuitEditStatus.protected,
+        'Learner gates cannot move before protected challenge operations.',
+      );
     }
 
     final proposal = _copyRows(placedGates);
@@ -769,6 +792,7 @@ class QuantumCircuit extends ChangeNotifier {
   static List<List<PlacedQuantumGate>>? _compactDetachedRows(
     List<List<PlacedQuantumGate>> rows,
   ) {
+    final protectedPrefixDepth = _protectedPrefixDepth(rows);
     var moved = true;
     while (moved) {
       moved = false;
@@ -779,7 +803,7 @@ class QuantumCircuit extends ChangeNotifier {
         final columns = fragments.map((fragment) => fragment.$3).toSet();
         if (columns.length != 1) return null;
         final column = columns.single;
-        if (column == 0 ||
+        if (column <= protectedPrefixDepth ||
             fragments.any((fragment) => !fragment.$2.isDeletable)) {
           continue;
         }
@@ -799,6 +823,19 @@ class QuantumCircuit extends ChangeNotifier {
       }
     }
     return rows;
+  }
+
+  static int _protectedPrefixDepth(List<List<PlacedQuantumGate>> rows) {
+    var boundary = 0;
+    for (final fragments in _detachedLogicalFragments(rows).values) {
+      if (fragments.any((fragment) => !fragment.$2.isDeletable)) {
+        boundary = max(
+          boundary,
+          fragments.map((fragment) => fragment.$3).reduce(max) + 1,
+        );
+      }
+    }
+    return boundary;
   }
 
   static bool _isValidLogicalGrid(
@@ -1119,6 +1156,9 @@ class QuantumCircuit extends ChangeNotifier {
         targetQubitIndex == controlQubitIndex) {
       return CircuitEditOutcome.invalid;
     }
+    if (isDeletable) {
+      insertionPosition = max(insertionPosition, learnerEditableStartColumn);
+    }
     final gateId = _allocateGateId();
     // need to check if the area to place the gate is fully empty then,
     int from = min(controlQubitIndex, targetQubitIndex);
@@ -1126,7 +1166,12 @@ class QuantumCircuit extends ChangeNotifier {
 
     debugPrint('Insertion position: $insertionPosition, from: $from, to: $to');
 
-    insertionPosition = min(insertionPosition, maxCircuitDepth());
+    insertionPosition = isDeletable
+        ? max(
+            learnerEditableStartColumn,
+            min(insertionPosition, maxCircuitDepth()),
+          )
+        : min(insertionPosition, maxCircuitDepth());
 
     bool allEmpty = true;
     for (int i = from; i <= to; i++) {
@@ -1255,6 +1300,15 @@ class QuantumCircuit extends ChangeNotifier {
         qubits.any((qubit) => qubit < 0 || qubit >= currentLevel.numQubits)) {
       return CircuitEditOutcome.invalid;
     }
+    if (isDeletable) {
+      insertionPosition = max(insertionPosition, learnerEditableStartColumn);
+    }
+    insertionPosition = isDeletable
+        ? max(
+            learnerEditableStartColumn,
+            min(insertionPosition, maxCircuitDepth()),
+          )
+        : min(insertionPosition, maxCircuitDepth());
     final gateId = _allocateGateId();
     // need to check if the area to place the gate is fully empty then,
     List<int> controls = [
@@ -1444,81 +1498,7 @@ class QuantumCircuit extends ChangeNotifier {
   }
 
   void shiftLeft() {
-    bool repeat;
-    do {
-      repeat = false;
-      int maxDepth = maxCircuitDepth();
-      int rightPosition = maxDepth - 1;
-      int leftPosition = rightPosition - 1;
-      while (rightPosition >= 1) {
-        for (int i = 0; i < currentLevel.numQubits; i++) {
-          if (rightPosition < placedGates[i].length &&
-              placedGates[i][rightPosition].gate.type !=
-                  SelectedGateType.none) {
-            var rightGate = placedGates[i][rightPosition];
-            if (rightGate.gate.type == SelectedGateType.cnot ||
-                rightGate.gate.type == SelectedGateType.cz) {
-              int endLine = rightGate.isTarget
-                  ? rightGate.controlQubitIndex!
-                  : rightGate.targetQubitIndex!;
-              bool canBeMoved = true;
-              for (int j = i; j <= endLine; j++) {
-                if (placedGates[j][rightPosition - 1].gate.type !=
-                    SelectedGateType.none) {
-                  canBeMoved = false;
-                  break;
-                }
-              }
-              if (canBeMoved) {
-                for (int j = i; j <= endLine; j++) {
-                  placedGates[j][rightPosition - 1] =
-                      placedGates[j][rightPosition];
-                  placedGates[j][rightPosition] = PlacedQuantumGate.emptyGate();
-                  repeat = true;
-                }
-              }
-              i = max(i, endLine);
-            } else if (rightGate.gate.type == SelectedGateType.ccnot) {
-              int endLine = [
-                rightGate.controlQubitIndex!,
-                rightGate.control2QubitIndex!,
-                rightGate.targetQubitIndex!
-              ].reduce(max);
-              bool canBeMoved = true;
-              for (int j = i; j <= endLine; j++) {
-                if (placedGates[j][rightPosition - 1].gate.type !=
-                    SelectedGateType.none) {
-                  canBeMoved = false;
-                  break;
-                }
-              }
-              if (canBeMoved) {
-                for (int j = i; j <= endLine; j++) {
-                  placedGates[j][rightPosition - 1] =
-                      placedGates[j][rightPosition];
-                  placedGates[j][rightPosition] = PlacedQuantumGate.emptyGate();
-                }
-                repeat = true;
-              }
-              i = max(i, endLine);
-            } else {
-              if (placedGates[i][rightPosition - 1].gate.type ==
-                  SelectedGateType.none) {
-                placedGates[i][rightPosition - 1] = rightGate;
-                placedGates[i][rightPosition] = PlacedQuantumGate.emptyGate();
-                repeat = true;
-              }
-            }
-          }
-        }
-        if (rightPosition < maxDepth) {
-          rightPosition--;
-        } else {
-          leftPosition--;
-          rightPosition = leftPosition - 1;
-        }
-      }
-    } while (repeat);
+    _compactDetachedRows(placedGates);
   }
 
   void insertGateAt(PlacedQuantumGate gateToInsert, int insertionPosition,

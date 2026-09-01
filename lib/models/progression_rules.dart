@@ -12,16 +12,14 @@ class ProgressionRules {
     return levelNumber - guidedDiscoveryLevelCount;
   }
 
-  static bool masteryChallengesUnlocked(int maxUnlockedLevel) {
-    return maxUnlockedLevel > guidedDiscoveryLevelCount;
-  }
+  static bool masteryChallengesUnlocked(int maxUnlockedLevel) => true;
 
   static bool isLevelUnlocked({
     required int levelNumber,
     required int maxUnlockedLevel,
   }) {
     if (isMasteryLevel(levelNumber)) {
-      return masteryChallengesUnlocked(maxUnlockedLevel);
+      return levelNumber <= journeyLevelCount;
     }
     return levelNumber <= maxUnlockedLevel;
   }

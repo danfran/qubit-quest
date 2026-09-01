@@ -1,4 +1,5 @@
 import 'package:quantumquiz/models/executable_notebook_example.dart';
+import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 
@@ -17,7 +18,7 @@ Set<String> notebookSearchAllowedEntryIds({
 }) =>
     {
       for (final entry in entries)
-        if (unlockedDiscoveryTitles.contains(entry.discoveryTitle)) entry.id,
+        if (isNotebookEntryAvailable(entry, unlockedDiscoveryTitles)) entry.id,
     };
 
 class NotebookSearchDocument {

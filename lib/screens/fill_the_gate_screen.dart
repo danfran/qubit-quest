@@ -4,8 +4,14 @@ import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
+import 'package:quantumquiz/widgets/circuit_preview.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/lesson_content_safe_area.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
+import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
+import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
+import 'package:quantumquiz/widgets/qubit_quest_activity_shell.dart';
 
 class FillTheGateScreen extends StatefulWidget {
   final int levelId;
@@ -30,11 +36,29 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
   bool _answered = false;
   bool _correct = false;
   late bool _isCompleted;
+  QuantumCircuit? _displayCircuit;
 
   @override
   void initState() {
     super.initState();
     _isCompleted = widget.isCompleted;
+    if (_usesCanonicalVisualGrammar) {
+      _displayCircuit = QuantumCircuit(
+        currentLevel: ComposerLevel.fromBinaryString(
+          taskDescription: widget.level.taskDescription,
+          initialQubitsStateString: widget.level.initialQubitsStateString,
+          availableGates: const [],
+          solutionFinalVector: const [],
+          preInsertedGates: widget.level.preBuiltGates,
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _displayCircuit?.dispose();
+    super.dispose();
   }
 
   /// Simulate the circuit with the chosen gate and compare to the solution.
@@ -63,11 +87,35 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1E1E2C),
-      appBar: LevelHeaderRouter.headerFor(
+  bool get _usesCanonicalVisualGrammar =>
+      const {64, 68}.contains(widget.levelId);
+
+  void _finish() => Navigator.of(context).pop(
+        _correct
+            ? LevelCompletionAction.nextLevel
+            : LevelCompletionAction.levelSelect,
+      );
+
+  QubitQuestChoiceState _gateState(int index, Gate gate) {
+    if (!_answered) {
+      return _selectedIndex == index
+          ? QubitQuestChoiceState.selected
+          : QubitQuestChoiceState.neutral;
+    }
+    if (gate.type == widget.level.correctGate.type) {
+      return QubitQuestChoiceState.correct;
+    }
+    if (_selectedIndex == index) return QubitQuestChoiceState.incorrect;
+    return QubitQuestChoiceState.disabled;
+  }
+
+  Widget _buildCanonicalMastery(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 680;
+    final horizontalPadding =
+        compact ? QubitQuestSpacing.component : QubitQuestSpacing.section;
+
+    return QubitQuestActivityShell(
+      header: LevelHeaderRouter.headerFor(
         level: widget.level,
         levelId: widget.levelId,
         compact: false,
@@ -75,124 +123,72 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
       ),
       body: CustomScrollView(
         slivers: [
-          // ── Scrollable content ─────────────────────────────────────────
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              horizontalPadding,
+              horizontalPadding,
+              0,
+            ),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // Concept intro
-                if (widget.level.conceptIntro != null)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 20),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2D2E40),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF5D5FE6)),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.info_outline,
-                            color: Color(0xFF5D5FE6), size: 20),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            widget.level.conceptIntro!,
-                            style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                                height: 1.5),
-                          ),
-                        ),
-                      ],
-                    ),
+                if (widget.level.conceptIntro case final intro?) ...[
+                  QubitQuestCallout(
+                    key: ValueKey('mastery-fill-support-${widget.levelId}'),
+                    variant: QubitQuestCalloutVariant.insight,
+                    message: intro,
                   ),
-
-                const Text('Fill the Gate',
-                    style: TextStyle(
-                        color: Colors.white54,
-                        fontSize: 13,
-                        letterSpacing: 1.2)),
-                const SizedBox(height: 8),
-                LatexText(
-                  math: widget.level.taskDescription,
-                  textStyle: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      height: 1.4),
-                  inlineMathHeight: 20,
+                  const SizedBox(height: QubitQuestSpacing.component),
+                ],
+                QubitQuestActivityQuestion(
+                  key: ValueKey('mastery-fill-question-${widget.levelId}'),
+                  activityLabel: 'FILL THE GATE',
+                  question: LatexText(
+                    math: widget.level.taskDescription,
+                    textStyle: QubitQuestTypography.question,
+                    inlineMathHeight: 21,
+                  ),
                 ),
-                const SizedBox(height: 28),
-
-                _buildCircuitSchematic(),
-                const SizedBox(height: 28),
-
-                const Text('Choose the missing gate:',
-                    style: TextStyle(color: Colors.white70, fontSize: 14)),
-                const SizedBox(height: 12),
-
-                // Gate options grid
+                const SizedBox(height: QubitQuestSpacing.component),
+                QubitQuestPanel(
+                  level: QubitQuestSurfaceLevel.inset,
+                  child: _buildCircuitSchematic(canonical: true),
+                ),
+                const SizedBox(height: QubitQuestSpacing.section),
+                Text(
+                  'Choose the missing gate',
+                  style: QubitQuestTypography.heading,
+                ),
+                const SizedBox(height: QubitQuestSpacing.regular),
                 Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: widget.level.options.asMap().entries.map((entry) {
-                    final int idx = entry.key;
-                    final Gate gate = entry.value;
-                    final bool isSelected = _selectedIndex == idx;
-                    final bool isCorrectGate =
-                        gate.type == widget.level.correctGate.type;
-
-                    Color borderColor = Colors.transparent;
-                    Color bgColor = gate.color.withValues(alpha: 0.85);
-
-                    if (_answered) {
-                      if (isCorrectGate) {
-                        borderColor = Colors.green;
-                        bgColor = Colors.green.withValues(alpha: 0.3);
-                      } else if (isSelected) {
-                        borderColor = Colors.red;
-                        bgColor = Colors.red.withValues(alpha: 0.2);
-                      } else {
-                        bgColor = gate.color.withValues(alpha: 0.3);
-                      }
-                    } else if (isSelected) {
-                      borderColor = Colors.white;
-                    }
-
-                    return GestureDetector(
-                      onTap:
-                          _answered ? null : () => _onOptionSelected(idx, gate),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: bgColor,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: borderColor, width: 2),
-                        ),
-                        child: Center(
-                          child: Text(
-                            gate.label,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                  spacing: QubitQuestSpacing.regular,
+                  runSpacing: QubitQuestSpacing.regular,
+                  children: [
+                    for (final (index, gate) in widget.level.options.indexed)
+                      _CanonicalGateChoice(
+                        key: ValueKey('fill-gate-option-$index'),
+                        gate: gate,
+                        state: _gateState(index, gate),
+                        onPressed: _answered
+                            ? null
+                            : () => _onOptionSelected(index, gate),
                       ),
-                    );
-                  }).toList(),
+                  ],
                 ),
+                if (_answered) ...[
+                  const SizedBox(height: QubitQuestSpacing.component),
+                  QubitQuestCallout(
+                    key: ValueKey('mastery-fill-feedback-${widget.levelId}'),
+                    variant: QubitQuestCalloutVariant.info,
+                    message: _correct
+                        ? widget.level.solutionExplanation ?? ''
+                        : 'The correct gate is ${widget.level.correctGate.label}. '
+                            '${widget.level.solutionExplanation ?? ''}',
+                  ),
+                ],
               ]),
             ),
           ),
-
-          // ── Sticky footer: feedback + button ───────────────────────────
           SliverFillRemaining(
             hasScrollBody: false,
             child: Align(
@@ -200,76 +196,17 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
               child: SafeArea(
                 top: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+                  padding: EdgeInsets.all(horizontalPadding),
                   child: _answered
-                      ? Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: _correct
-                                    ? Colors.green.withValues(alpha: 0.15)
-                                    : Colors.red.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: _correct ? Colors.green : Colors.red,
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    _correct
-                                        ? Icons.check_circle
-                                        : Icons.cancel,
-                                    color: _correct ? Colors.green : Colors.red,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      _correct
-                                          ? 'Correct! ${widget.level.solutionExplanation ?? ''}'
-                                          : 'Not quite — the correct gate is ${widget.level.correctGate.label}. '
-                                              '${widget.level.solutionExplanation ?? ''}',
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                          height: 1.4),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                      ? SizedBox(
+                          width: double.infinity,
+                          child: QubitQuestActionButton(
+                            key: ValueKey(
+                              'mastery-fill-action-${widget.levelId}',
                             ),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: () => Navigator.of(context).pop(
-                                  _correct
-                                      ? LevelCompletionAction.nextLevel
-                                      : LevelCompletionAction.levelSelect,
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      _correct ? Colors.green : Colors.orange,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                ),
-                                child: Text(
-                                  _correct
-                                      ? 'Continue Journey'
-                                      : 'Back to Journey',
-                                  style: const TextStyle(
-                                      fontSize: 17,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ),
-                          ],
+                            label: _correct ? 'Continue' : 'Back',
+                            onPressed: _finish,
+                          ),
                         )
                       : const SizedBox.shrink(),
                 ),
@@ -281,8 +218,241 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
     );
   }
 
+  @override
+  Widget build(BuildContext context) {
+    if (_usesCanonicalVisualGrammar) return _buildCanonicalMastery(context);
+    return Scaffold(
+      backgroundColor: const Color(0xFF1E1E2C),
+      appBar: LevelHeaderRouter.headerFor(
+        level: widget.level,
+        levelId: widget.levelId,
+        compact: false,
+        isCompleted: _isCompleted,
+      ),
+      body: LessonContentSafeArea(
+        child: CustomScrollView(
+          slivers: [
+            // ── Scrollable content ─────────────────────────────────────────
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // Concept intro
+                  if (widget.level.conceptIntro != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2D2E40),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF5D5FE6)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.info_outline,
+                              color: Color(0xFF5D5FE6), size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              widget.level.conceptIntro!,
+                              style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                  height: 1.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  const Text('Fill the Gate',
+                      style: TextStyle(
+                          color: Colors.white54,
+                          fontSize: 13,
+                          letterSpacing: 1.2)),
+                  const SizedBox(height: 8),
+                  LatexText(
+                    math: widget.level.taskDescription,
+                    textStyle: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        height: 1.4),
+                    inlineMathHeight: 20,
+                  ),
+                  const SizedBox(height: 28),
+
+                  _buildCircuitSchematic(),
+                  const SizedBox(height: 28),
+
+                  const Text('Choose the missing gate:',
+                      style: TextStyle(color: Colors.white70, fontSize: 14)),
+                  const SizedBox(height: 12),
+
+                  // Gate options grid
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: widget.level.options.asMap().entries.map((entry) {
+                      final int idx = entry.key;
+                      final Gate gate = entry.value;
+                      final bool isSelected = _selectedIndex == idx;
+                      final bool isCorrectGate =
+                          gate.type == widget.level.correctGate.type;
+
+                      Color borderColor = Colors.transparent;
+                      Color bgColor = gate.color.withValues(alpha: 0.85);
+
+                      if (_answered) {
+                        if (isCorrectGate) {
+                          borderColor = Colors.green;
+                          bgColor = Colors.green.withValues(alpha: 0.3);
+                        } else if (isSelected) {
+                          borderColor = Colors.red;
+                          bgColor = Colors.red.withValues(alpha: 0.2);
+                        } else {
+                          bgColor = gate.color.withValues(alpha: 0.3);
+                        }
+                      } else if (isSelected) {
+                        borderColor = Colors.white;
+                      }
+
+                      return GestureDetector(
+                        onTap: _answered
+                            ? null
+                            : () => _onOptionSelected(idx, gate),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            color: bgColor,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: borderColor, width: 2),
+                          ),
+                          child: Center(
+                            child: Text(
+                              gate.label,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ]),
+              ),
+            ),
+
+            // ── Sticky footer: feedback + button ───────────────────────────
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+                    child: _answered
+                        ? Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: _correct
+                                      ? Colors.green.withValues(alpha: 0.15)
+                                      : Colors.red.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: _correct ? Colors.green : Colors.red,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      _correct
+                                          ? Icons.check_circle
+                                          : Icons.cancel,
+                                      color:
+                                          _correct ? Colors.green : Colors.red,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        _correct
+                                            ? 'Correct! ${widget.level.solutionExplanation ?? ''}'
+                                            : 'Not quite — the correct gate is ${widget.level.correctGate.label}. '
+                                                '${widget.level.solutionExplanation ?? ''}',
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            height: 1.4),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () => Navigator.of(context).pop(
+                                    _correct
+                                        ? LevelCompletionAction.nextLevel
+                                        : LevelCompletionAction.levelSelect,
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        _correct ? Colors.green : Colors.orange,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                  ),
+                                  child: Text(
+                                    _correct
+                                        ? 'Continue Journey'
+                                        : 'Back to Journey',
+                                    style: const TextStyle(
+                                        fontSize: 17,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Builds a simple text schematic of the circuit showing the blank slot.
-  Widget _buildCircuitSchematic() {
+  Widget _buildCircuitSchematic({bool canonical = false}) {
+    if (canonical) {
+      final circuit = _displayCircuit!;
+      return QubitQuestCircuitPreview(
+        key: ValueKey('fill-gate-circuit-${widget.levelId}'),
+        circuit: circuit,
+        missingGateColumn: circuit.maxCircuitDepth(),
+      );
+    }
+
     // Build a temporary circuit to inspect what pre-built gates look like
     final tempLevel = ComposerLevel.fromBinaryString(
       taskDescription: widget.level.taskDescription,
@@ -314,6 +484,26 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
 
     circuit.dispose();
 
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: qubitRows
+          .map(
+            (row) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text(
+                row,
+                style: TextStyle(
+                  color: QubitQuestColors.textPrimary,
+                  fontFamily: 'monospace',
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          )
+          .toList(),
+    );
+    if (canonical) return content;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -321,23 +511,79 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFF4D4D5C)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: qubitRows
-            .map(
-              (row) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text(
-                  row,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontFamily: 'monospace',
-                    fontSize: 14,
-                  ),
+      child: content,
+    );
+  }
+}
+
+class _CanonicalGateChoice extends StatelessWidget {
+  const _CanonicalGateChoice({
+    super.key,
+    required this.gate,
+    required this.state,
+    required this.onPressed,
+  });
+
+  final Gate gate;
+  final QubitQuestChoiceState state;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final semanticColor = switch (state) {
+      QubitQuestChoiceState.selected => QubitQuestColors.accentInteractive,
+      QubitQuestChoiceState.correct => QubitQuestColors.success,
+      QubitQuestChoiceState.incorrect => QubitQuestColors.error,
+      QubitQuestChoiceState.neutral ||
+      QubitQuestChoiceState.disabled =>
+        QubitQuestColors.border,
+    };
+    final icon = switch (state) {
+      QubitQuestChoiceState.correct => Icons.check_circle,
+      QubitQuestChoiceState.incorrect => Icons.cancel,
+      _ => null,
+    };
+
+    return Semantics(
+      label: 'Gate ${gate.label}',
+      button: true,
+      selected: state == QubitQuestChoiceState.selected,
+      enabled: onPressed != null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: state == QubitQuestChoiceState.disabled
+              ? QubitQuestColors.disabled.withValues(alpha: 0.24)
+              : Colors.transparent,
+          borderRadius: QubitQuestRadii.card,
+          border: Border.all(
+            color: semanticColor,
+            width: state == QubitQuestChoiceState.neutral ? 1 : 2,
+          ),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            ExcludeSemantics(
+              child: Opacity(
+                opacity: state == QubitQuestChoiceState.disabled ? 0.42 : 1,
+                child: QubitQuestGateTile(
+                  gate: gate,
+                  size: 66,
+                  tooltip: 'Choose ${gate.label} gate',
+                  onPressed: onPressed,
                 ),
               ),
-            )
-            .toList(),
+            ),
+            if (icon != null)
+              Positioned(
+                top: -5,
+                right: -5,
+                child: Icon(icon, size: 17, color: semanticColor),
+              ),
+          ],
+        ),
       ),
     );
   }

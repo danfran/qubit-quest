@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
 class ComposerGatePalette extends StatefulWidget {
   const ComposerGatePalette({
@@ -22,8 +23,8 @@ class ComposerGatePalette extends StatefulWidget {
 }
 
 class _ComposerGatePaletteState extends State<ComposerGatePalette> {
-  static const Color _cardColor = Color(0xFF111827);
-  static const Color _borderColor = Color(0x66344A73);
+  static const Color _cardColor = QubitQuestColors.surface;
+  static const Color _borderColor = QubitQuestColors.border;
 
   late final ScrollController _scrollController;
   bool _canScrollLeft = false;

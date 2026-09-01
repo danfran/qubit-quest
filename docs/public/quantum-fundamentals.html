@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quantum Fundamentals - Qubit Quest</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- MathJax CDN for LaTeX rendering -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Dark background similar to GitHub Dark */
+            color: #c9d1d9; /* Light grey text */
+            overflow-x: hidden; /* Prevent horizontal scroll */
+            margin: 0;
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #161b22;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 10px;
+            border: 2px solid #161b22;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444c56;
+        }
+
+        /* Spinner Styles */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0d1117; /* Match body background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999; /* Ensure it's on top */
+            transition: opacity 0.5s ease-out; /* Smooth fade out */
+            opacity: 1;
+        }
+
+        #loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3); /* Light grey border */
+            border-top: 4px solid #58a6ff; /* Blue top border */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite; /* Spin animation */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden-content {
+            opacity: 0;
+            visibility: hidden;
+            height: 0; /* Hide content height to prevent scrollbar flicker */
+        }
+        .visible-content {
+            opacity: 1;
+            visibility: visible;
+            height: auto; /* Allow content height */
+            transition: opacity 0.5s ease-in;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div id="loading-spinner"></div>
+    </div>
+
+    <!-- Main Content (initially hidden) -->
+    <div id="main-content" class="hidden-content p-4 sm:p-6 md:p-8 lg:p-10">
+        <div class="max-w-4xl mx-auto bg-[#161b22] p-6 sm:p-8 md:p-10 rounded-lg shadow-xl border border-[#30363d] space-y-8">
+            <header class="mb-8 text-center">
+                <h1 class="text-4xl sm:text-5xl font-extrabold text-[#58a6ff] mb-4">Quantum Fundamentals</h1>
+                <p class="text-lg sm:text-xl text-[#8b949e]">Explore the building blocks of quantum computing</p>
+            </header>
+
+            <section class="p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#c9d1d9] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Introduction to Quantum Gates</h2>
+                <p>
+                    Quantum gates are the fundamental building blocks of quantum circuits, analogous to logic gates in classical digital circuits.
+                    They operate on qubits, transforming their quantum states. Each gate is represented by a unitary matrix, ensuring that quantum information is preserved.
+                </p>
+            </section>
+
+            <section class="p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#c9d1d9] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Single-Qubit Gates</h2>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">Hadamard Gate (H)</h3>
+                <p>
+                    The Hadamard gate creates a superposition state. When applied to a basis state ($|0\rangle$ or $|1\rangle$),
+                    it transforms it into an equal superposition of both states.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation:</p>
+                    <p class="text-xl font-mono">$$ H = \frac{1}{\sqrt{2}} \begin{pmatrix} 1 & 1 \\ 1 & -1 \end{pmatrix} $$</p>
+                    <p class="text-lg">Action on basis states:</p>
+                    <p class="text-xl font-mono">$$ H|0\rangle = \frac{1}{\sqrt{2}}(|0\rangle + |1\rangle) $$</p>
+                    <p class="text-xl font-mono">$$ H|1\rangle = \frac{1}{\sqrt{2}}(|0\rangle - |1\rangle) $$</p>
+                </div>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">Pauli-X Gate (X)</h3>
+                <p>
+                    The Pauli-X gate acts as a quantum "NOT" gate, flipping the state of a qubit.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation:</p>
+                    <p class="text-xl font-mono">$$ X = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix} $$</p>
+                    <p class="text-lg">Action on basis states:</p>
+                    <p class="text-xl font-mono">$$ X|0\rangle = |1\rangle $$</p>
+                    <p class="text-xl font-mono">$$ X|1\rangle = |0\rangle $$</p>
+                </div>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">Pauli-Y Gate (Y)</h3>
+                <p>
+                    The Pauli-Y gate performs a bit flip and a phase shift.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation:</p>
+                    <p class="text-xl font-mono">$$ Y = \begin{pmatrix} 0 & -i \\ i & 0 \end{pmatrix} $$</p>
+                    <p class="text-lg">Action on basis states:</p>
+                    <p class="text-xl font-mono">$$ Y|0\rangle = i|1\rangle $$</p>
+                    <p class="text-xl font-mono">$$ Y|1\rangle = -i|0\rangle $$</p>
+                </div>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">Pauli-Z Gate (Z)</h3>
+                <p>
+                    The Pauli-Z gate applies a phase shift of $\pi$ radians to the $|1\rangle$ state.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation:</p>
+                    <p class="text-xl font-mono">$$ Z = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix} $$</p>
+                    <p class="text-lg">Action on basis states:</p>
+                    <p class="text-xl font-mono">$$ Z|0\rangle = |0\rangle $$</p>
+                    <p class="text-xl font-mono">$$ Z|1\rangle = -|1\rangle $$</p>
+                </div>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">Phase Shift Gate (S)</h3>
+                <p>
+                    The S gate (or $\sqrt{Z}$ gate) applies a phase shift of $\pi/2$ radians.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation:</p>
+                    <p class="text-xl font-mono">$$ S = \begin{pmatrix} 1 & 0 \\ 0 & i \end{pmatrix} $$</p>
+                    <p class="text-lg">Action on basis states:</p>
+                    <p class="text-xl font-mono">$$ S|0\rangle = |0\rangle $$</p>
+                    <p class="text-xl font-mono">$$ S|1\rangle = i|1\rangle $$</p>
+                </div>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">T Gate</h3>
+                <p>
+                    The T gate (or $\sqrt{S}$ gate) applies a phase shift of $\pi/4$ radians.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation:</p>
+                    <p class="text-xl font-mono">$$ T = \begin{pmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{pmatrix} $$</p>
+                    <p class="text-lg">Action on basis states:</p>
+                    <p class="text-xl font-mono">$$ T|0\rangle = |0\rangle $$</p>
+                    <p class="text-xl font-mono">$$ T|1\rangle = e^{i\pi/4}|1\rangle $$</p>
+                </div>
+
+            </section>
+
+            <section class="p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#c9d1d9] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Multi-Qubit Gates</h2>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">CNOT Gate (CX, Controlled-NOT)</h3>
+                <p>
+                    The CNOT gate, also known as the <strong>CX</strong> gate, flips the state of the target qubit if and only if the control qubit is in the $|1\rangle$ state.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation:</p>
+                    <p class="text-xl font-mono">$$ \text{CNOT} = \begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{pmatrix} $$</p>
+                    <p class="text-lg mt-4">Action on basis states (Control Q0, Target Q1):</p>
+                    <p class="text-xl font-mono">$$ \text{CNOT}|00\rangle = |00\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{CNOT}|01\rangle = |01\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{CNOT}|10\rangle = |11\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{CNOT}|11\rangle = |10\rangle $$</p>
+                </div>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">SWAP Gate</h3>
+                <p>
+                    The SWAP gate exchanges the states of two qubits.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation:</p>
+                    <p class="text-xl font-mono">$$ \text{SWAP} = \begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \end{pmatrix} $$</p>
+                    <p class="text-lg mt-4">Action on basis states:</p>
+                    <p class="text-xl font-mono">$$ \text{SWAP}|00\rangle = |00\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{SWAP}|01\rangle = |10\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{SWAP}|10\rangle = |01\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{SWAP}|11\rangle = |11\rangle $$</p>
+                </div>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">CCNOT Gate (Toffoli Gate)</h3>
+                <p>
+                    The CCNOT gate, also known as the Toffoli gate, is a three-qubit gate. It flips the state of the target qubit if and only if both control qubits are in the $|1\rangle$ state. It is a universal classical gate, meaning any classical computation can be performed using only Toffoli gates.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation (Control qubits 1 & 2, Target qubit 3):</p>
+                    <p class="text-xl font-mono">$$ \text{CCNOT} = \begin{pmatrix}
+                        1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                        0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+                        0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+                        0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+                        0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+                        0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+                        0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\
+                        0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
+                    \end{pmatrix} $$</p>
+                    <p class="text-lg mt-4">Action on basis states (Control Q0, Q1; Target Q2):</p>
+                    <p class="text-xl font-mono">$$ \text{CCNOT}|000\rangle = |000\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{CCNOT}|001\rangle = |001\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{CCNOT}|010\rangle = |010\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{CCNOT}|011\rangle = |011\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{CCNOT}|100\rangle = |100\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{CCNOT}|101\rangle = |101\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{CCNOT}|110\rangle = |111\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{CCNOT}|111\rangle = |110\rangle $$</p>
+                </div>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">CZ Gate (Controlled-Z)</h3>
+                <p>
+                    The CZ gate applies a Pauli-Z gate to the target qubit if and only if the control qubit is in the $|1\rangle$ state. It introduces a phase shift of $\pi$ to the $|11\rangle$ state.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation:</p>
+                    <p class="text-xl font-mono">$$ \text{CZ} = \begin{pmatrix}
+                        1 & 0 & 0 & 0 \\
+                        0 & 1 & 0 & 0 \\
+                        0 & 0 & 1 & 0 \\
+                        0 & 0 & 0 & -1
+                    \end{pmatrix} $$</p>
+                    <p class="text-lg mt-4">Action on basis states (Control Q0, Target Q1):</p>
+                    <p class="text-xl font-mono">$$ \text{CZ}|00\rangle = |00\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{CZ}|01\rangle = |01\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{CZ}|10\rangle = |10\rangle $$</p>
+                    <p class="text-xl font-mono">$$ \text{CZ}|11\rangle = -|11\rangle $$</p>
+                </div>
+
+            </section>
+
+            <section class="p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#c9d1d9] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Parametric Rotation Gates</h2>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">X-Rotation Gate (Rx)</h3>
+                <p>
+                    Rotates the state vector about the <strong>X-axis</strong> by an angle $\theta$. It introduces phase and amplitude changes through the complex number $i$.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation:</p>
+                    <p class="text-xl font-mono">$$R_x(\theta) = \begin{pmatrix} \cos(\theta/2) & -i\sin(\theta/2) \\ -i\sin(\theta/2) & \cos(\theta/2) \end{pmatrix}$$</p>
+                    <p class="text-lg mt-4">Action on basis states:</p>
+                    <p class="text-xl font-mono">$$\begin{aligned} R_x(\theta)|0\rangle &= \cos(\theta/2)|0\rangle - i\sin(\theta/2)|1\rangle \\ R_x(\theta)|1\rangle &= -i\sin(\theta/2)|0\rangle + \cos(\theta/2)|1\rangle \end{aligned}$$</p>
+                    <p class="text-xl mt-4">This gate creates a <strong>superposition</strong> of $|0\rangle$ and $|1\rangle$ and introduces an imaginary phase into the amplitudes.</p>
+                </div>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">Y-Rotation Gate (Ry)</h3>
+                <p>
+                    Rotates the state vector about the <strong>Y-axis</strong> by an angle $\theta$. This is a real-valued matrix, purely affecting the probability amplitudes.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation:</p>
+                    <p class="text-xl font-mono">$$R_y(\theta) = \begin{pmatrix} \cos(\theta/2) & -\sin(\theta/2) \\ \sin(\theta/2) & \cos(\theta/2) \end{pmatrix}$$</p>
+                    <p class="text-lg mt-4">Action on basis states:</p>
+                    <p class="text-xl font-mono">$$\begin{aligned} R_y(\theta)|0\rangle &= \cos(\theta/2)|0\rangle + \sin(\theta/2)|1\rangle \\ R_y(\theta)|1\rangle &= -\sin(\theta/2)|0\rangle + \cos(\theta/2)|1\rangle \end{aligned}$$</p>
+                    <p class="text-xl mt-4">This gate also creates a <strong>superposition</strong>, but the amplitudes are purely real, making it easy to visualize rotation into the X-Z plane.</p>
+                </div>
+
+                <h3 class="text-xl sm:text-2xl font-medium text-[#58a6ff] mb-2">Z-Rotation Gate (Rz)</h3>
+                <p>
+                    Rotates the state vector about the <strong>Z-axis</strong> by an angle $\theta$. This gate only modifies the relative phase of the state vector.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">Matrix Representation:</p>
+                    <p class="text-xl font-mono">$$R_z(\theta) = \begin{pmatrix} e^{-i\theta/2} & 0 \\ 0 & e^{i\theta/2} \end{pmatrix}$$</p>
+                    <p class="text-lg mt-4">Action on basis states:</p>
+                    <p class="text-xl font-mono">$$\begin{aligned} R_z(\theta)|0\rangle &= e^{-i\theta/2}|0\rangle \\ R_z(\theta)|1\rangle &= e^{i\theta/2}|1\rangle \end{aligned}$$</p>
+                    <p class="text-xl mt-4">This gate only modifies the <strong>phase</strong> of the components. Crucially, the <em>relative phase</em> difference is $\phi = (i\theta/2) - (-i\theta/2) = i\theta$, which is what affects interference.</p>
+                </div>
+
+            </section>
+
+            <section class="p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#c9d1d9] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">Bell States (Maximally Entangled States)</h2>
+                <p>
+                    Bell states are a set of four specific maximally entangled two-qubit states. They form a basis for two-qubit systems and are fundamental in quantum information science, appearing in phenomena like quantum teleportation and superdense coding.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d] space-y-2">
+                    <p class="text-xl font-mono">$$ |\Phi^{+}\rangle = \frac{1}{\sqrt{2}}(|00\rangle + |11\rangle) $$</p>
+                    <p class="text-xl font-mono">$$ |\Phi^{-}\rangle = \frac{1}{\sqrt{2}}(|00\rangle - |11\rangle) $$</p>
+                    <p class="text-xl font-mono">$$ |\Psi^{+}\rangle = \frac{1}{\sqrt{2}}(|01\rangle + |10\rangle) $$</p>
+                    <p class="text-xl font-mono">$$ |\Psi^{-}\rangle = \frac{1}{\sqrt{2}}(|01\rangle - |10\rangle) $$</p>
+                </div>
+                <p>
+                    These states exhibit strong correlations, meaning the measurement of one qubit instantly influences the state of the other, regardless of their physical separation.
+                </p>
+            </section>
+
+            <section class="p-5 bg-[#0d1117] rounded-lg shadow-inner border border-[#30363d] text-base leading-relaxed text-[#c9d1d9] space-y-4">
+                <h2 class="text-2xl sm:text-3xl font-semibold text-[#c9d1d9] mb-4">GHZ Algorithm (Greenberger-Horne-Zeilinger)</h2>
+                <p>
+                    The <strong>GHZ algorithm</strong> (also referring to <strong>GHZ states</strong>) demonstrates a profound non-classical correlation among three or more entangled qubits, even stronger than Bell states. A GHZ state is a type of multipartite entangled state.
+                </p>
+                <div class="text-center my-4 p-4 bg-[#1f262c] rounded-md border border-[#30363d]">
+                    <p class="text-lg">For three qubits:</p>
+                    <p class="text-xl font-mono">$$ | \text{GHZ} \rangle = \frac{1}{\sqrt{2}}(|000\rangle + |111\rangle) $$</p>
+                </div>
+                <p>
+                    This state is created by applying a Hadamard gate to the first qubit (initially $|0\rangle$), followed by CNOT gates between the first and second, and then the first and third qubits. It is a cornerstone for illustrating the power of multipartite entanglement and has applications in quantum cryptography and quantum error correction.
+                </p>
+            </section>
+
+            <footer class="mt-10 text-sm text-[#8b949e] pt-6 border-t border-[#30363d] text-center">
+                <p>&copy; 2025 Qubit Quest App. All rights reserved.</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // Function to hide the loading overlay and show content
+        function hideLoadingOverlay() {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const mainContent = document.getElementById('main-content');
+
+            if (loadingOverlay && mainContent) {
+                loadingOverlay.style.opacity = '0'; // Start fade out
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none'; // Hide after fade
+                    mainContent.classList.remove('hidden-content');
+                    mainContent.classList.add('visible-content');
+                    document.body.style.overflow = 'auto'; // Re-enable scrolling
+                }, 500); // Match CSS transition duration
+            }
+        }
+
+        // Listen for MathJax to be ready and finished typesetting
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            startup: {
+                ready: function() {
+                    MathJax.startup.defaultReady();
+                    MathJax.startup.promise.then(function () {
+                        // MathJax has finished initial typesetting
+                        hideLoadingOverlay();
+                    });
+                }
+            }
+        };
+
+        // Fallback: If MathJax fails or is very fast, ensure content is shown
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                if (document.getElementById('loading-overlay').style.opacity === '1') {
+                    hideLoadingOverlay();
+                }
+            }, 2000); // Adjust this fallback delay if needed
+        });
+    </script>
+
+</body>
+</html>

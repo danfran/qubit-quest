@@ -9,6 +9,8 @@ import 'package:quantumquiz/screens/level_ui_router.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
+import 'package:quantumquiz/models/mastery_2_catalogue.dart';
+import 'package:quantumquiz/models/mastery_challenge_catalogue.dart';
 import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
@@ -20,6 +22,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 import 'package:quantumquiz/widgets/responsive_dashboard_grid.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
 import '../models/qq_level.dart';
 import '../models/qq_levels.dart';
@@ -43,11 +46,12 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  static const Color qqBlack = Color(0xFF00030A);
-  static const Color qqCard = Color(0xFF111827);
-  static const Color qqCard2 = Color(0xFF18233A);
-  static const Color qqBorder = Color(0x66344A73);
-  static const Color qqCyan = Color(0xFF56CCF2);
+  // Compatibility aliases. QubitQuestColors is the canonical authority.
+  static const Color qqBlack = QubitQuestColors.background;
+  static const Color qqCard = QubitQuestColors.surface;
+  static const Color qqCard2 = QubitQuestColors.surfaceRaised;
+  static const Color qqBorder = QubitQuestColors.border;
+  static const Color qqCyan = QubitQuestColors.accentInteractive;
   static const Set<String> _chapter1DiscoveryTitles = {
     'Information',
     'Reversibility',
@@ -141,7 +145,6 @@ class _HomePageState extends State<HomePage> {
   CampaignProgressState _progressState = CampaignProgressState.fresh();
   int _maxUnlockedLevel = 1;
   bool _isLoadingLevels = true; // To show loading state
-  Set<int> _completedMasteryLevels = {};
   bool _showMasteryCompleteDialogAfterReturn = false;
 
   late PackageInfo _packageInfo;
@@ -185,7 +188,6 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _progressState = progressState;
       _maxUnlockedLevel = progressState.maxUnlockedLevel;
-      _completedMasteryLevels = progressState.completedChallengeIds;
       _isLoadingLevels = false; // Loading complete
     });
     debugPrint('Loaded max unlocked level: $_maxUnlockedLevel');
@@ -215,7 +217,6 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           _progressState = progressState;
           _maxUnlockedLevel = progressState.maxUnlockedLevel;
-          _completedMasteryLevels = progressState.completedChallengeIds;
         });
       }
       return;
@@ -227,7 +228,6 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _progressState = progressState;
         _maxUnlockedLevel = progressState.maxUnlockedLevel;
-        _completedMasteryLevels = progressState.completedChallengeIds;
       });
       debugPrint('Updated and saved max unlocked level: $_maxUnlockedLevel');
     }
@@ -706,25 +706,21 @@ class _HomePageState extends State<HomePage> {
     return _isLegacyChallengeLevel(level);
   }
 
-  bool get _masteryChallengesUnlocked {
-    return CampaignProgressPolicy.getMasteryChallengesUnlocked(_progressState);
-  }
-
   int get _masteryChallengeCount {
-    return groupedLevels.where((category) => category.isMasteryPhase).fold<int>(
-          0,
-          (total, category) => total + category.to - category.from + 1,
-        );
-  }
-
-  bool _isLevelUnlocked(int levelNumber) {
-    return CampaignProgressPolicy.isLevelUnlocked(_progressState, levelNumber);
+    return mastery2Catalogue.length;
   }
 
   bool _isMasteryCompleted(int levelNumber) {
     return CampaignProgressPolicy.isChallengeCompleted(
       _progressState,
       levelNumber,
+    );
+  }
+
+  bool _isSemanticMasteryCompleted(String semanticId) {
+    return CampaignProgressPolicy.isMasteryChallengeCompleted(
+      _progressState,
+      semanticId,
     );
   }
 
@@ -833,13 +829,6 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               PopupMenuItem(
-                value: 'discoveries',
-                child: _UtilityMenuRow(
-                  icon: Icons.auto_stories_outlined,
-                  label: 'Quantum Notebook',
-                ),
-              ),
-              PopupMenuItem(
                 value: 'rate',
                 child: _UtilityMenuRow(
                   icon: Icons.star_outline,
@@ -885,14 +874,6 @@ class _HomePageState extends State<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _buildPrimaryActionSection(compact: compact),
-                      SizedBox(height: compact ? 18 : 24),
-                      for (var topic in groupedLevels)
-                        _buildTopicSection(
-                          topic.groupName,
-                          topic.from,
-                          topic.to,
-                          compact: compact,
-                        ),
                     ],
                   ),
                 ),
@@ -907,23 +888,27 @@ class _HomePageState extends State<HomePage> {
   Widget _buildPrimaryActionSection({required bool compact}) {
     final continueDestination =
         CampaignProgressPolicy.continueJourneyDestination(_progressState);
-    final Widget continueCard = _buildActionCard(
-      title: 'Continue Journey',
+    final Widget journeyCard = _buildActionCard(
+      title: continueDestination.isJourneyComplete
+          ? 'Learning Journey'
+          : 'Continue Journey',
       subtitle: continueDestination.isJourneyComplete
           ? 'Review your completed learning journey'
-          : _maxUnlockedLevel > _guidedDiscoveryLevelCount
-              ? 'Next: Mastery Challenge ${_maxUnlockedLevel - _guidedDiscoveryLevelCount}'
-              : 'Next: Lesson $_maxUnlockedLevel',
+          : 'Next: Lesson ${continueDestination.levelNumber}',
       icon: Icons.play_arrow_rounded,
       primary: true,
       compact: compact,
-      onTap: () {
-        if (continueDestination.isJourneyComplete) {
-          _showGameCompleteDialog();
-          return;
-        }
-        _playLevelSequence(continueDestination.levelNumber!, context);
-      },
+      onTap: _openLearningJourney,
+    );
+    final Widget masteryCard = _buildActionCard(
+      title: 'Mastery Challenges',
+      subtitle: 'Test and combine what you know • '
+          '${_progressState.completedMasterySemanticIds.length} / $_masteryChallengeCount completed',
+      icon: Icons.workspace_premium_outlined,
+      primary: true,
+      mastery: true,
+      compact: compact,
+      onTap: _openMasteryChallenges,
     );
     final Widget composerCard = _buildActionCard(
       title: 'Sandbox Composer',
@@ -932,6 +917,14 @@ class _HomePageState extends State<HomePage> {
       primary: false,
       compact: compact,
       onTap: _openSandbox,
+    );
+    final Widget notebookCard = _buildActionCard(
+      title: 'Quantum Notebook',
+      subtitle: 'Review concepts and go deeper',
+      icon: Icons.auto_stories_outlined,
+      primary: false,
+      compact: compact,
+      onTap: () => _selectUtilityMenuAction('discoveries'),
     );
     final Widget learningMapCard = _buildActionCard(
       title: 'Learning Map',
@@ -950,19 +943,283 @@ class _HomePageState extends State<HomePage> {
       onTap: _openBlochExplorer,
     );
 
-    return ResponsiveDashboardGrid(
-      key: const ValueKey('home-action-grid'),
-      minimumTileWidth: 250,
-      maxColumns: 4,
-      mainAxisExtent: compact ? 82 : 94,
-      spacing: compact ? 10 : 14,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        continueCard,
-        learningMapCard,
-        blochExplorerCard,
-        composerCard,
+        ResponsiveDashboardGrid(
+          key: const ValueKey('home-destination-grid'),
+          minimumTileWidth: 250,
+          maxColumns: 2,
+          mainAxisExtent: compact ? 88 : 100,
+          spacing: compact ? 10 : 14,
+          children: [journeyCard, masteryCard],
+        ),
+        SizedBox(height: compact ? 10 : 14),
+        ResponsiveDashboardGrid(
+          key: const ValueKey('home-action-grid'),
+          minimumTileWidth: 250,
+          maxColumns: 4,
+          mainAxisExtent: compact ? 82 : 94,
+          spacing: compact ? 10 : 14,
+          children: [
+            notebookCard,
+            learningMapCard,
+            blochExplorerCard,
+            composerCard,
+          ],
+        ),
       ],
     );
+  }
+
+  void _openLearningJourney() {
+    _openCatalogueDestination(mastery: false);
+  }
+
+  void _openMasteryChallenges() {
+    _openCatalogueDestination(mastery: true);
+  }
+
+  void _openCatalogueDestination({required bool mastery}) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (context) => AnimatedBuilder(
+          animation: _progressController,
+          builder: (context, _) => _buildCataloguePage(
+            mastery: mastery,
+            progressState: _progressController.state,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCataloguePage({
+    required bool mastery,
+    required CampaignProgressState progressState,
+  }) {
+    final categories = groupedLevels.where(
+      (category) => category.isMasteryPhase == mastery,
+    );
+    return Scaffold(
+      key: ValueKey(
+        mastery ? 'mastery-challenges-page' : 'learning-journey-page',
+      ),
+      backgroundColor: qqBlack,
+      appBar: AppBar(
+        backgroundColor: qqBlack,
+        surfaceTintColor: Colors.transparent,
+        title: Text(mastery ? 'Mastery Challenges' : 'Learning Journey'),
+      ),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 720;
+            final horizontalPadding = compact ? 12.0 : 28.0;
+            return SingleChildScrollView(
+              key: ValueKey(
+                mastery
+                    ? 'mastery-challenges-scroll'
+                    : 'learning-journey-scroll',
+              ),
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                compact ? 10 : 18,
+                horizontalPadding,
+                24,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1180),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (mastery)
+                        _buildMastery2Section(
+                          compact: compact,
+                          progressState: progressState,
+                        )
+                      else
+                        for (final category in categories)
+                          _buildTopicSection(
+                            category.groupName,
+                            category.from,
+                            category.to,
+                            compact: compact,
+                            progressState: progressState,
+                          ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMastery2Section({
+    required bool compact,
+    required CampaignProgressState progressState,
+  }) {
+    final definitions = mastery2Catalogue.orderedDefinitions;
+    final completed = progressState.completedMasterySemanticIds.length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(
+            top: compact ? 12 : 16,
+            bottom: compact ? 8 : 10,
+          ),
+          child: Text(
+            'Mastery Challenges\nConcept Integration • Completed: $completed / ${definitions.length}',
+            style: TextStyle(
+              fontSize: compact ? 18 : 22,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              height: 1.25,
+            ),
+          ),
+        ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final spacing = compact ? 8.0 : 10.0;
+            final columns = DashboardGridPolicy.columnsFor(
+              availableWidth: constraints.maxWidth,
+              minimumTileWidth: compact ? 108 : 160,
+              maxColumns: 10,
+              spacing: spacing,
+            );
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                crossAxisSpacing: spacing,
+                mainAxisSpacing: spacing,
+                childAspectRatio: compact ? 1.02 : 1.18,
+              ),
+              itemCount: definitions.length,
+              itemBuilder: (context, index) {
+                final definition = definitions[index];
+                final isCompleted = progressState.completedMasterySemanticIds
+                    .contains(definition.semanticId);
+                return Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF0F766E),
+                        Color(0xFF115E59),
+                        Color(0xFF134E4A),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    border: Border.all(color: const Color(0x80344A73)),
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: ElevatedButton(
+                          key: ValueKey(
+                            'mastery-challenge-${definition.semanticId}',
+                          ),
+                          onPressed: () => _playMasteryChallenge(definition),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.all(6),
+                          ),
+                          child: Text(
+                            'Challenge ${definition.displayOrder}\n${definition.title}',
+                            textAlign: TextAlign.center,
+                            maxLines: 4,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: compact ? 11 : 13,
+                              fontWeight: FontWeight.w900,
+                              height: 1.15,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (isCompleted)
+                        Positioned(
+                          key: ValueKey(
+                            'mastery-completed-${definition.semanticId}',
+                          ),
+                          top: 7,
+                          right: 7,
+                          child: const _MasteryCompletedCheckmark(),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Future<void> _completeSemanticMasteryChallenge(
+    MasteryChallengeDefinition definition,
+  ) async {
+    await _progressController.completeMasteryChallenge(definition.semanticId);
+    if (!mounted) return;
+    setState(() => _progressState = _progressController.state);
+  }
+
+  Future<void> _playMasteryChallenge(
+    MasteryChallengeDefinition definition,
+  ) async {
+    final shouldStart = await _showSemanticMasteryChallengeBrief(definition);
+    if (!shouldStart || !mounted) return;
+    await Navigator.of(context).push<LevelCompletionAction>(
+      MaterialPageRoute(
+        builder: (context) => LevelUIRouter.buildLevelUI(
+          level: definition.levelDefinition,
+          levelId: definition.displayOrder,
+          masteryChallenge: definition,
+          isCompleted: _isSemanticMasteryCompleted(definition.semanticId),
+          onLevelUnlocked: (_) => _completeSemanticMasteryChallenge(definition),
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _showSemanticMasteryChallengeBrief(
+    MasteryChallengeDefinition definition,
+  ) async {
+    final level = definition.levelDefinition;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => QubitQuestDialog(
+        title: 'Mastery Challenge ${definition.displayOrder}',
+        maxWidth: 560,
+        actions: [
+          QubitQuestDialogButton.secondary(
+            label: 'Not now',
+            onPressed: () => Navigator.of(context).pop(false),
+          ),
+          QubitQuestDialogButton.primary(
+            label: 'Start Challenge',
+            onPressed: () => Navigator.of(context).pop(true),
+          ),
+        ],
+        child: _MasteryChallengeBriefBody(
+          level: level,
+          relatedEntries: const [],
+          onReviewDiscovery: (_) {},
+        ),
+      ),
+    );
+    return result ?? false;
   }
 
   void _openBlochExplorer() {
@@ -990,6 +1247,7 @@ class _HomePageState extends State<HomePage> {
     required String subtitle,
     required IconData icon,
     required bool primary,
+    bool mastery = false,
     required bool compact,
     required VoidCallback onTap,
   }) {
@@ -1005,19 +1263,29 @@ class _HomePageState extends State<HomePage> {
         decoration: BoxDecoration(
           color: primary ? null : qqCard,
           gradient: primary
-              ? const LinearGradient(
-                  colors: [
-                    Color(0xFFA855F7),
-                    Color(0xFF8B4BE8),
-                    Color(0xFF5B21B6),
-                  ],
+              ? LinearGradient(
+                  colors: mastery
+                      ? const [
+                          Color(0xFF0F766E),
+                          Color(0xFF115E59),
+                          Color(0xFF134E4A),
+                        ]
+                      : const [
+                          Color(0xFFA855F7),
+                          Color(0xFF8B4BE8),
+                          Color(0xFF5B21B6),
+                        ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
               : null,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: primary ? const Color(0xFF3B1B75) : qqBorder,
+            color: primary
+                ? mastery
+                    ? const Color(0xFF0B4F4A)
+                    : const Color(0xFF3B1B75)
+                : qqBorder,
             width: 1.1,
           ),
           boxShadow: [
@@ -1126,13 +1394,15 @@ class _HomePageState extends State<HomePage> {
     int indexStart,
     int indexStop, {
     required bool compact,
+    CampaignProgressState? progressState,
   }) {
+    final displayedProgress = progressState ?? _progressState;
     final category = groupedLevels.firstWhere(
       (category) => category.groupName == topic,
     );
     final isMasterySection = _isMasteryCategoryName(topic);
     final masteryCompletionSummary =
-        'Completed: ${_completedMasteryLevels.length} / $_masteryChallengeCount';
+        'Completed: ${displayedProgress.completedChallengeIds.length} / $_masteryChallengeCount';
 
     return Padding(
       padding: EdgeInsets.only(bottom: compact ? 14 : 18),
@@ -1140,14 +1410,12 @@ class _HomePageState extends State<HomePage> {
         final spacing = compact ? 8.0 : 10.0;
         final columns = DashboardGridPolicy.columnsFor(
           availableWidth: constraints.maxWidth,
-          minimumTileWidth: isMasterySection
-              ? compact
-                  ? 168
-                  : 200
-              : compact
-                  ? 108
+          minimumTileWidth: compact
+              ? 108
+              : isMasterySection
+                  ? 160
                   : 120,
-          maxColumns: isMasterySection ? 6 : 10,
+          maxColumns: 10,
           spacing: spacing,
         );
         return CustomScrollView(
@@ -1173,9 +1441,9 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       TextSpan(
-                        text:
-                            '\n${category.phaseTitle} • ${category.phasePurpose}'
-                            '${isMasterySection ? ' • $masteryCompletionSummary' : ''}',
+                        text: isMasterySection
+                            ? '\nConcept Integration • $masteryCompletionSummary'
+                            : '\n${category.phaseTitle} • ${category.phasePurpose}',
                         style: TextStyle(
                           fontSize: compact ? 11 : 12.5,
                           fontWeight: FontWeight.w800,
@@ -1190,13 +1458,6 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            if (isMasterySection && !_masteryChallengesUnlocked)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: compact ? 10 : 12),
-                  child: _MasteryLockedCard(compact: compact),
-                ),
-              ),
             SliverGrid.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: columns,
@@ -1204,7 +1465,7 @@ class _HomePageState extends State<HomePage> {
                 mainAxisSpacing: spacing,
                 childAspectRatio: isMasterySection
                     ? compact
-                        ? 0.98
+                        ? 1.02
                         : 1.18
                     : compact
                         ? 1.02
@@ -1215,9 +1476,15 @@ class _HomePageState extends State<HomePage> {
                 final int currentIndex = indexStart + index;
                 final int levelNumber = currentIndex + 1;
                 final QQLevel level = allQQLevels[currentIndex];
-                final bool isUnlocked = _isLevelUnlocked(levelNumber);
-                final bool isCompleted =
-                    isMasterySection && _isMasteryCompleted(levelNumber);
+                final bool isUnlocked = CampaignProgressPolicy.isLevelUnlocked(
+                  displayedProgress,
+                  levelNumber,
+                );
+                final bool isCompleted = isMasterySection &&
+                    CampaignProgressPolicy.isChallengeCompleted(
+                      displayedProgress,
+                      levelNumber,
+                    );
 
                 return Container(
                   decoration: BoxDecoration(
@@ -1257,6 +1524,11 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Positioned.fill(
                         child: ElevatedButton(
+                          key: ValueKey(
+                            isMasterySection
+                                ? 'mastery-challenge-${ProgressionRules.masteryChallengeNumber(levelNumber)}'
+                                : 'journey-lesson-$levelNumber',
+                          ),
                           onPressed: isUnlocked
                               ? () async {
                                   await _playLevelSequence(
@@ -1337,10 +1609,11 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       if (isCompleted)
-                        const Positioned(
+                        Positioned(
+                          key: ValueKey('mastery-completed-$levelNumber'),
                           top: 7,
                           right: 7,
-                          child: _MasteryCompletedCheckmark(),
+                          child: const _MasteryCompletedCheckmark(),
                         ),
                     ],
                   ),
@@ -1361,49 +1634,6 @@ class _HomePageState extends State<HomePage> {
       onLevelUnlocked: _updateMaxUnlockedLevel,
       isCompleted: _isMasteryCompleted(levelId),
     );
-  }
-
-  Future<bool> _showMasteryTransitionDialog() async {
-    while (mounted) {
-      final action = await showDialog<_MasteryTransitionAction>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return QubitQuestDialog(
-            title: 'Guided Discovery Complete',
-            maxWidth: 560,
-            actions: [
-              QubitQuestDialogButton.secondary(
-                label: 'Review Notebook',
-                onPressed: () => Navigator.of(context).pop(
-                  _MasteryTransitionAction.reviewNotebook,
-                ),
-              ),
-              QubitQuestDialogButton.primary(
-                label: 'Start Mastery Challenges',
-                onPressed: () => Navigator.of(context).pop(
-                  _MasteryTransitionAction.start,
-                ),
-              ),
-            ],
-            child: const _MasteryTransitionBody(),
-          );
-        },
-      );
-
-      if (!mounted) return false;
-      if (action == _MasteryTransitionAction.start) return true;
-      if (action == _MasteryTransitionAction.reviewNotebook) {
-        await Navigator.of(context).push<void>(
-          MaterialPageRoute(
-            builder: (context) => const DiscoveriesScreen(),
-          ),
-        );
-        continue;
-      }
-      return false;
-    }
-    return false;
   }
 
   Future<void> _showMasteryCompleteDialog() async {
@@ -1500,27 +1730,6 @@ class _HomePageState extends State<HomePage> {
       return false;
     }
     return false;
-  }
-
-  Future<void> _showMasteryLockedDialog() async {
-    if (!mounted) return;
-
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return QubitQuestDialog(
-          title: 'Mastery Challenges Locked',
-          maxWidth: 500,
-          actions: [
-            QubitQuestDialogButton.primary(
-              label: 'Back to Journey',
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-          child: const _MasteryLockedDialogBody(),
-        );
-      },
-    );
   }
 
   Future<void> _showLearningIntroIfNeeded(QQLevel level) async {
@@ -1750,7 +1959,6 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           _progressState = progressState;
           _maxUnlockedLevel = progressState.maxUnlockedLevel;
-          _completedMasteryLevels = progressState.completedChallengeIds;
         });
       }
     }
@@ -1830,12 +2038,6 @@ class _HomePageState extends State<HomePage> {
         break;
       }
 
-      if (_isMasteryChallengeLevel(levelData) && !_masteryChallengesUnlocked) {
-        await _showMasteryLockedDialog();
-        continueLevelChain = false;
-        break;
-      }
-
       if (_isMasteryChallengeLevel(levelData)) {
         final shouldStart =
             await _showMasteryChallengeBrief(levelData, currentLevelToPlay);
@@ -1872,9 +2074,7 @@ class _HomePageState extends State<HomePage> {
         if (!context.mounted) break;
 
         if (currentLevelToPlay == _guidedDiscoveryLevelCount) {
-          final startMastery = await _showMasteryTransitionDialog();
-          if (!startMastery || !context.mounted) break;
-          currentLevelToPlay++;
+          continueLevelChain = false;
         } else if (currentLevelToPlay == _journeyLevelCount) {
           continueLevelChain = false;
         } else {
@@ -1927,84 +2127,9 @@ class _UtilityMenuRow extends StatelessWidget {
   }
 }
 
-enum _MasteryTransitionAction {
-  start,
-  reviewNotebook,
-}
-
 enum _MasteryCompleteAction {
   continueExploring,
   reviewNotebook,
-}
-
-class _MasteryLockedCard extends StatelessWidget {
-  const _MasteryLockedCard({required this.compact});
-
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFF0B2D2A).withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFF7CFFB2).withValues(alpha: 0.28),
-        ),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(compact ? 12 : 14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: compact ? 34 : 38,
-              height: compact ? 34 : 38,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF7CFFB2).withValues(alpha: 0.12),
-                border: Border.all(
-                  color: const Color(0xFF7CFFB2).withValues(alpha: 0.32),
-                ),
-              ),
-              child: const Icon(
-                Icons.lock_outline_rounded,
-                color: Color(0xFF7CFFB2),
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Mastery Challenges are the application phase.',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: compact ? 13.5 : 15,
-                      height: 1.2,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    'Complete Guided Discovery to unlock Mastery Challenges.',
-                    style: TextStyle(
-                      color: const Color(0xFFD6E3F8).withValues(alpha: 0.88),
-                      fontSize: compact ? 12 : 13,
-                      height: 1.32,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _MasteryCompletedCheckmark extends StatelessWidget {
@@ -2059,7 +2184,7 @@ class _JourneyCompleteBody extends StatelessWidget {
             SizedBox(width: 10),
             Expanded(
               child: Text(
-                'You completed Guided Discovery and the Mastery Challenges. The full curriculum remains available for review.',
+                'You completed the Learning Journey. Every lesson remains available for review, and Mastery Challenges remain an independent practice destination.',
                 style: TextStyle(
                   color: Color(0xFFD6E3F8),
                   fontSize: 14,
@@ -2071,134 +2196,6 @@ class _JourneyCompleteBody extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _MasteryLockedDialogBody extends StatelessWidget {
-  const _MasteryLockedDialogBody();
-
-  @override
-  Widget build(BuildContext context) {
-    return const _MasteryLockedInfo(
-      title: 'Complete Guided Discovery first.',
-      text:
-          'Complete Guided Discovery to unlock Mastery Challenges. They apply combined concepts after Chapter 12 Level 5.',
-    );
-  }
-}
-
-class _MasteryLockedInfo extends StatelessWidget {
-  const _MasteryLockedInfo({
-    required this.title,
-    required this.text,
-  });
-
-  final String title;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: QubitQuestDialog.innerColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: QubitQuestDialog.borderSoftColor),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(
-              Icons.lock_outline_rounded,
-              color: QubitQuestDialog.cyan,
-              size: 22,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      height: 1.22,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    text,
-                    style: const TextStyle(
-                      color: Color(0xFFD6E3F8),
-                      fontSize: 14,
-                      height: 1.38,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MasteryTransitionBody extends StatelessWidget {
-  const _MasteryTransitionBody();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const _MasteryIconHeader(
-          icon: Icons.workspace_premium_outlined,
-          label: 'Phase 2: Concept Integration',
-        ),
-        const SizedBox(height: 14),
-        const Text(
-          'You have completed the guided curriculum. Mastery Challenges now unlock advanced puzzles that combine the concepts you discovered.',
-          style: TextStyle(
-            color: Color(0xFFD6E3F8),
-            fontSize: 15,
-            height: 1.44,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 14),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: QubitQuestDialog.innerColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: QubitQuestDialog.borderSoftColor),
-          ),
-          child: const Padding(
-            padding: EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _MasteryFlowRow(
-                  icon: Icons.auto_stories_outlined,
-                  title: 'Guided Discovery',
-                  text: 'Learn concepts in a scaffolded order.',
-                ),
-                SizedBox(height: 12),
-                _MasteryFlowRow(
-                  icon: Icons.hub_outlined,
-                  title: 'Mastery Challenges',
-                  text: 'Apply what you learned as combined ideas.',
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

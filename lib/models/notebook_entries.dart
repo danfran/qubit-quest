@@ -19,9 +19,9 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The qubit changed from one basis state to another. Before the gate, measuring gives 0. After the gate, measuring gives 1.',
       examples: [
-        NotebookExample(label: 'Before', notation: '|0⟩'),
-        NotebookExample(label: 'After', notation: '|1⟩'),
-        NotebookExample(label: 'Gate action', notation: 'X|0⟩ = |1⟩'),
+        NotebookExample.math(label: 'Before', notation: '|0⟩'),
+        NotebookExample.math(label: 'After', notation: '|1⟩'),
+        NotebookExample.math(label: 'Gate action', notation: 'X|0⟩ = |1⟩'),
       ],
     ),
     quantumView: NotebookSection(
@@ -50,31 +50,50 @@ const List<NotebookEntry> notebookEntries = [
     intuition: NotebookSection(
       title: 'Intuition',
       body:
-          'Imagine walking one step to the right, then one step to the left. You moved, but you ended where you started. The X gate works similarly here: one X flips the qubit, and another X flips it back.',
+          'Every quantum gate has an operation that undoes it. We write that inverse as U† (“U dagger”). Imagine retracing a route home: undo the last turn first, then continue backward. A circuit is undone by reversing its order and replacing each operation with its inverse.',
     ),
     whatChanged: NotebookSection(
       title: 'What Changed?',
       body:
-          'The visible state changed twice: first from |0⟩ to |1⟩, then back from |1⟩ to |0⟩. What stayed the same is the information trail: the second X reverses the first X instead of erasing it.',
+          'The visible state changed and then returned. X and CNOT are self-inverse, so the same operation undoes them. Phase gates need their inverse partner: S is undone by S†, and T by T†.',
       examples: [
-        NotebookExample(label: 'Start', notation: '|0⟩'),
-        NotebookExample(label: 'After first X', notation: '|1⟩'),
-        NotebookExample(label: 'After second X', notation: '|0⟩'),
+        NotebookExample.math(
+          label: 'X progression',
+          notation: '|0⟩ → X → |1⟩ → X → |0⟩',
+          mathRole: NotebookMathRole.emphasis,
+        ),
+        NotebookExample.math(
+          label: 'Reverse a sequence',
+          notation: 'A → B → C  is undone by  C† → B† → A†',
+          latexLines: [
+            r'A \rightarrow B \rightarrow C',
+            r'C^{\dagger} \rightarrow B^{\dagger} \rightarrow A^{\dagger}',
+          ],
+          mathRole: NotebookMathRole.emphasis,
+        ),
       ],
     ),
     quantumView: NotebookSection(
       title: 'Quantum View',
       body:
-          'X flips both basis states. Because it works in both directions, applying X twice brings the qubit back to where it began.',
+          'An inverse satisfies U†U = I, where I is the identity: the operation that leaves the state unchanged. For a circuit U = CBA, its inverse is U† = A†B†C†. This restores every input, not only one convenient basis state.',
       examples: [
-        NotebookExample(
+        NotebookExample.math(
+          label: 'Inverse identity',
+          notation: 'U†U = I',
+        ),
+        NotebookExample.math(
             label: 'X on basis states', notation: 'X|0⟩ = |1⟩\nX|1⟩ = |0⟩'),
+        NotebookExample.math(
+            label: 'Self-inverse gates', notation: 'X² = I\nCNOT² = I'),
+        NotebookExample.math(
+            label: 'Phase inverses', notation: 'S†S = I\nT†T = I'),
       ],
     ),
     advancedNotes: NotebookSection(
       title: 'Advanced Notes',
       body:
-          'Reversibility is one reason quantum circuits are built differently from ordinary one-way calculations. Later, circuits will often do work and then undo part of that work. This is called uncomputation.',
+          'Mathematically, U† is the conjugate transpose of U. Quantum gates are unitary, so U† is also U⁻¹. Uncomputation reverses temporary work after its useful effect has been transferred or encoded. It can return workspace qubits to their starting state without erasing the result preserved elsewhere.',
     ),
     relatedDiscoveryTitles: [
       'Information',
@@ -99,8 +118,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The path changed, but the destination stayed the same. One X and three X gates both end at |1⟩, because two of the flips cancel each other.',
       examples: [
-        NotebookExample(label: 'Short path', notation: '|0⟩ → X → |1⟩'),
-        NotebookExample(
+        NotebookExample.math(label: 'Short path', notation: '|0⟩ → X → |1⟩'),
+        NotebookExample.math(
           label: 'Long path',
           notation: '|0⟩ → X → |1⟩ → X → |0⟩ → X → |1⟩',
         ),
@@ -111,8 +130,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'Two X gates cancel. Three X gates act like one X because one pair cancels and one flip remains.',
       examples: [
-        NotebookExample(label: 'Two X gates', notation: 'XX|0⟩ = |0⟩'),
-        NotebookExample(label: 'Three X gates', notation: 'XXX|0⟩ = |1⟩'),
+        NotebookExample.math(label: 'Two X gates', notation: 'XX|0⟩ = |0⟩'),
+        NotebookExample.math(label: 'Three X gates', notation: 'XXX|0⟩ = |1⟩'),
       ],
     ),
     advancedNotes: NotebookSection(
@@ -144,8 +163,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The circuit transformed a whole register, not just a single symbol. Each wire carried one part of the pattern.',
       examples: [
-        NotebookExample(label: 'Before', notation: '|00⟩'),
-        NotebookExample(label: 'After', notation: '|11⟩'),
+        NotebookExample.math(label: 'Before', notation: '|00⟩'),
+        NotebookExample.math(label: 'After', notation: '|11⟩'),
         NotebookExample(
             label: 'Each part changed',
             notation: 'first qubit: 0 → 1\nsecond qubit: 0 → 1'),
@@ -185,8 +204,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'Both qubits changed state, but the register structure stayed the same: there were still two qubits, and each position still mattered.',
       examples: [
-        NotebookExample(label: 'Before', notation: '|01⟩'),
-        NotebookExample(label: 'After', notation: '|10⟩'),
+        NotebookExample.math(label: 'Before', notation: '|01⟩'),
+        NotebookExample.math(label: 'After', notation: '|10⟩'),
         NotebookExample(
             label: 'Each part changed',
             notation: 'first qubit: 0 → 1\nsecond qubit: 1 → 0'),
@@ -197,7 +216,7 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'A two-qubit state such as |01⟩ describes an ordered register. The first position and second position are different qubits. Applying X to each qubit changes the pattern from |01⟩ to |10⟩.',
       examples: [
-        NotebookExample(label: 'Pattern change', notation: '|01⟩ → |10⟩'),
+        NotebookExample.math(label: 'Pattern change', notation: '|01⟩ → |10⟩'),
       ],
     ),
     advancedNotes: NotebookSection(
@@ -231,9 +250,9 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The visible state stayed |0⟩. What changed is the player\'s model: a gate can matter even when the measured result does not change.',
       examples: [
-        NotebookExample(label: 'Before', notation: '|0⟩'),
-        NotebookExample(label: 'After Z', notation: '|0⟩'),
-        NotebookExample(
+        NotebookExample.math(label: 'Before', notation: '|0⟩'),
+        NotebookExample.math(label: 'After Z', notation: '|0⟩'),
+        NotebookExample.math(
             label: 'Visible measurement', notation: 'P(|0⟩) = 100%'),
       ],
     ),
@@ -242,7 +261,7 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'Z leaves |0⟩ unchanged, but that does not mean Z does nothing. The same gate will behave differently on |1⟩. This separates "nothing visible changed" from "nothing happened."',
       examples: [
-        NotebookExample(label: 'Z on |0⟩', notation: 'Z|0⟩ = |0⟩'),
+        NotebookExample.math(label: 'Z on |0⟩', notation: 'Z|0⟩ = |0⟩'),
       ],
     ),
     advancedNotes: NotebookSection(
@@ -263,31 +282,40 @@ const List<NotebookEntry> notebookEntries = [
     chapterTitle: 'Chapter 2 - Hidden Change',
     title: 'Invisible Difference',
     summary:
-        'Two states can give the same measurement result while still being different quantum states.',
+        'Different state vectors can represent exactly the same physical pure state when they differ only by global phase.',
     intuition: NotebookSection(
       title: 'Intuition',
       body:
-          'Imagine two cards that both show "1" on the front. One card has a hidden mark on the back. If you only look at the front, they seem identical. But a later rule can use the hidden mark. The minus sign on −|1⟩ works like that hidden mark.',
+          'Think of writing the same direction arrow at two different scales or with one overall sign. '
+          'Quantum mechanics identifies vectors that differ only by one common phase. The minus sign '
+          'on −|1⟩ is not hidden physical information: it is another representation of |1⟩.',
     ),
     whatChanged: NotebookSection(
       title: 'What Changed?',
       body:
-          'The measured bit stayed 1. The state description changed by gaining a minus sign.',
+          'The displayed vector gained a minus sign. The physical state, its Bloch-sphere point, '
+          'and every possible experimental prediction stayed unchanged.',
       examples: [
-        NotebookExample(label: 'Before', notation: '|1⟩'),
-        NotebookExample(label: 'After', notation: '−|1⟩'),
-        NotebookExample(
+        NotebookExample.math(label: 'Before', notation: '|1⟩'),
+        NotebookExample.math(label: 'After', notation: '−|1⟩'),
+        NotebookExample.math(
           label: 'Measurement',
           notation: 'P(|1⟩) = 100% before\nP(|1⟩) = 100% after',
+          latexLines: [
+            r'P(\lvert1\rangle)_{\mathrm{before}}=100\%',
+            r'P(\lvert1\rangle)_{\mathrm{after}}=100\%',
+          ],
         ),
       ],
     ),
     quantumView: NotebookSection(
       title: 'Quantum View',
       body:
-          'Z leaves |0⟩ alone and gives |1⟩ a minus sign. For a single basis state, that sign does not change the measurement probability. Later, when there are multiple parts to compare, signs can affect how the state behaves.',
+          'Z leaves |0⟩ alone and writes |1⟩ as −|1⟩. For this basis-state input, the sign '
+          'multiplies the whole vector and is global phase. With multiple nonzero amplitudes, Z can '
+          'instead change one component relative to another, and that relative phase is physical.',
       examples: [
-        NotebookExample(
+        NotebookExample.math(
           label: 'Z gate action',
           notation: 'Z|0⟩ = |0⟩\nZ|1⟩ = −|1⟩',
         ),
@@ -296,7 +324,20 @@ const List<NotebookEntry> notebookEntries = [
     advancedNotes: NotebookSection(
       title: 'Advanced Notes',
       body:
-          'A single overall sign is not directly visible as a different measurement result. The useful lesson here is preparatory: signs become meaningful when they become relationships between parts of a state.',
+          'More generally, |ψ⟩ and e^(iφ)|ψ⟩ represent the same pure state for every φ. '
+          'Global phase multiplies all amplitudes equally, changes no probability or later prediction, '
+          'and maps to the same Bloch-sphere point. The same distinction applies to operations: U and '
+          'e^(iφ)U are not literally the same matrix, but on an isolated pure state their outputs differ '
+          'only by one common global phase. Relative phase changes ratios between amplitudes and can alter interference.',
+      examples: [
+        NotebookExample.math(
+          label: 'Operation equivalence',
+          notation: 'V = e^(iφ)U  does not mean  V = U',
+          latex: r'V=e^{i\phi}U \not\Rightarrow V=U',
+          explanation:
+              'The matrices differ, while their output pure states are physically equivalent up to global phase.',
+        ),
+      ],
     ),
     relatedDiscoveryTitles: [
       'Hidden Change',
@@ -324,9 +365,9 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The probabilities stayed balanced. What changed was the relationship between the |0⟩ part and the |1⟩ part: plus became minus.',
       examples: [
-        NotebookExample(label: 'Before', notation: '|+⟩ = (|0⟩ + |1⟩)/√2'),
-        NotebookExample(label: 'After', notation: '|−⟩ = (|0⟩ − |1⟩)/√2'),
-        NotebookExample(
+        NotebookExample.math(label: 'Before', notation: '|+⟩ = (|0⟩ + |1⟩)/√2'),
+        NotebookExample.math(label: 'After', notation: '|−⟩ = (|0⟩ − |1⟩)/√2'),
+        NotebookExample.math(
             label: 'Measurement', notation: 'P(|0⟩) = 50%\nP(|1⟩) = 50%'),
       ],
     ),
@@ -365,13 +406,16 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The possible measurement outcomes stayed the same, but the relationship between the two parts changed. The circuit changed |−⟩ back into |+⟩, turning a minus relationship into a plus relationship.',
       examples: [
-        NotebookExample(label: 'Before', notation: '|−⟩ = (|0⟩ − |1⟩)/√2'),
-        NotebookExample(label: 'After', notation: '|+⟩ = (|0⟩ + |1⟩)/√2'),
-        NotebookExample(
+        NotebookExample.math(label: 'Before', notation: '|−⟩ = (|0⟩ − |1⟩)/√2'),
+        NotebookExample.math(label: 'After', notation: '|+⟩ = (|0⟩ + |1⟩)/√2'),
+        NotebookExample.math(
             label: 'Measurement before',
-            notation: 'P(|0⟩) = 50%\nP(|1⟩) = 50%'),
-        NotebookExample(
-            label: 'Measurement after', notation: 'P(|0⟩) = 50%\nP(|1⟩) = 50%'),
+            notation: 'P(|0⟩) = 50%\nP(|1⟩) = 50%',
+            comparisonGroup: 'hidden-information-measurement'),
+        NotebookExample.math(
+            label: 'Measurement after',
+            notation: 'P(|0⟩) = 50%\nP(|1⟩) = 50%',
+            comparisonGroup: 'hidden-information-measurement'),
         NotebookExample(
             label: 'Key difference',
             notation:
@@ -381,12 +425,30 @@ const List<NotebookEntry> notebookEntries = [
     quantumView: NotebookSection(
       title: 'Quantum View',
       body:
-          '|+⟩ and |−⟩ contain the same possible measurement outcomes with the same probabilities. Their difference is the sign relationship between |0⟩ and |1⟩. That relationship is information because later gates can react to it.',
+          '|+⟩ and |−⟩ contain the same possible measurement outcomes with the same probabilities. Their difference is the phase relationship between |0⟩ and |1⟩. Successive phase operations multiply the |1⟩ amplitude by successive phase factors, so their turns accumulate.',
+      examples: [
+        NotebookExample.math(
+          label: 'Accumulated phase',
+          notation: 'e^(iα)e^(iβ) = e^(i(α+β))',
+          latex: r'e^{i\alpha}e^{i\beta}=e^{i(\alpha+\beta)}',
+        ),
+        NotebookExample.math(
+          label: 'Quarter turns',
+          notation: 'i² = −1\n(−i)i = 1',
+          latexLines: [r'i^{2}=-1', r'(-i)i=1'],
+        ),
+      ],
     ),
     advancedNotes: NotebookSection(
       title: 'Advanced Notes',
       body:
-          'Many quantum algorithms first place useful information into phase. Later, interference converts that stored relationship into changed measurement probabilities. This is why hidden information can still be useful.',
+          'Complex factors are part of gate action, not decoration. For example, Y exchanges |0⟩ and |1⟩ while attaching ±i factors. A common factor can be global phase; unequal factors between occupied amplitudes change relative phase. Later interference can reveal that relationship.',
+      examples: [
+        NotebookExample.math(
+          label: 'Y on basis states',
+          notation: 'Y|0⟩ = i|1⟩\nY|1⟩ = −i|0⟩',
+        ),
+      ],
     ),
     relatedDiscoveryTitles: [
       'Invisible Difference',
@@ -412,8 +474,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'Before the gate, the qubit was definitely in |0⟩. After the gate, the state had both |0⟩ and |1⟩ parts. The possible measurement labels stayed the same, but the state before measurement changed.',
       examples: [
-        NotebookExample(label: 'Before', notation: '|0⟩'),
-        NotebookExample(label: 'After', notation: '|+⟩ = (|0⟩ + |1⟩)/√2'),
+        NotebookExample.math(label: 'Before', notation: '|0⟩'),
+        NotebookExample.math(label: 'After', notation: '|+⟩ = (|0⟩ + |1⟩)/√2'),
         NotebookExample(
           label: 'Measurement labels',
           notation: 'Measurement still returns 0 or 1.',
@@ -425,8 +487,9 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The H gate maps |0⟩ into the balanced state |+⟩. The symbols |0⟩ and |1⟩ are still the basis states that can appear as measurement outcomes. The symbol |+⟩ describes the qubit before measurement.',
       examples: [
-        NotebookExample(label: 'Hadamard action', notation: 'H|0⟩ = |+⟩'),
-        NotebookExample(label: 'Plus state', notation: '|+⟩ = (|0⟩ + |1⟩)/√2'),
+        NotebookExample.math(label: 'Hadamard action', notation: 'H|0⟩ = |+⟩'),
+        NotebookExample.math(
+            label: 'Plus state', notation: '|+⟩ = (|0⟩ + |1⟩)/√2'),
       ],
     ),
     advancedNotes: NotebookSection(
@@ -458,11 +521,11 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The state before measurement supported two possible outcomes. The measurement still returns one result, but it is no longer guaranteed to be only 0 or only 1.',
       examples: [
-        NotebookExample(
+        NotebookExample.math(
           label: 'Possible outcomes',
           notation: '|0⟩\n|1⟩',
         ),
-        NotebookExample(
+        NotebookExample.math(
           label: 'Measurement probabilities',
           notation: 'P(|0⟩) = 50%\nP(|1⟩) = 50%',
         ),
@@ -473,11 +536,11 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'A balanced superposition has equal-sized |0⟩ and |1⟩ parts, so measurement gives equal probabilities. The minus sign in this level is not the main lesson; the key idea is that one quantum state can support more than one possible measurement result.',
       examples: [
-        NotebookExample(
+        NotebookExample.math(
           label: 'Balanced state',
           notation: '(|0⟩ − |1⟩)/√2',
         ),
-        NotebookExample(
+        NotebookExample.math(
           label: 'Measurement',
           notation: 'P(|0⟩) = 50%\nP(|1⟩) = 50%',
         ),
@@ -513,15 +576,17 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The qubit moved from a balanced superposition back to a definite basis state. The probabilities changed from uncertain to certain, but the operation itself was controlled.',
       examples: [
-        NotebookExample(label: 'Before', notation: '|+⟩'),
-        NotebookExample(label: 'After', notation: '|0⟩'),
-        NotebookExample(
+        NotebookExample.math(label: 'Before', notation: '|+⟩'),
+        NotebookExample.math(label: 'After', notation: '|0⟩'),
+        NotebookExample.math(
           label: 'Measurement before',
           notation: 'P(|0⟩) = 50%\nP(|1⟩) = 50%',
+          comparisonGroup: 'precise-superposition-measurement',
         ),
-        NotebookExample(
+        NotebookExample.math(
           label: 'Measurement after',
           notation: 'P(|0⟩) = 100%\nP(|1⟩) = 0%',
+          comparisonGroup: 'precise-superposition-measurement',
         ),
       ],
     ),
@@ -530,8 +595,10 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The H gate is reversible. It can create |+⟩ from |0⟩, and it can also turn |+⟩ back into |0⟩. This is why superposition should not be confused with ordinary randomness.',
       examples: [
-        NotebookExample(label: 'Create superposition', notation: 'H|0⟩ = |+⟩'),
-        NotebookExample(label: 'Reverse superposition', notation: 'H|+⟩ = |0⟩'),
+        NotebookExample.math(
+            label: 'Create superposition', notation: 'H|0⟩ = |+⟩'),
+        NotebookExample.math(
+            label: 'Reverse superposition', notation: 'H|+⟩ = |0⟩'),
       ],
     ),
     advancedNotes: NotebookSection(
@@ -563,9 +630,10 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The circuit used planning. It first prepared the correct input, then created the balanced state. The final superposition was the result of a sequence, not a lucky observation.',
       examples: [
-        NotebookExample(label: 'Start', notation: '|1⟩'),
-        NotebookExample(label: 'Prepare input', notation: 'X|1⟩ = |0⟩'),
-        NotebookExample(label: 'Create superposition', notation: 'H|0⟩ = |+⟩'),
+        NotebookExample.math(label: 'Start', notation: '|1⟩'),
+        NotebookExample.math(label: 'Prepare input', notation: 'X|1⟩ = |0⟩'),
+        NotebookExample.math(
+            label: 'Create superposition', notation: 'H|0⟩ = |+⟩'),
       ],
     ),
     quantumView: NotebookSection(
@@ -573,7 +641,7 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The final state depends on the input to H. Preparing the input first lets the circuit create the intended superposition.',
       examples: [
-        NotebookExample(
+        NotebookExample.math(
           label: 'Planned path',
           notation: '|1⟩ → X → |0⟩ → H → |+⟩',
         ),
@@ -609,10 +677,12 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The circuit prepared a two-qubit register where one qubit became superposed and the other stayed fixed. The register gained two possible basis states, but not every basis state became possible.',
       examples: [
-        NotebookExample(label: 'Start', notation: '|10⟩'),
-        NotebookExample(label: 'Prepare register', notation: '|10⟩ → |00⟩'),
-        NotebookExample(label: 'Place superposition', notation: '|00⟩ → |+0⟩'),
-        NotebookExample(
+        NotebookExample.math(label: 'Start', notation: '|10⟩'),
+        NotebookExample.math(
+            label: 'Prepare register', notation: '|10⟩ → |00⟩'),
+        NotebookExample.math(
+            label: 'Place superposition', notation: '|00⟩ → |+0⟩'),
+        NotebookExample.math(
           label: 'Measurement',
           notation: 'P(|00⟩) = 50%\nP(|01⟩) = 0%\nP(|10⟩) = 50%\nP(|11⟩) = 0%',
         ),
@@ -623,7 +693,7 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The state |+0⟩ means the first qubit is in the plus state while the second qubit remains 0. This is not entanglement. The important idea is that superposition can be placed precisely within a larger register.',
       examples: [
-        NotebookExample(
+        NotebookExample.math(
           label: 'Two-qubit superposition',
           notation: '|+0⟩ = (|00⟩ + |10⟩)/√2',
         ),
@@ -659,9 +729,9 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The state changed from |+⟩ to |−⟩. The measurement odds stayed balanced, but the phase relationship is now different and ready to be revealed by another gate.',
       examples: [
-        NotebookExample(label: 'Before', notation: '|+⟩ = (|0⟩ + |1⟩)/√2'),
-        NotebookExample(label: 'After', notation: '|−⟩ = (|0⟩ − |1⟩)/√2'),
-        NotebookExample(
+        NotebookExample.math(label: 'Before', notation: '|+⟩ = (|0⟩ + |1⟩)/√2'),
+        NotebookExample.math(label: 'After', notation: '|−⟩ = (|0⟩ − |1⟩)/√2'),
+        NotebookExample.math(
           label: 'Measurement',
           notation: 'P(|0⟩) = 50%\nP(|1⟩) = 50%',
         ),
@@ -672,7 +742,7 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'Z changes the sign of the |1⟩ part of |+⟩. The result is |−⟩, a state with the same probabilities but a different phase relationship.',
       examples: [
-        NotebookExample(label: 'Phase change', notation: 'Z|+⟩ = |−⟩'),
+        NotebookExample.math(label: 'Phase change', notation: 'Z|+⟩ = |−⟩'),
       ],
     ),
     advancedNotes: NotebookSection(
@@ -704,9 +774,9 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The circuit first created a superposition, then changed the phase relationship, then changed basis again. The final result was no longer hidden: the measured bit changed from the |0⟩ target to |1⟩.',
       examples: [
-        NotebookExample(label: 'Start', notation: '|0⟩'),
-        NotebookExample(label: 'Create paths', notation: '|0⟩ → H → |+⟩'),
-        NotebookExample(
+        NotebookExample.math(label: 'Start', notation: '|0⟩'),
+        NotebookExample.math(label: 'Create paths', notation: '|0⟩ → H → |+⟩'),
+        NotebookExample.math(
             label: 'Reveal phase', notation: '|+⟩ → Z → |−⟩ → H → |1⟩'),
       ],
     ),
@@ -715,8 +785,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The identity HZH = X supports the discovery, but the discovery is the mechanism: H changes basis, Z changes phase, and the final H makes that phase visible as a bit flip.',
       examples: [
-        NotebookExample(label: 'Gate identity', notation: 'HZH = X'),
-        NotebookExample(
+        NotebookExample.math(label: 'Gate identity', notation: 'HZH = X'),
+        NotebookExample.math(
             label: 'State path',
             notation: 'H|0⟩ = |+⟩\nZ|+⟩ = |−⟩\nH|−⟩ = |1⟩'),
       ],
@@ -749,9 +819,9 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The circuit used H gates around X. That changed the perspective before and after the operation, so the final effect on the original state was the same as a phase flip.',
       examples: [
-        NotebookExample(label: 'Start', notation: '|+⟩'),
-        NotebookExample(label: 'Change basis', notation: '|+⟩ → H → |0⟩'),
-        NotebookExample(
+        NotebookExample.math(label: 'Start', notation: '|+⟩'),
+        NotebookExample.math(label: 'Change basis', notation: '|+⟩ → H → |0⟩'),
+        NotebookExample.math(
             label: 'Return with phase', notation: '|0⟩ → X → |1⟩ → H → |−⟩'),
       ],
     ),
@@ -760,8 +830,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The identity HXH = Z is useful because it shows that gate meaning depends on basis. The equation is not just something to memorize; it says that surrounding an operation with a basis change can alter what feature it affects.',
       examples: [
-        NotebookExample(label: 'Gate identity', notation: 'HXH = Z'),
-        NotebookExample(
+        NotebookExample.math(label: 'Gate identity', notation: 'HXH = Z'),
+        NotebookExample.math(
             label: 'State path',
             notation: 'H|+⟩ = |0⟩\nX|0⟩ = |1⟩\nH|1⟩ = |−⟩'),
       ],
@@ -795,13 +865,17 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'Before the final H, the state carried a minus relationship between its two parts. After the final H, the |0⟩ contributions cancelled and the |1⟩ contributions reinforced.',
       examples: [
-        NotebookExample(
+        NotebookExample.math(
             label: 'Before reveal', notation: '|−⟩ = (|0⟩ − |1⟩)/√2'),
-        NotebookExample(label: 'After reveal', notation: 'H|−⟩ = |1⟩'),
-        NotebookExample(
+        NotebookExample.math(label: 'After reveal', notation: 'H|−⟩ = |1⟩'),
+        NotebookExample.math(
           label: 'Probability change',
           notation:
               'Before H: P(|0⟩) = 50%, P(|1⟩) = 50%\nAfter H: P(|0⟩) = 0%, P(|1⟩) = 100%',
+          latexLines: [
+            r'\mathrm{Before}\ H:\ P(\lvert0\rangle)=50\%,\ P(\lvert1\rangle)=50\%',
+            r'\mathrm{After}\ H:\ P(\lvert0\rangle)=0\%,\ P(\lvert1\rangle)=100\%',
+          ],
         ),
       ],
     ),
@@ -810,8 +884,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'Amplitudes add with signs. When two contributions to the same outcome have equal size and opposite sign, the sum is zero. The outcome is not erased; it receives zero final amplitude.',
       examples: [
-        NotebookExample(label: 'Cancellation', notation: '1/2 − 1/2 = 0'),
-        NotebookExample(label: 'Reinforcement', notation: '1/2 + 1/2 = 1'),
+        NotebookExample.math(label: 'Cancellation', notation: '1/2 − 1/2 = 0'),
+        NotebookExample.math(label: 'Reinforcement', notation: '1/2 + 1/2 = 1'),
       ],
     ),
     advancedNotes: NotebookSection(
@@ -848,9 +922,9 @@ const List<NotebookEntry> notebookEntries = [
             label: 'Story',
             notation:
                 'Hidden phase → Superposition → Interference → Changed probabilities'),
-        NotebookExample(
+        NotebookExample.math(
             label: 'Destructive result', notation: 'P(|0⟩): 50% → 0%'),
-        NotebookExample(
+        NotebookExample.math(
             label: 'Constructive result', notation: 'P(|1⟩): 50% → 100%'),
       ],
     ),
@@ -896,9 +970,14 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The circuit no longer describes only one qubit. It describes a register with two qubits. Each qubit can still be changed independently, and the pair can still be in an ordinary unentangled state.',
       examples: [
-        NotebookExample(label: 'One qubit', notation: '|0⟩ or |1⟩'),
-        NotebookExample(label: 'Two-qubit register', notation: '|00⟩'),
-        NotebookExample(label: 'Independent changes', notation: '|00⟩ → |11⟩'),
+        NotebookExample.math(
+          label: 'One qubit',
+          notation: '|0⟩ or |1⟩',
+          latex: r'\lvert0\rangle\ \text{or}\ \lvert1\rangle',
+        ),
+        NotebookExample.math(label: 'Two-qubit register', notation: '|00⟩'),
+        NotebookExample.math(
+            label: 'Independent changes', notation: '|00⟩ → |11⟩'),
       ],
     ),
     quantumView: NotebookSection(
@@ -906,9 +985,10 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'A two-qubit register uses basis states with two labels. The first label belongs to q0 and the second label belongs to q1. If the qubits are independent, the register can still be understood as one qubit state together with another qubit state.',
       examples: [
-        NotebookExample(
+        NotebookExample.math(
             label: 'Basis states', notation: '|00⟩, |01⟩, |10⟩, |11⟩'),
-        NotebookExample(label: 'Product example', notation: '|1⟩|1⟩ = |11⟩'),
+        NotebookExample.math(
+            label: 'Product example', notation: '|1⟩|1⟩ = |11⟩'),
       ],
     ),
     advancedNotes: NotebookSection(
@@ -941,8 +1021,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The target qubit changed because the control qubit was |1⟩. The action depended on the joint register state, not on the target alone. The result here is still a definite two-qubit state, so it is controlled behavior without entanglement.',
       examples: [
-        NotebookExample(label: 'Control off', notation: 'CNOT|00⟩ = |00⟩'),
-        NotebookExample(label: 'Control on', notation: 'CNOT|10⟩ = |11⟩'),
+        NotebookExample.math(label: 'Control off', notation: 'CNOT|00⟩ = |00⟩'),
+        NotebookExample.math(label: 'Control on', notation: 'CNOT|10⟩ = |11⟩'),
       ],
     ),
     quantumView: NotebookSection(
@@ -950,9 +1030,10 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'CNOT has two parts: a control and a target. It copies the control condition into an action on the target when the control is a definite |1⟩. If the control is in superposition, the same gate can connect different branches of the state.',
       examples: [
-        NotebookExample(label: 'Rule', notation: '|control,target⟩'),
-        NotebookExample(label: 'Conditional flip', notation: '|10⟩ → |11⟩'),
-        NotebookExample(label: 'No flip', notation: '|00⟩ → |00⟩'),
+        NotebookExample.math(label: 'Rule', notation: '|control,target⟩'),
+        NotebookExample.math(
+            label: 'Conditional flip', notation: '|10⟩ → |11⟩'),
+        NotebookExample.math(label: 'No flip', notation: '|00⟩ → |00⟩'),
       ],
     ),
     advancedNotes: NotebookSection(
@@ -986,11 +1067,16 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The circuit created two shared possibilities: both qubits are 0 together, or both qubits are 1 together. The individual qubits do not have separate definite values, but the pair has a precise joint state.',
       examples: [
-        NotebookExample(
+        NotebookExample.math(
             label: 'Prepare possibilities',
-            notation: '|00⟩ → H on q0 → (|00⟩ + |10⟩)/√2'),
-        NotebookExample(
-            label: 'Connect branches', notation: 'CNOT → (|00⟩ + |11⟩)/√2'),
+            notation: '|00⟩ → H on q0 → (|00⟩ + |10⟩)/√2',
+            latex:
+                r'\lvert00\rangle\xrightarrow{H\ \mathrm{on}\ q_0}\frac{\lvert00\rangle+\lvert10\rangle}{\sqrt{2}}'),
+        NotebookExample.math(
+            label: 'Connect branches',
+            notation: 'CNOT → (|00⟩ + |11⟩)/√2',
+            latex:
+                r'\operatorname{CNOT}\rightarrow\frac{\lvert00\rangle+\lvert11\rangle}{\sqrt{2}}'),
         NotebookExample(
             label: 'Measurements', notation: 'Only |00⟩ or |11⟩ can appear'),
       ],
@@ -1000,7 +1086,7 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The Bell state Φ⁺ is a superposition of two two-qubit basis states. It cannot be treated as one independent state for q0 and a separate independent state for q1.',
       examples: [
-        NotebookExample(
+        NotebookExample.math(
             label: 'Bell state', notation: '|Φ⁺⟩ = (|00⟩ + |11⟩)/√2'),
         NotebookExample(
             label: 'Not independent', notation: 'not q0 state × q1 state'),
@@ -1009,7 +1095,17 @@ const List<NotebookEntry> notebookEntries = [
     advancedNotes: NotebookSection(
       title: 'Advanced Notes',
       body:
-          'Bell states are examples of entanglement, not the definition of entanglement. They are useful because they are small, symmetric, and easy to test. Looking Ahead: Bell states become building blocks for quantum teleportation.',
+          'A preparation circuit is decoded by applying its inverse operations in reverse order. A local Z on either qubit changes the sign of the Bell branch containing |1⟩ on that wire, turning Φ⁺ into Φ⁻. The sign belongs to the shared state even though one local gate wrote it.',
+      examples: [
+        NotebookExample(
+          label: 'Decode preparation',
+          notation: 'prepare: H then CNOT\ndecode: CNOT then H',
+        ),
+        NotebookExample.math(
+          label: 'Shared relative phase',
+          notation: 'Φ⁺ = (|00⟩ + |11⟩)/√2\nΦ⁻ = (|00⟩ − |11⟩)/√2',
+        ),
+      ],
     ),
     relatedDiscoveryTitles: [
       'Correlation',
@@ -1053,8 +1149,9 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'Some two-qubit states can be factored into separate one-qubit states. Entangled states cannot. That is what makes them more than ordinary correlation.',
       examples: [
-        NotebookExample(label: 'Separable example', notation: '|+0⟩ = |+⟩|0⟩'),
-        NotebookExample(
+        NotebookExample.math(
+            label: 'Separable example', notation: '|+0⟩ = |+⟩|0⟩'),
+        NotebookExample.math(
             label: 'Entangled example', notation: '(|01⟩ + |10⟩)/√2'),
         NotebookExample(
             label: 'Key distinction',
@@ -1091,9 +1188,10 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The final state is not just two qubits sitting next to each other, and it is not merely a CNOT circuit. It is a state of the two-qubit system as a whole. The individual measurement labels are still 0 and 1, but the state cannot be broken into independent pieces.',
       examples: [
-        NotebookExample(
+        NotebookExample.math(
             label: 'Entangled state', notation: '|Φ−⟩ = (|00⟩ − |11⟩)/√2'),
-        NotebookExample(label: 'Possible outcomes', notation: '|00⟩ or |11⟩'),
+        NotebookExample.math(
+            label: 'Possible outcomes', notation: '|00⟩ or |11⟩'),
         NotebookExample(
             label: 'Impossible outcomes',
             notation: '|01⟩ and |10⟩ have zero probability'),
@@ -1106,7 +1204,8 @@ const List<NotebookEntry> notebookEntries = [
       examples: [
         NotebookExample(
             label: 'Separate form', notation: '(q0 state) × (q1 state)'),
-        NotebookExample(label: 'Bell example', notation: '(|00⟩ − |11⟩)/√2'),
+        NotebookExample.math(
+            label: 'Bell example', notation: '(|00⟩ − |11⟩)/√2'),
         NotebookExample(
             label: 'Misconception check',
             notation: 'Bell states are examples, not the definition'),
@@ -1143,8 +1242,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The target changed because the control was active. The circuit did not flip a qubit in isolation; it used information on one qubit to decide what happened to another.',
       examples: [
-        NotebookExample(label: 'Before', notation: '|01⟩'),
-        NotebookExample(label: 'After CX', notation: '|11⟩'),
+        NotebookExample.math(label: 'Before', notation: '|01⟩'),
+        NotebookExample.math(label: 'After CX', notation: '|11⟩'),
         NotebookExample(
             label: 'Condition', notation: 'active control -> target flips'),
       ],
@@ -1154,8 +1253,10 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'CX is a two-qubit gate. One qubit is the control and the other is the target. When the control is active, the target receives an X action. When the control is inactive, the target is left alone.',
       examples: [
-        NotebookExample(label: 'Control active', notation: 'CX|01⟩ = |11⟩'),
-        NotebookExample(label: 'Control inactive', notation: 'CX|00⟩ = |00⟩'),
+        NotebookExample.math(
+            label: 'Control active', notation: 'CX|01⟩ = |11⟩'),
+        NotebookExample.math(
+            label: 'Control inactive', notation: 'CX|00⟩ = |00⟩'),
       ],
     ),
     advancedNotes: NotebookSection(
@@ -1188,8 +1289,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The visible state stayed |00⟩ because the control was inactive. What changed is the explanation: the target did not stay fixed by accident; it stayed fixed because the condition was not met.',
       examples: [
-        NotebookExample(label: 'Before', notation: '|00⟩'),
-        NotebookExample(label: 'After CX', notation: '|00⟩'),
+        NotebookExample.math(label: 'Before', notation: '|00⟩'),
+        NotebookExample.math(label: 'After CX', notation: '|00⟩'),
         NotebookExample(
             label: 'Reason', notation: 'control = 0, so target does not flip'),
       ],
@@ -1199,8 +1300,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'A controlled gate is defined by its full behavior, not just by one visible input. On some inputs CX changes the register. On others it leaves the displayed state unchanged because the control condition is false.',
       examples: [
-        NotebookExample(label: 'No flip', notation: 'CX|00⟩ = |00⟩'),
-        NotebookExample(label: 'Flip', notation: 'CX|01⟩ = |11⟩'),
+        NotebookExample.math(label: 'No flip', notation: 'CX|00⟩ = |00⟩'),
+        NotebookExample.math(label: 'Flip', notation: 'CX|01⟩ = |11⟩'),
       ],
     ),
     advancedNotes: NotebookSection(
@@ -1233,9 +1334,10 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The circuit did two different jobs. X created an active qubit. CX then used that active qubit to change the other qubit, spreading the information through the two-qubit register.',
       examples: [
-        NotebookExample(label: 'Create', notation: '|00⟩ -> X -> |10⟩'),
-        NotebookExample(label: 'Propagate', notation: '|10⟩ -> CX -> |11⟩'),
-        NotebookExample(label: 'Result', notation: '|00⟩ -> |11⟩'),
+        NotebookExample.math(label: 'Create', notation: '|00⟩ -> X -> |10⟩'),
+        NotebookExample.math(
+            label: 'Propagate', notation: '|10⟩ -> CX -> |11⟩'),
+        NotebookExample.math(label: 'Result', notation: '|00⟩ -> |11⟩'),
       ],
     ),
     quantumView: NotebookSection(
@@ -1279,8 +1381,9 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The goal changed from matching a single visible input to building a full-register operation. Two CX gates may solve one displayed case, but the three-CX construction is what exchanges the qubits for every input.',
       examples: [
-        NotebookExample(label: 'Example input', notation: '|10⟩ -> |01⟩'),
-        NotebookExample(label: 'Other direction', notation: '|01⟩ -> |10⟩'),
+        NotebookExample.math(label: 'Example input', notation: '|10⟩ -> |01⟩'),
+        NotebookExample.math(
+            label: 'Other direction', notation: '|01⟩ -> |10⟩'),
         NotebookExample(label: 'SWAP pattern', notation: 'CX -> CX back -> CX'),
       ],
     ),
@@ -1289,9 +1392,9 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The SWAP gate is a full-register operation. It leaves |00⟩ and |11⟩ unchanged, and exchanges |01⟩ with |10⟩. That behavior over all basis inputs is what makes it a SWAP, not just one final state.',
       examples: [
-        NotebookExample(
+        NotebookExample.math(
             label: 'No change', notation: '|00⟩ -> |00⟩\n|11⟩ -> |11⟩'),
-        NotebookExample(
+        NotebookExample.math(
             label: 'Exchange', notation: '|01⟩ -> |10⟩\n|10⟩ -> |01⟩'),
       ],
     ),
@@ -1378,8 +1481,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The register now has three positions, so the possible outcomes are full patterns such as |000⟩, |001⟩, and |111⟩. The important habit is to read the entire pattern at once.',
       examples: [
-        NotebookExample(label: 'Start', notation: '|000⟩'),
-        NotebookExample(label: 'Prepared outcome', notation: '|111⟩'),
+        NotebookExample.math(label: 'Start', notation: '|000⟩'),
+        NotebookExample.math(label: 'Prepared outcome', notation: '|111⟩'),
         NotebookExample(
             label: 'Mental unit', notation: 'one full three-qubit register'),
       ],
@@ -1389,7 +1492,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'A three-qubit register has eight basis outcomes. GHZ will later restrict which of those full-register outcomes can appear, so this first step makes the register-level viewpoint explicit.',
       examples: [
-        NotebookExample(label: 'Examples', notation: '|000⟩\n|010⟩\n|111⟩'),
+        NotebookExample.math(
+            label: 'Examples', notation: '|000⟩\n|010⟩\n|111⟩'),
       ],
     ),
     advancedNotes: NotebookSection(
@@ -1421,7 +1525,7 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The final state is a globally consistent pattern. Every position agrees with the same full-register outcome, so the register is read as one coordinated object.',
       examples: [
-        NotebookExample(label: 'Full outcome', notation: '|111⟩'),
+        NotebookExample.math(label: 'Full outcome', notation: '|111⟩'),
         NotebookExample(
             label: 'Consistency', notation: 'measuring one 1 matches all 1s'),
         NotebookExample(
@@ -1463,8 +1567,9 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The state now has two allowed full-register outcomes. |000⟩ and |111⟩ have non-zero amplitude; mixed outcomes such as |001⟩, |010⟩, and |101⟩ are forbidden global outcomes.',
       examples: [
-        NotebookExample(label: 'Allowed', notation: '|000⟩\n|111⟩'),
-        NotebookExample(label: 'Forbidden', notation: '|001⟩\n|010⟩\n|101⟩'),
+        NotebookExample.math(label: 'Allowed', notation: '|000⟩\n|111⟩'),
+        NotebookExample.math(
+            label: 'Forbidden', notation: '|001⟩\n|010⟩\n|101⟩'),
         NotebookExample(
             label: 'Measurement rule',
             notation: 'local uncertainty, global consistency'),
@@ -1475,7 +1580,7 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'This is the state space restriction interpretation: the three-qubit state occupies only the part of the full basis where all qubits agree. The full register has eight basis outcomes, but only two have non-zero amplitude.',
       examples: [
-        NotebookExample(
+        NotebookExample.math(
             label: 'GHZ-like state', notation: '(|000⟩ + |111⟩)/√2'),
       ],
     ),
@@ -1530,7 +1635,19 @@ const List<NotebookEntry> notebookEntries = [
     advancedNotes: NotebookSection(
       title: 'Advanced Notes',
       body:
-          'The state space restriction interpretation is the useful mental model: GHZ restricts the register to a globally consistent subspace. Looking Ahead: the final entry names this as a global constraint system.',
+          'GHZ can keep the same allowed outcomes while changing the relative phase between its two global branches. A local Z on any one qubit multiplies the |111⟩ branch by −1 and leaves |000⟩ unchanged. The operation is local, but the changed phase relationship belongs to the whole register.',
+      examples: [
+        NotebookExample.math(
+          label: 'Global branch phase',
+          notation: '(|000⟩ + |111⟩)/√2 → Z on one wire → (|000⟩ − |111⟩)/√2',
+          latexLines: [
+            r'\frac{\lvert000\rangle+\lvert111\rangle}{\sqrt{2}}',
+            r'\xrightarrow{Z\ \mathrm{on\ one\ wire}}',
+            r'\frac{\lvert000\rangle-\lvert111\rangle}{\sqrt{2}}',
+          ],
+          mathRole: NotebookMathRole.emphasis,
+        ),
+      ],
     ),
     relatedDiscoveryTitles: [
       'All Together',
@@ -1556,8 +1673,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The complete register is now the mental unit. |000⟩ and |111⟩ are allowed global outcomes. The six mixed outcomes are forbidden global outcomes because their amplitudes are zero.',
       examples: [
-        NotebookExample(label: 'Allowed', notation: '|000⟩\n|111⟩'),
-        NotebookExample(
+        NotebookExample.math(label: 'Allowed', notation: '|000⟩\n|111⟩'),
+        NotebookExample.math(
             label: 'Forbidden',
             notation: '|001⟩\n|010⟩\n|011⟩\n|100⟩\n|101⟩\n|110⟩'),
         NotebookExample(
@@ -1573,7 +1690,7 @@ const List<NotebookEntry> notebookEntries = [
         NotebookExample(
             label: 'State space restriction interpretation',
             notation: '8 possible basis outcomes -> 2 allowed outcomes'),
-        NotebookExample(
+        NotebookExample.math(
             label: 'GHZ-style state', notation: '(|000⟩ - |111⟩)/√2'),
       ],
     ),
@@ -1640,16 +1757,19 @@ const List<NotebookEntry> notebookEntries = [
     chapterTitle: 'Chapter 8 - Phase Kickback',
     title: 'Phase On The Control',
     summary:
-        'Phase kickback happens when a controlled operation causes the control qubit to acquire phase because of how the target is prepared.',
+        'Phase kickback happens when a controlled operation gives different control branches a relative phase because of how the target is prepared.',
     intuition: NotebookSection(
       title: 'Intuition',
       body:
-          'The target qubit may look like the place where the gate acts, but the meaningful phase mark can appear on the control. The control becomes the carrier of the written information.',
+          'The target qubit may look like the place where the gate acts, but its eigenvalue can become a phase factor on a control branch. '
+          'If the control is fixed at |1⟩, that factor multiplies the whole state and is only global phase. '
+          'If the control is in superposition, the |1⟩ branch receives the factor relative to the |0⟩ branch, so the control carries useful information.',
     ),
     whatChanged: NotebookSection(
       title: 'What Changed?',
       body:
-          'The important change is assigned to the control qubit, not to a visible flip of the target. This keeps the lesson separate from ordinary conditional bit changes.',
+          'The fixed-control example first exposes the target eigenvalue without creating a new physical state. '
+          'The superposed-control example turns the same factor into a relative phase on the control, rather than a visible flip of the target.',
       examples: [
         NotebookExample(label: 'Gate shape', notation: 'control -> target'),
         NotebookExample(
@@ -1659,7 +1779,8 @@ const List<NotebookEntry> notebookEntries = [
     quantumView: NotebookSection(
       title: 'Quantum View',
       body:
-          'When the target is prepared in the right phase-sensitive state, the controlled operation writes a phase factor back onto the control branch. The control wire carries the computational mark.',
+          'For a target |−⟩, X|−⟩ = −|−⟩. Controlled-X therefore multiplies the control-|1⟩ branch by −1. '
+          'A common factor on the only occupied branch is global phase; a factor that differs between occupied control branches is relative phase and can be decoded later.',
       examples: [
         NotebookExample(
             label: 'Visual cue', notation: 'phase highlight on control wire'),
@@ -1801,7 +1922,13 @@ const List<NotebookEntry> notebookEntries = [
     advancedNotes: NotebookSection(
       title: 'Advanced Notes',
       body:
-          'This is the bridge toward oracle-style algorithms: the circuit can compute without first making the answer visible, then use phase as the encoded record.',
+          'A reversible oracle can compute a temporary condition, use it to write a phase mark, then apply the inverse computation. The phase effect remains on the candidate branch while temporary workspace returns to its starting state. This compute → mark → uncompute pattern prevents leftover workspace from carrying unwanted correlations.',
+      examples: [
+        NotebookExample(
+          label: 'Clean phase marking',
+          notation: 'compute → phase mark → uncompute',
+        ),
+      ],
     ),
     relatedDiscoveryTitles: [
       'Interference',
@@ -1827,8 +1954,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The focus moved from individual operations to the function being queried. The important question is now: which inputs does f(x) accept?',
       examples: [
-        NotebookExample(label: 'Accepted', notation: 'f(x) = 1'),
-        NotebookExample(label: 'Rejected', notation: 'f(x) = 0'),
+        NotebookExample.math(label: 'Accepted', notation: 'f(x) = 1'),
+        NotebookExample.math(label: 'Rejected', notation: 'f(x) = 0'),
       ],
     ),
     quantumView: NotebookSection(
@@ -1903,8 +2030,8 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The useful object is the hidden function table. The query tells the algorithm which class each candidate belongs to without becoming a final answer step.',
       examples: [
-        NotebookExample(label: 'Hidden rule', notation: 'f(10) = 1'),
-        NotebookExample(label: 'Other candidates', notation: 'f(x) = 0'),
+        NotebookExample.math(label: 'Hidden rule', notation: 'f(10) = 1'),
+        NotebookExample.math(label: 'Other candidates', notation: 'f(x) = 0'),
       ],
     ),
     quantumView: NotebookSection(
@@ -2578,8 +2705,123 @@ const List<NotebookEntry> notebookEntries = [
       'Why Composition Creates Advantage',
     ],
   ),
+  NotebookEntry(
+    id: 'notation_and_terms',
+    discoveryTitle: 'Notation & Terms',
+    chapterIndex: 0,
+    chapterTitle: 'Reference',
+    title: 'Notation & Terms',
+    summary:
+        'A compact reference for the symbols and recurring language used in Qubit Quest.',
+    intuition: NotebookSection(
+      title: 'State notation',
+      body:
+          'Quantum notation is compact so a circuit and its state can be read together. Use this page as a reference; the Journey introduces each idea through examples.',
+      examples: [
+        NotebookExample.math(
+          label: 'Ket',
+          notation: '|ψ⟩',
+          latex: r'\lvert\psi\rangle',
+          explanation:
+              'A label for a quantum state. ψ (“psi”) stands for any state.',
+        ),
+        NotebookExample(
+          label: 'Amplitude',
+          notation:
+              'A complex number attached to a basis state. Its magnitude squared gives that outcome’s probability.',
+        ),
+        NotebookExample.math(
+          label: 'Imaginary unit',
+          notation: 'i² = −1',
+          latex: r'i^{2}=-1',
+          explanation: 'The complex number whose square is negative one.',
+        ),
+      ],
+    ),
+    whatChanged: NotebookSection(
+      title: 'Operations',
+      body:
+          'These symbols describe what gates do and how circuits are reversed.',
+      examples: [
+        NotebookExample.math(
+          label: 'Dagger',
+          notation: 'U† = U⁻¹',
+          latex: r'U^{\dagger}=U^{-1}',
+          explanation:
+              'The inverse of a quantum gate. Mathematically it is the conjugate transpose.',
+        ),
+        NotebookExample.math(
+          label: 'Identity',
+          notation: 'I',
+          explanation: 'The operation that leaves the quantum state unchanged.',
+        ),
+        NotebookExample.math(
+          label: 'Tensor product',
+          notation: '⊗',
+          latex: r'\otimes',
+          explanation:
+              'Combines state descriptions into one larger multi-qubit state.',
+        ),
+        NotebookExample(
+          label: 'Uncomputation',
+          notation:
+              'Reversing temporary circuit work so workspace returns to its starting state.',
+        ),
+      ],
+    ),
+    quantumView: NotebookSection(
+      title: 'State relationships',
+      body:
+          'These terms distinguish information stored in one amplitude from relationships across a state or register.',
+      examples: [
+        NotebookExample(
+          label: 'Global phase',
+          notation:
+              'One common phase factor multiplying the whole state; it does not change physical predictions.',
+        ),
+        NotebookExample(
+          label: 'Relative phase',
+          notation:
+              'A phase difference between amplitudes that can change later interference.',
+        ),
+        NotebookExample(
+          label: 'Superposition',
+          notation:
+              'A state with more than one basis-state amplitude available before measurement.',
+        ),
+        NotebookExample(
+          label: 'Entanglement',
+          notation:
+              'A shared multi-qubit state that cannot be separated into independent qubit states.',
+        ),
+        NotebookExample(
+          label: 'Ancilla',
+          notation:
+              'A helper qubit used as temporary workspace inside a computation.',
+        ),
+        NotebookExample(
+          label: 'Oracle',
+          notation:
+              'A reversible operation that encodes or evaluates a problem-specific rule.',
+        ),
+      ],
+    ),
+  ),
 ];
 
 final Map<String, NotebookEntry> notebookEntriesByDiscoveryTitle = {
   for (final entry in notebookEntries) entry.discoveryTitle: entry,
 };
+
+final Map<String, NotebookEntry> notebookEntriesById = {
+  for (final entry in notebookEntries) entry.id: entry,
+};
+
+const String notebookReferenceEntryId = 'notation_and_terms';
+
+bool isNotebookEntryAvailable(
+  NotebookEntry entry,
+  Set<String> unlockedDiscoveryTitles,
+) =>
+    entry.id == notebookReferenceEntryId ||
+    unlockedDiscoveryTitles.contains(entry.discoveryTitle);

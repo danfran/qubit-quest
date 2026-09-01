@@ -4,21 +4,24 @@ import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
 class _ResultPalette {
   // Qubit Quest composer result tokens mirror the exact composer visual system.
-  static const Color qqInner = Color(0xFF030814);
-  static const Color qqInner2 = Color(0xFF101A2D);
+  static const Color qqInner = QubitQuestColors.surfaceInset;
+  static const Color qqInner2 = QubitQuestColors.surfaceInsetRaised;
   static const Color qqBorderSoft = Color(0xFF253755);
-  static const Color qqCyan = Color(0xFF56CCF2);
-  static const Color qqPurple = Color(0xFFB388FF);
-  static const Color qqGreen = Color(0xFF7CFFB2);
+  static const Color qqCyan = QubitQuestColors.accentInteractive;
+  static const Color qqPurple = QubitQuestColors.accentStrong;
+  static const Color qqGreen = QubitQuestColors.success;
 }
 
 enum StateVectorDisplayTone {
   current,
   target,
 }
+
+bool defaultNonZeroOnlyForQubitCount(int numQubits) => numQubits >= 3;
 
 class StateVectorDisplay extends StatefulWidget {
   final List<Complex> stateVector;
@@ -40,6 +43,7 @@ class StateVectorDisplay extends StatefulWidget {
   final bool showVisibilityControl;
   final bool? nonZeroOnlyOverride;
   final Widget? visibilityControlOverride;
+  final bool contentDriven;
 
   const StateVectorDisplay({
     super.key,
@@ -59,6 +63,7 @@ class StateVectorDisplay extends StatefulWidget {
     this.showVisibilityControl = true,
     this.nonZeroOnlyOverride,
     this.visibilityControlOverride,
+    this.contentDriven = false,
   });
 
   @override
@@ -66,7 +71,7 @@ class StateVectorDisplay extends StatefulWidget {
 }
 
 class _StateVectorDisplayState extends State<StateVectorDisplay> {
-  bool _nonZeroOnly = false;
+  late bool _nonZeroOnly;
   static const double _probabilityThreshold = 1e-6;
   static const double _matchTolerance = 1e-6;
 
@@ -76,6 +81,7 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
   @override
   void initState() {
     super.initState();
+    _nonZeroOnly = defaultNonZeroOnlyForQubitCount(widget.numQubits);
     _stateVectorVerticalScrollController = ScrollController();
     _lastStateVectorSignature = _stateVectorSignature(widget.stateVector);
   }
@@ -174,8 +180,68 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
         ? widget.stateExpression?.trim()
         : null;
 
+    final stateContent = LayoutBuilder(
+      builder: (context, constraints) {
+        return ConstrainedBox(
+          constraints: BoxConstraints(minWidth: constraints.maxWidth),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: widget.dense ? 4 : 6,
+              vertical: widget.dense ? 1 : 2,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (currentTerms != null ||
+                    (authoredExpression?.isNotEmpty ?? false))
+                  Padding(
+                    padding: EdgeInsets.only(
+                      bottom: widget.dense ? 4 : 6,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (widget.stateExpressionLabel != null) ...[
+                          Text(
+                            widget.stateExpressionLabel!,
+                            key: const ValueKey(
+                              'target-state-semantic-label',
+                            ),
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: widget.dense ? 9.5 : 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: widget.dense ? 2 : 3),
+                        ],
+                        _StateExpressionLine(
+                          currentTerms: currentTerms,
+                          authoredExpression: authoredExpression,
+                          dense: widget.dense,
+                        ),
+                      ],
+                    ),
+                  ),
+                _buildProbabilityList(vectorSize, hasTarget),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    final scrollableStateContent = Scrollbar(
+      controller: _stateVectorVerticalScrollController,
+      thumbVisibility: true,
+      child: SingleChildScrollView(
+        controller: _stateVectorVerticalScrollController,
+        child: stateContent,
+      ),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: widget.contentDriven ? MainAxisSize.min : MainAxisSize.max,
       children: [
         if (widget.showHeader) ...[
           _buildHeader(hasTarget),
@@ -185,65 +251,10 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
           _buildStaticStateHeader(hasTarget),
           const SizedBox(height: 2),
         ],
-        Expanded(
-          child: Scrollbar(
-            controller: _stateVectorVerticalScrollController,
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              controller: _stateVectorVerticalScrollController,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return ConstrainedBox(
-                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: widget.dense ? 4 : 6,
-                        vertical: widget.dense ? 1 : 2,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (currentTerms != null ||
-                              (authoredExpression?.isNotEmpty ?? false))
-                            Padding(
-                              padding: EdgeInsets.only(
-                                bottom: widget.dense ? 4 : 6,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (widget.stateExpressionLabel != null) ...[
-                                    Text(
-                                      widget.stateExpressionLabel!,
-                                      key: const ValueKey(
-                                        'target-state-semantic-label',
-                                      ),
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: widget.dense ? 9.5 : 11,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    SizedBox(height: widget.dense ? 2 : 3),
-                                  ],
-                                  _StateExpressionLine(
-                                    currentTerms: currentTerms,
-                                    authoredExpression: authoredExpression,
-                                    dense: widget.dense,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          _buildProbabilityList(vectorSize, hasTarget),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
+        if (widget.contentDriven)
+          stateContent
+        else
+          Expanded(child: scrollableStateContent),
       ],
     );
   }

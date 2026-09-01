@@ -52,14 +52,27 @@ class LevelHeaderRouter {
     String? title,
     String? subtitle,
     bool isCompleted = false,
+    int? masteryDisplayOrder,
   }) {
     final resolvedTitle = _levelTitle(level, levelId);
-    final displayLabel = LevelHeaderRouter.displayLabel(levelId);
-    final compactDisplayLabel = LevelHeaderRouter.displayLabel(
-      levelId,
-      compact: true,
-    );
-    final isMastery = LevelHeaderRouter.isMasteryLevel(levelId);
+    final displayLabel = masteryDisplayOrder == null
+        ? LevelHeaderRouter.displayLabel(levelId)
+        : 'Mastery Challenge $masteryDisplayOrder';
+    final compactDisplayLabel = masteryDisplayOrder == null
+        ? LevelHeaderRouter.displayLabel(levelId, compact: true)
+        : 'Challenge $masteryDisplayOrder';
+    final isMastery = masteryDisplayOrder != null ||
+        LevelHeaderRouter.isMasteryLevel(levelId);
+
+    if (isMastery &&
+        (masteryDisplayOrder ?? masteryChallengeNumber(levelId)) <= 20) {
+      return MasteryActivityHeader(
+        title: title ?? displayLabel,
+        subtitle: subtitle ?? resolvedTitle,
+        isCompleted: isCompleted,
+        actions: actions,
+      );
+    }
 
     return switch (level) {
       ComposerLevel _ => ComposerHeader(

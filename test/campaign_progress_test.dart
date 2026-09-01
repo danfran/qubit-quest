@@ -15,7 +15,7 @@ void main() {
       expect(CampaignProgressPolicy.isLevelUnlocked(state, 1), isTrue);
       expect(CampaignProgressPolicy.isLevelUnlocked(state, 2), isFalse);
       expect(
-          CampaignProgressPolicy.getMasteryChallengesUnlocked(state), isFalse);
+          CampaignProgressPolicy.getMasteryChallengesUnlocked(state), isTrue);
     });
 
     test('completing the first lesson marks it complete and unlocks next', () {
@@ -72,27 +72,28 @@ void main() {
       expect(chapter2.current, isTrue);
     });
 
-    test('Mastery Challenge unlock rules match existing behaviour', () {
+    test('Mastery Challenges are independent of lesson progress', () {
       final fresh = CampaignProgressState.fresh();
       final afterGuided = CampaignProgressPolicy.completeLesson(fresh, 60);
 
-      expect(CampaignProgressPolicy.isLevelUnlocked(fresh, 61), isFalse);
+      expect(CampaignProgressPolicy.isLevelUnlocked(fresh, 61), isTrue);
+      expect(CampaignProgressPolicy.isLevelUnlocked(fresh, 114), isTrue);
       expect(CampaignProgressPolicy.getMasteryChallengesUnlocked(afterGuided),
           isTrue);
       expect(CampaignProgressPolicy.isLevelUnlocked(afterGuided, 61), isTrue);
       expect(CampaignProgressPolicy.isLevelUnlocked(afterGuided, 114), isTrue);
     });
 
-    test('completing a challenge records completion and keeps it unlocked', () {
+    test('completing a challenge does not advance the lesson frontier', () {
       final state = CampaignProgressPolicy.completeChallenge(
-        CampaignProgressPolicy.completeLesson(
-            CampaignProgressState.fresh(), 60),
-        61,
+        CampaignProgressState.fresh(),
+        100,
       );
 
-      expect(state.completedChallengeIds, contains(61));
-      expect(CampaignProgressPolicy.isLevelUnlocked(state, 61), isTrue);
-      expect(state.maxUnlockedLevel, 62);
+      expect(state.completedChallengeIds, contains(100));
+      expect(CampaignProgressPolicy.isLevelUnlocked(state, 114), isTrue);
+      expect(state.maxUnlockedLevel, 1);
+      expect(CampaignProgressPolicy.isLevelUnlocked(state, 2), isFalse);
     });
 
     test('Notebook discovery unlocks match lesson completion', () {

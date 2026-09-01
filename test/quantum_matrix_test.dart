@@ -1,7 +1,6 @@
 // test/quantum_matrix_test.dart
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'dart:math' as math;
 
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/utils/math_utils.dart';

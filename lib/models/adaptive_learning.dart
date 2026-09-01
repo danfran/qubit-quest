@@ -192,11 +192,14 @@ class AdaptiveLearningSession {
     return _insightFor(
       confusionType: selectedCount >= 2
           ? AdaptiveConfusionType.repeatedMcqConceptMiss
-          : AdaptiveConfusionType.notebookPerformanceMisalignment,
+          : notebookEntry != null
+              ? AdaptiveConfusionType.notebookPerformanceMisalignment
+              : AdaptiveConfusionType.repeatedMcqConceptMiss,
       misconceptionCategory:
           AdaptiveMisconceptionCategory.conceptualInterpretation,
-      fallbackHint:
-          'This is a concept check, not a circuit trick. Compare the answer with the notebook idea for this discovery.',
+      fallbackHint: notebookEntry != null
+          ? 'This is a concept check, not a circuit trick. Compare the answer with the notebook idea for this discovery.'
+          : 'Return to the supplied evidence and test each claim against what it actually establishes.',
       visualEmphasis: _visualEmphasisForLevel(),
     );
   }

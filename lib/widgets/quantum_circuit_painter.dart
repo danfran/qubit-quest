@@ -43,6 +43,7 @@ class QuantumCircuitPainter extends CustomPainter {
   final GateId? selectedGateId;
   final GateId? ghostedGateId;
   final int? highlightedQubit;
+  final bool showInitialStateValues;
 
   QuantumCircuitPainter(
     this.circuit, {
@@ -50,6 +51,7 @@ class QuantumCircuitPainter extends CustomPainter {
     this.selectedGateId,
     this.ghostedGateId,
     this.highlightedQubit,
+    this.showInitialStateValues = true,
   });
 
   GateGradientStyle _visualForGate(Gate gate) =>
@@ -210,7 +212,7 @@ class QuantumCircuitPainter extends CustomPainter {
   }
 
   @visibleForTesting
-  static List<String> initialQubitLabelsFor({
+  static List<String> initialQubitStateLabelsFor({
     required String initialQubitsStateStr,
     required int numQubits,
   }) {
@@ -221,7 +223,7 @@ class QuantumCircuitPainter extends CustomPainter {
         .toList();
 
     if (ketTokens.length == numQubits) {
-      return ketTokens;
+      return ketTokens.reversed.toList(growable: false);
     }
 
     if (RegExp(r'^[01]+$').hasMatch(label) && label.length == numQubits) {
@@ -237,8 +239,24 @@ class QuantumCircuitPainter extends CustomPainter {
     );
   }
 
-  List<String> _initialQubitLabels() {
-    return initialQubitLabelsFor(
+  @visibleForTesting
+  static List<String> initialQubitLabelsFor({
+    required String initialQubitsStateStr,
+    required int numQubits,
+  }) {
+    final states = initialQubitStateLabelsFor(
+      initialQubitsStateStr: initialQubitsStateStr,
+      numQubits: numQubits,
+    );
+    return List<String>.generate(
+      numQubits,
+      (qubit) => 'q$qubit ${states[qubit]}',
+      growable: false,
+    );
+  }
+
+  List<String> _initialQubitStateLabels() {
+    return initialQubitStateLabelsFor(
       initialQubitsStateStr: circuit.currentLevel.initialQubitsStateStr,
       numQubits: circuit.currentLevel.numQubits,
     );
@@ -269,14 +287,13 @@ class QuantumCircuitPainter extends CustomPainter {
       ..maskFilter = const MaskFilter.blur(
           BlurStyle.normal, 8.0); // Blur radius for shadow
 
-    final List<String> initialQubitLabels = _initialQubitLabels();
+    final List<String> initialQubitStateLabels = _initialQubitStateLabels();
 
     // Draw qubit lines and labels
     for (int i = 0; i < circuit.currentLevel.numQubits; i++) {
       // Calculate the vertical center Y for this qubit line
       final double lineY = getQubitCenterY(i);
-      final qubitState =
-          initialQubitLabels[circuit.currentLevel.numQubits - i - 1];
+      final qubitState = initialQubitStateLabels[i];
       debugPrint(
           "  Painter: Drawing Qubit $i line and hit area at Y: $lineY. Hit range: ${lineY - hitTolerance} to ${lineY + hitTolerance}"); // Debug calculated drawing Y
 
@@ -317,14 +334,30 @@ class QuantumCircuitPainter extends CustomPainter {
       // Draw the qubit label (q0, q1, etc.)
       final textPainter = TextPainter(
         text: TextSpan(
-          text: qubitState, // Label text (e.g., "|0⟩", "|−⟩")
-          style: TextStyle(
-            color: qubitLabelColor, // Use the static constant for label color
-            fontSize: 14, // Adjust font size as needed
-            fontWeight: FontWeight.bold,
-          ),
+          children: [
+            TextSpan(
+              text: 'q$i${showInitialStateValues ? '\n' : ''}',
+              style: TextStyle(
+                color: qubitLabelColor.withValues(alpha: 0.72),
+                fontSize: 9,
+                height: 0.9,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            if (showInitialStateValues)
+              TextSpan(
+                text: qubitState,
+                style: const TextStyle(
+                  color: qubitLabelColor,
+                  fontSize: 12,
+                  height: 0.9,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+          ],
         ),
         textDirection: TextDirection.ltr, // Required for TextPainter
+        textAlign: TextAlign.center,
       );
       textPainter.layout(); // Perform layout before painting
 

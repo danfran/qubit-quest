@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_tex/flutter_tex.dart';
 
@@ -24,6 +26,11 @@ class LatexText extends StatelessWidget {
   /// Height for display (block) math glyphs.
   final double displayMathHeight;
 
+  /// Optional lower scale bound for display mathematics. When an unbreakable
+  /// expression would become smaller, it receives a local horizontal fallback
+  /// rather than silently becoming footnote-sized.
+  final double minimumDisplayMathScale;
+
   const LatexText({
     super.key,
     required this.math,
@@ -31,6 +38,7 @@ class LatexText extends StatelessWidget {
     this.inlineMathColor,
     this.inlineMathHeight = 16.0,
     this.displayMathHeight = 24.0,
+    this.minimumDisplayMathScale = 0,
   });
 
   // ── Regex with correct alternation ────────────────────────────────────────
@@ -112,6 +120,7 @@ class LatexText extends StatelessWidget {
               svg: svg,
               logicalHeight: displayMathHeight,
               color: color,
+              minimumScale: minimumDisplayMathScale,
             ),
           ),
         ));
@@ -162,26 +171,74 @@ class LatexSvgPicture extends StatelessWidget {
     required this.svg,
     required this.logicalHeight,
     required this.color,
+    this.minimumScale = 0,
   });
 
   final String svg;
   final double logicalHeight;
   final Color color;
+  final double minimumScale;
 
   @override
   Widget build(BuildContext context) {
     final resolvedHeight =
         MediaQuery.textScalerOf(context).scale(logicalHeight);
-    return SizedBox(
-      height: resolvedHeight,
-      child: ClipRect(
-        child: SvgPicture.string(
-          svg,
-          colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-          height: resolvedHeight,
-          fit: BoxFit.contain,
-        ),
-      ),
+    final viewBox = RegExp(
+      r'''viewBox=["']\s*[-\d.]+\s+[-\d.]+\s+([\d.]+)\s+([\d.]+)\s*["']''',
+    ).firstMatch(svg);
+    final intrinsicWidth = double.tryParse(viewBox?.group(1) ?? '');
+    final intrinsicHeight = double.tryParse(viewBox?.group(2) ?? '');
+
+    Widget picture(double height, {double? width}) => SizedBox(
+          width: width,
+          height: height,
+          child: ClipRect(
+            child: SvgPicture.string(
+              svg,
+              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+              width: width,
+              height: height,
+              fit: BoxFit.contain,
+            ),
+          ),
+        );
+
+    if (minimumScale <= 0 ||
+        intrinsicWidth == null ||
+        intrinsicHeight == null ||
+        intrinsicHeight <= 0) {
+      return picture(resolvedHeight);
+    }
+
+    final aspectRatio = intrinsicWidth / intrinsicHeight;
+    final idealWidth = resolvedHeight * aspectRatio;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (!constraints.hasBoundedWidth ||
+            idealWidth <= constraints.maxWidth) {
+          return picture(resolvedHeight, width: idealWidth);
+        }
+        final availableScale = constraints.maxWidth / idealWidth;
+        if (availableScale >= minimumScale) {
+          final fittedHeight = resolvedHeight * availableScale;
+          return picture(fittedHeight, width: constraints.maxWidth);
+        }
+
+        final fallbackHeight = resolvedHeight * minimumScale;
+        final fallbackWidth = idealWidth * minimumScale;
+        return SizedBox(
+          key: const ValueKey('latex-readable-overflow-fallback'),
+          width: constraints.maxWidth,
+          height: fallbackHeight,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: picture(
+              fallbackHeight,
+              width: math.max(fallbackWidth, constraints.maxWidth),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -53,6 +53,12 @@ void main() {
     await tester.pump();
     expect(find.byType(ComposerGatePalette), findsOneWidget);
     expect(find.byType(ComposerCircuitCanvas), findsOneWidget);
+    expect(
+      tester
+          .widget<ComposerCircuitCanvas>(find.byType(ComposerCircuitCanvas))
+          .enableDesktopHorizontalScrolling,
+      isTrue,
+    );
 
     await tester.tap(find.byKey(const ValueKey('web-nav-bloch')));
     await tester.pump();
@@ -121,7 +127,7 @@ void main() {
     final palette = find.byType(ComposerGatePalette);
     expect(
         tester.getTopLeft(canvas).dy, lessThan(tester.getTopLeft(palette).dy));
-    expect(tester.getSize(canvas).height, inInclusiveRange(140, 180));
+    expect(tester.getSize(canvas).height, 134);
 
     final paletteWidget = tester.widget<ComposerGatePalette>(palette);
     expect(
@@ -138,6 +144,79 @@ void main() {
       find.byKey(const ValueKey('web-composer-current-state')),
       findsOneWidget,
     );
+  });
+
+  testWidgets(
+      'Web Composer canvas height follows qubit count and not circuit content',
+      (tester) async {
+    await setSize(tester, const Size(1440, 1000));
+    final storage = InMemoryAppStorage();
+    final populated =
+        QuantumCircuit(currentLevel: createSandboxComposerLevel(5));
+    populated.insertDoubleGateWithOutcome(
+      Gate.fromIdentifier(SelectedGateType.cnot),
+      0,
+      4,
+      0,
+    );
+    populated.insertTripleGateWithOutcome(
+      Gate.fromIdentifier(SelectedGateType.ccnot),
+      1,
+      3,
+      0,
+      1,
+    );
+    await SandboxPersistenceStore(storage: storage).saveCircuit(populated);
+    populated.dispose();
+
+    await tester.pumpWidget(QubitQuestWebApp(storage: storage));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
+    await tester.pump();
+
+    Future<double> openAndMeasure(int qubitCount) async {
+      await tester.tap(
+        find.byKey(ValueKey('web-composer-qubits-$qubitCount')),
+      );
+      await tester.pump();
+      return tester
+          .getSize(find.byKey(const ValueKey('web-composer-canvas')))
+          .height;
+    }
+
+    final populatedFiveQubitHeight = await openAndMeasure(5);
+    expect(populatedFiveQubitHeight, 214);
+    final canvas = tester.widget<ComposerCircuitCanvas>(
+      find.byType(ComposerCircuitCanvas),
+    );
+    expect(canvas.circuit.logicalGates, hasLength(2));
+    expect(
+      canvas.circuit.logicalGates.every((gate) => gate.hasValidTopology(5)),
+      isTrue,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('web-clear-circuit')));
+    await tester.pump();
+    expect(
+      tester.getSize(find.byKey(const ValueKey('web-composer-canvas'))).height,
+      populatedFiveQubitHeight,
+    );
+    expect(
+      tester
+          .widget<ComposerCircuitCanvas>(find.byType(ComposerCircuitCanvas))
+          .circuit
+          .isCircuitEmpty(),
+      isTrue,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('web-composer-change-qubits')));
+    await tester.pump();
+    expect(await openAndMeasure(1), 72);
+
+    await tester.tap(find.byKey(const ValueKey('web-composer-change-qubits')));
+    await tester.pump();
+    expect(await openAndMeasure(2), 94);
   });
 
   testWidgets('Web Composer keeps canonical gate inspection available',

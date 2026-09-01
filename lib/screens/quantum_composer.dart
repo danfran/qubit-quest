@@ -9,6 +9,8 @@ import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/logical_gate_footprint.dart';
+import 'package:quantumquiz/models/mastery_challenge_catalogue.dart';
+import 'package:quantumquiz/models/mastery_2_reinforcement.dart';
 import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
@@ -28,11 +30,16 @@ import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
+import 'package:quantumquiz/widgets/level_type_headers.dart';
+import 'package:quantumquiz/widgets/lesson_content_safe_area.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
+import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
+import 'package:quantumquiz/widgets/qubit_quest_activity_shell.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/models/composer_gate_capabilities.dart';
 import 'package:quantumquiz/models/gate_id.dart';
 
@@ -103,6 +110,7 @@ class QuantumComposer extends StatefulWidget {
   final ComposerSessionOwnership sessionOwnership;
   final SandboxCircuitSnapshot? initialSandboxSnapshot;
   final SandboxPersistenceStore sandboxPersistenceStore;
+  final MasteryChallengeDefinition? masteryChallenge;
 
   const QuantumComposer({
     super.key,
@@ -114,6 +122,7 @@ class QuantumComposer extends StatefulWidget {
     this.sessionOwnership = ComposerSessionOwnership.campaign,
     this.initialSandboxSnapshot,
     this.sandboxPersistenceStore = const SandboxPersistenceStore(),
+    this.masteryChallenge,
   });
 
   @override
@@ -123,22 +132,26 @@ class QuantumComposer extends StatefulWidget {
 class _QuantumComposerState extends State<QuantumComposer>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   // Qubit Quest composer visual system tokens. Use these exact colours for composer surfaces.
-  static const Color qqBlack = Color(0xFF00030A);
-  static const Color qqCard = Color(0xFF111827);
-  static const Color qqCard2 = Color(0xFF18233A);
-  static const Color qqInner = Color(0xFF030814);
+  // Compatibility aliases. QubitQuestColors is the canonical authority.
+  static const Color qqBlack = QubitQuestColors.background;
+  static const Color qqCard = QubitQuestColors.surface;
+  static const Color qqCard2 = QubitQuestColors.surfaceRaised;
 
-  static const Color qqBorder = Color(0x66344A73);
-  static const Color qqBorderSoft = Color(0x3D344A73);
+  static const Color qqBorder = QubitQuestColors.border;
+  static const Color qqBorderSoft = QubitQuestColors.borderSoft;
   static const BorderSide qqComposerCardBorder =
       BorderSide(color: qqBorder, width: 1);
   static const BorderSide qqComposerInnerBorder =
       BorderSide(color: qqBorderSoft, width: 1);
 
-  static const Color qqCyan = Color(0xFF56CCF2);
-  static const Color qqPurple = Color(0xFFB388FF);
-  static const Color qqGreen = Color(0xFF7CFFB2);
-  static const Color qqYellow = Color(0xFFFFD54F);
+  static const Color qqCyan = QubitQuestColors.accentInteractive;
+  static const Color qqPurple = QubitQuestColors.accentStrong;
+  static const Color qqGreen = QubitQuestColors.success;
+  static const Color qqYellow = QubitQuestColors.warning;
+
+  bool get _isMastery =>
+      widget.masteryChallenge != null ||
+      LevelHeaderRouter.isMasteryLevel(widget.levelId);
 
   late int _numQubits;
   late String _taskDescription;
@@ -171,12 +184,12 @@ class _QuantumComposerState extends State<QuantumComposer>
   late AnimationController _notebookPulseController;
   late Animation<double> _notebookPulseScale;
 
-  bool _sharedNonZeroOnly = false;
+  late bool _sharedNonZeroOnly;
   bool _hasUnopenedNotebookEntries = false;
+  bool _canReviewMappedNotebookEntry = false;
   late AdaptiveLearningSession _adaptiveLearningSession;
   AdaptiveLearningInsight? _adaptiveInsight;
   bool _adaptiveInsightDismissed = false;
-  Timer? _adaptiveInsightAutoDismissTimer;
   Future<void> _sandboxSaveQueue = Future<void>.value();
 
   @override
@@ -217,6 +230,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     _circuit = _createInitialCircuit();
     final activeLevel = _circuit.currentLevel;
     _numQubits = activeLevel.numQubits;
+    _sharedNonZeroOnly = defaultNonZeroOnlyForQubitCount(_numQubits);
     _taskDescription = activeLevel.taskDescription;
     _initialState = activeLevel.initialQubitsState;
     _availableGates = activeLevel.availableGates;
@@ -240,7 +254,6 @@ class _QuantumComposerState extends State<QuantumComposer>
     }
     WidgetsBinding.instance.removeObserver(this);
     widget.controller?._detach();
-    _adaptiveInsightAutoDismissTimer?.cancel();
     _notebookPulseController.dispose();
     super.dispose();
   }
@@ -806,23 +819,9 @@ class _QuantumComposerState extends State<QuantumComposer>
       _adaptiveInsight = adaptiveInsight;
       _adaptiveInsightDismissed = false;
     });
-    _scheduleAdaptiveInsightAutoDismiss(adaptiveInsight);
-  }
-
-  void _scheduleAdaptiveInsightAutoDismiss(AdaptiveLearningInsight? insight) {
-    _adaptiveInsightAutoDismissTimer?.cancel();
-    if (insight == null) return;
-
-    _adaptiveInsightAutoDismissTimer = Timer(const Duration(seconds: 9), () {
-      if (!mounted || _adaptiveInsight != insight) return;
-      setState(() {
-        _adaptiveInsightDismissed = true;
-      });
-    });
   }
 
   void _dismissAdaptiveInsight() {
-    _adaptiveInsightAutoDismissTimer?.cancel();
     if (!mounted) return;
     setState(() {
       _adaptiveInsightDismissed = true;
@@ -842,21 +841,13 @@ class _QuantumComposerState extends State<QuantumComposer>
 
       setState(() {
         _levelSolved = true;
-        _checkFeedbackTitle = LevelHeaderRouter.isMasteryLevel(widget.levelId)
-            ? 'Challenge Complete'
-            : null;
-        _checkFeedbackMessage = LevelHeaderRouter.isMasteryLevel(widget.levelId)
-            ? keyInsight
-            : null;
-        _checkFeedbackSuccess =
-            LevelHeaderRouter.isMasteryLevel(widget.levelId);
+        _checkFeedbackTitle = _isMastery ? 'Challenge Complete' : null;
+        _checkFeedbackMessage = _isMastery ? keyInsight : null;
+        _checkFeedbackSuccess = _isMastery;
         _adaptiveInsight = null;
         _adaptiveInsightDismissed = false;
-        _isCompleted = LevelHeaderRouter.isMasteryLevel(widget.levelId)
-            ? true
-            : _isCompleted;
+        _isCompleted = _isMastery ? true : _isCompleted;
       });
-      _adaptiveInsightAutoDismissTimer?.cancel();
       if (unlocksNotebookEntry) {
         _playNotebookUnlockPulse();
       }
@@ -868,7 +859,7 @@ class _QuantumComposerState extends State<QuantumComposer>
 
         widget.onLevelUnlocked?.call(widget.levelId + 1);
 
-        if (LevelHeaderRouter.isMasteryLevel(widget.levelId)) {
+        if (_isMastery) {
           final action = await _showMasteryChallengeCompletionDialog(
             keyInsight: keyInsight,
           );
@@ -906,7 +897,6 @@ class _QuantumComposerState extends State<QuantumComposer>
           _adaptiveInsight = null;
           _adaptiveInsightDismissed = false;
         });
-        _adaptiveInsightAutoDismissTimer?.cancel();
       }
     }
   }
@@ -968,12 +958,16 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   Future<void> _loadNotebookAttentionState() async {
+    final mappedEntry = _notebookEntryForLevel();
+    final unlocked = await DiscoveryProgress.loadUnlocked();
     final hasUnopened = await DiscoveryProgress.hasUnopenedNotebookEntries(
       notebookEntriesByDiscoveryTitle.keys,
     );
     if (!mounted) return;
     setState(() {
       _hasUnopenedNotebookEntries = hasUnopened;
+      _canReviewMappedNotebookEntry =
+          mappedEntry != null && unlocked.contains(mappedEntry.discoveryTitle);
     });
     if (hasUnopened) {
       _playNotebookUnlockPulse();
@@ -981,6 +975,10 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   NotebookEntry? _notebookEntryForLevel() {
+    final mastery = widget.masteryChallenge;
+    if (mastery != null) {
+      return mastery2ReinforcementNotebookEntry(mastery.semanticId);
+    }
     final discoveryTitle = widget.level.discoveryTitle?.trim();
     if (discoveryTitle == null || discoveryTitle.isEmpty) return null;
     return notebookEntriesByDiscoveryTitle[discoveryTitle];
@@ -1114,7 +1112,6 @@ class _QuantumComposerState extends State<QuantumComposer>
     _checkFeedbackMessage = null;
     _adaptiveInsight = null;
     _adaptiveInsightDismissed = false;
-    _adaptiveInsightAutoDismissTimer?.cancel();
     _handleCommittedCircuitEdit(outcome, clearSelection: true);
   }
 
@@ -1257,63 +1254,79 @@ class _QuantumComposerState extends State<QuantumComposer>
   Widget build(BuildContext context) {
     final bool compactAppBar = MediaQuery.sizeOf(context).width < 900;
 
-    return Scaffold(
-        backgroundColor: qqBlack,
-        appBar: LevelHeaderRouter.headerFor(
-          level: widget.level,
-          levelId: widget.levelId,
-          compact: compactAppBar,
-          title: runningAsQuantumComposer()
-              ? 'Composer'
-              : LevelHeaderRouter.displayLabel(widget.levelId),
-          subtitle: runningAsQuantumComposer() ? '' : _goalTitle(),
-          isCompleted: _isCompleted,
-          actions: _buildAppBarActions(compactAppBar),
-        ),
-        body: SafeArea(
-          child: LayoutBuilder(builder: (context, constraints) {
-            final bool compact = constraints.maxWidth < 720;
-            final bool short = constraints.maxHeight < 560;
-            final Widget circuitCard = _buildCircuitCard(
-              compact: short,
-              showHeader: false,
-            );
-            final Widget statePanel = _buildPortraitStateSection(short: short);
-            final double contentTopPadding = short ? 3 : 5;
-            final double contentBottomPadding = short ? 6 : (compact ? 8 : 10);
-            final double contentHeight = math.max(
-              0,
-              constraints.maxHeight - contentTopPadding - contentBottomPadding,
-            );
+    final reviewedMastery = _isMastery &&
+        (widget.masteryChallenge?.displayOrder ??
+                LevelHeaderRouter.masteryChallengeNumber(widget.levelId)) <=
+            20;
+    final header = LevelHeaderRouter.headerFor(
+      level: widget.level,
+      levelId: widget.levelId,
+      compact: compactAppBar,
+      title: runningAsQuantumComposer()
+          ? 'Composer'
+          : widget.masteryChallenge == null
+              ? LevelHeaderRouter.displayLabel(widget.levelId)
+              : null,
+      subtitle: runningAsQuantumComposer() ? '' : _goalTitle(),
+      isCompleted: _isCompleted,
+      masteryDisplayOrder: widget.masteryChallenge?.displayOrder,
+      actions: _buildAppBarActions(reviewedMastery ? true : compactAppBar),
+    );
+    final body = LayoutBuilder(builder: (context, constraints) {
+      final bool compact = constraints.maxWidth < 720;
+      final bool short = constraints.maxHeight < 560;
+      final Widget circuitCard = _buildCircuitCard(
+        compact: short,
+        showHeader: false,
+      );
+      final Widget statePanel = _buildPortraitStateSection(
+        short: short,
+      );
+      final double contentTopPadding = short ? 3 : 5;
+      final double contentBottomPadding = short ? 6 : (compact ? 8 : 10);
+      final double contentHeight = math.max(
+        0,
+        constraints.maxHeight - contentTopPadding - contentBottomPadding,
+      );
 
-            return Padding(
-              padding: EdgeInsets.fromLTRB(
-                compact ? 12 : 16,
-                contentTopPadding,
-                compact ? 12 : 16,
-                contentBottomPadding,
+      return Padding(
+        padding: EdgeInsets.fromLTRB(
+          compact ? 12 : 16,
+          contentTopPadding,
+          compact ? 12 : 16,
+          contentBottomPadding,
+        ),
+        child: compact
+            ? SingleChildScrollView(
+                key: const ValueKey('portrait-composer-page-scroll'),
+                child: _buildPortraitComposerLayout(
+                  circuitCard: circuitCard,
+                  statePanel: statePanel,
+                  short: short,
+                  availableHeight: contentHeight,
+                ),
+              )
+            : SizedBox(
+                height: contentHeight,
+                child: _buildLandscapeComposerLayout(
+                  circuitCard: circuitCard,
+                  short: short,
+                  availableHeight: contentHeight,
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: compact
-                        ? _buildPortraitComposerLayout(
-                            circuitCard: circuitCard,
-                            statePanel: statePanel,
-                            short: short,
-                          )
-                        : _buildLandscapeComposerLayout(
-                            circuitCard: circuitCard,
-                            short: short,
-                            availableHeight: contentHeight,
-                          ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ));
+      );
+    });
+    if (reviewedMastery) {
+      return QubitQuestActivityShell(
+        header: header,
+        body: body,
+      );
+    }
+    return Scaffold(
+      backgroundColor: qqBlack,
+      appBar: header,
+      body: LessonContentSafeArea(child: body),
+    );
   }
 
   Widget _buildPortraitGoalSection({required bool short}) {
@@ -1329,46 +1342,41 @@ class _QuantumComposerState extends State<QuantumComposer>
     required Widget circuitCard,
     required Widget statePanel,
     required bool short,
+    required double availableHeight,
   }) {
     const double sectionGap = 8;
+    final bool composer = runningAsQuantumComposer();
+    final metrics = CircuitCanvasMetrics.calculate(
+      qubitCount: _numQubits,
+      orientation: Orientation.portrait,
+      availableHeight: availableHeight,
+      cardPadding: _circuitCardPadding(compact: short),
+    );
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool composer = runningAsQuantumComposer();
-        final metrics = CircuitCanvasMetrics.calculate(
-          qubitCount: _numQubits,
-          orientation: Orientation.portrait,
-          availableHeight: constraints.maxHeight,
-          cardPadding: _circuitCardPadding(compact: short),
-        );
-        final Widget circuitSection = SizedBox(
-          height: metrics.height,
-          child: circuitCard,
-        );
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (!composer) ...[
-              _buildPortraitGoalSection(short: short),
-              const SizedBox(height: sectionGap),
-            ],
-            circuitSection,
-            const SizedBox(height: sectionGap),
-            _buildGatePalette(dense: true),
-            const SizedBox(height: sectionGap),
-            Expanded(child: statePanel),
-            if (!composer) ...[
-              const SizedBox(height: sectionGap),
-              _buildPortraitCheckArea(compact: short),
-            ],
-          ],
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!composer) ...[
+          _buildPortraitGoalSection(short: short),
+          const SizedBox(height: sectionGap),
+        ],
+        SizedBox(height: metrics.height, child: circuitCard),
+        const SizedBox(height: sectionGap),
+        _buildGatePalette(dense: true),
+        const SizedBox(height: sectionGap),
+        statePanel,
+        if (!composer) ...[
+          const SizedBox(height: sectionGap),
+          _buildPortraitCheckArea(compact: short),
+        ],
+      ],
     );
   }
 
-  Widget _buildPortraitStateSection({required bool short}) {
+  Widget _buildPortraitStateSection({
+    required bool short,
+  }) {
     final List<Complex>? targetStateVector =
         runningAsQuantumComposer() ? null : _targetStateVector();
     final String? targetExpression = _targetStateDisplayExpression();
@@ -1382,40 +1390,41 @@ class _QuantumComposerState extends State<QuantumComposer>
         showToggleInSummary: true,
         showSummarySubtitle: false,
         dense: true,
+        contentDriven: true,
       );
     }
 
     return Column(
+      key: const ValueKey('portrait-state-section'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: _buildStatePanel(
-            summaryTitle: 'Current State',
-            tone: StateVectorDisplayTone.current,
-            showHeader: false,
-            showToggleInSummary: true,
-            showSummarySubtitle: false,
-            showVisibilityControl: false,
-            nonZeroOnly: _sharedNonZeroOnly,
-            visibilityControl: _buildSharedStateFilterControl(),
-            dense: true,
-          ),
+        _buildStatePanel(
+          summaryTitle: 'Current State',
+          tone: StateVectorDisplayTone.current,
+          showHeader: false,
+          showToggleInSummary: true,
+          showSummarySubtitle: false,
+          showVisibilityControl: false,
+          nonZeroOnly: _sharedNonZeroOnly,
+          visibilityControl: _buildSharedStateFilterControl(),
+          dense: true,
+          contentDriven: true,
         ),
         SizedBox(height: short ? 6 : 8),
-        Expanded(
-          child: _buildStatePanel(
-            stateVector: targetStateVector,
-            summaryTitle: 'Target State',
-            stateExpressionLabel: targetExpressionLabel,
-            stateExpression: targetExpression,
-            tone: StateVectorDisplayTone.target,
-            showHeader: false,
-            showToggleInSummary: true,
-            showSummarySubtitle: false,
-            showVisibilityControl: false,
-            nonZeroOnly: _sharedNonZeroOnly,
-            dense: true,
-          ),
+        _buildStatePanel(
+          stateVector: targetStateVector,
+          summaryTitle: 'Target State',
+          stateExpressionLabel: targetExpressionLabel,
+          stateExpression: targetExpression,
+          tone: StateVectorDisplayTone.target,
+          showHeader: false,
+          showToggleInSummary: true,
+          showSummarySubtitle: false,
+          showVisibilityControl: false,
+          nonZeroOnly: _sharedNonZeroOnly,
+          dense: true,
+          contentDriven: true,
         ),
       ],
     );
@@ -1556,6 +1565,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     if (_checkFeedbackTitle != null) {
       return short ? 98 : 108;
     }
+    if (_usesEarlyMasteryVisualGrammar) return 48;
     return short ? 40 : 44;
   }
 
@@ -1963,6 +1973,21 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   bool runningAsQuantumComposer() => widget.levelId == -1;
 
+  bool get _usesEarlyMasteryVisualGrammar => const {
+        65,
+        67,
+        70,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80
+      }.contains(widget.levelId);
+
   String _goalTitle() {
     if (runningAsQuantumComposer()) {
       return 'Composer';
@@ -1988,7 +2013,7 @@ class _QuantumComposerState extends State<QuantumComposer>
       child: Row(
         children: [
           Icon(
-            Icons.lightbulb_outline,
+            Icons.flag_outlined,
             color: qqYellow,
             size: compact ? 18 : 20,
           ),
@@ -2244,6 +2269,18 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   Widget _buildCheckResultButton({required bool compact}) {
+    if (_usesEarlyMasteryVisualGrammar) {
+      return QubitQuestActionButton(
+        key: ValueKey('mastery-composer-check-${widget.levelId}'),
+        label: 'Check Result',
+        icon: _levelSolved
+            ? Icons.check_circle_outline
+            : Icons.play_arrow_rounded,
+        onPressed:
+            _isShowingCompletionDialog ? null : _handleCheckResultPressed,
+      );
+    }
+
     const Color checkSurfaceTop = Color(0xFFA855F7);
     const Color checkSurfaceMiddle = Color(0xFF8B4BE8);
     const Color checkSurfaceBottom = Color(0xFF5B21B6);
@@ -2321,7 +2358,7 @@ class _QuantumComposerState extends State<QuantumComposer>
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          height: compact ? 32 : 34,
+          height: _usesEarlyMasteryVisualGrammar ? 48 : (compact ? 32 : 34),
           child: _buildCheckResultButton(compact: true),
         ),
         if (_checkFeedbackTitle != null) ...[
@@ -2330,7 +2367,9 @@ class _QuantumComposerState extends State<QuantumComposer>
         ],
         if (_adaptiveInsight != null && !_adaptiveInsightDismissed) ...[
           SizedBox(height: compact ? 5 : 6),
-          _buildAdaptiveLearningCard(compact: compact),
+          Flexible(
+            child: _buildAdaptiveLearningCard(compact: compact),
+          ),
         ],
       ],
     );
@@ -2346,7 +2385,7 @@ class _QuantumComposerState extends State<QuantumComposer>
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          height: compact ? 40 : 44,
+          height: _usesEarlyMasteryVisualGrammar ? 48 : (compact ? 40 : 44),
           child: _buildCheckResultButton(compact: compact),
         ),
         if (_checkFeedbackTitle != null) ...[
@@ -2355,7 +2394,9 @@ class _QuantumComposerState extends State<QuantumComposer>
         ],
         if (_adaptiveInsight != null && !_adaptiveInsightDismissed) ...[
           SizedBox(height: compact ? 6 : 8),
-          _buildAdaptiveLearningCard(compact: compact),
+          Flexible(
+            child: _buildAdaptiveLearningCard(compact: compact),
+          ),
         ],
       ],
     );
@@ -2369,7 +2410,8 @@ class _QuantumComposerState extends State<QuantumComposer>
       child: AdaptiveLearningCard(
         insight: _adaptiveInsight!,
         compact: compact,
-        onReviewNotebook: _openQuantumNotebook,
+        onReviewNotebook:
+            _canReviewMappedNotebookEntry ? _openQuantumNotebook : null,
         onDismiss: _dismissAdaptiveInsight,
       ),
     );
@@ -2377,8 +2419,8 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   Widget _buildCheckFeedbackBanner({required bool compact}) {
     final Color accent = _checkFeedbackSuccess
-        ? const Color(0xFF66BB6A)
-        : const Color(0xFFFFB74D);
+        ? QubitQuestColors.success
+        : QubitQuestColors.warning;
     final IconData icon =
         _checkFeedbackSuccess ? Icons.emoji_events_outlined : Icons.refresh;
 
@@ -2390,9 +2432,9 @@ class _QuantumComposerState extends State<QuantumComposer>
         vertical: compact ? 7 : 9,
       ),
       decoration: BoxDecoration(
-        color: qqInner,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: qqComposerInnerBorder.color),
+        color: QubitQuestColors.surfaceInsetRaised,
+        borderRadius: QubitQuestRadii.card,
+        border: Border.fromBorderSide(QubitQuestBorders.soft),
       ),
       child: Row(
         children: [
@@ -2406,10 +2448,9 @@ class _QuantumComposerState extends State<QuantumComposer>
           Expanded(
             child: Text(
               '${_checkFeedbackTitle!}: ${_checkFeedbackMessage!}',
-              style: TextStyle(
-                color: const Color(0xFFD6E3F8),
+              style: QubitQuestTypography.supporting.copyWith(
+                color: QubitQuestColors.textBody,
                 fontSize: compact ? 11 : 12,
-                fontWeight: FontWeight.w700,
               ),
               maxLines: compact ? 1 : 2,
               overflow: TextOverflow.ellipsis,
@@ -2450,8 +2491,14 @@ class _QuantumComposerState extends State<QuantumComposer>
     bool? nonZeroOnly,
     Widget? visibilityControl,
     bool dense = false,
+    bool contentDriven = false,
   }) {
     return Container(
+      key: ValueKey(
+        summaryTitle == 'Target State'
+            ? 'composer-target-state-panel'
+            : 'composer-current-state-panel',
+      ),
       padding: EdgeInsets.all(dense ? 4.0 : (secondary ? 5.0 : 7.0)),
       decoration: BoxDecoration(
         color: secondary ? qqCard.withValues(alpha: 0.78) : qqCard,
@@ -2480,6 +2527,7 @@ class _QuantumComposerState extends State<QuantumComposer>
         nonZeroOnlyOverride: nonZeroOnly,
         visibilityControlOverride: visibilityControl,
         dense: dense,
+        contentDriven: contentDriven,
       ),
     );
   }
@@ -2496,6 +2544,9 @@ class _HeaderActionShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (CanonicalMasteryHeaderActionScope.isActive(context)) {
+      return LevelHeaderActionShell(size: 44, child: child);
+    }
     return Container(
       width: size,
       height: size,

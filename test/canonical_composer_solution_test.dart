@@ -153,8 +153,8 @@ void main() {
         .map((entry) => (id: entry.$1 + 1, level: entry.$2 as ComposerLevel))
         .toList(growable: false);
 
-    test('all 93 active Composer levels carry canonical metadata', () {
-      expect(composerEntries, hasLength(93));
+    test('all 85 active Composer levels carry canonical metadata', () {
+      expect(composerEntries, hasLength(85));
       for (final entry in composerEntries) {
         expect(
           entry.level.canonicalSolution,
@@ -169,8 +169,9 @@ void main() {
       }
       expect(
         canonicalComposerSolutionCatalog,
-        hasLength(82),
-        reason: 'Phase 2 adds the 82 levels absent after Phase 1.',
+        hasLength(75),
+        reason:
+            'Only active Composer levels without inline metadata need catalog entries.',
       );
     });
 
@@ -299,11 +300,13 @@ void main() {
     });
 
     test('mastery wrapping retains canonical metadata', () {
-      final mastery = level(61);
-      expect(mastery.title, 'Bit Flip');
+      final mastery = level(65);
+      expect(mastery.title, 'Phase Sandwich');
       expect(mastery.canonicalSolution, isNotNull);
       expect(
-          mastery.canonicalSolution!.steps.single.gateType, SelectedGateType.x);
+        mastery.canonicalSolution!.steps.map((step) => step.gateType),
+        [SelectedGateType.x, SelectedGateType.z, SelectedGateType.x],
+      );
     });
 
     test('ID 74 follows the documented little-endian qubit convention', () {

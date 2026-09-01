@@ -57,30 +57,25 @@ void main() {
       });
     });
 
-    test('ID 77 follows |11> -> |01> -> |00>', () {
+    test('ID 77 uncomputes its fixed CNOT: |11> -> |01> -> |11>', () {
       verify(77, (circuit) {
         circuit.insertDoublePlacedGateAt(
           Gate.fromIdentifier(SelectedGateType.cnot),
-          0,
           1,
-          0,
-        );
-        circuit.insertSinglePlacedGateAt(
-          Gate.fromIdentifier(SelectedGateType.x),
           1,
           0,
         );
       });
     });
 
-    test('ID 79 uses Q0/Q1 controls and Q2 target', () {
+    test('ID 79 uses Q0/Q3 controls and Q1 target', () {
       verify(79, (circuit) {
         circuit.insertTriplePlacedGateAt(
           Gate.fromIdentifier(SelectedGateType.ccnot),
           0,
-          2,
-          0,
           1,
+          0,
+          3,
         );
       });
     });

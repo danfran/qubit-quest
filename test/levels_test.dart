@@ -61,7 +61,9 @@ void main() {
       },
       (QuantumCircuit circuit) {
         circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.y), 0, 0);
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.s), 1, 0);
       },
       (QuantumCircuit circuit) {
         // 5
@@ -142,9 +144,7 @@ void main() {
       },
       (QuantumCircuit circuit) {
         circuit.insertDoublePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
-        circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.x), 1, 0);
+            Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
       },
       (QuantumCircuit circuit) {
         circuit.insertTriplePlacedGateAt(
@@ -152,12 +152,12 @@ void main() {
       },
       (QuantumCircuit circuit) {
         circuit.insertTriplePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.ccnot), 0, 2, 1, 0);
+            Gate.fromIdentifier(SelectedGateType.ccnot), 0, 1, 0, 3);
       },
       (QuantumCircuit circuit) {
         // 20
         circuit.insertTriplePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.ccnot), 0, 0, 1, 2);
+            Gate.fromIdentifier(SelectedGateType.ccnot), 1, 0, 1, 2);
       },
       (QuantumCircuit circuit) {
         // more than one solution, example X(0) + X(1)
@@ -293,13 +293,13 @@ void main() {
             Gate.fromIdentifier(SelectedGateType.cz), 1, 1, 0);
       },
       (QuantumCircuit circuit) {
-        // double solution
+        // Undo the fixed H(q0), H(q1), CZ prefix in reverse order.
         circuit.insertDoublePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.cz), 2, 1, 0);
+            Gate.fromIdentifier(SelectedGateType.cz), 3, 1, 0);
         circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.hadamard), 3, 0);
+            Gate.fromIdentifier(SelectedGateType.hadamard), 4, 0);
         circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.hadamard), 3, 1);
+            Gate.fromIdentifier(SelectedGateType.hadamard), 4, 1);
       },
       (QuantumCircuit circuit) {
         // 40
@@ -315,7 +315,7 @@ void main() {
       (QuantumCircuit circuit) {
         // Solution: Rz(pi/2) on Q0
         circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2), 0, 0);
+            Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2), 1, 0);
       },
       (QuantumCircuit circuit) {
         // Solution: Ry(-pi/2) on Q0
@@ -338,13 +338,11 @@ void main() {
             Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 4), 2, 1);
       },
       (QuantumCircuit circuit) {
-        // Solution: Rx(pi/2), Ry(pi/4), then Rz(pi/2) on Q0.
+        // Solution: Ry(pi/3), then Rz(pi/2) on Q0.
         circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 2), 0, 0);
+            Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 3), 0, 0);
         circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.ry, angle: math.pi / 4), 1, 0);
-        circuit.insertSinglePlacedGateAt(
-            Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2), 2, 0);
+            Gate.fromIdentifier(SelectedGateType.rz, angle: math.pi / 2), 1, 0);
       },
     ];
 
@@ -384,7 +382,18 @@ void main() {
     });
 
     test('mastery challenge levels preserve the expected mixed types', () {
-      for (int levelNumber = 61; levelNumber <= 106; levelNumber++) {
+      expect(getQQLevelById(61), isA<CircuitReadingLevel>());
+      expect(getQQLevelById(62), isA<McqLevel>());
+      expect(getQQLevelById(63), isA<CircuitReadingLevel>());
+      expect(getQQLevelById(64), isA<FillTheGateLevel>());
+      expect(getQQLevelById(65), isA<ComposerLevel>());
+      expect(getQQLevelById(66), isA<CircuitReadingLevel>());
+      expect(getQQLevelById(67), isA<ComposerLevel>());
+      expect(getQQLevelById(68), isA<FillTheGateLevel>());
+      expect(getQQLevelById(69), isA<MeasurementLabLevel>());
+      expect(getQQLevelById(70), isA<ComposerLevel>());
+      expect(getQQLevelById(71), isA<CircuitReadingLevel>());
+      for (int levelNumber = 72; levelNumber <= 106; levelNumber++) {
         expect(getQQLevelById(levelNumber), isA<ComposerLevel>());
       }
       expect(getQQLevelById(107), isA<McqLevel>());
@@ -457,7 +466,8 @@ void main() {
       }
     });
 
-    test('Progression locks Mastery Challenges on fresh install', () {
+    test('Progression keeps lessons gated but opens Mastery on fresh install',
+        () {
       const freshInstallMaxUnlockedLevel = 1;
 
       expect(
@@ -479,14 +489,14 @@ void main() {
           levelNumber: 61,
           maxUnlockedLevel: freshInstallMaxUnlockedLevel,
         ),
-        isFalse,
+        isTrue,
       );
       expect(
         ProgressionRules.isLevelUnlocked(
           levelNumber: 114,
           maxUnlockedLevel: freshInstallMaxUnlockedLevel,
         ),
-        isFalse,
+        isTrue,
       );
     });
 
@@ -632,8 +642,15 @@ void main() {
           equals('Hidden Information'));
 
       for (final entry in notebookEntries) {
+        if (entry.chapterIndex == 0) {
+          expect(entry.id, notebookReferenceEntryId);
+          expect(isNotebookEntryAvailable(entry, const {}), isTrue);
+          continue;
+        }
         expect(
-            DiscoveryProgress.discoveryOrder, contains(entry.discoveryTitle));
+          DiscoveryProgress.discoveryOrder,
+          contains(entry.discoveryTitle),
+        );
       }
     });
 
@@ -920,9 +937,11 @@ void main() {
       expect(ghzEntry.whatChanged!.body,
           contains('allowed vs forbidden global outcomes'));
       expect(ghzEntry.advancedNotes!.body,
-          contains('state space restriction interpretation'));
+          contains('relative phase between its two global branches'));
       expect(synthesisEntry.whatChanged!.body,
           contains('forbidden global outcomes'));
+      expect(synthesisEntry.quantumView!.body,
+          contains('restriction on the full state space'));
       expect(synthesisEntry.quantumView!.examples.first.label,
           contains('State space restriction interpretation'));
     });
@@ -1092,27 +1111,28 @@ void main() {
       expect(result.fixPlan, isNotEmpty);
     });
 
-    test('initial qubit labels preserve authored ket tokens', () {
+    test('initial wire labels identify Q0-top and preserve authored states',
+        () {
       expect(
         QuantumCircuitPainter.initialQubitLabelsFor(
           initialQubitsStateStr: '|1⟩|−⟩',
           numQubits: 2,
         ),
-        equals(['|1⟩', '|−⟩']),
+        equals(['q0 |−⟩', 'q1 |1⟩']),
       );
       expect(
         QuantumCircuitPainter.initialQubitLabelsFor(
           initialQubitsStateStr: '|+⟩',
           numQubits: 1,
         ),
-        equals(['|+⟩']),
+        equals(['q0 |+⟩']),
       );
       expect(
         QuantumCircuitPainter.initialQubitLabelsFor(
           initialQubitsStateStr: '10',
           numQubits: 2,
         ),
-        equals(['|0⟩', '|1⟩']),
+        equals(['q0 |0⟩', 'q1 |1⟩']),
       );
     });
 
@@ -2341,34 +2361,31 @@ void main() {
       );
     });
 
-    test('Rz phase challenge labels e^(i*pi/4)|1> correctly', () {
+    test('Rz challenge uses relative phase on a superposition', () {
       final level = getQQLevelById(102)! as ComposerLevel;
 
       expect(level.title, equals('Rz — Phase Rotation'));
-      expect(level.taskDescription, contains(r'e^{i\pi/4}|1\rangle'));
-      expect(level.taskDescription, isNot(contains(r'|i\rangle')));
+      expect(level.taskDescription, contains(r'|+i\rangle'));
       expect(
         level.targetStateExpression,
-        equals('e^{iπ/4}|1⟩ = ((1+i)/√2)|1⟩'),
+        equals('|+i⟩ = (|0⟩ + i|1⟩)/√2'),
       );
-      expect(level.solutionFinalVector[0][0], equals(Complex.zero()));
+      expect(level.validationMode, ValidationMode.physicalState);
       expect(
-        level.solutionFinalVector[1][0],
-        equals(Complex(math.sqrt1_2, math.sqrt1_2)),
+        level.solutionFinalVector[0][0],
+        equals(Complex(math.sqrt1_2, 0)),
       );
+      expect(level.solutionFinalVector[1][0], equals(Complex(0, math.sqrt1_2)));
     });
 
-    test('precise rotation challenge identifies global phase accurately', () {
+    test('precise rotation challenge targets relative phase', () {
       final level = getQQLevelById(106)! as ComposerLevel;
 
-      expect(level.title, equals('Precise State-Vector Phase'));
-      expect(level.targetStateLabel, equals('Global-phase |+⟩'));
-      expect(level.conceptIntro, contains('same physical Bloch-sphere point'));
+      expect(level.title, equals('Precise Relative-Phase State'));
+      expect(level.targetStateLabel, contains('relative phase'));
       expect(level.conceptIntro, contains('global phase'));
-      expect(
-        level.solutionExplanation,
-        contains('physically the same Bloch-sphere point as |+⟩'),
-      );
+      expect(level.validationMode, ValidationMode.physicalState);
+      expect(level.solutionExplanation, contains('relative phase'));
     });
 
     test('guided Bell state text matches the configured Bell targets', () {
@@ -2447,7 +2464,7 @@ void main() {
     });
 
     test('mastery challenges start after guided discovery', () {
-      expect(getQQLevelById(61)!.title, equals('Bit Flip'));
+      expect(getQQLevelById(61)!.title, equals('A Change That Cancels'));
       expect(getQQLevelById(107)!.title, equals('What is Superposition?'));
       expect(getQQLevelById(114)!.title, equals('Read: Bell State'));
     });

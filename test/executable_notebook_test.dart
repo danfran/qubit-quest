@@ -241,6 +241,9 @@ void main() {
       );
       await tester.pumpAndSettle();
       final open = find.byKey(const ValueKey('composer-example-x_from_zero'));
+      await tester.scrollUntilVisible(open, 300);
+      await tester.ensureVisible(open);
+      await tester.pumpAndSettle();
       await tester.tap(open);
       await tester.pumpAndSettle();
       expect(find.byType(QuantumComposer), findsOneWidget);
@@ -258,9 +261,15 @@ void main() {
       );
       await tester.pumpAndSettle();
       final run = find.byKey(const ValueKey('run-example-x_from_zero'));
+      await tester.scrollUntilVisible(run, 300);
+      await tester.ensureVisible(run);
+      await tester.pumpAndSettle();
       await tester.tap(run);
       await tester.pump();
       final open = find.byKey(const ValueKey('bloch-example-x_from_zero'));
+      await tester.scrollUntilVisible(open, 200);
+      await tester.ensureVisible(open);
+      await tester.pumpAndSettle();
       await tester.tap(open);
       await tester.pumpAndSettle();
       expect(find.byType(BlochExplorerScreen), findsOneWidget);

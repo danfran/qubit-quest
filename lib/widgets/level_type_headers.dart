@@ -1,5 +1,143 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
+import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
+
+class MasteryActivityHeader extends StatelessWidget
+    implements PreferredSizeWidget {
+  const MasteryActivityHeader({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.isCompleted,
+    required this.actions,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool isCompleted;
+  final List<Widget> actions;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(88);
+
+  @override
+  Widget build(BuildContext context) {
+    final pagePadding = MediaQuery.sizeOf(context).width <
+            QubitQuestLayout.activityCompactBreakpoint
+        ? QubitQuestSpacing.component
+        : QubitQuestSpacing.section;
+    return AppBar(
+      key: const ValueKey('canonical-mastery-header'),
+      toolbarHeight: preferredSize.height,
+      backgroundColor: QubitQuestColors.background,
+      foregroundColor: QubitQuestColors.textPrimary,
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
+      automaticallyImplyLeading: false,
+      titleSpacing: 0,
+      title: CanonicalMasteryHeaderActionScope(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: QubitQuestLayout.activityMaxContentWidth,
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: pagePadding),
+              child: Row(
+                children: [
+                  const _CanonicalMasteryBackButton(),
+                  const SizedBox(width: QubitQuestSpacing.compact),
+                  const _CanonicalMasteryIdentity(),
+                  const SizedBox(width: QubitQuestSpacing.regular),
+                  Expanded(
+                    child: Semantics(
+                      header: true,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (isCompleted) const _CompletedHeaderLabel(),
+                          Text(
+                            title,
+                            key: const ValueKey('canonical-mastery-title'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: QubitQuestTypography.heading,
+                          ),
+                          if (subtitle.isNotEmpty)
+                            Text(
+                              subtitle,
+                              key: const ValueKey('canonical-mastery-subtitle'),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: QubitQuestTypography.supporting,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (actions.isNotEmpty) ...[
+                    const SizedBox(width: QubitQuestSpacing.compact),
+                    ...actions,
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class CanonicalMasteryHeaderActionScope extends InheritedWidget {
+  const CanonicalMasteryHeaderActionScope({
+    super.key,
+    required super.child,
+  });
+
+  static bool isActive(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<
+          CanonicalMasteryHeaderActionScope>() !=
+      null;
+
+  @override
+  bool updateShouldNotify(CanonicalMasteryHeaderActionScope oldWidget) => false;
+}
+
+class _CanonicalMasteryIdentity extends StatelessWidget {
+  const _CanonicalMasteryIdentity();
+
+  @override
+  Widget build(BuildContext context) => const ExcludeSemantics(
+        child: SizedBox.square(
+          key: ValueKey('canonical-mastery-identity'),
+          dimension: 28,
+          child: Icon(
+            Icons.workspace_premium_outlined,
+            color: QubitQuestColors.success,
+            size: 24,
+          ),
+        ),
+      );
+}
+
+class _CanonicalMasteryBackButton extends StatelessWidget {
+  const _CanonicalMasteryBackButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final canPop = ModalRoute.of(context)?.canPop ?? false;
+    return QubitQuestIconAction(
+      icon: Icons.arrow_back_rounded,
+      tooltip: 'Back',
+      onPressed: canPop ? () => Navigator.of(context).maybePop() : null,
+    );
+  }
+}
 
 class ComposerHeader extends StatelessWidget implements PreferredSizeWidget {
   const ComposerHeader({
@@ -212,7 +350,7 @@ class LevelHeaderActionShell extends StatelessWidget {
   const LevelHeaderActionShell({
     super.key,
     required this.child,
-    this.size = 34,
+    this.size = 44,
     this.subdued = false,
   });
 
@@ -229,7 +367,7 @@ class LevelHeaderActionShell extends StatelessWidget {
         color: subdued
             ? LevelHeaderTokens.inner.withValues(alpha: 0.54)
             : LevelHeaderTokens.card,
-        shape: BoxShape.circle,
+        borderRadius: QubitQuestRadii.control,
         border: Border.all(
           color:
               subdued ? LevelHeaderTokens.borderSoft : LevelHeaderTokens.border,
@@ -282,15 +420,16 @@ class LevelHeaderAttentionBadge extends StatelessWidget {
 class LevelHeaderTokens {
   const LevelHeaderTokens._();
 
-  static const Color black = Color(0xFF00030A);
-  static const Color card = Color(0xFF18233A);
-  static const Color inner = Color(0xFF101A2D);
-  static const Color border = Color(0x66344A73);
-  static const Color borderSoft = Color(0x3D344A73);
-  static const Color cyan = Color(0xFF56CCF2);
-  static const Color purple = Color(0xFFB388FF);
-  static const Color green = Color(0xFF7CFFB2);
-  static const Color yellow = Color(0xFFFFD54F);
+  // Compatibility aliases. QubitQuestColors is the canonical authority.
+  static const Color black = QubitQuestColors.background;
+  static const Color card = QubitQuestColors.surfaceRaised;
+  static const Color inner = QubitQuestColors.surfaceInsetRaised;
+  static const Color border = QubitQuestColors.border;
+  static const Color borderSoft = QubitQuestColors.borderSoft;
+  static const Color cyan = QubitQuestColors.accentInteractive;
+  static const Color purple = QubitQuestColors.accentStrong;
+  static const Color green = QubitQuestColors.success;
+  static const Color yellow = QubitQuestColors.warning;
 }
 
 class _CompactLearningHeader extends StatelessWidget

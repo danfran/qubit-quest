@@ -5,6 +5,7 @@ import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
+import 'package:quantumquiz/widgets/notebook_typography.dart';
 
 class ExecutableNotebookExampleView extends StatefulWidget {
   const ExecutableNotebookExampleView({
@@ -66,13 +67,16 @@ class _ExecutableNotebookExampleViewState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(example.title,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900)),
+              style: NotebookTypography.text(
+                NotebookTextRole.interactiveTitle,
+                color: Colors.white,
+              )),
           const SizedBox(height: 4),
           Text(example.description,
-              style: const TextStyle(color: QubitQuestDialog.mutedText)),
+              style: NotebookTypography.text(
+                NotebookTextRole.body,
+                color: QubitQuestDialog.mutedText,
+              )),
           const SizedBox(height: 10),
           Text(
             'Start |${example.initialBinaryState}⟩',
@@ -181,9 +185,9 @@ class CompactCircuitPreview extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   _location(step),
-                  style: const TextStyle(
+                  style: NotebookTypography.text(
+                    NotebookTextRole.circuitCaption,
                     color: QubitQuestDialog.mutedText,
-                    fontSize: 10,
                   ),
                 ),
               ],

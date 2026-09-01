@@ -18,17 +18,17 @@ ComposerLevel composerLevel(String title) {
 
 void main() {
   group('canonical authored Target State notation', () {
-    test('Rz coefficient precedes its basis ket', () {
+    test('Rz physical-state target keeps coefficients with their kets', () {
       final level = composerLevel('Rz — Phase Rotation');
 
       expect(
         level.targetStateExpression,
-        'e^{iπ/4}|1⟩ = ((1+i)/√2)|1⟩',
+        '|+i⟩ = (|0⟩ + i|1⟩)/√2',
       );
       expect(level.targetStateExpression, isNot(contains('|1⟩/√2')));
       expect(level.solutionFinalVector, [
-        [Complex.zero()],
-        [Complex(math.sqrt1_2, math.sqrt1_2)],
+        [Complex(math.sqrt1_2)],
+        [Complex(0, math.sqrt1_2)],
       ]);
     });
 
@@ -71,8 +71,7 @@ void main() {
 
     test('symbolic exponential form remains symbolic through LaTeX conversion',
         () {
-      final expression =
-          composerLevel('Rz — Phase Rotation').targetStateExpression!;
+      final expression = composerLevel('An Eighth Turn').targetStateExpression!;
       final latex = quantumStateNotationToLatex(expression);
 
       expect(latex, contains(r'e^{i\pi /4}'));

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
 class QubitQuestDialog extends StatelessWidget {
   const QubitQuestDialog({
@@ -13,15 +14,16 @@ class QubitQuestDialog extends StatelessWidget {
     this.titleStyle,
   });
 
-  static const Color panelColor = Color(0xFF111827);
-  static const Color innerColor = Color(0xFF030814);
-  static const Color cardColor = Color(0xFF18233A);
-  static const Color borderColor = Color(0x66344A73);
-  static const Color borderSoftColor = Color(0x3D344A73);
-  static const Color cyan = Color(0xFF56CCF2);
-  static const Color purple = Color(0xFFB388FF);
-  static const Color disabledColor = Color(0xFF243047);
-  static const Color mutedText = Color(0xFF95A4BC);
+  // Compatibility aliases. QubitQuestColors is the canonical authority.
+  static const Color panelColor = QubitQuestColors.surface;
+  static const Color innerColor = QubitQuestColors.surfaceInset;
+  static const Color cardColor = QubitQuestColors.surfaceRaised;
+  static const Color borderColor = QubitQuestColors.border;
+  static const Color borderSoftColor = QubitQuestColors.borderSoft;
+  static const Color cyan = QubitQuestColors.accentInteractive;
+  static const Color purple = QubitQuestColors.accentStrong;
+  static const Color disabledColor = QubitQuestColors.disabled;
+  static const Color mutedText = QubitQuestColors.textMuted;
 
   final String title;
   final Widget child;

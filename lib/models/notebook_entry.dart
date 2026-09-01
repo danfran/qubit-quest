@@ -29,6 +29,8 @@ class NotebookEntry {
 
   String get chapterIdentity {
     switch (chapterIndex) {
+      case 0:
+        return 'Recurring notation and terms used throughout Qubit Quest';
       case 1:
         return 'How quantum information is stored and transformed';
       case 2:
@@ -76,9 +78,41 @@ class NotebookExample {
     required this.label,
     required this.notation,
     this.explanation,
-  });
+    this.comparisonGroup,
+  })  : presentation = NotebookExamplePresentation.prose,
+        latex = null,
+        latexLines = const [],
+        mathRole = NotebookMathRole.display;
+
+  const NotebookExample.math({
+    required this.label,
+    required this.notation,
+    this.latex,
+    this.latexLines = const [],
+    this.mathRole = NotebookMathRole.display,
+    this.explanation,
+    this.comparisonGroup,
+  }) : presentation = NotebookExamplePresentation.math;
 
   final String label;
+
+  /// Plain, searchable and accessible representation of this example.
   final String notation;
+
+  /// Authored TeX used when [presentation] is mathematical. When omitted, the
+  /// shared quantum-notation converter renders [notation].
+  final String? latex;
+  final List<String> latexLines;
+  final NotebookMathRole mathRole;
   final String? explanation;
+  final String? comparisonGroup;
+  final NotebookExamplePresentation presentation;
 }
+
+enum NotebookExamplePresentation { prose, math }
+
+/// Semantic importance for authored Notebook mathematics.
+///
+/// Use [display] by default. [emphasis] is reserved for a major state or
+/// circuit transformation, never merely because an expression is long.
+enum NotebookMathRole { inline, display, emphasis }

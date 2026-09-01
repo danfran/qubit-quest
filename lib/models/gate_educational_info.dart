@@ -330,7 +330,8 @@ class GateEducationalCatalog {
     SelectedGateType.rz: GateEducationalInfo(
       type: SelectedGateType.rz,
       name: 'Rz rotation gate',
-      intuition: 'Changes relative phase by rotating around the Z axis.',
+      intuition:
+          'Rotates around the Z axis, changing relative phase when both basis amplitudes are present.',
       physicalChange:
           r'Adds opposite angle-dependent phases to \(|0\rangle\) and \(|1\rangle\).',
       commonUse:

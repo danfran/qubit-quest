@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:quantumquiz/models/discovery_catalog.dart' as discovery_catalog;
+import 'package:quantumquiz/models/mastery_challenge_catalogue.dart';
 import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
@@ -9,12 +10,13 @@ import 'package:quantumquiz/storage/shared_preferences_app_storage.dart';
 
 @immutable
 class CampaignProgressState {
-  static const int currentSchemaVersion = 1;
+  static const int currentSchemaVersion = 2;
 
   final int schemaVersion;
   final int maxUnlockedLevel;
   final Set<int> completedLessonIds;
   final Set<int> completedChallengeIds;
+  final Set<String> completedMasterySemanticIds;
   final Set<String> explicitlyUnlockedDiscoveryIds;
   final Set<String> legacyUnlockedDiscoveryTitles;
   final Set<String> openedDiscoveryIds;
@@ -26,6 +28,7 @@ class CampaignProgressState {
     required this.maxUnlockedLevel,
     Set<int> completedLessonIds = const {},
     Set<int> completedChallengeIds = const {},
+    Set<String> completedMasterySemanticIds = const {},
     Set<String> explicitlyUnlockedDiscoveryIds = const {},
     Set<String> legacyUnlockedDiscoveryTitles = const {},
     Set<String> openedDiscoveryIds = const {},
@@ -33,6 +36,8 @@ class CampaignProgressState {
     this.masteryCompleteDialogShown = false,
   })  : completedLessonIds = Set.unmodifiable(completedLessonIds),
         completedChallengeIds = Set.unmodifiable(completedChallengeIds),
+        completedMasterySemanticIds =
+            Set.unmodifiable(completedMasterySemanticIds),
         explicitlyUnlockedDiscoveryIds =
             Set.unmodifiable(explicitlyUnlockedDiscoveryIds),
         legacyUnlockedDiscoveryTitles =
@@ -50,6 +55,7 @@ class CampaignProgressState {
     int? maxUnlockedLevel,
     Set<int>? completedLessonIds,
     Set<int>? completedChallengeIds,
+    Set<String>? completedMasterySemanticIds,
     Set<String>? explicitlyUnlockedDiscoveryIds,
     Set<String>? legacyUnlockedDiscoveryTitles,
     Set<String>? openedDiscoveryIds,
@@ -62,6 +68,8 @@ class CampaignProgressState {
       completedLessonIds: completedLessonIds ?? this.completedLessonIds,
       completedChallengeIds:
           completedChallengeIds ?? this.completedChallengeIds,
+      completedMasterySemanticIds:
+          completedMasterySemanticIds ?? this.completedMasterySemanticIds,
       explicitlyUnlockedDiscoveryIds:
           explicitlyUnlockedDiscoveryIds ?? this.explicitlyUnlockedDiscoveryIds,
       legacyUnlockedDiscoveryTitles:
@@ -126,12 +134,18 @@ class CampaignProgressPolicy {
             id <= ProgressionRules.journeyLevelCount)
           id,
     };
+    final completedMasterySemanticIds = <String>{
+      for (final semanticId in state.completedMasterySemanticIds)
+        if (MasteryChallengeDefinition.isValidSemanticId(semanticId))
+          semanticId,
+    };
 
     return state.copyWith(
       schemaVersion: CampaignProgressState.currentSchemaVersion,
       maxUnlockedLevel: maxUnlockedLevel,
       completedLessonIds: completedLessons,
       completedChallengeIds: completedChallenges,
+      completedMasterySemanticIds: completedMasterySemanticIds,
     );
   }
 
@@ -180,12 +194,42 @@ class CampaignProgressPolicy {
     }
     return normalize(
       state.copyWith(
-        maxUnlockedLevel:
-            math.max(state.maxUnlockedLevel, challengeLevelId + 1),
         completedChallengeIds: {
           ...state.completedChallengeIds,
           challengeLevelId,
         },
+      ),
+    );
+  }
+
+  static CampaignProgressState completeMasteryChallenge(
+    CampaignProgressState state,
+    String semanticId,
+  ) {
+    if (!MasteryChallengeDefinition.isValidSemanticId(semanticId)) {
+      throw ArgumentError.value(
+        semanticId,
+        'semanticId',
+        'Mastery completion requires a valid semantic identity.',
+      );
+    }
+    return normalize(
+      state.copyWith(
+        completedMasterySemanticIds: {
+          ...state.completedMasterySemanticIds,
+          semanticId,
+        },
+      ),
+    );
+  }
+
+  static CampaignProgressState discardLegacyMasteryCompletion(
+    CampaignProgressState state,
+  ) {
+    return normalize(
+      state.copyWith(
+        completedChallengeIds: const {},
+        masteryCompleteDialogShown: false,
       ),
     );
   }
@@ -279,6 +323,13 @@ class CampaignProgressPolicy {
     return state.completedChallengeIds.contains(levelId);
   }
 
+  static bool isMasteryChallengeCompleted(
+    CampaignProgressState state,
+    String semanticId,
+  ) {
+    return state.completedMasterySemanticIds.contains(semanticId);
+  }
+
   static bool getMasteryChallengesUnlocked(CampaignProgressState state) {
     return ProgressionRules.masteryChallengesUnlocked(state.maxUnlockedLevel);
   }
@@ -286,10 +337,17 @@ class CampaignProgressPolicy {
   static ContinueJourneyDestination continueJourneyDestination(
     CampaignProgressState state,
   ) {
-    if (state.maxUnlockedLevel > ProgressionRules.journeyLevelCount) {
+    if (state.maxUnlockedLevel > ProgressionRules.guidedDiscoveryLevelCount ||
+        state.completedLessonIds.length >=
+            ProgressionRules.guidedDiscoveryLevelCount) {
       return const ContinueJourneyDestination.completed();
     }
-    return ContinueJourneyDestination.level(state.maxUnlockedLevel);
+    return ContinueJourneyDestination.level(
+      state.maxUnlockedLevel.clamp(
+        1,
+        ProgressionRules.guidedDiscoveryLevelCount,
+      ),
+    );
   }
 
   static Set<String> unlockedDiscoveryTitles(CampaignProgressState state) {
@@ -415,6 +473,8 @@ class SharedPreferencesCampaignProgressStore implements CampaignProgressStore {
   static const maxUnlockedLevelKey = 'qq_progress_max_unlocked_level';
   static const completedLessonIdsKey = 'qq_progress_completed_lesson_ids';
   static const completedChallengeIdsKey = 'qq_progress_completed_challenge_ids';
+  static const completedMasterySemanticIdsKey =
+      'qq_progress_completed_mastery_semantic_ids';
   static const unlockedDiscoveryIdsKey = 'qq_progress_unlocked_discovery_ids';
   static const legacyUnlockedDiscoveryTitlesKey =
       'qq_progress_legacy_unlocked_discovery_titles';
@@ -452,6 +512,10 @@ class SharedPreferencesCampaignProgressStore implements CampaignProgressStore {
         completedChallengeIds: {
           ...?canonical?.completedChallengeIds,
           ...legacy.completedChallengeIds,
+        },
+        completedMasterySemanticIds: {
+          ...?canonical?.completedMasterySemanticIds,
+          ...legacy.completedMasterySemanticIds,
         },
         explicitlyUnlockedDiscoveryIds: {
           ...?canonical?.explicitlyUnlockedDiscoveryIds,
@@ -499,6 +563,10 @@ class SharedPreferencesCampaignProgressStore implements CampaignProgressStore {
       _sortedIntStrings(normalized.completedChallengeIds),
     );
     await storage.writeStringList(
+      completedMasterySemanticIdsKey,
+      _sortedStrings(normalized.completedMasterySemanticIds),
+    );
+    await storage.writeStringList(
       unlockedDiscoveryIdsKey,
       _sortedStrings(normalized.explicitlyUnlockedDiscoveryIds),
     );
@@ -529,6 +597,7 @@ class SharedPreferencesCampaignProgressStore implements CampaignProgressStore {
       maxUnlockedLevelKey,
       completedLessonIdsKey,
       completedChallengeIdsKey,
+      completedMasterySemanticIdsKey,
       unlockedDiscoveryIdsKey,
       legacyUnlockedDiscoveryTitlesKey,
       openedDiscoveryIdsKey,
@@ -556,6 +625,9 @@ class SharedPreferencesCampaignProgressStore implements CampaignProgressStore {
             _parseInts(await storage.readStringList(completedLessonIdsKey)),
         completedChallengeIds:
             _parseInts(await storage.readStringList(completedChallengeIdsKey)),
+        completedMasterySemanticIds: _validMasterySemanticIds(
+          await storage.readStringList(completedMasterySemanticIdsKey),
+        ),
         explicitlyUnlockedDiscoveryIds: _validDiscoveryIds(
             await storage.readStringList(unlockedDiscoveryIdsKey)),
         legacyUnlockedDiscoveryTitles:
@@ -645,6 +717,12 @@ class SharedPreferencesCampaignProgressStore implements CampaignProgressStore {
   static Set<String> _validDiscoveryIds(List<String>? values) {
     return (values ?? const <String>[])
         .where((id) => CampaignProgressPolicy.discoveryTitleForId(id) != null)
+        .toSet();
+  }
+
+  static Set<String> _validMasterySemanticIds(List<String>? values) {
+    return (values ?? const <String>[])
+        .where(MasteryChallengeDefinition.isValidSemanticId)
         .toSet();
   }
 
@@ -746,6 +824,18 @@ class CampaignProgressController extends ChangeNotifier {
 
   Future<void> completeChallenge(int levelId) async {
     await _commit(CampaignProgressPolicy.completeChallenge(_state, levelId));
+  }
+
+  Future<void> completeMasteryChallenge(String semanticId) async {
+    await _commit(
+      CampaignProgressPolicy.completeMasteryChallenge(_state, semanticId),
+    );
+  }
+
+  Future<void> discardLegacyMasteryCompletion() async {
+    await _commit(
+      CampaignProgressPolicy.discardLegacyMasteryCompletion(_state),
+    );
   }
 
   Future<void> unlockDiscovery(String discoveryTitle) async {

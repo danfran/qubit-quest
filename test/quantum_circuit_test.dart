@@ -2,12 +2,12 @@ import 'package:advance_math/advance_math.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/qq_level.dart';
+import 'package:quantumquiz/models/gate_id.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/models/qubit_state.dart';
-
 
 void main() {
   // Helper to create an initial empty circuit for testing
@@ -18,10 +18,44 @@ void main() {
         initialQubitsStateStr: "0" * numQubits,
         initialQubitsState: ComposerLevel.getZeroStateVector(numQubits),
         availableGates: [],
-        solutionFinalVector: []
-    );
+        solutionFinalVector: []);
     final circuit = QuantumCircuit(currentLevel: level);
     return circuit;
+  }
+
+  // Older tests below build circuit rows directly. Modern compaction operates
+  // on logical GateIds so controlled footprints remain atomic. Give those
+  // legacy fixtures the same identity metadata production insertion supplies.
+  void assignFixtureGateIds(QuantumCircuit circuit) {
+    final ids = <String, GateId>{};
+    var nextId = 10000;
+    for (final (qubit, row) in circuit.placedGates.indexed) {
+      for (final (column, placed) in row.indexed) {
+        if (placed.gate.type == SelectedGateType.none || placed.id != null) {
+          continue;
+        }
+        final isControlled = placed.isControl ||
+            placed.isControl2 ||
+            placed.isTarget ||
+            placed.isLink;
+        final key = isControlled
+            ? '${placed.gate.type}:$column'
+            : '${placed.gate.type}:$qubit:$column';
+        final id = ids.putIfAbsent(key, () => GateId(nextId++));
+        row[column] = PlacedQuantumGate(
+          id: id,
+          gate: placed.gate,
+          controlQubitIndex: placed.controlQubitIndex,
+          control2QubitIndex: placed.control2QubitIndex,
+          targetQubitIndex: placed.targetQubitIndex,
+          isTarget: placed.isTarget,
+          isLink: placed.isLink,
+          isControl: placed.isControl,
+          isControl2: placed.isControl2,
+          isDeletable: placed.isDeletable,
+        );
+      }
+    }
   }
 
   const double tolerance = 1e-9;
@@ -38,16 +72,18 @@ void main() {
 
     test('isEmpty and maxCircuitDepth should reflect circuit state', () {
       final circuit = createEmptyCircuit(2);
-      circuit.placedGates[0].add(PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)));
+      circuit.placedGates[0].add(
+          PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)));
       expect(circuit.isCircuitEmpty(), isFalse);
       expect(circuit.maxCircuitDepth(), 1);
 
-      circuit.placedGates[1].add(PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.hadamard)));
-      circuit.placedGates[1].add(PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x))); // Longer line
+      circuit.placedGates[1].add(PlacedQuantumGate(
+          gate: Gate.fromIdentifier(SelectedGateType.hadamard)));
+      circuit.placedGates[1].add(PlacedQuantumGate(
+          gate: Gate.fromIdentifier(SelectedGateType.x))); // Longer line
       expect(circuit.maxCircuitDepth(), 2);
     });
   });
-
 
   group('QuantumCircuit trimCircuit', () {
     test('should trim trailing empty gates from all qubit lines', () {
@@ -81,8 +117,10 @@ void main() {
 
     test('should not trim non-empty gates', () {
       final circuit = createEmptyCircuit(1);
-      circuit.placedGates[0].add(PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)));
-      circuit.placedGates[0].add(PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.hadamard)));
+      circuit.placedGates[0].add(
+          PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)));
+      circuit.placedGates[0].add(PlacedQuantumGate(
+          gate: Gate.fromIdentifier(SelectedGateType.hadamard)));
 
       debugPrint('Before trim:\n$circuit');
       circuit.trimCircuit();
@@ -111,12 +149,16 @@ void main() {
   });
 
   group('QuantumCircuit insertGateAt', () {
-    test('should insert gate at specified position, filling with empty gates if needed', () {
+    test(
+        'should insert gate at specified position, filling with empty gates if needed',
+        () {
       final circuit = createEmptyCircuit(2);
       // Initial state: Q0: [], Q1: []
 
       circuit.insertGateAt(
-          PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)), 2, 0); // Insert X at pos 2 on Q0
+          PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)),
+          2,
+          0); // Insert X at pos 2 on Q0
       // Expected: Q0: [-, -, X], Q1: []
       expect(circuit.placedGates[0].length, 3);
       expect(circuit.placedGates[0][0].gate.type, SelectedGateType.none);
@@ -126,7 +168,10 @@ void main() {
       debugPrint('After insertGateAt(X, 2, 0):\n$circuit');
 
       circuit.insertGateAt(
-          PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.hadamard)), 0, 1); // Insert H at pos 0 on Q1
+          PlacedQuantumGate(
+              gate: Gate.fromIdentifier(SelectedGateType.hadamard)),
+          0,
+          1); // Insert H at pos 0 on Q1
       // Expected: Q0: [-, -, X], Q1: [H]
       expect(circuit.placedGates[1].length, 1);
       expect(circuit.placedGates[1][0].gate.type, SelectedGateType.hadamard);
@@ -142,7 +187,9 @@ void main() {
       // Initial: Q0: [H, -]
 
       circuit.insertGateAt(
-          PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)), 1, 0); // Insert X at pos 1 on Q0
+          PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)),
+          1,
+          0); // Insert X at pos 1 on Q0
       // Expected: Q0: [H, X, -] (old empty is shifted)
       expect(circuit.placedGates[0].length, 3);
       expect(circuit.placedGates[0][0].gate.type, SelectedGateType.hadamard);
@@ -155,7 +202,8 @@ void main() {
   group('QuantumCircuit insertSinglePlacedGateAt', () {
     test('should insert a single gate into an empty circuit at position 0', () {
       final circuit = createEmptyCircuit(2);
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 0, 0); // X on Q0 at pos 0
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0); // X on Q0 at pos 0
       // Expected: Q0: [X], Q1: []
       expect(circuit.placedGates[0].length, 1);
       expect(circuit.placedGates[0][0].gate.type, SelectedGateType.x);
@@ -165,12 +213,14 @@ void main() {
 
     test('should insert a single gate into an empty slot', () {
       final circuit = createEmptyCircuit(2);
-      circuit.placedGates[0].add(PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.hadamard)));
+      circuit.placedGates[0].add(PlacedQuantumGate(
+          gate: Gate.fromIdentifier(SelectedGateType.hadamard)));
       circuit.placedGates[0].add(PlacedQuantumGate.emptyGate());
       // Initial: Q0: [H, -], Q1: []
       debugPrint('Initial:\n$circuit');
 
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 1, 0); // X on Q0 at pos 1
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 1, 0); // X on Q0 at pos 1
       // Expected: Q0: [H, X], Q1: []
       expect(circuit.placedGates[0].length, 2);
       expect(circuit.placedGates[0][0].gate.type, SelectedGateType.hadamard);
@@ -178,14 +228,20 @@ void main() {
       debugPrint('After insertSingle(X, 1, 0):\n$circuit');
     });
 
-    test('should insert a single gate and push existing gates if slot is occupied', () {
+    test(
+        'should insert a single gate and push existing gates if slot is occupied',
+        () {
       final circuit = createEmptyCircuit(2);
-      circuit.placedGates[0].add(PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.hadamard)));
-      circuit.placedGates[1].add(PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)));
+      circuit.placedGates[0].add(PlacedQuantumGate(
+          gate: Gate.fromIdentifier(SelectedGateType.hadamard)));
+      circuit.placedGates[1].add(
+          PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)));
       // Initial: Q0: [H], Q1: [X]
       debugPrint('Initial:\n$circuit');
 
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 0, 0); // Z on Q0 at pos 0
+      assignFixtureGateIds(circuit);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 0, 0); // Z on Q0 at pos 0
       debugPrint('After insertSingle(Z, 0, 0):\n$circuit');
 
       // This path: insertGateAt on all qubits, then _shiftLeft.
@@ -201,13 +257,20 @@ void main() {
     test('should correctly shift CNOTs when inserting a single gate', () {
       final circuit = createEmptyCircuit(2);
       // Manual setup for a CNOT (Control Q0, Target Q1) at position 0
-      circuit.placedGates[0].add(PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isControl: true, targetQubitIndex: 1));
-      circuit.placedGates[1].add(PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isTarget: true, controlQubitIndex: 0));
+      circuit.placedGates[0].add(PlacedQuantumGate(
+          gate: Gate.fromIdentifier(SelectedGateType.cnot),
+          isControl: true,
+          targetQubitIndex: 1));
+      circuit.placedGates[1].add(PlacedQuantumGate(
+          gate: Gate.fromIdentifier(SelectedGateType.cnot),
+          isTarget: true,
+          controlQubitIndex: 0));
       // Initial: Q0: [C], Q1: [T]
       debugPrint('Initial:\n$circuit');
 
       // Insert H on Q0 at position 0
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
       // Expected:
       // Q0: [H, C]
       // Q1: [-, T]  (The CNOT should have shifted right by one)
@@ -232,24 +295,33 @@ void main() {
       // Q4: [-, -, T]
       circuit.placedGates[2].addAll([
         PlacedQuantumGate.emptyGate(),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isTarget: true, controlQubitIndex: 4),
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isTarget: true,
+            controlQubitIndex: 4),
         PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.y))
       ]);
       circuit.placedGates[3].addAll([
         PlacedQuantumGate.emptyGate(),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isLink: true),
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot), isLink: true),
         PlacedQuantumGate.emptyGate(),
       ]);
       circuit.placedGates[4].addAll([
         PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isControl: true, targetQubitIndex: 2),
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isControl: true,
+            targetQubitIndex: 2),
         PlacedQuantumGate.emptyGate(),
       ]);
       debugPrint('Initial:\n$circuit');
 
+      assignFixtureGateIds(circuit);
       // Now insert something at column 0 that would trigger _shiftLeft
       // For example, calling insertSinglePlacedGateAt which then calls _shiftLeft
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 1, 4);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 1, 4);
       // This is not what we expect
       // Expected:
       // Q0: [H, C]
@@ -293,40 +365,64 @@ void main() {
       // Q3: [-, -, |]
       // Q4: [-, -, T]
       circuit.placedGates[0].addAll([
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isTarget: true, controlQubitIndex: 4),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isControl: true, targetQubitIndex: 1),
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isTarget: true,
+            controlQubitIndex: 4),
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isControl: true,
+            targetQubitIndex: 1),
       ]);
       circuit.placedGates[1].addAll([
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isLink: true),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isTarget: true, controlQubitIndex: 0),
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot), isLink: true),
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isTarget: true,
+            controlQubitIndex: 0),
       ]);
       circuit.placedGates[2].addAll([
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isLink: true),
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot), isLink: true),
         PlacedQuantumGate.emptyGate(),
         PlacedQuantumGate.emptyGate(),
         PlacedQuantumGate.emptyGate(),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isTarget: true, controlQubitIndex: 4),
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isTarget: true,
+            controlQubitIndex: 4),
         PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.y))
       ]);
       circuit.placedGates[3].addAll([
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isLink: true),
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot), isLink: true),
         PlacedQuantumGate.emptyGate(),
         PlacedQuantumGate.emptyGate(),
         PlacedQuantumGate.emptyGate(),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isLink: true),
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot), isLink: true),
       ]);
       circuit.placedGates[4].addAll([
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isControl: true, targetQubitIndex: 0),
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isControl: true,
+            targetQubitIndex: 0),
         PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)),
         PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.y)),
         PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isControl: true, targetQubitIndex: 2),
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isControl: true,
+            targetQubitIndex: 2),
       ]);
       debugPrint('Initial:\n$circuit');
 
+      assignFixtureGateIds(circuit);
       // Now insert something at column 0 that would trigger _shiftLeft
       // For example, calling insertSinglePlacedGateAt which then calls _shiftLeft
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 1, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.z), 1, 0);
       // This is not what we expect
       // Expected:
       // Q0: [H, C]
@@ -385,7 +481,11 @@ void main() {
   group('QuantumCircuit insertDoublePlacedGateAt (CNOT specific)', () {
     test('should insert CNOT into empty circuit', () {
       final circuit = createEmptyCircuit(3);
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 0, 2, 0); // CNOT Q0(ctrl) to Q2(target) at pos 0
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot),
+          0,
+          2,
+          0); // CNOT Q0(ctrl) to Q2(target) at pos 0
       // Expected: Q0:[C], Q1:[|], Q2:[T]
       expect(circuit.placedGates[0].length, 1);
       expect(circuit.placedGates[0][0].gate.type, SelectedGateType.cnot);
@@ -401,13 +501,20 @@ void main() {
 
     test('should insert CNOT into empty slot within existing circuit', () {
       final circuit = createEmptyCircuit(3);
-      circuit.placedGates[0].add(PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.hadamard)));
+      circuit.placedGates[0].add(PlacedQuantumGate(
+          gate: Gate.fromIdentifier(SelectedGateType.hadamard)));
       circuit.placedGates[1].add(PlacedQuantumGate.emptyGate());
-      circuit.placedGates[2].add(PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)));
+      circuit.placedGates[2].add(
+          PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)));
       // Initial: Q0:[H], Q1:[], Q2:[X]
       debugPrint('Initial:\n$circuit');
 
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 1); // CNOT Q1(ctrl) to Q0(target) at pos 0
+      assignFixtureGateIds(circuit);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot),
+          0,
+          0,
+          1); // CNOT Q1(ctrl) to Q0(target) at pos 0
       // This will check the range for allEmpty, find it's not fully empty (Q0 and Q2 have gates at pos 0)
       // so it goes to the 'else' (insert full column then shift).
       // Expected after full column insert then shift:
@@ -423,34 +530,45 @@ void main() {
 
       expect(circuit.placedGates[2].length, 1);
       expect(circuit.placedGates[2][0].gate.type, SelectedGateType.x);
-      debugPrint('After insertDouble(CNOT, 0, 1, 0) pushing existing:\n$circuit');
+      debugPrint(
+          'After insertDouble(CNOT, 0, 1, 0) pushing existing:\n$circuit');
     });
 
-    test('should correctly handle insertion into a fully occupied column, pushing gates right and compacting', () {
+    test(
+        'should correctly handle insertion into a fully occupied column, pushing gates right and compacting',
+        () {
       final circuit = createEmptyCircuit(2);
       // Place gates at column 0 for Q0 and Q1
-      circuit.placedGates[0].add(PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.hadamard)));
-      circuit.placedGates[1].add(PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)));
+      circuit.placedGates[0].add(PlacedQuantumGate(
+          gate: Gate.fromIdentifier(SelectedGateType.hadamard)));
+      circuit.placedGates[1].add(
+          PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)));
       // Initial:
       // Q0: [H]
       // Q1: [X]
       debugPrint('Initial:\n$circuit');
 
       // Now insert CNOT (Q0 as control, Q1 as target) at position 0
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
       // Expected after internal full column insert + _shiftLeft:
       // Q0: [C, H]
       // Q1: [T, X]
       expect(circuit.placedGates[0].length, 2);
-      expect(circuit.placedGates[0][0].gate.type, SelectedGateType.cnot); // CNOT Control
+      expect(circuit.placedGates[0][0].gate.type,
+          SelectedGateType.cnot); // CNOT Control
       expect(circuit.placedGates[0][0].isControl, isTrue);
-      expect(circuit.placedGates[0][1].gate.type, SelectedGateType.hadamard); // Pushed H
+      expect(circuit.placedGates[0][1].gate.type,
+          SelectedGateType.hadamard); // Pushed H
 
       expect(circuit.placedGates[1].length, 2);
-      expect(circuit.placedGates[1][0].gate.type, SelectedGateType.cnot); // CNOT Target
+      expect(circuit.placedGates[1][0].gate.type,
+          SelectedGateType.cnot); // CNOT Target
       expect(circuit.placedGates[1][0].isTarget, isTrue);
-      expect(circuit.placedGates[1][1].gate.type, SelectedGateType.x); // Pushed X
-      debugPrint('After insertDouble(CNOT, 0, 0, 1) pushing H and X:\n$circuit');
+      expect(
+          circuit.placedGates[1][1].gate.type, SelectedGateType.x); // Pushed X
+      debugPrint(
+          'After insertDouble(CNOT, 0, 0, 1) pushing H and X:\n$circuit');
     });
   });
 
@@ -477,10 +595,12 @@ void main() {
       // E.g., assume an initial scenario after an insert:
       // Q0: [Z, -, X]
       // Q1: [-, -, Y]
-      circuit.placedGates[0].insert(0, PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.z)));
+      circuit.placedGates[0].insert(
+          0, PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.z)));
       circuit.placedGates[1].insert(0, PlacedQuantumGate.emptyGate());
       debugPrint('After manual "insertion":\n$circuit');
 
+      assignFixtureGateIds(circuit);
       circuit.shiftLeft(); // Call _shiftLeft starting from column 0
       circuit.trimCircuit(); // Trim after shift for accurate state
 
@@ -508,6 +628,7 @@ void main() {
       ]);
       debugPrint('Initial:\n$circuit');
 
+      assignFixtureGateIds(circuit);
       circuit.shiftLeft(); // Call _shiftLeft starting from column 0
 
       debugPrint('After shift/trim:\n$circuit');
@@ -519,7 +640,9 @@ void main() {
       expect(circuit.placedGates[0][2].gate.type, SelectedGateType.none);
     });
 
-    test('should shift CNOTs left when their entire footdebugPrint is empty to the left', () {
+    test(
+        'should shift CNOTs left when their entire footdebugPrint is empty to the left',
+        () {
       final circuit = createEmptyCircuit(3);
       // Q0: [-, -, C]
       // Q1: [-, -, |]
@@ -527,23 +650,31 @@ void main() {
       circuit.placedGates[0].addAll([
         PlacedQuantumGate.emptyGate(),
         PlacedQuantumGate.emptyGate(),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isControl: true, targetQubitIndex: 2)
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isControl: true,
+            targetQubitIndex: 2)
       ]);
       circuit.placedGates[1].addAll([
         PlacedQuantumGate.emptyGate(),
         PlacedQuantumGate.emptyGate(),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isLink: true)
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot), isLink: true)
       ]);
       circuit.placedGates[2].addAll([
         PlacedQuantumGate.emptyGate(),
         PlacedQuantumGate.emptyGate(),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isTarget: true, controlQubitIndex: 0)
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isTarget: true,
+            controlQubitIndex: 0)
       ]);
       debugPrint('Initial:\n$circuit');
 
       // Now insert something at column 0 that would trigger _shiftLeft
       // For example, calling insertSinglePlacedGateAt which then calls _shiftLeft
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
       // This is not what we expect
       // Expected:
       // Q0: [H, C]
@@ -573,22 +704,35 @@ void main() {
       debugPrint('After insertSingle(H, 0, 0) causing CNOT shift:\n$circuit');
     });
 
-    test('should not shift CNOT if the target left position is occupied by another gate', () {
+    test(
+        'should not shift CNOT if the target left position is occupied by another gate',
+        () {
       final circuit = createEmptyCircuit(2);
       // Q0: [H, C]
       // Q1: [X, T]
       circuit.placedGates[0].addAll([
         PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.hadamard)),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isControl: true, targetQubitIndex: 1)
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isControl: true,
+            targetQubitIndex: 1)
       ]);
       circuit.placedGates[1].addAll([
         PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isTarget: true, controlQubitIndex: 0)
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isTarget: true,
+            controlQubitIndex: 0)
       ]);
       debugPrint('Initial:\n$circuit');
 
+      assignFixtureGateIds(circuit);
       // Attempt to shift by calling insertDouble which triggers shiftLeft
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 1); // CNOT (Q0->Q1) at pos 0
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot),
+          0,
+          0,
+          1); // CNOT (Q0->Q1) at pos 0
 
       // The original CNOT at pos 1 should NOT move left because pos 0 is occupied by H and X.
       // Instead, a new CNOT will be at pos 0, and H, X, and the original CNOT should be at pos 1, 2.
@@ -596,38 +740,59 @@ void main() {
       // Q0: [C, H, C_orig]
       // Q1: [T, X, T_orig]
       expect(circuit.placedGates[0].length, 3);
-      expect(circuit.placedGates[0][0].gate.type, SelectedGateType.cnot); // New CNOT control
-      expect(circuit.placedGates[0][1].gate.type, SelectedGateType.hadamard); // Original H
-      expect(circuit.placedGates[0][2].gate.type, SelectedGateType.cnot); // Original CNOT control
+      expect(circuit.placedGates[0][0].gate.type,
+          SelectedGateType.cnot); // New CNOT control
+      expect(circuit.placedGates[0][1].gate.type,
+          SelectedGateType.hadamard); // Original H
+      expect(circuit.placedGates[0][2].gate.type,
+          SelectedGateType.cnot); // Original CNOT control
 
       expect(circuit.placedGates[1].length, 3);
-      expect(circuit.placedGates[1][0].gate.type, SelectedGateType.cnot); // New CNOT target
-      expect(circuit.placedGates[1][1].gate.type, SelectedGateType.x); // Original X
-      expect(circuit.placedGates[1][2].gate.type, SelectedGateType.cnot); // Original CNOT target
-      debugPrint('After insertDouble(CNOT, 0, 0, 1) with no shift for existing CNOT:\n$circuit');
+      expect(circuit.placedGates[1][0].gate.type,
+          SelectedGateType.cnot); // New CNOT target
+      expect(circuit.placedGates[1][1].gate.type,
+          SelectedGateType.x); // Original X
+      expect(circuit.placedGates[1][2].gate.type,
+          SelectedGateType.cnot); // Original CNOT target
+      debugPrint(
+          'After insertDouble(CNOT, 0, 0, 1) with no shift for existing CNOT:\n$circuit');
     });
 
-    test('should shift single Gate if the target left position is not occupied by another gate', () {
+    test(
+        'should shift single Gate if the target left position is not occupied by another gate',
+        () {
       final circuit = createEmptyCircuit(3);
       // Q0: [H, C]
       // Q1: [X, L]
       // Q2: [Y, T]
       circuit.placedGates[0].addAll([
         PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.hadamard)),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isControl: true, targetQubitIndex: 2)
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isControl: true,
+            targetQubitIndex: 2)
       ]);
       circuit.placedGates[1].addAll([
         PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isLink: true)
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot), isLink: true)
       ]);
       circuit.placedGates[2].addAll([
         PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.y)),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isTarget: true, controlQubitIndex: 0)
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isTarget: true,
+            controlQubitIndex: 0)
       ]);
       debugPrint('Initial:\n$circuit');
 
+      assignFixtureGateIds(circuit);
       // Attempt to shift by calling insertDouble which triggers shiftLeft
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 1); // CNOT (Q0->Q1) at pos 0
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot),
+          0,
+          0,
+          1); // CNOT (Q0->Q1) at pos 0
 
       // The original CNOT at pos 1 should NOT move left because pos 0 is occupied by H and X.
       // Instead, a new CNOT will be at pos 0, and H, X, and the original CNOT should be at pos 1, 2.
@@ -636,20 +801,30 @@ void main() {
       // Q1: [T, X, L_orig]
       // Q2: [Y, -, T_orig]
       expect(circuit.placedGates[0].length, 3);
-      expect(circuit.placedGates[0][0].gate.type, SelectedGateType.cnot); // New CNOT control
-      expect(circuit.placedGates[0][1].gate.type, SelectedGateType.hadamard); // Original H
-      expect(circuit.placedGates[0][2].gate.type, SelectedGateType.cnot); // Original CNOT control
+      expect(circuit.placedGates[0][0].gate.type,
+          SelectedGateType.cnot); // New CNOT control
+      expect(circuit.placedGates[0][1].gate.type,
+          SelectedGateType.hadamard); // Original H
+      expect(circuit.placedGates[0][2].gate.type,
+          SelectedGateType.cnot); // Original CNOT control
 
       expect(circuit.placedGates[1].length, 3);
-      expect(circuit.placedGates[1][0].gate.type, SelectedGateType.cnot); // New CNOT target
-      expect(circuit.placedGates[1][1].gate.type, SelectedGateType.x); // Original X
-      expect(circuit.placedGates[1][2].gate.type, SelectedGateType.cnot); // Original CNOT link
+      expect(circuit.placedGates[1][0].gate.type,
+          SelectedGateType.cnot); // New CNOT target
+      expect(circuit.placedGates[1][1].gate.type,
+          SelectedGateType.x); // Original X
+      expect(circuit.placedGates[1][2].gate.type,
+          SelectedGateType.cnot); // Original CNOT link
 
       expect(circuit.placedGates[2].length, 3);
-      expect(circuit.placedGates[2][0].gate.type, SelectedGateType.y); // Original Y
-      expect(circuit.placedGates[2][1].gate.type, SelectedGateType.none); // Empty
-      expect(circuit.placedGates[2][2].gate.type, SelectedGateType.cnot); // Original CNOT target
-      debugPrint('After insertDouble(CNOT, 0, 0, 1) with no shift for existing CNOT:\n$circuit');
+      expect(circuit.placedGates[2][0].gate.type,
+          SelectedGateType.y); // Original Y
+      expect(
+          circuit.placedGates[2][1].gate.type, SelectedGateType.none); // Empty
+      expect(circuit.placedGates[2][2].gate.type,
+          SelectedGateType.cnot); // Original CNOT target
+      debugPrint(
+          'After insertDouble(CNOT, 0, 0, 1) with no shift for existing CNOT:\n$circuit');
     });
   });
 
@@ -666,6 +841,7 @@ void main() {
       ]);
       debugPrint('Initial:\n$circuit');
 
+      assignFixtureGateIds(circuit);
       circuit.removePlacedGate(1, 0); // Remove X at pos 1 on Q0
       // Expected: Q0: [H, -, Z], Q1: [] (X removed, Z should shift left)
       // Note: your removePlacedGate just removes, _shiftLeft does the compaction.
@@ -694,16 +870,25 @@ void main() {
       // Q1: [X, T, -]
       circuit.placedGates[0].addAll([
         PlacedQuantumGate.emptyGate(),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isControl: true, targetQubitIndex: 1, controlQubitIndex: 0),
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isControl: true,
+            targetQubitIndex: 1,
+            controlQubitIndex: 0),
         PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.hadamard)),
       ]);
       circuit.placedGates[1].addAll([
         PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.x)),
-        PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.cnot), isTarget: true, targetQubitIndex: 1, controlQubitIndex: 0),
+        PlacedQuantumGate(
+            gate: Gate.fromIdentifier(SelectedGateType.cnot),
+            isTarget: true,
+            targetQubitIndex: 1,
+            controlQubitIndex: 0),
         PlacedQuantumGate.emptyGate(),
       ]);
 
       debugPrint('Initial:\n$circuit');
+      assignFixtureGateIds(circuit);
       circuit.removePlacedGate(1, 0); // Remove C at pos 1 on Q0
       debugPrint('After remove(1,0) (no auto-compaction):\n$circuit');
 
@@ -716,7 +901,8 @@ void main() {
     test('should remove CNOT components when any part is removed', () {
       final circuit = createEmptyCircuit(2);
       // CNOT (Q0 ctrl, Q1 target) at pos 0
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 1);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 1);
       debugPrint('Initial:\n$circuit');
 
       // Removing CNOT control at (0,0)
@@ -736,7 +922,9 @@ void main() {
     test('should not remove single gate as not deletable', () {
       final circuit = createEmptyCircuit(1);
       // CNOT (Q0 ctrl, Q1 target) at pos 0
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 0, 0, isDeletable: false);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 0, 0,
+          isDeletable: false);
       debugPrint('Initial:\n$circuit');
 
       // Removing CNOT control at (0,0)
@@ -747,10 +935,14 @@ void main() {
       expect(circuit.placedGates[0].length, 1); // Q0 is now empty
     });
 
-    test('should not remove CNOT components when any part is removed as not deletable', () {
+    test(
+        'should not remove CNOT components when any part is removed as not deletable',
+        () {
       final circuit = createEmptyCircuit(2);
       // CNOT (Q0 ctrl, Q1 target) at pos 0
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 1, isDeletable: false);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 0, 0, 1,
+          isDeletable: false);
       debugPrint('Initial:\n$circuit');
 
       // Removing CNOT control at (0,0) and target (1,0)
@@ -763,12 +955,17 @@ void main() {
       expect(circuit.placedGates[1].length, 1);
     });
 
-    test('should remove CNOT components when any part is removed and shift left and trim the circuit', () {
+    test(
+        'should remove CNOT components when any part is removed and shift left and trim the circuit',
+        () {
       final circuit = createEmptyCircuit(2);
       // CNOT (Q0 ctrl, Q1 target) at pos 0
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.y), 0, 1);
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 1, 1);
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 2, 0, 1);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.y), 0, 1);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 1, 1);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 2, 0, 1);
       debugPrint('Initial:\n$circuit');
 
       // Removing CNOT control at (0,0)
@@ -788,9 +985,12 @@ void main() {
     test('should not remove an empty cell', () {
       final circuit = createEmptyCircuit(2);
       // CNOT (Q0 ctrl, Q1 target) at pos 0
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.y), 0, 1);
-      circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 1, 1);
-      circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 2, 0, 1);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.y), 0, 1);
+      circuit.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x), 1, 1);
+      circuit.insertDoublePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.cnot), 2, 0, 1);
       debugPrint('Initial:\n$circuit');
 
       // Removing CNOT control at (0,0)
@@ -808,12 +1008,16 @@ void main() {
     });
 
     group('QuantumCircuit calculates state vector', () {
-      test('should calculate the state for a three qubits and 2 depth circuit', () {
+      test('should calculate the state for a three qubits and 2 depth circuit',
+          () {
         final circuit = createEmptyCircuit(3);
         // CNOT (Q0 ctrl, Q1 target) at pos 0
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.y), 0, 1);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 0, 2);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 0, 1, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.y), 0, 1);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.x), 0, 2);
         debugPrint('Initial:\n$circuit');
 
         circuit.runSimulation();
@@ -829,21 +1033,33 @@ void main() {
           [Complex.zero()],
         ]);
 
-        expect(circuit.currentState.state.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'H|0> operation incorrect');
+        expect(
+            circuit.currentState.state
+                .almostEqualTo(expectedState, tolerance: tolerance),
+            isTrue,
+            reason: 'H|0> operation incorrect');
       });
 
       test('should calculate the state for a 5 qubits and 4 depth circuit', () {
         final circuit = createEmptyCircuit(5);
         // CNOT (Q0 ctrl, Q1 target) at pos 0
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.y), 0, 0);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 0, 1);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 0, 2);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.y), 0, 3);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.z), 1, 3);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.x), 0, 4);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.y), 0, 0);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.z), 0, 1);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.x), 0, 2);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.y), 0, 3);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.z), 1, 3);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.x), 0, 4);
 
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 2, 0, 3);
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 3, 3);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 2, 0, 3);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 3, 3);
         debugPrint('Initial:\n$circuit');
 
         circuit.runSimulation();
@@ -884,7 +1100,11 @@ void main() {
         ]);
 
         debugPrint(circuit.currentState.state.toString());
-        expect(circuit.currentState.state.almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'H|0> operation incorrect');
+        expect(
+            circuit.currentState.state
+                .almostEqualTo(expectedState, tolerance: tolerance),
+            isTrue,
+            reason: 'H|0> operation incorrect');
       });
     });
 
@@ -892,24 +1112,104 @@ void main() {
       test('should create GHZ for a 3 qubits', () {
         final circuit = createEmptyCircuit(3);
         // CNOT (Q0 ctrl, Q1 target) at pos 0
-        circuit.insertSinglePlacedGateAt(Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
-        circuit.insertDoublePlacedGateAt(Gate.fromIdentifier(SelectedGateType.cnot), 2, 2, 1);
+        circuit.insertSinglePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.hadamard), 0, 0);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 1, 1, 0);
+        circuit.insertDoublePlacedGateAt(
+            Gate.fromIdentifier(SelectedGateType.cnot), 2, 2, 1);
         debugPrint('Initial:\n$circuit');
 
         final expectedState = QuantumMatrix([
-          [Complex(sqrt1_2, 0), Complex(sqrt1_2, 0), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
-          [Complex.zero(), Complex.zero(), Complex(sqrt1_2, 0), Complex(-sqrt1_2, 0), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
-          [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(sqrt1_2, 0), Complex(sqrt1_2, 0)],
-          [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(sqrt1_2, 0), Complex(-sqrt1_2, 0), Complex.zero(), Complex.zero()],
-          [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(sqrt1_2, 0), Complex(sqrt1_2, 0), Complex.zero(), Complex.zero()],
-          [Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex(sqrt1_2, 0), Complex(-sqrt1_2, 0)],
-          [Complex.zero(), Complex.zero(), Complex(sqrt1_2, 0), Complex(sqrt1_2, 0), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
-          [Complex(sqrt1_2, 0), Complex(-sqrt1_2, 0), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero(), Complex.zero()],
+          [
+            Complex(sqrt1_2, 0),
+            Complex(sqrt1_2, 0),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero()
+          ],
+          [
+            Complex.zero(),
+            Complex.zero(),
+            Complex(sqrt1_2, 0),
+            Complex(-sqrt1_2, 0),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero()
+          ],
+          [
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex(sqrt1_2, 0),
+            Complex(sqrt1_2, 0)
+          ],
+          [
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex(sqrt1_2, 0),
+            Complex(-sqrt1_2, 0),
+            Complex.zero(),
+            Complex.zero()
+          ],
+          [
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex(sqrt1_2, 0),
+            Complex(sqrt1_2, 0),
+            Complex.zero(),
+            Complex.zero()
+          ],
+          [
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex(sqrt1_2, 0),
+            Complex(-sqrt1_2, 0)
+          ],
+          [
+            Complex.zero(),
+            Complex.zero(),
+            Complex(sqrt1_2, 0),
+            Complex(sqrt1_2, 0),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero()
+          ],
+          [
+            Complex(sqrt1_2, 0),
+            Complex(-sqrt1_2, 0),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero(),
+            Complex.zero()
+          ],
         ]);
 
         debugPrint(circuit.getOverallCircuitMatrix().toString());
-        expect(circuit.getOverallCircuitMatrix().almostEqualTo(expectedState, tolerance: tolerance), isTrue, reason: 'Wrong circuit matrix for GHZ state');
+        expect(
+            circuit
+                .getOverallCircuitMatrix()
+                .almostEqualTo(expectedState, tolerance: tolerance),
+            isTrue,
+            reason: 'Wrong circuit matrix for GHZ state');
       });
     });
   });
