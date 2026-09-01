@@ -60,7 +60,12 @@ serve it beneath a `qubit-quest` directory.
 ## Web deployment
 
 Pushes to `main` trigger [`.github/workflows/deploy-web.yml`](.github/workflows/deploy-web.yml).
-The workflow:
+This development repository (`danfran/quantum-quiz`) does not host GitHub Pages.
+Its workflow fast-forwards the complete `main` history to the external deployment
+repository, `danfran/qubit-quest`, using the source repository Actions secret
+`QUBIT_QUEST_PAGES_TOKEN`.
+
+The same synchronized workflow then runs in `danfran/qubit-quest`, where it:
 
 1. installs stable Flutter;
 2. resolves dependencies;
@@ -68,8 +73,9 @@ The workflow:
 4. builds with `--base-href /qubit-quest/`;
 5. publishes `build/web` through GitHub Pages.
 
-The repository's Pages source must be configured as **GitHub Actions**. The static
-host requires no backend or server API. Qubit Quest currently uses workspace-local
+GitHub Pages must remain disabled on `danfran/quantum-quiz`. The destination
+repository's Pages source is configured as **GitHub Actions**. The static host
+requires no backend or server API. Qubit Quest currently uses workspace-local
 navigation, so the deployed entry point is the repository base path.
 
 The build also copies `docs/public/` into the Pages artifact so the established mobile
