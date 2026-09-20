@@ -38,6 +38,169 @@ void main() {
   }
 
   group('canonical compaction after logical move', () {
+    test('independent learner gate shares a protected gate column', () {
+      final model = circuit(2);
+      model.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.x),
+        0,
+        0,
+        isDeletable: false,
+      );
+      final inserted = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.x),
+        5,
+        1,
+      );
+
+      final fixed = model.logicalGates.singleWhere((gate) => !gate.isDeletable);
+      final learner = model.logicalGateById(inserted.affectedGateId!)!;
+      expect(fixed.column, 0);
+      expect(learner.column, 0);
+      expect(model.placedGates[0][0].id, fixed.id);
+      expect(model.placedGates[1][0].id, learner.id);
+      expect(learner.occupiedLocations,
+          [const CircuitLocation(qubit: 1, column: 0)]);
+      expectCanonicallyCompacted(model);
+    });
+
+    test('same-wire insertion preserves order at the earliest legal column',
+        () {
+      final model = circuit(2);
+      model.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.x),
+        0,
+        0,
+        isDeletable: false,
+      );
+      final inserted = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.x),
+        5,
+        0,
+      );
+
+      expect(model.logicalGateById(inserted.affectedGateId!)!.column, 1);
+      expectCanonicallyCompacted(model);
+    });
+
+    test('independent gates on multiple wires share earliest legal columns',
+        () {
+      final model = circuit(4);
+      final gates = [
+        model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.hadamard),
+          0,
+          0,
+        ),
+        model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.x),
+          5,
+          1,
+        ),
+        model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.z),
+          4,
+          2,
+        ),
+        model.insertSingleGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.s),
+          3,
+          3,
+        ),
+      ];
+
+      expect(
+        gates.map((outcome) =>
+            model.logicalGateById(outcome.affectedGateId!)!.column),
+        everyElement(0),
+      );
+      expectCanonicallyCompacted(model);
+    });
+
+    for (final gateType in [
+      SelectedGateType.cnot,
+      SelectedGateType.cz,
+    ]) {
+      test('$gateType insertion compacts as a rigid footprint', () {
+        final model = circuit(3);
+        model.insertSinglePlacedGateAt(
+          Gate.fromIdentifier(SelectedGateType.x),
+          0,
+          2,
+          isDeletable: false,
+        );
+        final inserted = model.insertDoubleGateWithOutcome(
+          Gate.fromIdentifier(gateType),
+          5,
+          1,
+          0,
+        );
+
+        final footprint = model.logicalGateById(inserted.affectedGateId!)!;
+        expect(footprint.column, 0);
+        expect(footprint.controlQubit, 0);
+        expect(footprint.targetQubit, 1);
+        expect(
+          footprint.fragments.map((fragment) => fragment.location.column),
+          everyElement(0),
+        );
+        expectCanonicallyCompacted(model);
+      });
+    }
+
+    test('CCNOT insertion compacts as one rigid footprint', () {
+      final model = circuit(4);
+      model.insertSinglePlacedGateAt(
+        Gate.fromIdentifier(SelectedGateType.x),
+        0,
+        3,
+        isDeletable: false,
+      );
+      final inserted = model.insertTripleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.ccnot),
+        5,
+        2,
+        0,
+        1,
+      );
+
+      final footprint = model.logicalGateById(inserted.affectedGateId!)!;
+      expect(footprint.column, 0);
+      expect(footprint.hasValidTopology(4), isTrue);
+      expect(
+        footprint.fragments.map((fragment) => fragment.location.column),
+        everyElement(0),
+      );
+      expectCanonicallyCompacted(model);
+    });
+
+    test('deletion reflows remaining gates without crossing wire blockers', () {
+      final model = circuit(2);
+      final first = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        0,
+        0,
+      );
+      final second = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.x),
+        1,
+        0,
+      );
+      final independent = model.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.z),
+        5,
+        1,
+      );
+
+      expect(model.logicalGateById(second.affectedGateId!)!.column, 1);
+      expect(model.logicalGateById(independent.affectedGateId!)!.column, 0);
+      expect(
+          model.removeLogicalGateByIdWithOutcome(first.affectedGateId!).changed,
+          isTrue);
+      expect(model.logicalGateById(second.affectedGateId!)!.column, 0);
+      expect(model.logicalGateById(independent.affectedGateId!)!.column, 0);
+      expectCanonicallyCompacted(model);
+    });
+
     test('single gate cannot leave a removable right-side gap', () {
       final model = circuit(2);
       model.insertSinglePlacedGateAt(
@@ -1893,9 +2056,9 @@ void main() {
           CircuitEditStatus.protected);
       expect(
           model.duplicateLogicalGateWithOutcome(source.affectedGateId!).status,
-          CircuitEditStatus.changed);
-      expect(model.logicalGates, hasLength(4));
-      expect(notifications, 1);
+          CircuitEditStatus.protected);
+      expect(model.logicalGates, hasLength(3));
+      expect(notifications, 0);
 
       final restricted = circuit(1);
       final unavailable = restricted.insertSingleGateWithOutcome(

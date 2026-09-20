@@ -23,10 +23,14 @@ import 'package:quantumquiz/screens/controlled_gate_placement_dialog.dart';
 import 'package:quantumquiz/screens/learning_map_screen.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
+import 'package:quantumquiz/widgets/circuit_canvas_metrics.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/mastery_evidence_view.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
+import 'package:quantumquiz/widgets/quantum_workspace_layout.dart';
+import 'package:quantumquiz/widgets/quantum_inspector_views.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
+import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
 const _background = QubitQuestColors.background;
@@ -259,21 +263,20 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
                         completed: state.completedMasterySemanticIds.length,
                         total: _challenges.length,
                         onBackToJourney: widget.onBackToJourney,
+                        challenges: _challenges,
+                        selected: selected,
+                        progressState: state,
+                        showChallengeChooser: wide,
+                        onSelected: (id) =>
+                            setState(() => _selectedSemanticId = id),
                       ),
                     ),
                     const Divider(height: 1, color: _border),
                     Expanded(
                       child: wide
-                          ? Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                SizedBox(width: 286, child: challengeList),
-                                const VerticalDivider(
-                                  width: 1,
-                                  color: _border,
-                                ),
-                                Expanded(child: activity),
-                              ],
+                          ? KeyedSubtree(
+                              key: const ValueKey('web-mastery-activity-wide'),
+                              child: activity,
                             )
                           : Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -298,11 +301,21 @@ class _MasteryHeader extends StatelessWidget {
     required this.completed,
     required this.total,
     required this.onBackToJourney,
+    required this.challenges,
+    required this.selected,
+    required this.progressState,
+    required this.showChallengeChooser,
+    required this.onSelected,
   });
 
   final int completed;
   final int total;
   final VoidCallback onBackToJourney;
+  final List<MasteryChallengeDefinition> challenges;
+  final MasteryChallengeDefinition selected;
+  final CampaignProgressState progressState;
+  final bool showChallengeChooser;
+  final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -353,12 +366,96 @@ class _MasteryHeader extends StatelessWidget {
                 heading,
                 if (!compact) ...[
                   const SizedBox(width: 16),
-                  Text('$completed / $total complete'),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (showChallengeChooser)
+                        _MasteryChallengeChooser(
+                          challenges: challenges,
+                          selected: selected,
+                          progressState: progressState,
+                          onSelected: onSelected,
+                        ),
+                      const SizedBox(height: 5),
+                      Text('$completed / $total complete'),
+                    ],
+                  ),
                 ],
               ],
             ),
           );
         },
+      );
+}
+
+class _MasteryChallengeChooser extends StatelessWidget {
+  const _MasteryChallengeChooser({
+    required this.challenges,
+    required this.selected,
+    required this.progressState,
+    required this.onSelected,
+  });
+
+  final List<MasteryChallengeDefinition> challenges;
+  final MasteryChallengeDefinition selected;
+  final CampaignProgressState progressState;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) => PopupMenuButton<String>(
+        key: const ValueKey('web-mastery-challenge-chooser'),
+        tooltip: 'Open Mastery challenges',
+        onSelected: onSelected,
+        itemBuilder: (context) => [
+          for (final challenge in challenges)
+            PopupMenuItem<String>(
+              key: ValueKey('web-mastery-choice-${challenge.semanticId}'),
+              value: challenge.semanticId,
+              child: Row(
+                children: [
+                  Icon(
+                    progressState.completedMasterySemanticIds
+                            .contains(challenge.semanticId)
+                        ? Icons.check_circle
+                        : challenge.semanticId == selected.semanticId
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_unchecked,
+                    size: 18,
+                    color: progressState.completedMasterySemanticIds
+                            .contains(challenge.semanticId)
+                        ? Colors.greenAccent
+                        : _cyan,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '${challenge.displayOrder}. ${challenge.title}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            border: Border.all(color: _border),
+            borderRadius: QubitQuestRadii.control,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Challenge ${selected.displayOrder} of ${challenges.length}',
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.expand_more, size: 18),
+            ],
+          ),
+        ),
       );
 }
 
@@ -528,12 +625,22 @@ class _ChapterWorkspace extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= 960;
+          final compactActivityHeader = wide;
           final header = _ChapterHeader(
             category: category,
+            level: level,
+            levelIds: _levelIds,
+            selectedLevelId: selectedLevelId,
+            progressState: progressState,
             completed:
                 _levelIds.where((id) => isCompleted(id, progressState)).length,
             total: _levelIds.length,
+            showLessonChooser: wide,
+            compactActivityHeader: compactActivityHeader,
+            isUnlocked: isUnlocked,
+            isCompleted: isCompleted,
             onBack: onBackToMap,
+            onSelectLevel: onSelectLevel,
           );
           final lessons = _LessonList(
             levelIds: _levelIds,
@@ -554,6 +661,8 @@ class _ChapterWorkspace extends StatelessWidget {
             onBackToChapter: () => onSelectLevel(selectedLevelId),
             onOpenNotebook: onOpenNotebook,
             onOpenNotebookEntry: onOpenNotebookEntry,
+            compactJourneyHeader: compactActivityHeader,
+            journeyActivity: true,
           );
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -562,13 +671,9 @@ class _ChapterWorkspace extends StatelessWidget {
               const Divider(height: 1, color: _border),
               Expanded(
                 child: wide
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          SizedBox(width: 286, child: lessons),
-                          const VerticalDivider(width: 1, color: _border),
-                          Expanded(child: lesson),
-                        ],
+                    ? KeyedSubtree(
+                        key: const ValueKey('web-chapter-activity-wide'),
+                        child: lesson,
                       )
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -590,19 +695,45 @@ class _ChapterWorkspace extends StatelessWidget {
 class _ChapterHeader extends StatelessWidget {
   const _ChapterHeader({
     required this.category,
+    required this.level,
+    required this.levelIds,
+    required this.selectedLevelId,
+    required this.progressState,
     required this.completed,
     required this.total,
+    required this.showLessonChooser,
+    required this.compactActivityHeader,
+    required this.isUnlocked,
+    required this.isCompleted,
     required this.onBack,
+    required this.onSelectLevel,
   });
 
   final QQLevelsCategory category;
+  final QQLevel level;
+  final List<int> levelIds;
+  final int selectedLevelId;
+  final CampaignProgressState progressState;
   final int completed;
   final int total;
+  final bool showLessonChooser;
+  final bool compactActivityHeader;
+  final bool Function(int, CampaignProgressState) isUnlocked;
+  final bool Function(int, CampaignProgressState) isCompleted;
   final VoidCallback onBack;
+  final ValueChanged<int> onSelectLevel;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 24, 16),
+        key: ValueKey(compactActivityHeader
+            ? 'web-compact-activity-header'
+            : 'web-chapter-header'),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          compactActivityHeader ? 10 : 16,
+          24,
+          compactActivityHeader ? 11 : 16,
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -614,36 +745,237 @@ class _ChapterHeader extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Journey  >  ${category.groupName.replaceFirst(' - ', ' — ')}',
-                    style: const TextStyle(color: _cyan, fontSize: 13),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    category.groupName,
-                    key: const ValueKey('web-chapter-title'),
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
+              child: compactActivityHeader
+                  ? _CompactActivityContext(
+                      category: category,
+                      level: level,
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Journey  >  ${category.groupName.replaceFirst(' - ', ' — ')}',
+                          style: const TextStyle(color: _cyan, fontSize: 13),
                         ),
-                  ),
-                  if (category.categoryIntro != null) ...[
+                        const SizedBox(height: 5),
+                        Text(
+                          category.groupName,
+                          key: const ValueKey('web-chapter-title'),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                        if (category.categoryIntro != null) ...[
+                          const SizedBox(height: 5),
+                          Text(
+                            category.categoryIntro!,
+                            style: const TextStyle(
+                                color: Colors.white70, height: 1.35),
+                          ),
+                        ],
+                      ],
+                    ),
+            ),
+            if (showLessonChooser)
+              Padding(
+                padding: const EdgeInsets.only(left: 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _LessonChooser(
+                      levelIds: levelIds,
+                      selectedLevelId: selectedLevelId,
+                      progressState: progressState,
+                      isUnlocked: isUnlocked,
+                      isCompleted: isCompleted,
+                      onSelected: onSelectLevel,
+                    ),
                     const SizedBox(height: 5),
                     Text(
-                      category.categoryIntro!,
-                      style:
-                          const TextStyle(color: Colors.white70, height: 1.35),
+                      '$completed / $total complete',
+                      key: const ValueKey('web-chapter-progress'),
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
-                ],
-              ),
-            ),
-            Text('$completed / $total complete'),
+                ),
+              )
+            else
+              Text('$completed / $total complete'),
           ],
         ),
       );
+}
+
+class _CompactActivityContext extends StatelessWidget {
+  const _CompactActivityContext({
+    required this.category,
+    required this.level,
+  });
+
+  final QQLevelsCategory category;
+  final QQLevel level;
+
+  String get _task {
+    final question = level.mysteryTitle?.trim();
+    final task = level.taskDescription.trim();
+    return question != null && task.startsWith(question)
+        ? task.substring(question.length).trim()
+        : task;
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+        key: const ValueKey('web-compact-activity-context'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  'Journey  /  ${category.groupName.replaceFirst(' - ', ' — ')}',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: _cyan, fontSize: 12.5),
+                ),
+              ),
+              if ((category.categoryIntro ?? '').trim().isNotEmpty)
+                Tooltip(
+                  key: const ValueKey('web-chapter-description'),
+                  message: category.categoryIntro!,
+                  child: const Padding(
+                    padding: EdgeInsets.only(left: 6),
+                    child: Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: Colors.white54,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            level.title ?? 'Quantum Challenge',
+            key: const ValueKey('web-lesson-title'),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 3),
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 7,
+            runSpacing: 2,
+            children: [
+              Text(
+                level.mysteryTitle ?? '',
+                key: const ValueKey('web-compact-question'),
+                style: const TextStyle(
+                  color: QubitQuestColors.textBody,
+                  fontSize: 14,
+                ),
+              ),
+              const Text('·', style: TextStyle(color: Colors.white38)),
+              LatexText(
+                key: const ValueKey('web-compact-task'),
+                math: _task,
+                textStyle: const TextStyle(
+                  color: QubitQuestColors.textBody,
+                  fontSize: 14,
+                ),
+                inlineMathHeight: 17,
+              ),
+            ],
+          ),
+        ],
+      );
+}
+
+class _LessonChooser extends StatelessWidget {
+  const _LessonChooser({
+    required this.levelIds,
+    required this.selectedLevelId,
+    required this.progressState,
+    required this.isUnlocked,
+    required this.isCompleted,
+    required this.onSelected,
+  });
+
+  final List<int> levelIds;
+  final int selectedLevelId;
+  final CampaignProgressState progressState;
+  final bool Function(int, CampaignProgressState) isUnlocked;
+  final bool Function(int, CampaignProgressState) isCompleted;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedIndex = levelIds.indexOf(selectedLevelId) + 1;
+    return PopupMenuButton<int>(
+      key: const ValueKey('web-lesson-chooser'),
+      tooltip: 'Open chapter lessons',
+      onSelected: onSelected,
+      itemBuilder: (context) => [
+        for (final (index, id) in levelIds.indexed)
+          PopupMenuItem<int>(
+            key: ValueKey('web-lesson-choice-$id'),
+            value: id,
+            enabled: isUnlocked(id, progressState),
+            child: Row(
+              children: [
+                Icon(
+                  isCompleted(id, progressState)
+                      ? Icons.check_circle
+                      : id == selectedLevelId
+                          ? Icons.radio_button_checked
+                          : isUnlocked(id, progressState)
+                              ? Icons.radio_button_unchecked
+                              : Icons.lock_outline,
+                  size: 18,
+                  color: isCompleted(id, progressState)
+                      ? Colors.greenAccent
+                      : isUnlocked(id, progressState)
+                          ? _cyan
+                          : Colors.white38,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '${index + 1}. ${getQQLevelById(id)!.title}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+      child: Container(
+        key: const ValueKey('web-current-lesson-position'),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          border: Border.all(color: _border),
+          borderRadius: QubitQuestRadii.control,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Lesson $selectedIndex of ${levelIds.length}',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.expand_more, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _LessonList extends StatelessWidget {
@@ -795,6 +1127,8 @@ class WebLessonWorkspace extends StatefulWidget {
     required this.onOpenNotebook,
     this.onOpenNotebookEntry,
     this.masteryChallenge,
+    this.compactJourneyHeader = false,
+    this.journeyActivity = false,
   });
 
   final int levelId;
@@ -806,6 +1140,8 @@ class WebLessonWorkspace extends StatefulWidget {
   final VoidCallback onOpenNotebook;
   final ValueChanged<String>? onOpenNotebookEntry;
   final MasteryChallengeDefinition? masteryChallenge;
+  final bool compactJourneyHeader;
+  final bool journeyActivity;
 
   @override
   State<WebLessonWorkspace> createState() => _WebLessonWorkspaceState();
@@ -856,32 +1192,130 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
     );
   }
 
+  bool get _usesDesktopComposerWorkspace =>
+      (widget.journeyActivity || widget.masteryChallenge != null) &&
+      widget.level is ComposerLevel;
+
+  String get _desktopComposerTask {
+    final question = widget.level.mysteryTitle?.trim();
+    final task = widget.level.taskDescription.trim();
+    if (question != null && task.startsWith(question)) {
+      return task.substring(question.length).trim();
+    }
+    return task;
+  }
+
+  Widget _desktopComposerLearningBrief() => Padding(
+        key: const ValueKey('web-lesson-1-learning-brief'),
+        padding: const EdgeInsets.fromLTRB(2, 8, 2, 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (widget.level.hasMystery) ...[
+              const Text(
+                'QUESTION',
+                style: TextStyle(
+                  color: QubitQuestColors.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: .8,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.level.mysteryTitle ?? 'Mystery',
+                style: const TextStyle(
+                  color: QubitQuestColors.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              const SizedBox(height: 9),
+            ],
+            if ((widget.level.conceptIntro ?? '').trim().isNotEmpty) ...[
+              Text(
+                widget.level.conceptIntro!,
+                style: QubitQuestTypography.body,
+              ),
+              const SizedBox(height: 8),
+            ],
+            const Text(
+              'TASK',
+              style: TextStyle(
+                color: QubitQuestColors.textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                letterSpacing: .8,
+              ),
+            ),
+            const SizedBox(height: 4),
+            LatexText(
+              math: _desktopComposerTask,
+              textStyle: const TextStyle(
+                color: QubitQuestColors.textBody,
+                fontSize: 15,
+                height: 1.35,
+                fontWeight: FontWeight.w400,
+              ),
+              inlineMathHeight: 18,
+            ),
+            if ((widget.level.mysteryText ?? '').trim().isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 7),
+                child: Text(
+                  widget.level.mysteryText!,
+                  style: const TextStyle(
+                    color: QubitQuestColors.textMuted,
+                    fontSize: 12.5,
+                    height: 1.35,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+
   @override
   Widget build(BuildContext context) => ListView(
         key: ValueKey('web-lesson-content-${widget.levelId}'),
-        padding: const EdgeInsets.all(22),
+        padding: EdgeInsets.fromLTRB(
+          22,
+          widget.compactJourneyHeader ? 12 : 22,
+          22,
+          22,
+        ),
         children: [
-          Text(
-            widget.masteryChallenge != null
-                ? 'Mastery Challenge ${widget.masteryChallenge!.displayOrder}'
-                : ProgressionRules.isMasteryLevel(widget.levelId)
-                    ? 'Mastery Challenge ${ProgressionRules.masteryChallengeNumber(widget.levelId)}'
-                    : 'Lesson ${widget.levelId}',
-            style: const TextStyle(
-              color: _purple,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.1,
+          if (!widget.compactJourneyHeader) ...[
+            Text(
+              widget.masteryChallenge != null
+                  ? 'Mastery Challenge ${widget.masteryChallenge!.displayOrder}'
+                  : ProgressionRules.isMasteryLevel(widget.levelId)
+                      ? 'Mastery Challenge ${ProgressionRules.masteryChallengeNumber(widget.levelId)}'
+                      : 'Lesson ${widget.levelId}',
+              style: TextStyle(
+                color: _purple,
+                fontWeight: _usesDesktopComposerWorkspace
+                    ? FontWeight.w500
+                    : FontWeight.w900,
+                letterSpacing: _usesDesktopComposerWorkspace ? .7 : 1.1,
+                fontSize: _usesDesktopComposerWorkspace ? 12 : null,
+              ),
             ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            widget.level.title ?? 'Quantum Challenge',
-            key: const ValueKey('web-lesson-title'),
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
-          ),
-          if (widget.level.hasMystery) ...[
+            const SizedBox(height: 5),
+            Text(
+              widget.level.title ?? 'Quantum Challenge',
+              key: const ValueKey('web-lesson-title'),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+            if (_usesDesktopComposerWorkspace) ...[
+              const SizedBox(height: 14),
+              _desktopComposerLearningBrief(),
+            ],
+          ],
+          if (!_usesDesktopComposerWorkspace && widget.level.hasMystery) ...[
             const SizedBox(height: 16),
             _ContentCard(
               title: widget.level.mysteryTitle ?? 'Mystery',
@@ -892,7 +1326,8 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
               ),
             ),
           ],
-          if ((widget.level.conceptIntro ?? '').trim().isNotEmpty) ...[
+          if (!_usesDesktopComposerWorkspace &&
+              (widget.level.conceptIntro ?? '').trim().isNotEmpty) ...[
             const SizedBox(height: 16),
             _ContentCard(
               title: 'Concept',
@@ -903,14 +1338,19 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
               ),
             ),
           ],
-          const SizedBox(height: 14),
-          _ContentCard(
-            title: 'Task',
-            icon: Icons.flag_outlined,
-            child: _taskContent(),
-          ),
-          if ((widget.level.targetStateLabel ?? '').trim().isNotEmpty ||
-              (widget.level.targetStateExpression ?? '').trim().isNotEmpty) ...[
+          if (!_usesDesktopComposerWorkspace) ...[
+            const SizedBox(height: 14),
+            _ContentCard(
+              title: 'Task',
+              icon: Icons.flag_outlined,
+              child: _taskContent(),
+            ),
+          ],
+          if (!_usesDesktopComposerWorkspace &&
+              ((widget.level.targetStateLabel ?? '').trim().isNotEmpty ||
+                  (widget.level.targetStateExpression ?? '')
+                      .trim()
+                      .isNotEmpty)) ...[
             const SizedBox(height: 10),
             Text(
               [
@@ -972,6 +1412,7 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
             level: composer,
             enabled: !_solved,
             onSolved: _complete,
+            desktopWorkspace: _usesDesktopComposerWorkspace,
           ),
         FillTheGateLevel fill => _WebFillGateLesson(
             level: fill,
@@ -1157,28 +1598,62 @@ ComposerValidationResult validateWebComposerLesson(
 ) =>
     level.evaluateCircuit(circuit);
 
+class _WorkspaceRegionLabel extends StatelessWidget {
+  const _WorkspaceRegionLabel({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: _cyan),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: QubitQuestColors.textMuted,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                letterSpacing: .75,
+              ),
+            ),
+          ),
+        ],
+      );
+}
+
 class WebComposerLesson extends StatefulWidget {
   const WebComposerLesson({
     super.key,
     required this.level,
     required this.enabled,
     required this.onSolved,
+    this.desktopWorkspace = false,
   });
 
   final ComposerLevel level;
   final bool enabled;
   final Future<void> Function() onSolved;
+  final bool desktopWorkspace;
 
   @override
   State<WebComposerLesson> createState() => _WebComposerLessonState();
 }
 
 class _WebComposerLessonState extends State<WebComposerLesson> {
+  static const double _journeyWideBreakpoint = 760;
+
   late QuantumCircuit _circuit;
   GateId? _selectedGateId;
   double _rotationAngle = math.pi / 2;
   String? _feedback;
   int _visibleHints = 0;
+  late bool _nonZeroOnly;
 
   List<Gate> get _gates => [
         for (final gate in widget.level.availableGates)
@@ -1194,6 +1669,7 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
   void initState() {
     super.initState();
     _circuit = QuantumCircuit(currentLevel: widget.level);
+    _nonZeroOnly = defaultNonZeroOnlyForQubitCount(widget.level.numQubits);
   }
 
   @override
@@ -1205,6 +1681,7 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
       _selectedGateId = null;
       _feedback = null;
       _visibleHints = 0;
+      _nonZeroOnly = defaultNonZeroOnlyForQubitCount(widget.level.numQubits);
     }
   }
 
@@ -1306,8 +1783,322 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
         ),
       );
 
+  WebCircuitWorkbenchMetrics get _workbenchMetrics =>
+      WebCircuitWorkbenchMetrics.calculate(
+        qubitCount: widget.level.numQubits,
+        hasTargetState: widget.level.solutionFinalVector.isNotEmpty,
+      );
+
+  double get _workspaceCanvasHeight => _workbenchMetrics.canvasHeight;
+
+  double get _workspaceMainHeight => _workbenchMetrics.mainRowHeight;
+
+  Widget _workspaceCanvas({required bool wide}) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: wide ? MainAxisSize.max : MainAxisSize.min,
+        children: [
+          const _WorkspaceRegionLabel(
+            icon: Icons.account_tree_outlined,
+            label: 'CIRCUIT WORKSPACE',
+          ),
+          const SizedBox(height: 12),
+          if (wide)
+            Expanded(
+              child: _centeredWorkspaceCanvas(integratedWorkbench: true),
+            )
+          else
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: _workspaceCanvasHeight + 12,
+              ),
+              child: _centeredWorkspaceCanvas(integratedWorkbench: false),
+            ),
+        ],
+      );
+
+  Widget _centeredWorkspaceCanvas({required bool integratedWorkbench}) => Align(
+        key: const ValueKey('web-lesson-circuit-stage'),
+        alignment: Alignment.center,
+        child: SizedBox(
+          key: const ValueKey('web-lesson-composer-canvas'),
+          height: _workspaceCanvasHeight,
+          child: IgnorePointer(
+            ignoring: !widget.enabled,
+            child: ComposerCircuitCanvas(
+              circuit: _circuit,
+              enableDesktopHorizontalScrolling: true,
+              surfaceTreatment: integratedWorkbench
+                  ? ComposerCircuitSurfaceTreatment.workbench
+                  : ComposerCircuitSurfaceTreatment.inset,
+              selectedGateId: _selectedGateId,
+              onGateTap: (gate) => setState(() => _selectedGateId = gate?.id),
+              onDropRequested: _drop,
+              onPlacedGateDragStarted: (gate) =>
+                  setState(() => _selectedGateId = gate.id),
+              onDeletePlacedGateRequested: (gate) => _commit(
+                _circuit.removeLogicalGateByIdWithOutcome(gate.id),
+              ),
+            ),
+          ),
+        ),
+      );
+
+  Widget _workspaceInspector({required bool contentDriven}) => Column(
+        key: const ValueKey('web-lesson-live-inspector'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: _WorkspaceRegionLabel(
+                  icon: Icons.monitor_heart_outlined,
+                  label: 'LIVE INSPECTOR',
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: QubitQuestColors.success.withValues(alpha: .12),
+                  borderRadius: QubitQuestRadii.pill,
+                  border: Border.all(
+                    color: QubitQuestColors.success.withValues(alpha: .35),
+                  ),
+                ),
+                child: const Text(
+                  'LIVE',
+                  style: TextStyle(
+                    color: QubitQuestColors.success,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: .7,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          const Text(
+            'Updates as you build',
+            style: TextStyle(
+              color: QubitQuestColors.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (contentDriven)
+            _inspectorViews(contentDriven: true)
+          else
+            Expanded(child: _inspectorViews(contentDriven: false)),
+        ],
+      );
+
+  Widget _inspectorViews({required bool contentDriven}) =>
+      QuantumInspectorViews(
+        key: const ValueKey('web-lesson-inspector-views'),
+        stateView: _stateDisplays(contentDriven: contentDriven),
+        currentStateVector: _circuit.currentState.stateVector,
+        numQubits: widget.level.numQubits,
+        contentDriven: contentDriven,
+        targetStateExpression: widget.level.targetStateExpression,
+      );
+
+  Widget _stateDisplays({required bool contentDriven}) {
+    final current = StateVectorDisplay(
+      key: const ValueKey('web-lesson-current-state'),
+      stateVector: _circuit.currentState.stateVector,
+      numQubits: widget.level.numQubits,
+      summaryTitleOverride: 'Current State',
+      tone: StateVectorDisplayTone.current,
+      showHeader: false,
+      showToggleInSummary: true,
+      showSummarySubtitle: false,
+      dense: true,
+      contentDriven: contentDriven,
+      lightweightTypography: true,
+      nonZeroOnlyOverride: _nonZeroOnly,
+      onNonZeroOnlyChanged: (value) => setState(() => _nonZeroOnly = value),
+    );
+    if (widget.level.solutionFinalVector.isEmpty) return current;
+    final target = StateVectorDisplay(
+      key: const ValueKey('web-lesson-target-state'),
+      stateVector: widget.level.solutionFinalVector
+          .map((column) => column.first)
+          .toList(),
+      numQubits: widget.level.numQubits,
+      summaryTitleOverride: 'Target State',
+      stateExpressionLabel: widget.level.targetStateLabel,
+      stateExpression: widget.level.targetStateExpression,
+      tone: StateVectorDisplayTone.target,
+      showHeader: false,
+      showToggleInSummary: true,
+      showSummarySubtitle: false,
+      showVisibilityControl: false,
+      dense: true,
+      contentDriven: contentDriven,
+      lightweightTypography: true,
+      nonZeroOnlyOverride: _nonZeroOnly,
+    );
+    return Column(
+      mainAxisSize: contentDriven ? MainAxisSize.min : MainAxisSize.max,
+      children: [
+        if (contentDriven) current else Expanded(child: current),
+        const SizedBox(height: 10),
+        if (contentDriven) target else Expanded(child: target),
+      ],
+    );
+  }
+
+  Widget _workspaceToolbar({required bool wide}) {
+    final hasRotationGate = _gates.any((gate) => _isRotation(gate.type));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const _WorkspaceRegionLabel(
+          icon: Icons.widgets_outlined,
+          label: 'GATES',
+        ),
+        const SizedBox(height: 8),
+        IgnorePointer(
+          ignoring: !widget.enabled,
+          child: ComposerGatePalette(
+            gates: _gates,
+            dense: wide,
+            embedded: true,
+            onGateTap: (_) {},
+            onInspectGate: _inspect,
+          ),
+        ),
+        if (hasRotationGate)
+          Row(
+            children: [
+              const Text('Rotation angle'),
+              Expanded(
+                child: Slider(
+                  key: const ValueKey('web-lesson-rotation-angle'),
+                  value: _rotationAngle,
+                  min: 0,
+                  max: 2 * math.pi,
+                  divisions: 16,
+                  onChanged: widget.enabled
+                      ? (value) => setState(() => _rotationAngle = value)
+                      : null,
+                ),
+              ),
+              Text('${(_rotationAngle / math.pi).toStringAsFixed(2)}π'),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _workspaceActions({required bool wide}) {
+    final hints = widget.level.hints ?? const <String>[];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_feedback != null)
+          Text(
+            _feedback!,
+            key: const ValueKey('web-lesson-feedback'),
+            style: TextStyle(
+              color: _feedback == 'Correct circuit.'
+                  ? Colors.greenAccent
+                  : Colors.orangeAccent,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        if (_visibleHints > 0) ...[
+          if (_feedback != null) const SizedBox(height: 8),
+          for (int index = 0; index < _visibleHints; index++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text('Hint ${index + 1}: ${hints[index]}'),
+            ),
+        ],
+        if (_feedback != null || _visibleHints > 0) const SizedBox(height: 8),
+        if (wide)
+          Row(
+            children: [
+              if (_visibleHints < hints.length)
+                OutlinedButton.icon(
+                  key: const ValueKey('web-lesson-hint'),
+                  onPressed: widget.enabled
+                      ? () => setState(() => _visibleHints++)
+                      : null,
+                  icon: const Icon(Icons.lightbulb_outline, size: 18),
+                  label: const Text('Hint'),
+                ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                key: const ValueKey('web-lesson-reset'),
+                onPressed: widget.enabled ? _reset : null,
+                child: const Text('Reset'),
+              ),
+              const Spacer(),
+              FilledButton.icon(
+                key: const ValueKey('web-lesson-check'),
+                onPressed: widget.enabled ? _check : null,
+                icon: const Icon(Icons.check, size: 18),
+                label: const Text('Check Circuit'),
+              ),
+            ],
+          )
+        else
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 9,
+            runSpacing: 8,
+            children: [
+              if (_visibleHints < hints.length)
+                OutlinedButton.icon(
+                  key: const ValueKey('web-lesson-hint'),
+                  onPressed: widget.enabled
+                      ? () => setState(() => _visibleHints++)
+                      : null,
+                  icon: const Icon(Icons.lightbulb_outline),
+                  label: const Text('Hint'),
+                ),
+              OutlinedButton(
+                key: const ValueKey('web-lesson-reset'),
+                onPressed: widget.enabled ? _reset : null,
+                child: const Text('Reset'),
+              ),
+              FilledButton.icon(
+                key: const ValueKey('web-lesson-check'),
+                onPressed: widget.enabled ? _check : null,
+                icon: const Icon(Icons.check),
+                label: const Text('Check Circuit'),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopWorkspace() => LayoutBuilder(
+        builder: (context, constraints) {
+          final wide = constraints.maxWidth >= _journeyWideBreakpoint;
+          return QuantumWorkspaceLayout(
+            key: const ValueKey('web-lesson-1-quantum-workspace'),
+            circuit: _workspaceCanvas(wide: wide),
+            inspection: _workspaceInspector(
+              contentDriven: !wide,
+            ),
+            toolbar: _workspaceToolbar(wide: wide),
+            contextualActions: _workspaceActions(wide: wide),
+            wideLayoutBreakpoint: _journeyWideBreakpoint,
+            wideMainHeight: _workspaceMainHeight,
+          );
+        },
+      );
+
   @override
   Widget build(BuildContext context) {
+    if (widget.desktopWorkspace) return _buildDesktopWorkspace();
     final hints = widget.level.hints ?? const <String>[];
     final hasRotationGate = _gates.any((gate) => _isRotation(gate.type));
     return _ContentCard(

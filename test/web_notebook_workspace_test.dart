@@ -50,7 +50,7 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('wide layout keeps canonical index and reading pane together',
+  testWidgets('wide layout uses transient contents and full-width reader',
       (tester) async {
     await setSize(tester, const Size(1280, 1000));
     final first = notebookEntries.first;
@@ -61,9 +61,14 @@ void main() {
     );
     await pumpWorkspace(tester, controller: controller);
 
-    expect(
-        find.byKey(const ValueKey('web-notebook-index-wide')), findsOneWidget);
+    expect(find.byKey(const ValueKey('web-notebook-index-wide')), findsNothing);
+    expect(find.byKey(const ValueKey('web-notebook-contents')), findsOneWidget);
     expect(find.byKey(const ValueKey('web-notebook-welcome')), findsOneWidget);
+    expect(
+        find.byKey(ValueKey('web-notebook-entry-${first.id}')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('web-notebook-contents')));
+    await tester.pumpAndSettle();
     expect(find.text(first.chapterTitle.toUpperCase()), findsOneWidget);
     expect(find.text(first.title), findsOneWidget);
 
@@ -74,7 +79,7 @@ void main() {
     expect(find.text(locked.intuition.body), findsNothing);
 
     await tester.tap(find.byKey(ValueKey('web-notebook-entry-${first.id}')));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.byKey(ValueKey('web-notebook-reader-${first.id}')),
         findsOneWidget);
@@ -211,8 +216,10 @@ void main() {
         blochResult = result;
       },
     );
+    await tester.tap(find.byKey(const ValueKey('web-notebook-contents')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('web-notebook-entry-${entry.id}')));
-    await tester.pump();
+    await tester.pumpAndSettle();
     tester
         .widget<OutlinedButton>(
           find.byKey(const ValueKey('composer-example-x_from_zero')),

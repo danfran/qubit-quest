@@ -215,4 +215,57 @@ void main() {
       expect(oldMetrics.height, lessThan(oldCardHeight));
     });
   });
+
+  group('WebCircuitWorkbenchMetrics', () {
+    test('grows the workbench from one to three qubits', () {
+      final oneQubit = WebCircuitWorkbenchMetrics.calculate(
+        qubitCount: 1,
+        hasTargetState: true,
+      );
+      final twoQubits = WebCircuitWorkbenchMetrics.calculate(
+        qubitCount: 2,
+        hasTargetState: true,
+      );
+      final threeQubits = WebCircuitWorkbenchMetrics.calculate(
+        qubitCount: 3,
+        hasTargetState: true,
+      );
+
+      expect(twoQubits.canvasHeight, greaterThan(oneQubit.canvasHeight));
+      expect(threeQubits.canvasHeight, greaterThan(twoQubits.canvasHeight));
+      expect(threeQubits.mainRowHeight, greaterThan(oneQubit.mainRowHeight));
+    });
+
+    test('row height accommodates both circuit and inspector', () {
+      final metrics = WebCircuitWorkbenchMetrics.calculate(
+        qubitCount: 5,
+        hasTargetState: true,
+      );
+
+      expect(metrics.mainRowHeight,
+          greaterThanOrEqualTo(metrics.circuitPaneHeight));
+      expect(
+          metrics.mainRowHeight, greaterThanOrEqualTo(metrics.inspectorHeight));
+      expect(
+        metrics.canvasHeight,
+        QuantumCircuitPainter.requiredDrawingHeightFor(5) + 8,
+      );
+    });
+
+    test('wide inspector reserves modest room for current and target views',
+        () {
+      final withTarget = WebCircuitWorkbenchMetrics.calculate(
+        qubitCount: 1,
+        hasTargetState: true,
+      );
+      final currentOnly = WebCircuitWorkbenchMetrics.calculate(
+        qubitCount: 1,
+        hasTargetState: false,
+      );
+
+      expect(withTarget.inspectorHeight, 344);
+      expect(currentOnly.inspectorHeight, 284);
+      expect(withTarget.mainRowHeight, 344);
+    });
+  });
 }

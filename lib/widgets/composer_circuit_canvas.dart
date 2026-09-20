@@ -25,6 +25,11 @@ class ComposerCircuitDropIntent {
   final LogicalMovePlan? movePlan;
 }
 
+enum ComposerCircuitSurfaceTreatment {
+  inset,
+  workbench,
+}
+
 class ComposerCircuitCanvas extends StatefulWidget {
   const ComposerCircuitCanvas({
     super.key,
@@ -36,6 +41,7 @@ class ComposerCircuitCanvas extends StatefulWidget {
     required this.onDeletePlacedGateRequested,
     this.onDragActiveChanged,
     this.enableDesktopHorizontalScrolling = false,
+    this.surfaceTreatment = ComposerCircuitSurfaceTreatment.inset,
   });
 
   final QuantumCircuit circuit;
@@ -46,6 +52,7 @@ class ComposerCircuitCanvas extends StatefulWidget {
   final ValueChanged<PlacedGateRef> onDeletePlacedGateRequested;
   final ValueChanged<bool>? onDragActiveChanged;
   final bool enableDesktopHorizontalScrolling;
+  final ComposerCircuitSurfaceTreatment surfaceTreatment;
 
   @override
   State<ComposerCircuitCanvas> createState() => _ComposerCircuitCanvasState();
@@ -435,21 +442,30 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
             renderBox.localToGlobal(Offset.zero) & renderBox.size;
       }
     });
+    final integratedWorkbench =
+        widget.surfaceTreatment == ComposerCircuitSurfaceTreatment.workbench;
     return AnimatedContainer(
+      key: ValueKey(
+        integratedWorkbench
+            ? 'circuit-workbench-surface'
+            : 'circuit-inset-surface',
+      ),
       duration: const Duration(milliseconds: 140),
       curve: Curves.easeOut,
-      decoration: BoxDecoration(
-        color: const Color(0xFF020713),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _borderSoft),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 10,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
+      decoration: integratedWorkbench
+          ? const BoxDecoration()
+          : BoxDecoration(
+              color: const Color(0xFF020713),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _borderSoft),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 10,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
         builder: (context, constraints) {

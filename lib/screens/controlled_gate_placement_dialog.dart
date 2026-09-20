@@ -40,6 +40,16 @@ class ControlledGatePlacement {
   }
 }
 
+List<int> validControlQubitCandidates({
+  required int targetQubit,
+  required int numQubits,
+}) {
+  if (targetQubit < 0 || targetQubit >= numQubits) return const [];
+  return List<int>.generate(numQubits, (index) => index)
+      .where((index) => index != targetQubit)
+      .toList(growable: false);
+}
+
 /// Reuses the production Composer role pickers for controlled-gate insertion.
 Future<ControlledGatePlacement?> showControlledGatePlacementDialog(
   BuildContext context, {
@@ -48,7 +58,17 @@ Future<ControlledGatePlacement?> showControlledGatePlacementDialog(
   required int numQubits,
 }) async {
   if (gateType == SelectedGateType.cnot || gateType == SelectedGateType.cz) {
-    if (numQubits < 2) return null;
+    final controlCandidates = validControlQubitCandidates(
+      targetQubit: targetQubit,
+      numQubits: numQubits,
+    );
+    if (controlCandidates.isEmpty) return null;
+    if (controlCandidates.length == 1) {
+      return ControlledGatePlacement(
+        targetQubit: targetQubit,
+        controlQubit: controlCandidates.single,
+      );
+    }
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (_) => TwoQubitsGateTargetQubitSelectionDialog(

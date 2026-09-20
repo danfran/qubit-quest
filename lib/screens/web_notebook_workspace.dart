@@ -160,24 +160,23 @@ class _WebNotebookWorkspaceState extends State<WebNotebookWorkspace> {
                       controller: _searchController,
                       onChanged: (value) => setState(() => _query = value),
                       onClear: _clearSearch,
+                      showContents: wide,
+                      onOpenContents: _showContents,
                     ),
                     const Divider(height: 1, color: _border),
                     Expanded(
                       child: wide
-                          ? Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                SizedBox(
-                                  key:
-                                      const ValueKey('web-notebook-index-wide'),
-                                  width:
-                                      constraints.maxWidth < 1100 ? 300 : 350,
+                          ? normalizeNotebookSearchText(_query).isNotEmpty
+                              ? KeyedSubtree(
+                                  key: const ValueKey(
+                                      'web-notebook-search-workspace-wide'),
                                   child: _buildIndex(),
-                                ),
-                                const VerticalDivider(width: 1, color: _border),
-                                Expanded(child: _buildReader(wide: true)),
-                              ],
-                            )
+                                )
+                              : KeyedSubtree(
+                                  key: const ValueKey(
+                                      'web-notebook-reader-wide'),
+                                  child: _buildReader(wide: true),
+                                )
                           : normalizeNotebookSearchText(_query).isNotEmpty ||
                                   _selectedEntry == null
                               ? KeyedSubtree(
@@ -199,12 +198,31 @@ class _WebNotebookWorkspaceState extends State<WebNotebookWorkspace> {
         },
       );
 
-  Widget _buildIndex() => _NotebookIndex(
+  Future<void> _showContents() => showDialog<void>(
+        context: context,
+        builder: (dialogContext) => Dialog(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 560,
+              maxHeight: 720,
+            ),
+            child: _buildIndex(
+              onSelected: (entry) {
+                Navigator.of(dialogContext).pop();
+                _selectEntry(entry);
+              },
+            ),
+          ),
+        ),
+      );
+
+  Widget _buildIndex({ValueChanged<NotebookEntry>? onSelected}) =>
+      _NotebookIndex(
         unlocked: _unlocked,
         selectedEntry: _selectedEntry,
         query: _query,
         results: _results,
-        onSelected: _selectEntry,
+        onSelected: onSelected ?? _selectEntry,
         onSearchResultSelected: _selectSearchResult,
         onOpenJourney: widget.onOpenJourney,
       );
@@ -237,11 +255,15 @@ class _NotebookHeader extends StatelessWidget {
     required this.controller,
     required this.onChanged,
     required this.onClear,
+    required this.showContents,
+    required this.onOpenContents,
   });
 
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
+  final bool showContents;
+  final VoidCallback onOpenContents;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -259,6 +281,15 @@ class _NotebookHeader extends StatelessWidget {
                 ),
               ),
             ),
+            if (showContents) ...[
+              OutlinedButton.icon(
+                key: const ValueKey('web-notebook-contents'),
+                onPressed: onOpenContents,
+                icon: const Icon(Icons.toc, size: 19),
+                label: const Text('Contents'),
+              ),
+              const SizedBox(width: 12),
+            ],
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 360),
               child: SizedBox(

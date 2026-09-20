@@ -73,11 +73,11 @@ class QuantumCircuit extends ChangeNotifier {
 
   int maxCircuitDepth() => placedGates.map((e) => e.length).reduce(max);
 
-  /// The first column in which learner-authored operations may appear.
+  /// The first column after all protected authored operations.
   ///
-  /// Protected operations are authored challenge content and form an immutable
-  /// prefix of the circuit. Empty cells within that prefix still represent its
-  /// shared time columns, so learner operations must not compact into them.
+  /// This describes the authored prefix depth for presentation and auditing.
+  /// Editing remains footprint-aware: protected operations cannot move, while
+  /// independent learner operations on other wires may share their columns.
   int get learnerEditableStartColumn {
     var boundary = 0;
     for (final footprint in logicalGates) {
@@ -124,11 +124,12 @@ class QuantumCircuit extends ChangeNotifier {
       return CircuitEditOutcome.invalid;
     }
 
-    if (isDeletable) {
-      insertionPosition = max(insertionPosition, learnerEditableStartColumn);
-    }
-
     final resolvedId = gateId ?? _allocateGateId();
+    insertionPosition = _firstColumnWithoutProtectedCollision(
+      placedGates,
+      destinationQubits: [tappedQubitIndex],
+      requestedColumn: insertionPosition,
+    );
     PlacedQuantumGate gateToInsert = PlacedQuantumGate(
       id: resolvedId,
       gate: gate,
@@ -149,9 +150,10 @@ class QuantumCircuit extends ChangeNotifier {
           insertGateAt(PlacedQuantumGate.emptyGate(), insertionPosition, i);
         }
       }
-      shiftLeft();
-      trimCircuit();
     }
+
+    shiftLeft();
+    trimCircuit();
 
     if (notifyChange && !_suppressStructuralNotifications) notifyListeners();
     return CircuitEditOutcome(
@@ -344,13 +346,6 @@ class QuantumCircuit extends ChangeNotifier {
       return rejected(
           CircuitEditStatus.same, 'Destination is the source slot.');
     }
-    if (destination.column < learnerEditableStartColumn) {
-      return rejected(
-        CircuitEditStatus.protected,
-        'Learner gates cannot move before protected challenge operations.',
-      );
-    }
-
     final proposal = _copyRows(placedGates);
     for (final fragment in footprint.fragments) {
       proposal[fragment.location.qubit][fragment.location.column] =
@@ -707,6 +702,23 @@ class QuantumCircuit extends ChangeNotifier {
     return column < row.length ? row[column] : PlacedQuantumGate.emptyGate();
   }
 
+  static int _firstColumnWithoutProtectedCollision(
+    List<List<PlacedQuantumGate>> rows, {
+    required List<int> destinationQubits,
+    required int requestedColumn,
+  }) {
+    var column = requestedColumn;
+    while (destinationQubits.any(
+      (qubit) {
+        final cell = _cellAt(rows, qubit, column);
+        return cell.gate.type != SelectedGateType.none && !cell.isDeletable;
+      },
+    )) {
+      column++;
+    }
+    return column;
+  }
+
   static void _trimDetachedRows(List<List<PlacedQuantumGate>> rows) {
     for (final row in rows) {
       while (row.isNotEmpty && row.last.gate.type == SelectedGateType.none) {
@@ -792,7 +804,6 @@ class QuantumCircuit extends ChangeNotifier {
   static List<List<PlacedQuantumGate>>? _compactDetachedRows(
     List<List<PlacedQuantumGate>> rows,
   ) {
-    final protectedPrefixDepth = _protectedPrefixDepth(rows);
     var moved = true;
     while (moved) {
       moved = false;
@@ -803,7 +814,7 @@ class QuantumCircuit extends ChangeNotifier {
         final columns = fragments.map((fragment) => fragment.$3).toSet();
         if (columns.length != 1) return null;
         final column = columns.single;
-        if (column <= protectedPrefixDepth ||
+        if (column == 0 ||
             fragments.any((fragment) => !fragment.$2.isDeletable)) {
           continue;
         }
@@ -823,19 +834,6 @@ class QuantumCircuit extends ChangeNotifier {
       }
     }
     return rows;
-  }
-
-  static int _protectedPrefixDepth(List<List<PlacedQuantumGate>> rows) {
-    var boundary = 0;
-    for (final fragments in _detachedLogicalFragments(rows).values) {
-      if (fragments.any((fragment) => !fragment.$2.isDeletable)) {
-        boundary = max(
-          boundary,
-          fragments.map((fragment) => fragment.$3).reduce(max) + 1,
-        );
-      }
-    }
-    return boundary;
   }
 
   static bool _isValidLogicalGrid(
@@ -1156,22 +1154,19 @@ class QuantumCircuit extends ChangeNotifier {
         targetQubitIndex == controlQubitIndex) {
       return CircuitEditOutcome.invalid;
     }
-    if (isDeletable) {
-      insertionPosition = max(insertionPosition, learnerEditableStartColumn);
-    }
-    final gateId = _allocateGateId();
-    // need to check if the area to place the gate is fully empty then,
     int from = min(controlQubitIndex, targetQubitIndex);
     int to = max(controlQubitIndex, targetQubitIndex);
 
-    debugPrint('Insertion position: $insertionPosition, from: $from, to: $to');
+    insertionPosition = min(insertionPosition, maxCircuitDepth());
+    insertionPosition = _firstColumnWithoutProtectedCollision(
+      placedGates,
+      destinationQubits: [for (var qubit = from; qubit <= to; qubit++) qubit],
+      requestedColumn: insertionPosition,
+    );
+    final gateId = _allocateGateId();
+    // need to check if the area to place the gate is fully empty then,
 
-    insertionPosition = isDeletable
-        ? max(
-            learnerEditableStartColumn,
-            min(insertionPosition, maxCircuitDepth()),
-          )
-        : min(insertionPosition, maxCircuitDepth());
+    debugPrint('Insertion position: $insertionPosition, from: $from, to: $to');
 
     bool allEmpty = true;
     for (int i = from; i <= to; i++) {
@@ -1300,17 +1295,7 @@ class QuantumCircuit extends ChangeNotifier {
         qubits.any((qubit) => qubit < 0 || qubit >= currentLevel.numQubits)) {
       return CircuitEditOutcome.invalid;
     }
-    if (isDeletable) {
-      insertionPosition = max(insertionPosition, learnerEditableStartColumn);
-    }
-    insertionPosition = isDeletable
-        ? max(
-            learnerEditableStartColumn,
-            min(insertionPosition, maxCircuitDepth()),
-          )
-        : min(insertionPosition, maxCircuitDepth());
-    final gateId = _allocateGateId();
-    // need to check if the area to place the gate is fully empty then,
+    insertionPosition = min(insertionPosition, maxCircuitDepth());
     List<int> controls = [
       control1QubitIndex,
       control2QubitIndex,
@@ -1318,6 +1303,13 @@ class QuantumCircuit extends ChangeNotifier {
     ];
     int from = controls.reduce(min);
     int to = controls.reduce(max);
+    insertionPosition = _firstColumnWithoutProtectedCollision(
+      placedGates,
+      destinationQubits: [for (var qubit = from; qubit <= to; qubit++) qubit],
+      requestedColumn: insertionPosition,
+    );
+    final gateId = _allocateGateId();
+    // need to check if the area to place the gate is fully empty then,
 
     bool allEmpty = true;
     for (int i = from; i <= to; i++) {

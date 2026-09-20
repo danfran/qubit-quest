@@ -16,16 +16,22 @@ class TargetStateDisplayContent {
   });
 }
 
+String targetStateMathExpression(String expression) =>
+    expression.trim().replaceFirst(
+          RegExp(r'\s+and\s+identity\s+overall\s*$', caseSensitive: false),
+          '',
+        );
+
 /// Keeps human-readable target metadata out of the TeX maths expression.
 TargetStateDisplayContent targetStateDisplayContent({
   required String expression,
   String? semanticLabel,
 }) {
-  final trimmedExpression = expression.trim();
-  if (trimmedExpression.contains('=')) {
+  final stateExpression = targetStateMathExpression(expression);
+  if (stateExpression.contains('=')) {
     return TargetStateDisplayContent(
       semanticLabel: null,
-      mathExpression: trimmedExpression,
+      mathExpression: stateExpression,
     );
   }
 
@@ -33,13 +39,13 @@ TargetStateDisplayContent targetStateDisplayContent({
   if (trimmedLabel != null && trimmedLabel.isNotEmpty) {
     return TargetStateDisplayContent(
       semanticLabel: trimmedLabel,
-      mathExpression: trimmedExpression,
+      mathExpression: stateExpression,
     );
   }
 
   return TargetStateDisplayContent(
     semanticLabel: null,
-    mathExpression: '|ψ⟩ = $trimmedExpression',
+    mathExpression: '|ψ⟩ = $stateExpression',
   );
 }
 
