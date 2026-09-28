@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/mastery_2_catalogue.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 
+import 'support/mastery_semantic_snapshot.dart';
+
 void main() {
   final expectedCorrectAnswerMarker = <String, String>{
     'global_phase_equivalence': 'different statevector representatives',
@@ -86,8 +88,8 @@ void main() {
       expect(marker, isNotNull, reason: definition.semanticId);
       expect(level.options, hasLength(4), reason: definition.semanticId);
       expect(
-        level.options[level.correctOptionIndex],
-        contains(marker!),
+        normalizeMasteryNotation(level.options[level.correctOptionIndex]),
+        contains(normalizeMasteryNotation(marker!)),
         reason: '${definition.semanticId} must retain its semantic answer',
       );
     }

@@ -315,6 +315,7 @@ void main() {
           find.byType(ComposerCircuitCanvas),
         )
         .circuit;
+    final simulationRuns = circuit.simulationRunCount;
     expect(identical(current.stateVector, circuit.currentState.stateVector),
         isTrue);
     expect(current.stateVector[0].real, closeTo(0.7071067812, 1e-9));
@@ -326,6 +327,7 @@ void main() {
       matching: find.byType(Checkbox),
     );
     expect(tester.widget<Checkbox>(filter).value, isTrue);
+    expect(circuit.simulationRunCount, simulationRuns);
     expect(controller.state.completedMasterySemanticIds,
         isNot(contains('ghz_phase_manipulation')));
     expect(find.byType(BlochSpherePanel), findsNothing);
@@ -411,6 +413,12 @@ void main() {
       expect(inserted.type, SelectedGateType.cnot);
       expect(inserted.targetQubit, targetQubit);
       expect(inserted.controlQubit, 1 - targetQubit);
+      expect(inserted.fragments, hasLength(2));
+      expect(
+        inserted.fragments.map((fragment) => fragment.placedGate.id).toSet(),
+        {inserted.id},
+      );
+      expect(inserted.hasValidTopology(2), isTrue);
     });
   }
 

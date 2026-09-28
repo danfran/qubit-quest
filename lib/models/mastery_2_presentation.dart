@@ -97,6 +97,42 @@ const _cz01 = CanonicalCircuitStep.controlled(
 
 final Map<String, MasteryChallengePresentation> mastery2Presentations =
     Map.unmodifiable({
+  'bell_input_sign_preparation': const MasteryChallengePresentation(
+    intro:
+        r'Starting from \(|01\rangle\) (ket order \(|q_1\,q_0\rangle\)), prepare',
+    evidence: [
+      MasteryMathEvidence(
+        label: 'TARGET',
+        expression: r'\[\Phi^-=\frac{|00\rangle-|11\rangle}{\sqrt{2}}\]',
+      ),
+    ],
+    question: 'using the input-dependent sign and the available H/CNOT gates.',
+  ),
+  'ghz_phase_manipulation': const MasteryChallengePresentation(
+    intro: 'The fixed starting state is',
+    evidence: [
+      MasteryMathEvidence(
+        label: 'FIXED STARTING STATE',
+        expression: r'\[GHZ^+=\frac{|000\rangle+|111\rangle}{\sqrt{2}}\]',
+      ),
+      MasteryTextEvidence(text: 'Use one local Z operation to produce'),
+      MasteryMathEvidence(
+        label: 'TARGET',
+        expression: r'\[GHZ^-=\frac{|000\rangle-|111\rangle}{\sqrt{2}}\]',
+      ),
+    ],
+    question: '',
+  ),
+  'inverse_phase_synthesis': const MasteryChallengePresentation(
+    intro: 'Prepare',
+    evidence: [
+      MasteryMathEvidence(
+        expression: r'\[\frac{|0\rangle+e^{-i\pi/4}|1\rangle}{\sqrt{2}}\]',
+      ),
+    ],
+    question:
+        r'from \(|0\rangle\) without a \(T^{\dagger}\) gate. Synthesize the negative eighth-turn using H, T, S, and Z.',
+  ),
   'global_phase_equivalence': const MasteryChallengePresentation(
     evidence: [
       MasteryMathEvidence(
@@ -114,20 +150,21 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
         expression: r'\[P(0)=\tfrac12\qquad P(1)=\tfrac12\]',
       ),
       MasteryTextEvidence(
-        label: 'X BASIS — |+⟩',
+        label: r'X BASIS — \(|+\rangle\)',
         text: 'Always +',
       ),
       MasteryTextEvidence(
-        label: 'X BASIS — |−⟩',
+        label: r'X BASIS — \(|-\rangle\)',
         text: 'Always −',
       ),
       MasteryTextEvidence(
-        label: 'X BASIS — RANDOM |0⟩ / |1⟩ ENSEMBLE',
+        label: r'X BASIS — RANDOM \(|0\rangle\) / \(|1\rangle\) ENSEMBLE',
         text: '50% +, 50% −',
       ),
     ],
     question: 'What does the additional X-basis evidence establish?',
-    helperText: 'The third preparation randomly chooses |0⟩ or |1⟩.',
+    helperText:
+        r'The third preparation randomly chooses \(|0\rangle\) or \(|1\rangle\).',
   ),
   'cnot_topology_inference': const MasteryChallengePresentation(
     intro: 'One fixed CNOT produced both mappings.',
@@ -196,7 +233,8 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
       ),
       MasteryTextEvidence(
         label: 'CASE B',
-        text: 'After amplification, |01⟩ peaks instead of desired |10⟩.',
+        text:
+            r'After amplification, \(|01\rangle\) peaks instead of desired \(|10\rangle\).',
       ),
       MasteryMathEvidence(
         label: 'CASE C',
@@ -243,7 +281,7 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
             'Circuit: H then Z on q0, followed by a missing gate and Z-basis measurement.',
       ),
     ],
-    question: 'Which gate reveals deterministic |1⟩?',
+    question: r'Which gate reveals deterministic \(|1\rangle\)?',
   ),
   'phase_sandwich_unitary': const MasteryChallengePresentation(
     evidence: [
@@ -289,7 +327,7 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
     helperText: 'Kets: |q2 q1 q0⟩.',
   ),
   'swap_unitary_diagnosis': const MasteryChallengePresentation(
-    intro: 'Both candidates map |01⟩ to |10⟩.',
+    intro: r'Both candidates map \(|01\rangle\) to \(|10\rangle\).',
     evidence: [
       MasteryCircuitEvidence(
         label: 'CANDIDATE A',
@@ -425,8 +463,10 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
         semanticDescription:
             'Broken GHZ circuit: H on q0, CNOT q0 to q1, then CNOT q2 to q1.',
       ),
-      MasteryTextEvidence(label: 'OBSERVED SUPPORT', text: '{000, 011}'),
-      MasteryTextEvidence(label: 'REQUIRED SUPPORT', text: '{000, 111}'),
+      MasteryMathEvidence(
+          label: 'OBSERVED SUPPORT', expression: r'\[\{000,011\}\]'),
+      MasteryMathEvidence(
+          label: 'REQUIRED SUPPORT', expression: r'\[\{000,111\}\]'),
     ],
     question: 'Which replacement for the final link repairs the preparation?',
   ),

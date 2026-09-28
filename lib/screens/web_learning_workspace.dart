@@ -27,10 +27,9 @@ import 'package:quantumquiz/widgets/circuit_canvas_metrics.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/mastery_evidence_view.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
-import 'package:quantumquiz/widgets/quantum_workspace_layout.dart';
-import 'package:quantumquiz/widgets/quantum_inspector_views.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
+import 'package:quantumquiz/widgets/web_composer_workbench.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
 const _background = QubitQuestColors.background;
@@ -1205,76 +1204,96 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
     return task;
   }
 
-  Widget _desktopComposerLearningBrief() => Padding(
-        key: const ValueKey('web-lesson-1-learning-brief'),
-        padding: const EdgeInsets.fromLTRB(2, 8, 2, 6),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (widget.level.hasMystery) ...[
-              const Text(
-                'QUESTION',
-                style: TextStyle(
-                  color: QubitQuestColors.textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: .8,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                widget.level.mysteryTitle ?? 'Mystery',
-                style: const TextStyle(
-                  color: QubitQuestColors.textPrimary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              const SizedBox(height: 9),
-            ],
-            if ((widget.level.conceptIntro ?? '').trim().isNotEmpty) ...[
-              Text(
-                widget.level.conceptIntro!,
-                style: QubitQuestTypography.body,
-              ),
-              const SizedBox(height: 8),
-            ],
-            const Text(
-              'TASK',
-              style: TextStyle(
-                color: QubitQuestColors.textMuted,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                letterSpacing: .8,
-              ),
+  Widget _desktopComposerLearningBrief() {
+    final isMastery = widget.masteryChallenge != null;
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.level.hasMystery) ...[
+          const Text(
+            'QUESTION',
+            style: TextStyle(
+              color: QubitQuestColors.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              letterSpacing: .8,
             ),
-            const SizedBox(height: 4),
-            LatexText(
-              math: _desktopComposerTask,
-              textStyle: const TextStyle(
-                color: QubitQuestColors.textBody,
-                fontSize: 15,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            widget.level.mysteryTitle ?? 'Mystery',
+            style: const TextStyle(
+              color: QubitQuestColors.textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          const SizedBox(height: 9),
+        ],
+        if ((widget.level.conceptIntro ?? '').trim().isNotEmpty) ...[
+          Text(
+            widget.level.conceptIntro!,
+            style: QubitQuestTypography.body,
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (!isMastery) ...[
+          const Text(
+            'TASK',
+            style: TextStyle(
+              color: QubitQuestColors.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              letterSpacing: .8,
+            ),
+          ),
+          const SizedBox(height: 4),
+        ],
+        if (_masteryPresentation case final presentation?)
+          MasteryEvidenceView(
+            presentation: presentation,
+            includeQuestion: true,
+            compactSpacing: isMastery,
+          )
+        else
+          LatexText(
+            math: _desktopComposerTask,
+            textStyle: const TextStyle(
+              color: QubitQuestColors.textBody,
+              fontSize: 15,
+              height: 1.35,
+              fontWeight: FontWeight.w400,
+            ),
+            inlineMathHeight: 18,
+          ),
+        if ((widget.level.mysteryText ?? '').trim().isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 7),
+            child: Text(
+              widget.level.mysteryText!,
+              style: const TextStyle(
+                color: QubitQuestColors.textMuted,
+                fontSize: 12.5,
                 height: 1.35,
                 fontWeight: FontWeight.w400,
               ),
-              inlineMathHeight: 18,
             ),
-            if ((widget.level.mysteryText ?? '').trim().isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 7),
-                child: Text(
-                  widget.level.mysteryText!,
-                  style: const TextStyle(
-                    color: QubitQuestColors.textMuted,
-                    fontSize: 12.5,
-                    height: 1.35,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      );
+          ),
+      ],
+    );
+    return Padding(
+      key: const ValueKey('web-lesson-1-learning-brief'),
+      padding:
+          isMastery ? EdgeInsets.zero : const EdgeInsets.fromLTRB(2, 8, 2, 6),
+      child: isMastery
+          ? _ContentCard(
+              title: 'Task',
+              icon: Icons.flag_outlined,
+              child: content,
+            )
+          : content,
+    );
+  }
 
   @override
   Widget build(BuildContext context) => ListView(
@@ -1598,35 +1617,6 @@ ComposerValidationResult validateWebComposerLesson(
 ) =>
     level.evaluateCircuit(circuit);
 
-class _WorkspaceRegionLabel extends StatelessWidget {
-  const _WorkspaceRegionLabel({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: _cyan),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: QubitQuestColors.textMuted,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                letterSpacing: .75,
-              ),
-            ),
-          ),
-        ],
-      );
-}
-
 class WebComposerLesson extends StatefulWidget {
   const WebComposerLesson({
     super.key,
@@ -1793,28 +1783,14 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
 
   double get _workspaceMainHeight => _workbenchMetrics.mainRowHeight;
 
-  Widget _workspaceCanvas({required bool wide}) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: wide ? MainAxisSize.max : MainAxisSize.min,
-        children: [
-          const _WorkspaceRegionLabel(
-            icon: Icons.account_tree_outlined,
-            label: 'CIRCUIT WORKSPACE',
+  Widget _workspaceCanvas(bool wide) => wide
+      ? _centeredWorkspaceCanvas(integratedWorkbench: true)
+      : ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: _workspaceCanvasHeight + 12,
           ),
-          const SizedBox(height: 12),
-          if (wide)
-            Expanded(
-              child: _centeredWorkspaceCanvas(integratedWorkbench: true),
-            )
-          else
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: _workspaceCanvasHeight + 12,
-              ),
-              child: _centeredWorkspaceCanvas(integratedWorkbench: false),
-            ),
-        ],
-      );
+          child: _centeredWorkspaceCanvas(integratedWorkbench: false),
+        );
 
   Widget _centeredWorkspaceCanvas({required bool integratedWorkbench}) => Align(
         key: const ValueKey('web-lesson-circuit-stage'),
@@ -1841,67 +1817,6 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
             ),
           ),
         ),
-      );
-
-  Widget _workspaceInspector({required bool contentDriven}) => Column(
-        key: const ValueKey('web-lesson-live-inspector'),
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: _WorkspaceRegionLabel(
-                  icon: Icons.monitor_heart_outlined,
-                  label: 'LIVE INSPECTOR',
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: QubitQuestColors.success.withValues(alpha: .12),
-                  borderRadius: QubitQuestRadii.pill,
-                  border: Border.all(
-                    color: QubitQuestColors.success.withValues(alpha: .35),
-                  ),
-                ),
-                child: const Text(
-                  'LIVE',
-                  style: TextStyle(
-                    color: QubitQuestColors.success,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: .7,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 5),
-          const Text(
-            'Updates as you build',
-            style: TextStyle(
-              color: QubitQuestColors.textMuted,
-              fontSize: 11,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (contentDriven)
-            _inspectorViews(contentDriven: true)
-          else
-            Expanded(child: _inspectorViews(contentDriven: false)),
-        ],
-      );
-
-  Widget _inspectorViews({required bool contentDriven}) =>
-      QuantumInspectorViews(
-        key: const ValueKey('web-lesson-inspector-views'),
-        stateView: _stateDisplays(contentDriven: contentDriven),
-        currentStateVector: _circuit.currentState.stateVector,
-        numQubits: widget.level.numQubits,
-        contentDriven: contentDriven,
-        targetStateExpression: widget.level.targetStateExpression,
       );
 
   Widget _stateDisplays({required bool contentDriven}) {
@@ -1950,17 +1865,12 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
     );
   }
 
-  Widget _workspaceToolbar({required bool wide}) {
+  Widget _workspaceToolbar(bool wide) {
     final hasRotationGate = _gates.any((gate) => _isRotation(gate.type));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        const _WorkspaceRegionLabel(
-          icon: Icons.widgets_outlined,
-          label: 'GATES',
-        ),
-        const SizedBox(height: 8),
         IgnorePointer(
           ignoring: !widget.enabled,
           child: ComposerGatePalette(
@@ -2079,21 +1989,20 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
     );
   }
 
-  Widget _buildDesktopWorkspace() => LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth >= _journeyWideBreakpoint;
-          return QuantumWorkspaceLayout(
-            key: const ValueKey('web-lesson-1-quantum-workspace'),
-            circuit: _workspaceCanvas(wide: wide),
-            inspection: _workspaceInspector(
-              contentDriven: !wide,
-            ),
-            toolbar: _workspaceToolbar(wide: wide),
-            contextualActions: _workspaceActions(wide: wide),
-            wideLayoutBreakpoint: _journeyWideBreakpoint,
-            wideMainHeight: _workspaceMainHeight,
-          );
-        },
+  Widget _buildDesktopWorkspace() => WebComposerWorkbench(
+        key: const ValueKey('web-lesson-1-quantum-workspace'),
+        circuitBuilder: _workspaceCanvas,
+        gatesBuilder: _workspaceToolbar,
+        stateViewBuilder: (contentDriven) =>
+            _stateDisplays(contentDriven: contentDriven),
+        actionsBuilder: (wide) => _workspaceActions(wide: wide),
+        currentStateVector: _circuit.currentState.stateVector,
+        numQubits: widget.level.numQubits,
+        targetStateExpression: widget.level.targetStateExpression,
+        inspectorKey: const ValueKey('web-lesson-live-inspector'),
+        inspectorViewsKey: const ValueKey('web-lesson-inspector-views'),
+        wideLayoutBreakpoint: _journeyWideBreakpoint,
+        wideMainHeight: _workspaceMainHeight,
       );
 
   @override

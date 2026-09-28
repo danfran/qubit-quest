@@ -1,0 +1,2024 @@
+[
+  {
+    "semanticId": "global_phase_equivalence",
+    "displayOrder": 1,
+    "title": "Different Vectors, Same Qubit",
+    "contentVersion": 1,
+    "difficulty": "foundation",
+    "conceptTags": [
+      "globalPhase",
+      "operatorAction",
+      "physicalState"
+    ],
+    "interactionType": "evidence",
+    "runtimeType": "McqLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Ask whether the factor changes one amplitude relative to another or multiplies the entire vector."
+    ],
+    "solutionExplanation": "|1⟩, −|1⟩, and i|1⟩ are different mathematical vectors but representatives of the same physical pure state because each differs only by one global phase. An operator that produces such a factor still performs a real mathematical transformation.",
+    "options": [
+      "Theyareequalmathematicalvectorsandthereforedescribethesamegateaction.",
+      "Theyaredifferentstatevectorrepresentativesofthesamephysicalpurestate;theglobalfactorscanstillrecordgenuineoperatoractions.",
+      "Only|1⟩and-|1⟩arephysicallyequivalent;thefactorichangeslatermeasurements.",
+      "Alatergatecanrevealwhichoverallglobalfactorwaspresent."
+    ],
+    "correctOptionIndex": 1
+  },
+  {
+    "semanticId": "phase_state_uncomputation",
+    "displayOrder": 2,
+    "title": "Uncompute the Hidden Turn",
+    "contentVersion": 1,
+    "difficulty": "integration",
+    "conceptTags": [
+      "inverseOrder",
+      "relativePhase",
+      "reversibility"
+    ],
+    "interactionType": "uncomputation",
+    "runtimeType": "ComposerLevel",
+    "targetStateExpression": "|0⟩",
+    "targetStateLabel": null,
+    "hints": [
+      "Undo the relative phase before undoing the superposition.",
+      "For this state, S cancels the accumulated relative phase; then H returns |+⟩ to |0⟩."
+    ],
+    "solutionExplanation": "H→S→Z prepares |-i⟩. Appending S changes the relative factor −i to +1, producing |+⟩; H then returns |+⟩ to |0⟩. The fixed preparation remains intact and the continuation S→H uncomputes it.",
+    "numQubits": 1,
+    "initialState": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "initialLabel": "0",
+    "allowedGates": [
+      [
+        "hadamard",
+        null
+      ],
+      [
+        "s",
+        null
+      ]
+    ],
+    "targetVector": [
+      [
+        [
+          1,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ]
+    ],
+    "targetUnitary": null,
+    "alternateTargets": [],
+    "validationMode": "physicalState",
+    "canonicalSolution": [
+      [
+        "s",
+        0,
+        null,
+        null,
+        null
+      ],
+      [
+        "hadamard",
+        0,
+        null,
+        null,
+        null
+      ]
+    ],
+    "fixedGates": [
+      [
+        "hadamard",
+        0,
+        0,
+        null,
+        null,
+        null,
+        false
+      ],
+      [
+        "s",
+        1,
+        0,
+        null,
+        null,
+        null,
+        false
+      ],
+      [
+        "z",
+        2,
+        0,
+        null,
+        null,
+        null,
+        false
+      ]
+    ],
+    "preparedState": [
+      [
+        0.7071067811865476,
+        0.0
+      ],
+      [
+        0.0,
+        -0.7071067811865476
+      ]
+    ]
+  },
+  {
+    "semanticId": "same_histogram_different_state",
+    "displayOrder": 3,
+    "title": "Same Data, Different Qubit",
+    "contentVersion": 1,
+    "difficulty": "foundation",
+    "conceptTags": [
+      "classicalMixture",
+      "measurementBasis",
+      "relativePhase",
+      "superposition"
+    ],
+    "interactionType": "evidence",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "The ensemble is a classical random preparation, not a coherent sum of amplitudes."
+    ],
+    "solutionExplanation": "Equal ideal Z-basis probabilities do not imply equal quantum states. Relative phase becomes visible in the X basis: |+⟩ and |−⟩ give opposite deterministic outcomes. The labelled 50/50 ensemble is a classical random preparation, not a pure superposition, and remains 50/50 in the X basis.",
+    "options": [
+      "TheidenticalZ-basisdistributionsprovethatallthreepreparationsarethesamequantumstate.",
+      "Changingmeasurementbasischangeswhichstatewasoriginallyprepared.",
+      "Therandomensembleisthepurestate(|0⟩+|1⟩)/√2,soitmustalwaysgive+intheXbasis.",
+      "TheX-basisevidencedistinguishes|+⟩,|-⟩,andtherandomensemble;onebasisdistributionwasnotacompletestatedescription."
+    ],
+    "correctOptionIndex": 3
+  },
+  {
+    "semanticId": "cnot_topology_inference",
+    "displayOrder": 4,
+    "title": "Which Wire Controls the Change?",
+    "contentVersion": 1,
+    "difficulty": "foundation",
+    "conceptTags": [
+      "control",
+      "reversibility"
+    ],
+    "interactionType": "evidence",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Compare which ket bit changed in the second mapping, then test the proposed control against both inputs."
+    ],
+    "solutionExplanation": "Only q2→q0 fits both cases. For |010⟩, q2=0 so the CNOT is inactive. For |100⟩, q2=1 and q0 flips from 0 to 1, producing |101⟩. The other topologies fail at least one mapping.",
+    "options": [
+      "controlq2→targetq0",
+      "controlq0→targetq2",
+      "controlq1→targetq0",
+      "controlq2→targetq1"
+    ],
+    "correctOptionIndex": 0
+  },
+  {
+    "semanticId": "bell_decoder_bug",
+    "displayOrder": 5,
+    "title": "The Bell Decoder Bug",
+    "contentVersion": 1,
+    "difficulty": "integration",
+    "conceptTags": [
+      "control",
+      "entanglement",
+      "inverseOrder"
+    ],
+    "interactionType": "debugging",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "A decoder applies the inverse of the preparation sequence."
+    ],
+    "solutionExplanation": "The Bell preparation used H(q0) followed by CNOT(q0→q1), so decoding reverses that order: CNOT(q0→q1) disentangles |Φ+⟩ to |+0⟩, then H(q0) produces |00⟩. Wrong order or topology does not produce that basis output.",
+    "options": [
+      "ApplyCNOT(q1→q0),thenH(q0);output|00⟩.",
+      "KeeptheorderbutreversetheCNOT:H(q0),thenCNOT(q1→q0);output|00⟩.",
+      "Swapthegateorder:CNOT(q0→q1),thenH(q0);output|00⟩.",
+      "DeleteHanduseCNOT(q0→q1)alone;output|00⟩."
+    ],
+    "correctOptionIndex": 2
+  },
+  {
+    "semanticId": "phase_kickback_conditions",
+    "displayOrder": 6,
+    "title": "When Does Kickback Happen?",
+    "contentVersion": 1,
+    "difficulty": "application",
+    "conceptTags": [
+      "control",
+      "globalPhase",
+      "kickback",
+      "relativePhase",
+      "superposition"
+    ],
+    "interactionType": "evidence",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Look for a target that returns an eigenvalue −1 and a control with two coherent branches."
+    ],
+    "solutionExplanation": "For |+⟩|−⟩, X|−⟩=−|−⟩, so only the control=1 branch gains a minus sign: the control changes from |+⟩ to |−⟩ while the target remains |−⟩. With target |+⟩ the eigenvalue is +1, so no sign returns. For |1⟩|−⟩ the entire product gains −1, which is global phase rather than branch-relative phase on a superposed control. A |0⟩ target is changed and entangled rather than left unchanged.",
+    "options": [
+      "|+⟩control|+⟩target",
+      "|+⟩control|-⟩target",
+      "|1⟩control|-⟩target",
+      "|+⟩control|0⟩target"
+    ],
+    "correctOptionIndex": 1
+  },
+  {
+    "semanticId": "oracle_marked_state_inference",
+    "displayOrder": 7,
+    "title": "Which State Did the Oracle Mark?",
+    "contentVersion": 1,
+    "difficulty": "integration",
+    "conceptTags": [
+      "control",
+      "oracle",
+      "relativePhase",
+      "superposition"
+    ],
+    "interactionType": "prediction",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "The negative amplitude identifies the marked ket. An X wrapper makes CZ trigger when that wrapped qubit was initially 0."
+    ],
+    "solutionExplanation": "The only changed sign belongs to |10⟩, so that is the marked basis state. In |10⟩, q1=1 and q0=0. Wrapping q0 with X temporarily maps it to 1 so CZ marks that component, then the final X restores the computational label. Wrapping q1 would instead mark |01⟩.",
+    "options": [
+      "|00⟩;CZ(q0,q1)withnoXwrappers",
+      "|01⟩;X(q0)→CZ(q0,q1)→X(q0)",
+      "|10⟩;X(q1)→CZ(q0,q1)→X(q1)",
+      "|10⟩;X(q0)→CZ(q0,q1)→X(q0)"
+    ],
+    "correctOptionIndex": 3
+  },
+  {
+    "semanticId": "algorithm_architecture_inspector",
+    "displayOrder": 8,
+    "title": "Algorithm Architecture Inspector",
+    "contentVersion": 1,
+    "difficulty": "advanced",
+    "conceptTags": [
+      "algorithmStructure",
+      "amplification",
+      "iteration",
+      "oracle"
+    ],
+    "interactionType": "algorithm",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Diagnose each symptom from the evidence: hidden sign, wrong peak, then insufficient peak."
+    ],
+    "solutionExplanation": "In this search pipeline, the oracle defines the marked state by phase, amplification converts that phase pattern into probability bias, and coherent repetition can strengthen the bias before measurement. Thus A lacks amplification, B used the wrong marking, and C needs further coherent iteration for the stated confidence—not intermediate measurement.",
+    "options": [
+      "Aneedsasecondoracle;Bneedsmeasurementbeforeamplification;Cprovesiterationneverhelps.",
+      "Aneedsamplificationbeforemeasurement;Bmarkedthewrongstate;Cneedsanothercoherentsearchroundbeforemeasurement.",
+      "Aalreadyamplifiedsuccessfully;Bonlyneedsmoremeasurements;Cneedstheoracleremoved.",
+      "Aneedsmeasurementtoconvertphaseintoamplitude;Bmarkedcorrectly;Cshouldmeasureaftereverystage."
+    ],
+    "correctOptionIndex": 1
+  },
+  {
+    "semanticId": "phase_accumulation_prediction",
+    "displayOrder": 9,
+    "title": "Follow the Phase Around",
+    "contentVersion": 1,
+    "difficulty": "application",
+    "conceptTags": [
+      "relativePhase",
+      "superposition"
+    ],
+    "interactionType": "prediction",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Track the phase of the |1⟩ amplitude through both phase gates."
+    ],
+    "solutionExplanation": "H prepares (|0⟩+|1⟩)/√2. T contributes +π/4 to the |1⟩ amplitude and S contributes another +π/2, so the accumulated relative phase is 3π/4. Neither phase is a common factor on the whole vector.",
+    "options": [
+      "(|0⟩+ei3\\pi/4|1⟩)/\\sqrt2",
+      "(|0⟩+ei\\pi/4|1⟩)/\\sqrt2",
+      "(|0⟩+i|1⟩)/\\sqrt2",
+      "(|0⟩+e-i3\\pi/4|1⟩)/\\sqrt2"
+    ],
+    "correctOptionIndex": 0
+  },
+  {
+    "semanticId": "complex_y_phase_trace",
+    "displayOrder": 10,
+    "title": "Trace the Complex Flip",
+    "contentVersion": 1,
+    "difficulty": "application",
+    "conceptTags": [
+      "globalPhase",
+      "relativePhase",
+      "superposition"
+    ],
+    "interactionType": "prediction",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Apply Y to both basis components before removing a common factor."
+    ],
+    "solutionExplanation": "Y|+⟩=(i|1⟩−i|0⟩)/√2=−i(|0⟩−|1⟩)/√2=−i|−⟩. The common −i is global; the relative minus sign remains, so the physical output is |−⟩.",
+    "options": [
+      "|+⟩=(|0⟩+|1⟩)/\\sqrt2",
+      "|+i⟩=(|0⟩+i|1⟩)/\\sqrt2",
+      "|-⟩=(|0⟩-|1⟩)/\\sqrt2",
+      "|-i⟩=(|0⟩-i|1⟩)/\\sqrt2"
+    ],
+    "correctOptionIndex": 2
+  },
+  {
+    "semanticId": "interferometer_repair",
+    "displayOrder": 11,
+    "title": "Repair the Interferometer",
+    "contentVersion": 1,
+    "difficulty": "application",
+    "conceptTags": [
+      "interference",
+      "measurementBasis",
+      "relativePhase"
+    ],
+    "interactionType": "fillGate",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Choose the operation that recombines the two phase-bearing paths."
+    ],
+    "solutionExplanation": "H→Z prepares |−⟩: its relative phase is hidden from a direct Z-basis histogram. A final H recombines the amplitudes and maps |−⟩ to |1⟩. Z, S, and X leave balanced Z-basis probabilities for this input.",
+    "options": [
+      "X",
+      "Z",
+      "S",
+      "H"
+    ],
+    "correctOptionIndex": 3
+  },
+  {
+    "semanticId": "phase_sandwich_unitary",
+    "displayOrder": 12,
+    "title": "Phase Sandwich",
+    "contentVersion": 1,
+    "difficulty": "integration",
+    "conceptTags": [
+      "globalPhase",
+      "operatorAction",
+      "reversibility"
+    ],
+    "interactionType": "evidence",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Multiply the complete matrices rather than checking one state."
+    ],
+    "solutionExplanation": "Direct multiplication gives XZX=−Z, not literal matrix equality with Z. For every input |ψ⟩, XZX|ψ⟩=−Z|ψ⟩, so the two output vectors differ by the same global factor −1 and represent the same isolated physical operation.",
+    "options": [
+      "XZX=-Zasmatrices,sotheiroutputsdifferonlybyonewhole-stateglobalfactorforeveryinput.",
+      "XZX=Zasliteralmatrices;theminussignappearsonlywhentheinputis|0⟩.",
+      "XZXagreeswithZonlyoncomputational-basisinputsandfailsonsuperpositions.",
+      "XZXandZarephysicallydifferentbecauseanymatrixsignisdirectlymeasurable."
+    ],
+    "correctOptionIndex": 0
+  },
+  {
+    "semanticId": "cnot_uncomputation",
+    "displayOrder": 13,
+    "title": "Undo the Controlled Change",
+    "contentVersion": 1,
+    "difficulty": "application",
+    "conceptTags": [
+      "control",
+      "inverseOrder",
+      "reversibility"
+    ],
+    "interactionType": "uncomputation",
+    "runtimeType": "ComposerLevel",
+    "targetStateExpression": "|11⟩",
+    "targetStateLabel": null,
+    "hints": [
+      "The inverse must preserve both the gate type and its control/target roles."
+    ],
+    "solutionExplanation": "CNOT is self-inverse. Appending the same CNOT(q0→q1) restores |11⟩, and the complete fixed-plus-learner circuit is the identity on every two-qubit input. Reversing the topology or adding a single-qubit correction does not undo the authored operation.",
+    "numQubits": 2,
+    "initialState": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        0
+      ]
+    ],
+    "initialLabel": "11",
+    "allowedGates": [
+      [
+        "cnot",
+        null
+      ],
+      [
+        "z",
+        null
+      ]
+    ],
+    "targetVector": [
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          1,
+          0
+        ]
+      ]
+    ],
+    "targetUnitary": [
+      [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ]
+    ],
+    "alternateTargets": [],
+    "validationMode": "unitary",
+    "canonicalSolution": [
+      [
+        "cnot",
+        1,
+        0,
+        null,
+        null
+      ]
+    ],
+    "fixedGates": [
+      [
+        "cnot",
+        0,
+        1,
+        0,
+        1,
+        null,
+        false
+      ]
+    ],
+    "preparedState": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "semanticId": "fanout_is_not_cloning",
+    "displayOrder": 14,
+    "title": "Shared Control, Different Meaning",
+    "contentVersion": 1,
+    "difficulty": "application",
+    "conceptTags": [
+      "control",
+      "entanglement",
+      "superposition"
+    ],
+    "interactionType": "evidence",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Compare a definite basis value with the two coherent branches of the second output."
+    ],
+    "solutionExplanation": "For A, the active q0 condition propagates the known basis value into q1 and q2. For B, the circuit correlates whole-register branches, producing the GHZ state (|000⟩+|111⟩)/√2. Its qubits are not independent copies of the unknown input state.",
+    "options": [
+      "Bothcasescreatethreeindependentcopiesofq0,soanyunknownqubitcanbeclonedwithtwoCNOTs.",
+      "Bproduces|+⟩oneachwireindependently:|+⟩|+⟩|+⟩.",
+      "Apropagatesaknownbasisvalue;Bcreatesoneentangledthree-qubitstateratherthanindependentcopiesofanunknownqubit.",
+      "AisentangledwhileBisonlyaclassicalbasisstring."
+    ],
+    "correctOptionIndex": 2
+  },
+  {
+    "semanticId": "swap_unitary_diagnosis",
+    "displayOrder": 15,
+    "title": "A Swap for Every Input",
+    "contentVersion": 1,
+    "difficulty": "application",
+    "conceptTags": [
+      "control",
+      "operatorAction",
+      "reversibility"
+    ],
+    "interactionType": "debugging",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Test the claimed operation on more than the supplied input."
+    ],
+    "solutionExplanation": "A is the three-CNOT SWAP decomposition: it exchanges both qubits on every basis input and therefore on every superposition by linearity. B happens to map |01⟩ to |10⟩, but maps |10⟩ to |11⟩, so it is a state-specific shortcut—not SWAP.",
+    "options": [
+      "BothareSWAPbecauseonesuccessfulbasismappingprovesunitaryequality.",
+      "AisSWAP;Bonlymatchesthesuppliedexampleandfailsotherinputssuchas|10⟩.",
+      "BisSWAPbecausetheshortestcircuitmatchingoneinputisalwaysthereusableoperation.",
+      "NeithercanbeSWAPbecauseaSWAPoperationcannotbedecomposedintoCNOTs."
+    ],
+    "correctOptionIndex": 1
+  },
+  {
+    "semanticId": "reversible_cancellation_trace",
+    "displayOrder": 16,
+    "title": "A Change That Cancels",
+    "contentVersion": 1,
+    "difficulty": "foundation",
+    "conceptTags": [
+      "reversibility"
+    ],
+    "interactionType": "prediction",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Trace both operations in order."
+    ],
+    "solutionExplanation": "The first X maps |0⟩ to |1⟩ and the second maps |1⟩ back to |0⟩. Both transformations occur; their combined unitary is the identity because X is self-inverse.",
+    "options": [
+      "ThetwoXgatesaremathematicallyabsentbecausetheircombinedactionisidentity.",
+      "Theoutputis|1⟩becausethefirstvisiblechangedeterminesthecircuitresult.",
+      "Theoutputis|+⟩becausetwobitflipscreateasuperposition.",
+      "Theoutputis|0⟩:eachXisarealoperation,andthesecondreversesthefirst."
+    ],
+    "correctOptionIndex": 3
+  },
+  {
+    "semanticId": "hadamard_input_sign",
+    "displayOrder": 17,
+    "title": "Same Balance, Different Sign",
+    "contentVersion": 1,
+    "difficulty": "foundation",
+    "conceptTags": [
+      "relativePhase",
+      "superposition"
+    ],
+    "interactionType": "prediction",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "The input column of H determines the relative sign."
+    ],
+    "solutionExplanation": "H|1⟩=(|0⟩−|1⟩)/√2=|−⟩. Its Z-basis probabilities match |+⟩, but its relative sign—and therefore its complete quantum state—is different.",
+    "options": [
+      "|-⟩=(|0⟩-|1⟩)/\\sqrt2",
+      "|+⟩=(|0⟩+|1⟩)/\\sqrt2",
+      "|+i⟩=(|0⟩+i|1⟩)/\\sqrt2",
+      "|1⟩"
+    ],
+    "correctOptionIndex": 0
+  },
+  {
+    "semanticId": "product_or_entangled",
+    "displayOrder": 18,
+    "title": "Together or Merely Side by Side?",
+    "contentVersion": 1,
+    "difficulty": "foundation",
+    "conceptTags": [
+      "entanglement",
+      "measurementBasis",
+      "superposition"
+    ],
+    "interactionType": "evidence",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Try to factor each state; treat the histogram as evidence, not a statevector."
+    ],
+    "solutionExplanation": "A=(|0⟩⊗(|0⟩+|1⟩))/√2 is a product state. B cannot be factored into two one-qubit states and is entangled. A 00/11-only Z histogram is compatible with B, but also with a classically correlated preparation, so that evidence alone is insufficient.",
+    "options": [
+      "AandBarebothentangledbecauseeachcontainstwobasisterms.",
+      "Afactorsas|0⟩|+⟩;Bisnonseparable;Calonedoesnotproveentanglement.",
+      "CaloneprovesthesourceemittedaBellstate.",
+      "Bfactorsas|+⟩|+⟩becauseitstwotermshaveequalmagnitudes."
+    ],
+    "correctOptionIndex": 1
+  },
+  {
+    "semanticId": "bell_measurement_evidence",
+    "displayOrder": 19,
+    "title": "What Bell Measurements Prove",
+    "contentVersion": 1,
+    "difficulty": "foundation",
+    "conceptTags": [
+      "entanglement",
+      "measurementBasis"
+    ],
+    "interactionType": "measurement",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Separate the observed basis correlation from stronger state claims."
+    ],
+    "solutionExplanation": "The ideal distribution establishes perfect Z-basis correlation. It is consistent with Φ+, but the same one-basis histogram can arise from a classically correlated ensemble. Additional incompatible-basis evidence is needed for a stronger entanglement conclusion.",
+    "options": [
+      "Eachqubithadadefiniteindependentvaluebeforemeasurement.",
+      "ThehistogrambyitselfprovesBellnonlocalityandrulesouteveryclassicalexplanation.",
+      "ThetwomeasuredbitsareperfectlycorrelatedintheZbasis;thisone-basisevidencealonedoesnotexcludeaclassicalcorrelatedsource.",
+      "Thesourcemustproduceexactlyalternating00and11samplesinfiniteruns."
+    ],
+    "correctOptionIndex": 2
+  },
+  {
+    "semanticId": "quarter_turn_relative_phase",
+    "displayOrder": 20,
+    "title": "A Quarter Turn",
+    "contentVersion": 1,
+    "difficulty": "application",
+    "conceptTags": [
+      "relativePhase",
+      "superposition"
+    ],
+    "interactionType": "fillGate",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Compare the required relative phase turn."
+    ],
+    "solutionExplanation": "S leaves the |0⟩ amplitude unchanged and multiplies the |1⟩ amplitude by i, producing (|0⟩+i|1⟩)/√2=|+i⟩. T supplies only π/4, Z supplies π, and X does not create the required relative phase.",
+    "options": [
+      "S",
+      "T",
+      "Z",
+      "X"
+    ],
+    "correctOptionIndex": 0
+  },
+  {
+    "semanticId": "bell_input_sign_preparation",
+    "displayOrder": 21,
+    "title": "The Sign Was Already There",
+    "contentVersion": 1,
+    "difficulty": "application",
+    "conceptTags": [
+      "control",
+      "entanglement",
+      "relativePhase"
+    ],
+    "interactionType": "construction",
+    "runtimeType": "ComposerLevel",
+    "targetStateExpression": "Φ−",
+    "targetStateLabel": null,
+    "hints": [
+      "Use H on the qubit that already begins in |1⟩."
+    ],
+    "solutionExplanation": "H(q0)|1⟩=|−⟩, so CNOT(q0→q1) propagates its two branches into (|00⟩−|11⟩)/√2. The relative sign comes from the nonzero input; no extra phase gate is needed.",
+    "numQubits": 2,
+    "initialState": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "initialLabel": "01",
+    "allowedGates": [
+      [
+        "hadamard",
+        null
+      ],
+      [
+        "cnot",
+        null
+      ]
+    ],
+    "targetVector": [
+      [
+        [
+          0.7071067811865476,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          -0.7071067811865476,
+          0
+        ]
+      ]
+    ],
+    "targetUnitary": null,
+    "alternateTargets": [],
+    "validationMode": "physicalState",
+    "canonicalSolution": [
+      [
+        "hadamard",
+        0,
+        null,
+        null,
+        null
+      ],
+      [
+        "cnot",
+        1,
+        0,
+        null,
+        null
+      ]
+    ],
+    "fixedGates": [],
+    "preparedState": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "semanticId": "bell_phase_equivalence",
+    "displayOrder": 22,
+    "title": "Where Can the Bell Phase Live?",
+    "contentVersion": 1,
+    "difficulty": "integration",
+    "conceptTags": [
+      "entanglement",
+      "physicalState",
+      "relativePhase"
+    ],
+    "interactionType": "evidence",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Apply each local Z to both correlated terms."
+    ],
+    "solutionExplanation": "In Φ+, the |11⟩ branch has both q0=1 and q1=1. Z on either qubit changes that branch’s sign while leaving |00⟩ unchanged, producing Φ−. This equivalence depends on the correlated input and is not literal equality of the local operators.",
+    "options": [
+      "BothplacementsaddonlyaglobalphaseandleaveΦ+physicallyunchanged.",
+      "OnlyZ(q0)changestheBellphasebecauseq0isthetopwire.",
+      "ThetwoplacementsproduceorthogonalBellstates.",
+      "EitherplacementproducesΦ-=(|00⟩-|11⟩)/√2;thetwocircuitsagreeonthisentangledinput."
+    ],
+    "correctOptionIndex": 3
+  },
+  {
+    "semanticId": "ghz_outcome_constraint",
+    "displayOrder": 23,
+    "title": "One System, Three Qubits",
+    "contentVersion": 1,
+    "difficulty": "application",
+    "conceptTags": [
+      "entanglement",
+      "ghz",
+      "measurementBasis"
+    ],
+    "interactionType": "evidence",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Read the support of the complete three-qubit state."
+    ],
+    "solutionExplanation": "The statevector has support only on the whole-register strings 000 and 111, each with ideal probability 1/2. This establishes the stated Z-basis constraint; that one basis alone is not a complete proof of genuine multipartite entanglement.",
+    "options": [
+      "Eachqubitisanindependentfairbit,givingalleightstringsequally.",
+      "Anystringwithanevennumberof1scanoccur.",
+      "Only000and111canoccur;onceonemeasuredbitisknown,theothertwoarefixedinthatrun.",
+      "Onlyadjacentpairsareconstrained;thethirdbitremainsindependent."
+    ],
+    "correctOptionIndex": 2
+  },
+  {
+    "semanticId": "ghz_broken_link",
+    "displayOrder": 24,
+    "title": "Find the Broken GHZ Link",
+    "contentVersion": 1,
+    "difficulty": "integration",
+    "conceptTags": [
+      "control",
+      "entanglement",
+      "ghz"
+    ],
+    "interactionType": "debugging",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "The existing correlation must propagate onto the still-zero q2 wire."
+    ],
+    "solutionExplanation": "After H(q0) and CNOT(q0→q1), the support is {000,011}. CNOT(q1→q2) uses the correlated q1 branch to flip q2, mapping 011 to 111 while leaving 000 unchanged. The authored q2→q1 link has an inactive control.",
+    "options": [
+      "CNOT(q1→q0)",
+      "CNOT(q1→q2)",
+      "H(q2)",
+      "X(q2)"
+    ],
+    "correctOptionIndex": 1
+  },
+  {
+    "semanticId": "ghz_phase_manipulation",
+    "displayOrder": 25,
+    "title": "A Hidden Sign Across Three Qubits",
+    "contentVersion": 1,
+    "difficulty": "integration",
+    "conceptTags": [
+      "entanglement",
+      "ghz",
+      "relativePhase"
+    ],
+    "interactionType": "construction",
+    "runtimeType": "ComposerLevel",
+    "targetStateExpression": "GHZ−",
+    "targetStateLabel": null,
+    "hints": [
+      "Any one GHZ wire is 1 in the |111⟩ branch only."
+    ],
+    "solutionExplanation": "A local Z on any one qubit leaves |000⟩ unchanged and negates |111⟩, producing GHZ−. The local operation changes a relative sign belonging to the full entangled state.",
+    "numQubits": 3,
+    "initialState": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "initialLabel": "000",
+    "allowedGates": [
+      [
+        "z",
+        null
+      ]
+    ],
+    "targetVector": [
+      [
+        [
+          0.7071067811865476,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          -0.7071067811865476,
+          0
+        ]
+      ]
+    ],
+    "targetUnitary": null,
+    "alternateTargets": [],
+    "validationMode": "physicalState",
+    "canonicalSolution": [
+      [
+        "z",
+        0,
+        null,
+        null,
+        null
+      ]
+    ],
+    "fixedGates": [
+      [
+        "hadamard",
+        0,
+        0,
+        null,
+        null,
+        null,
+        false
+      ],
+      [
+        "cnot",
+        1,
+        1,
+        0,
+        1,
+        null,
+        false
+      ],
+      [
+        "cnot",
+        2,
+        2,
+        1,
+        2,
+        null,
+        false
+      ]
+    ],
+    "preparedState": [
+      [
+        0.7071067811865476,
+        0.0
+      ],
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.7071067811865476,
+        0.0
+      ]
+    ]
+  },
+  {
+    "semanticId": "phase_kickback_reveal",
+    "displayOrder": 26,
+    "title": "Reveal the Kicked-Back Bit",
+    "contentVersion": 1,
+    "difficulty": "integration",
+    "conceptTags": [
+      "interference",
+      "kickback",
+      "relativePhase"
+    ],
+    "interactionType": "fillGate",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Choose the basis change that distinguishes |+⟩ from |−⟩."
+    ],
+    "solutionExplanation": "Kickback changes the superposed control from |+⟩ to |−⟩. H converts that relative sign into population: H|−⟩=|1⟩. X, Z, and S do not perform this reveal-basis conversion.",
+    "options": [
+      "H,revealingcontrol|1⟩",
+      "X,revealingcontrol|0⟩",
+      "Z,revealingcontrol|1⟩",
+      "S,revealingcontrol|0⟩"
+    ],
+    "correctOptionIndex": 0
+  },
+  {
+    "semanticId": "inverse_phase_synthesis",
+    "displayOrder": 27,
+    "title": "Build the Missing Inverse",
+    "contentVersion": 1,
+    "difficulty": "integration",
+    "conceptTags": [
+      "inverseOrder",
+      "relativePhase",
+      "superposition"
+    ],
+    "interactionType": "construction",
+    "runtimeType": "ComposerLevel",
+    "targetStateExpression": "|phase −π/4⟩",
+    "targetStateLabel": null,
+    "hints": [
+      "Represent −π/4 as an equivalent positive turn modulo 2π."
+    ],
+    "solutionExplanation": "H creates equal amplitudes. Z, S, and T contribute π+π/2+π/4=7π/4, which is equivalent to −π/4 modulo 2π. Thus H→Z→S→T prepares the target without T†.",
+    "numQubits": 1,
+    "initialState": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "initialLabel": "0",
+    "allowedGates": [
+      [
+        "hadamard",
+        null
+      ],
+      [
+        "t",
+        null
+      ],
+      [
+        "s",
+        null
+      ],
+      [
+        "z",
+        null
+      ]
+    ],
+    "targetVector": [
+      [
+        [
+          0.7071067811865476,
+          0
+        ]
+      ],
+      [
+        [
+          0.5,
+          -0.5
+        ]
+      ]
+    ],
+    "targetUnitary": null,
+    "alternateTargets": [],
+    "validationMode": "physicalState",
+    "canonicalSolution": [
+      [
+        "hadamard",
+        0,
+        null,
+        null,
+        null
+      ],
+      [
+        "z",
+        0,
+        null,
+        null,
+        null
+      ],
+      [
+        "s",
+        0,
+        null,
+        null,
+        null
+      ],
+      [
+        "t",
+        0,
+        null,
+        null,
+        null
+      ]
+    ],
+    "fixedGates": [],
+    "preparedState": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "semanticId": "phased_entanglement_uncomputation",
+    "displayOrder": 28,
+    "title": "Uncompute the Hidden Correlation",
+    "contentVersion": 1,
+    "difficulty": "advanced",
+    "conceptTags": [
+      "entanglement",
+      "inverseOrder",
+      "relativePhase",
+      "reversibility"
+    ],
+    "interactionType": "uncomputation",
+    "runtimeType": "ComposerLevel",
+    "targetStateExpression": "|00⟩ and identity overall",
+    "targetStateLabel": null,
+    "hints": [
+      "Undo the phase, then disentangle, then undo the superposition."
+    ],
+    "solutionExplanation": "Reverse the preparation with Z(q0)→CNOT(q0→q1)→H(q0). The first Z removes the Bell relative sign, CNOT disentangles Φ+, and H restores |00⟩. Across arbitrary inputs the fixed prefix and appended inverse multiply to identity.",
+    "numQubits": 2,
+    "initialState": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "initialLabel": "00",
+    "allowedGates": [
+      [
+        "hadamard",
+        null
+      ],
+      [
+        "cnot",
+        null
+      ],
+      [
+        "z",
+        null
+      ]
+    ],
+    "targetVector": [
+      [
+        [
+          1,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ]
+    ],
+    "targetUnitary": [
+      [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ]
+    ],
+    "alternateTargets": [],
+    "validationMode": "unitary",
+    "canonicalSolution": [
+      [
+        "z",
+        0,
+        null,
+        null,
+        null
+      ],
+      [
+        "cnot",
+        1,
+        0,
+        null,
+        null
+      ],
+      [
+        "hadamard",
+        0,
+        null,
+        null,
+        null
+      ]
+    ],
+    "fixedGates": [
+      [
+        "hadamard",
+        0,
+        0,
+        null,
+        null,
+        null,
+        false
+      ],
+      [
+        "cnot",
+        1,
+        1,
+        0,
+        1,
+        null,
+        false
+      ],
+      [
+        "z",
+        2,
+        0,
+        null,
+        null,
+        null,
+        false
+      ]
+    ],
+    "preparedState": [
+      [
+        0.7071067811865476,
+        0.0
+      ],
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0
+      ],
+      [
+        -0.7071067811865476,
+        0.0
+      ]
+    ]
+  },
+  {
+    "semanticId": "conditional_phase_decomposition",
+    "displayOrder": 29,
+    "title": "Build a Conditional Sign",
+    "contentVersion": 1,
+    "difficulty": "integration",
+    "conceptTags": [
+      "control",
+      "operatorAction",
+      "relativePhase"
+    ],
+    "interactionType": "construction",
+    "runtimeType": "ComposerLevel",
+    "targetStateExpression": "CZ unitary",
+    "targetStateLabel": null,
+    "hints": [
+      "Conjugate the CNOT target with H."
+    ],
+    "solutionExplanation": "H(q1)→CNOT(q0→q1)→H(q1) changes the target basis so the conditional X becomes a conditional Z. The complete unitary is diag(1,1,1,−1), not merely a state-specific phase mark.",
+    "numQubits": 2,
+    "initialState": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "initialLabel": "00",
+    "allowedGates": [
+      [
+        "hadamard",
+        null
+      ],
+      [
+        "cnot",
+        null
+      ]
+    ],
+    "targetVector": [
+      [
+        [
+          1,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ]
+    ],
+    "targetUnitary": [
+      [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          -1,
+          0
+        ]
+      ]
+    ],
+    "alternateTargets": [],
+    "validationMode": "unitary",
+    "canonicalSolution": [
+      [
+        "hadamard",
+        1,
+        null,
+        null,
+        null
+      ],
+      [
+        "cnot",
+        1,
+        0,
+        null,
+        null
+      ],
+      [
+        "hadamard",
+        1,
+        null,
+        null,
+        null
+      ]
+    ],
+    "fixedGates": [],
+    "preparedState": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ]
+  },
+  {
+    "semanticId": "oracle_repair_uncompute",
+    "displayOrder": 30,
+    "title": "Repair the Phase Oracle",
+    "contentVersion": 1,
+    "difficulty": "integration",
+    "conceptTags": [
+      "control",
+      "oracle",
+      "reversibility"
+    ],
+    "interactionType": "debugging",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Uncompute the temporary basis relabelling on the same wire."
+    ],
+    "solutionExplanation": "The leading X(q0) temporarily maps q0=0 components into CZ’s active q0=1 condition. Appending X(q0) restores every computational label while retaining the phase on |10⟩. A different wrapper or measurement does not implement the intended reusable oracle.",
+    "options": [
+      "Measureq0immediately.",
+      "AppendX(q1).",
+      "AppendasecondCZ.",
+      "AppendX(q0)."
+    ],
+    "correctOptionIndex": 3
+  },
+  {
+    "semanticId": "marked_is_not_amplified",
+    "displayOrder": 31,
+    "title": "Marked Is Not More Likely",
+    "contentVersion": 1,
+    "difficulty": "application",
+    "conceptTags": [
+      "amplification",
+      "measurementBasis",
+      "oracle"
+    ],
+    "interactionType": "evidence",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Compare squared magnitudes at each snapshot."
+    ],
+    "solutionExplanation": "Changing +1/2 to −1/2 marks phase but keeps magnitude squared at 1/4. The amplification/interference stage redistributes amplitudes; in this four-state example it raises the marked magnitude to 1 and its probability to 1.",
+    "options": [
+      "Beforetheoraclebecauseuniformamplitudesalreadyidentifythemarkedstate.",
+      "Immediatelyaftertheoraclebecauseanegativeamplitudehaslargerprobability.",
+      "Onlyafteramplification;theoraclesignaloneleaveseveryprobabilityat1/4.",
+      "Never;interferencecannotchangemeasurementprobabilities."
+    ],
+    "correctOptionIndex": 2
+  },
+  {
+    "semanticId": "amplitude_flow_inference",
+    "displayOrder": 32,
+    "title": "Where Did the Amplitude Go?",
+    "contentVersion": 1,
+    "difficulty": "advanced",
+    "conceptTags": [
+      "amplification",
+      "interference",
+      "oracle"
+    ],
+    "interactionType": "prediction",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Apply the supplied reflection to the negative and positive entries separately."
+    ],
+    "solutionExplanation": "For each unmarked +1/2 amplitude, 2(1/4)−1/2=0. For the marked −1/2 amplitude, 2(1/4)−(−1/2)=1. Destructive interference removes the unmarked paths while constructive interference concentrates amplitude on the marked state.",
+    "options": [
+      "[0,0,1,0]",
+      "[1/2,1/2,-1/2,1/2]",
+      "[1/2,1/2,1/2,1/2]",
+      "[1,0,0,0]"
+    ],
+    "correctOptionIndex": 0
+  },
+  {
+    "semanticId": "grover_round_order",
+    "displayOrder": 33,
+    "title": "One Round, Wrong Order",
+    "contentVersion": 1,
+    "difficulty": "integration",
+    "conceptTags": [
+      "algorithmStructure",
+      "amplification",
+      "oracle"
+    ],
+    "interactionType": "debugging",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Ask what information the amplifier receives when its input is still uniform."
+    ],
+    "solutionExplanation": "In this search round, amplification leaves a completely uniform input unchanged. The later oracle adds a sign but measurement cannot see that sign directly, so probabilities remain flat. Oracle then amplifier supplies the phase pattern before interference converts it into bias.",
+    "options": [
+      "Measurebetweenamplificationandtheoracletopreservecoherence.",
+      "Applytheoraclebeforeamplificationsotheamplifierhasaphasedifferencetoconvertintobias.",
+      "Deletetheoraclebecauseamplificationidentifiesastatewithoutmarking.",
+      "Repeatonlytheoracleuntilthenegativeamplitudebecomeslarger."
+    ],
+    "correctOptionIndex": 1
+  },
+  {
+    "semanticId": "retry_or_reshape",
+    "displayOrder": 34,
+    "title": "Retry or Reshape?",
+    "contentVersion": 1,
+    "difficulty": "application",
+    "conceptTags": [
+      "amplification",
+      "iteration",
+      "oracle"
+    ],
+    "interactionType": "algorithm",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Look for a process that changes amplitudes before measurement."
+    ],
+    "solutionExplanation": "In this search model, the oracle creates a phase distinction and amplification converts it into probability bias while coherence is preserved. Repeating an unchanged measurement is another classical-style attempt; oracle-only and unmarked amplification do not reshape the probabilities as required.",
+    "options": [
+      "Applyamplificationtoanunmarkeduniformstate,thenmeasureaftereveryblock.",
+      "Measure,discardtheresult,andrepeattheidenticalunamplifiedpreparation.",
+      "Applythephaseoraclerepeatedlywithoutaninterferencestage.",
+      "Reprepare,applyanoracle-plus-amplifierround,andkeepthestatecoherentuntiltheplannedmeasurement."
+    ],
+    "correctOptionIndex": 3
+  },
+  {
+    "semanticId": "clean_workspace_uncomputation",
+    "displayOrder": 35,
+    "title": "Clean the Workspace",
+    "contentVersion": 1,
+    "difficulty": "advanced",
+    "conceptTags": [
+      "control",
+      "oracle",
+      "relativePhase",
+      "reversibility"
+    ],
+    "interactionType": "uncomputation",
+    "runtimeType": "ComposerLevel",
+    "targetStateExpression": "|−⟩q0|0⟩q1",
+    "targetStateLabel": null,
+    "hints": [
+      "Reverse the compute step after its phase has been used."
+    ],
+    "solutionExplanation": "Appending the same CNOT(q0→q1) uncomputes the work bit. The work qubit returns to |0⟩, while the phase written between the correlated branches remains on q0 as |−⟩. This cleans temporary information without erasing the useful result.",
+    "numQubits": 2,
+    "initialState": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "initialLabel": "00",
+    "allowedGates": [
+      [
+        "cnot",
+        null
+      ]
+    ],
+    "targetVector": [
+      [
+        [
+          0.7071067811865476,
+          0
+        ]
+      ],
+      [
+        [
+          -0.7071067811865476,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ],
+      [
+        [
+          0,
+          0
+        ]
+      ]
+    ],
+    "targetUnitary": null,
+    "alternateTargets": [],
+    "validationMode": "physicalState",
+    "canonicalSolution": [
+      [
+        "cnot",
+        1,
+        0,
+        null,
+        null
+      ]
+    ],
+    "fixedGates": [
+      [
+        "hadamard",
+        0,
+        0,
+        null,
+        null,
+        null,
+        false
+      ],
+      [
+        "cnot",
+        1,
+        1,
+        0,
+        1,
+        null,
+        false
+      ],
+      [
+        "z",
+        2,
+        1,
+        null,
+        null,
+        null,
+        false
+      ]
+    ],
+    "preparedState": [
+      [
+        0.7071067811865476,
+        0.0
+      ],
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0
+      ],
+      [
+        -0.7071067811865476,
+        0.0
+      ]
+    ]
+  },
+  {
+    "semanticId": "search_pipeline_forensics",
+    "displayOrder": 36,
+    "title": "Search Pipeline Forensics",
+    "contentVersion": 1,
+    "difficulty": "advanced",
+    "conceptTags": [
+      "algorithmStructure",
+      "amplification",
+      "iteration",
+      "oracle"
+    ],
+    "interactionType": "algorithm",
+    "runtimeType": "ConceptCheckLevel",
+    "targetStateExpression": null,
+    "targetStateLabel": null,
+    "hints": [
+      "Track sign, squared magnitude, and stage placement separately."
+    ],
+    "solutionExplanation": "The lone negative amplitude identifies |101⟩ as the oracle-marked state. Its magnitude is still 1/√8, so measuring at A remains uniform. The next coherent amplification stage raises its magnitude to 5/(2√8), giving probability 25/32, while each of seven alternatives has probability 1/32.",
+    "options": [
+      "|010⟩wasmarkedbecauseketsmustbereadinreverse,andthenextstageisanotheroracle.",
+      "|101⟩wasalreadyamplifiedatA;measurementerasedanexisting25/32bias.",
+      "|101⟩wasphase-marked;Aisanoracle;amplificationmustprecedemeasurementandraisesitsprobabilityto25/32.",
+      "Nostatewasmarkedbecauseanegativeamplitudecannotcarrysearchableinformation."
+    ],
+    "correctOptionIndex": 2
+  }
+]

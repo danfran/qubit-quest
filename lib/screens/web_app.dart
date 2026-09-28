@@ -12,6 +12,8 @@ import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/gate_id.dart';
 import 'package:quantumquiz/models/logical_gate_footprint.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
+import 'package:quantumquiz/models/quantum_measurement_result.dart';
+import 'package:quantumquiz/widgets/measurement_results_view.dart';
 import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
@@ -28,9 +30,8 @@ import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
 import 'package:quantumquiz/widgets/circuit_canvas_metrics.dart';
-import 'package:quantumquiz/widgets/quantum_workspace_layout.dart';
-import 'package:quantumquiz/widgets/quantum_inspector_views.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
+import 'package:quantumquiz/widgets/web_composer_workbench.dart';
 
 const _background = QubitQuestColors.background;
 const _surface = QubitQuestColors.surface;
@@ -162,6 +163,7 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
             key: const ValueKey('web-workspace-composer'),
             persistence: widget.sandboxPersistenceStore,
             example: _requestedComposerExample,
+            isActive: _destination == WebDestination.composer,
           ),
           _BlochWorkspace(
             key: const ValueKey('web-workspace-bloch'),
@@ -377,9 +379,11 @@ class _ComposerWorkspace extends StatefulWidget {
   const _ComposerWorkspace({
     super.key,
     required this.persistence,
+    required this.isActive,
     this.example,
   });
   final SandboxPersistenceStore persistence;
+  final bool isActive;
   final ExecutableNotebookExample? example;
 
   @override
@@ -388,6 +392,7 @@ class _ComposerWorkspace extends StatefulWidget {
 
 class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
   QuantumCircuit? _circuit;
+  QuantumMeasurementResult? _measurementResult;
   int? _selectedQubitCount;
   GateId? _selectedGateId;
   String _status = 'Choose a circuit size to open the Sandbox.';
@@ -425,9 +430,11 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
   @override
   void didUpdateWidget(covariant _ComposerWorkspace oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!widget.isActive) _measurementResult = null;
     if (!identical(oldWidget.example, widget.example)) {
       _circuit?.dispose();
       setState(() {
+        _measurementResult = null;
         _circuit = widget.example == null ? null : _newCircuit();
         _selectedQubitCount = widget.example == null
             ? null
@@ -461,6 +468,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
         );
     _circuit?.dispose();
     setState(() {
+      _measurementResult = null;
       _circuit = nextCircuit;
       _selectedQubitCount = qubitCount;
       _selectedGateId = null;
@@ -473,6 +481,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
 
   Future<void> _commit(CircuitEditOutcome outcome) async {
     if (outcome.changed) {
+      setState(() => _measurementResult = null);
       _activeCircuit.runSimulation();
       if (widget.example == null) {
         await widget.persistence.saveCircuit(_activeCircuit);
@@ -552,7 +561,34 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
         ),
       );
 
+  void _runAndMeasure() {
+    if (widget.example != null) return;
+    final error = _activeCircuit.lastSimulationError;
+    if (error != null) {
+      setState(() {
+        _measurementResult = null;
+        _status = error.userMessage;
+      });
+      return;
+    }
+    try {
+      final result = QuantumMeasurementResult.sample(
+        stateVector: _activeCircuit.currentState.stateVector,
+        numQubits: _activeCircuit.currentLevel.numQubits,
+      );
+      setState(() => _measurementResult = result);
+    } on ArgumentError {
+      setState(() {
+        _measurementResult = null;
+        _status = 'This circuit cannot be measured. Check its state and try again.';
+      });
+    }
+  }
+
   Future<void> _clearCircuit() async {
+    if (!_activeCircuit.isCircuitEmpty()) {
+      setState(() => _measurementResult = null);
+    }
     _activeCircuit.clearPlacedGates();
     if (widget.example == null) {
       await widget.persistence.saveCircuit(_activeCircuit);
@@ -569,6 +605,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
   void _closeCircuit() => setState(() {
         _circuit?.dispose();
         _circuit = null;
+        _measurementResult = null;
         _selectedQubitCount = null;
         _selectedGateId = null;
         _status = 'Choose a circuit size to open the Sandbox.';
@@ -703,7 +740,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
         ),
       );
 
-  Widget _buildStateInformation({required bool contentDriven}) {
+  Widget _buildStateViews(bool contentDriven) {
     final level = _activeCircuit.currentLevel;
     final target = level.solutionFinalVector.isEmpty
         ? null
@@ -758,70 +795,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
                   Expanded(child: targetDisplay),
                 ],
               );
-    return Column(
-      key: const ValueKey('web-composer-state-inspection'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: contentDriven ? MainAxisSize.min : MainAxisSize.max,
-      children: [
-        Row(
-          children: [
-            const Expanded(
-              child: _ComposerSectionHeading(
-                title: 'LIVE INSPECTOR',
-                icon: Icons.monitor_heart_outlined,
-                uppercase: true,
-              ),
-            ),
-            Container(
-              key: const ValueKey('web-composer-live-indicator'),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: QubitQuestColors.success.withValues(alpha: .12),
-                borderRadius: QubitQuestRadii.pill,
-                border: Border.all(
-                  color: QubitQuestColors.success.withValues(alpha: .35),
-                ),
-              ),
-              child: const Text(
-                'LIVE',
-                style: TextStyle(
-                  color: QubitQuestColors.success,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 5),
-        const Text(
-          'Current state · updated from this circuit',
-          style: QubitQuestTypography.supporting,
-        ),
-        const SizedBox(height: 14),
-        if (contentDriven)
-          QuantumInspectorViews(
-            key: const ValueKey('web-composer-inspector-views'),
-            stateView: stateViews,
-            currentStateVector: _activeCircuit.currentState.stateVector,
-            numQubits: level.numQubits,
-            contentDriven: true,
-            targetStateExpression: level.targetStateExpression,
-          )
-        else
-          Expanded(
-            child: QuantumInspectorViews(
-              key: const ValueKey('web-composer-inspector-views'),
-              stateView: stateViews,
-              currentStateVector: _activeCircuit.currentState.stateVector,
-              numQubits: level.numQubits,
-              contentDriven: false,
-              targetStateExpression: level.targetStateExpression,
-            ),
-          ),
-      ],
-    );
+    return stateViews;
   }
 
   Widget _buildWorkspaceFooter({
@@ -936,6 +910,23 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
             const SizedBox(height: 10),
             actions,
           ],
+        ],
+        if (widget.example == null) ...[
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton.icon(
+              key: const ValueKey('web-sandbox-run-measure'),
+              onPressed: _runAndMeasure,
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Run 100 shots'),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Each shot prepares the circuit again and measures every qubit in the Z basis.',
+            style: QubitQuestTypography.supporting,
+          ),
         ],
         const SizedBox(height: 9),
         Text(
@@ -1065,22 +1056,16 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
                 ],
               ),
               SizedBox(height: compact ? 14 : 18),
-              QuantumWorkspaceLayout(
+              WebComposerWorkbench(
                 wideMainHeight: workbenchMetrics.mainRowHeight,
-                circuit: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: wide ? MainAxisSize.max : MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: _ComposerSectionHeading(
-                            title: 'CIRCUIT WORKSPACE',
-                            icon: Icons.account_tree_outlined,
-                            uppercase: true,
-                          ),
-                        ),
-                        if (compact && widget.example == null) ...[
+                circuitBuilder: (_) => _buildCircuitStage(
+                  canvasHeight,
+                  integratedWorkbench: wide,
+                ),
+                circuitHeaderTrailing: compact && widget.example == null
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
                           Text('${_selectedQubitCount!} qubits'),
                           const SizedBox(width: 8),
                           TextButton(
@@ -1089,50 +1074,46 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
                             child: const Text('Change'),
                           ),
                         ],
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    if (wide)
-                      Expanded(
-                        child: _buildCircuitStage(
-                          canvasHeight,
-                          integratedWorkbench: true,
-                        ),
                       )
-                    else
-                      _buildCircuitStage(
-                        canvasHeight,
-                        integratedWorkbench: false,
-                      ),
-                  ],
+                    : null,
+                gatesBuilder: (_) => ComposerGatePalette(
+                  gates: _gates,
+                  dense: wide,
+                  embedded: true,
+                  onGateTap: (gate) => setState(() => _status =
+                      'Selected ${gate.label.replaceAll('\n', ' ')}.'),
+                  onInspectGate: _inspect,
                 ),
-                inspection: _buildStateInformation(contentDriven: !wide),
-                toolbar: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const _ComposerSectionHeading(
-                      title: 'GATES',
-                      icon: Icons.widgets_outlined,
-                      uppercase: true,
-                    ),
-                    const SizedBox(height: 8),
-                    ComposerGatePalette(
-                      gates: _gates,
-                      dense: wide,
-                      embedded: true,
-                      onGateTap: (gate) => setState(() => _status =
-                          'Selected ${gate.label.replaceAll('\n', ' ')}.'),
-                      onInspectGate: _inspect,
-                    ),
-                  ],
-                ),
-                contextualActions: _buildWorkspaceFooter(
+                stateViewBuilder: _buildStateViews,
+                currentStateVector: _activeCircuit.currentState.stateVector,
+                numQubits: _activeCircuit.currentLevel.numQubits,
+                targetStateExpression:
+                    _activeCircuit.currentLevel.targetStateExpression,
+                actionsBuilder: (_) => _buildWorkspaceFooter(
                   selectedGate: selectedGate,
                   selectedCapabilities: selectedCapabilities,
                   wide: wide,
                 ),
+                inspectorContentSpacing: 14,
+                inspectorKey: const ValueKey('web-composer-state-inspection'),
+                inspectorViewsKey:
+                    const ValueKey('web-composer-inspector-views'),
+                labelStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.15,
+                  color: QubitQuestColors.textMuted,
+                ),
               ),
+              if (widget.example == null && _measurementResult != null) ...[
+                const SizedBox(height: 18),
+                _WorkspaceCard(
+                  child: MeasurementResultsView(
+                    key: const ValueKey('web-sandbox-measurement-results'),
+                    result: _measurementResult!,
+                  ),
+                ),
+              ],
             ],
           );
         },
@@ -1143,12 +1124,10 @@ class _ComposerSectionHeading extends StatelessWidget {
   const _ComposerSectionHeading({
     required this.title,
     required this.icon,
-    this.uppercase = false,
   });
 
   final String title;
   final IconData icon;
-  final bool uppercase;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -1156,15 +1135,14 @@ class _ComposerSectionHeading extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: _cyan),
           const SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: uppercase ? 12 : 15,
-              fontWeight: FontWeight.w900,
-              letterSpacing: uppercase ? 1.15 : 0,
-              color: uppercase
-                  ? QubitQuestColors.textMuted
-                  : QubitQuestColors.textPrimary,
+          Flexible(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                color: QubitQuestColors.textPrimary,
+              ),
             ),
           ),
         ],

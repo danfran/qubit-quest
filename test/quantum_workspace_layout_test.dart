@@ -12,6 +12,7 @@ import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/circuit_geometry.dart';
 import 'package:quantumquiz/widgets/quantum_workspace_layout.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
+import 'package:quantumquiz/widgets/web_composer_workbench.dart';
 
 void main() {
   Future<void> setSize(WidgetTester tester, Size size) async {
@@ -78,6 +79,7 @@ void main() {
     await pumpApp(tester, const Size(1440, 1000));
     await openComposer(tester, 3);
 
+    expect(find.byType(WebComposerWorkbench), findsOneWidget);
     expect(
       find.byKey(const ValueKey('quantum-workspace-wide-layout')),
       findsOneWidget,
@@ -127,10 +129,16 @@ void main() {
     expect(toolbar.bottom, lessThanOrEqualTo(primary.bottom));
     expect(toolbar.right, lessThan(inspection.left));
     expect(contextual.top, greaterThanOrEqualTo(mainRow.bottom));
-    expect(find.text('LIVE INSPECTOR'), findsOneWidget);
+    expect(find.text('INSPECTOR'), findsOneWidget);
+    expect(find.text('State'), findsOneWidget);
+    expect(find.text('Bloch'), findsOneWidget);
+    expect(find.text('LIVE INSPECTOR'), findsNothing);
+    expect(find.text('LIVE'), findsNothing);
+    expect(find.text('Updates as you build'), findsNothing);
+    expect(find.text('Current state · updated from this circuit'), findsNothing);
     expect(
       find.byKey(const ValueKey('web-composer-live-indicator')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       tester.widget<StateVectorDisplay>(currentStateDisplay()).contentDriven,

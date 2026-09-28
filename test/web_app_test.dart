@@ -422,6 +422,92 @@ void main() {
     );
   });
 
+  testWidgets('Sandbox commands commit once through the live circuit',
+      (tester) async {
+    await setSize(tester, const Size(1440, 1000));
+    await pumpApp(tester);
+    await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('web-composer-qubits-2')));
+    await tester.pump();
+
+    var canvas = tester.widget<ComposerCircuitCanvas>(
+      find.byType(ComposerCircuitCanvas),
+    );
+    final circuit = canvas.circuit;
+    final initialRuns = circuit.simulationRunCount;
+    await canvas.onDropRequested(
+      ComposerCircuitDropIntent(
+        data: CircuitDragData.palette(
+          Gate.fromIdentifier(SelectedGateType.hadamard),
+        ),
+        destination: const CircuitDropDestination(
+          contentPoint: Offset(240, 20),
+          location: CircuitLocation(qubit: 0, column: 5),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(circuit.simulationRunCount, initialRuns + 1);
+    expect(circuit.logicalGates.single.column, 0);
+
+    var selected = circuit.logicalGates.single;
+    canvas.onGateTap(selected.toPlacedGateRef());
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey('web-composer-duplicate-selected-gate')),
+    );
+    await tester.pump();
+    expect(circuit.simulationRunCount, initialRuns + 2);
+    expect(circuit.logicalGates, hasLength(2));
+
+    await tester.tap(
+      find.byKey(const ValueKey('web-composer-replace-selected-gate')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('replacement-gate-x')),
+    );
+    await tester.pumpAndSettle();
+    expect(circuit.simulationRunCount, initialRuns + 3);
+    expect(
+      circuit.logicalGates.map((gate) => gate.type),
+      containsAll([SelectedGateType.hadamard, SelectedGateType.x]),
+    );
+
+    selected = circuit.logicalGates.singleWhere(
+      (gate) => gate.type == SelectedGateType.x,
+    );
+    canvas = tester.widget<ComposerCircuitCanvas>(
+      find.byType(ComposerCircuitCanvas),
+    );
+    await canvas.onDropRequested(
+      ComposerCircuitDropIntent(
+        data: CircuitDragData.placed(
+          sourceId: selected.id,
+          gate: selected.gate,
+        ),
+        destination: const CircuitDropDestination(
+          contentPoint: Offset(40, 20),
+          location: CircuitLocation(qubit: 0, column: 0),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(circuit.simulationRunCount, initialRuns + 4);
+    expect(circuit.logicalGateById(selected.id)!.column, 0);
+
+    canvas.onGateTap(circuit.logicalGateById(selected.id)!.toPlacedGateRef());
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey('web-composer-delete-selected-gate')),
+    );
+    await tester.pump();
+    expect(circuit.simulationRunCount, initialRuns + 5);
+    expect(circuit.logicalGateById(selected.id), isNull);
+    expect(circuit.logicalGates, hasLength(1));
+  });
+
   testWidgets('Notebook selection survives switching Web workspaces',
       (tester) async {
     await setSize(tester, const Size(1440, 1000));
@@ -481,6 +567,8 @@ void main() {
         .onPressed!();
     await tester.pump();
     expect(find.text('Notebook example: Run the X gate'), findsOneWidget);
+    expect(find.byKey(const ValueKey('web-sandbox-run-measure')), findsNothing);
+    expect(find.byKey(const ValueKey('web-sandbox-measurement-results')), findsNothing);
     expect(
       find.byKey(const ValueKey('web-composer-target-state')),
       findsOneWidget,

@@ -13,9 +13,19 @@ class MasteryEvidenceView extends StatelessWidget {
   const MasteryEvidenceView({
     super.key,
     required this.presentation,
+    this.includeQuestion = false,
+    this.compactSpacing = false,
   });
 
   final MasteryChallengePresentation presentation;
+
+  /// Composer instructions share the evidence flow. Choice presenters retain
+  /// their existing, separately styled question and interaction.
+  final bool includeQuestion;
+
+  /// Keeps sentence-like Composer briefs together without resizing their math
+  /// or changing the spacing of existing evidence/choice presentations.
+  final bool compactSpacing;
 
   /// Shared visual scale for ordinary mathematical evidence. Evidence should
   /// support the question rather than compete with its heading.
@@ -25,30 +35,43 @@ class MasteryEvidenceView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final proseGap =
+        compactSpacing ? QubitQuestSpacing.micro : QubitQuestSpacing.regular;
+    final blockGap =
+        compactSpacing ? QubitQuestSpacing.micro : QubitQuestSpacing.compact;
     return Column(
       key: const ValueKey('mastery-evidence-view'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (presentation.intro case final intro?) ...[
-          Text(
+          _authoredText(
             intro,
             key: const ValueKey('mastery-evidence-intro'),
             style: QubitQuestTypography.body,
           ),
-          const SizedBox(height: QubitQuestSpacing.regular),
+          SizedBox(height: proseGap),
         ],
         for (final (index, block) in presentation.evidence.indexed) ...[
           _MasteryEvidenceBlockView(block: block, index: index),
           if (index + 1 < presentation.evidence.length)
-            const SizedBox(height: QubitQuestSpacing.compact),
+            SizedBox(height: blockGap),
         ],
         if (presentation.helperText case final helper?) ...[
-          const SizedBox(height: QubitQuestSpacing.regular),
+          SizedBox(height: proseGap),
           LatexText(
             key: const ValueKey('mastery-evidence-helper'),
             math: _withInlineKetConvention(helper),
             textStyle: QubitQuestTypography.supporting,
             inlineMathColor: QubitQuestColors.textMuted,
+            inlineMathHeight: normalMathInlineHeight,
+          ),
+        ],
+        if (includeQuestion && presentation.question.isNotEmpty) ...[
+          SizedBox(height: proseGap),
+          LatexText(
+            key: const ValueKey('mastery-task-instruction'),
+            math: presentation.question,
+            textStyle: QubitQuestTypography.body,
             inlineMathHeight: normalMathInlineHeight,
           ),
         ],
@@ -81,7 +104,7 @@ class _MasteryEvidenceBlockView extends StatelessWidget {
   Widget build(BuildContext context) {
     final child = switch (block) {
       MasteryMathEvidence math => _MathEvidence(expression: math.expression),
-      MasteryTextEvidence text => Text(
+      MasteryTextEvidence text => _authoredText(
           text.text,
           style: QubitQuestTypography.body.copyWith(
             color: QubitQuestColors.textPrimary,
@@ -99,7 +122,7 @@ class _MasteryEvidenceBlockView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (block.label case final label?) ...[
-          Text(
+          _authoredText(
             label,
             style: QubitQuestTypography.label.copyWith(
               color: QubitQuestColors.accentInteractive,
@@ -130,6 +153,19 @@ class _MasteryEvidenceBlockView extends StatelessWidget {
       child: content,
     );
   }
+}
+
+/// Only explicitly delimited mathematical spans opt prose/labels into TeX.
+Widget _authoredText(String text, {required TextStyle style, Key? key}) {
+  if (text.contains(r'\(') || text.contains(r'\[') || text.contains(r'$')) {
+    return LatexText(
+      key: key,
+      math: text,
+      textStyle: style,
+      inlineMathHeight: MasteryEvidenceView.normalMathInlineHeight,
+    );
+  }
+  return Text(text, key: key, style: style);
 }
 
 class _MathEvidence extends StatelessWidget {

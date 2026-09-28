@@ -16,7 +16,10 @@ import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/mastery_math_test_platform.dart';
+
 void main() {
+  useMasteryMathTestPlatform();
   Future<void> pumpEvidence(
     WidgetTester tester,
     MasteryChallengePresentation presentation, {
@@ -377,7 +380,12 @@ void main() {
           .where((definition) => definition.levelDefinition is McqLevel)
           .map((definition) => definition.semanticId)
           .toSet();
-      expect(mastery2Presentations.keys.toSet(), selectableIds);
+      expect(mastery2Presentations.keys.toSet(), {
+        ...selectableIds,
+        'bell_input_sign_preparation',
+        'ghz_phase_manipulation',
+        'inverse_phase_synthesis',
+      });
     });
   });
 

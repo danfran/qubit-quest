@@ -19,6 +19,7 @@ import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/quantum_inspector_views.dart';
 import 'package:quantumquiz/widgets/quantum_workspace_layout.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
+import 'package:quantumquiz/widgets/web_composer_workbench.dart';
 
 void main() {
   Future<CampaignProgressController> controllerWith(
@@ -153,8 +154,16 @@ void main() {
 
     expect(find.text('Undo The Change'), findsOneWidget);
     expect(find.byType(QuantumWorkspaceLayout), findsOneWidget);
+    expect(find.byType(WebComposerWorkbench), findsOneWidget);
     expect(find.byKey(const ValueKey('web-lesson-live-inspector')),
         findsOneWidget);
+    expect(find.text('INSPECTOR'), findsOneWidget);
+    expect(find.text('State'), findsOneWidget);
+    expect(find.text('Bloch'), findsOneWidget);
+    expect(find.text('LIVE INSPECTOR'), findsNothing);
+    expect(find.text('LIVE'), findsNothing);
+    expect(find.text('Updates as you build'), findsNothing);
+    expect(find.text('Current state · updated from this circuit'), findsNothing);
     final canvas = tester.widget<ComposerCircuitCanvas>(
       find.byType(ComposerCircuitCanvas),
     );
@@ -277,8 +286,13 @@ void main() {
     var stateDisplay = tester.widget<StateVectorDisplay>(
       find.byKey(const ValueKey('web-lesson-current-state')),
     );
+    final targetDisplay = tester.widget<StateVectorDisplay>(
+      find.byKey(const ValueKey('web-lesson-target-state')),
+    );
     expect(
-        find.byKey(const ValueKey('web-lesson-target-state')), findsOneWidget);
+      targetDisplay.stateVector,
+      orderedEquals(level.solutionFinalVector.map((value) => value.first)),
+    );
     expect(
         identical(stateDisplay.stateVector, circuit.currentState.stateVector),
         isTrue);
@@ -371,10 +385,12 @@ void main() {
       isTrue,
     );
     expect(tester.widget<Checkbox>(checkbox).value, isTrue);
+    expect(circuit.simulationRunCount, initialRuns + 1);
 
     await setSize(tester, const Size(1300, 900));
     await tester.pump();
     expect(tester.widget<Checkbox>(checkbox).value, isTrue);
+    expect(circuit.simulationRunCount, initialRuns + 1);
 
     await tester.drag(
       find.byKey(const ValueKey('web-lesson-content-1')),
@@ -385,6 +401,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(completionCalls, 1);
+    expect(circuit.simulationRunCount, initialRuns + 2);
     expect(controller.state.completedLessonIds, contains(1));
     expect(controller.state.maxUnlockedLevel, 2);
     expect(
