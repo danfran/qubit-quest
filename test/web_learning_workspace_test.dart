@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/widgets/activity_instruction_presentation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/canonical_solution_builder.dart';
@@ -75,6 +76,11 @@ void main() {
     expect(find.text(getQQLevelById(1)!.title!), findsOneWidget);
     expect(find.byKey(const ValueKey('web-compact-question')), findsOneWidget);
     expect(find.byKey(const ValueKey('web-compact-task')), findsOneWidget);
+    expect(
+        find.descendant(
+            of: find.byKey(const ValueKey('web-compact-activity-context')),
+            matching: find.byType(ActivityInstructionPresentation)),
+        findsOneWidget);
     expect(find.byKey(const ValueKey('web-lesson-1-learning-brief')),
         findsNothing);
 
@@ -163,7 +169,8 @@ void main() {
     expect(find.text('LIVE INSPECTOR'), findsNothing);
     expect(find.text('LIVE'), findsNothing);
     expect(find.text('Updates as you build'), findsNothing);
-    expect(find.text('Current state · updated from this circuit'), findsNothing);
+    expect(
+        find.text('Current state · updated from this circuit'), findsNothing);
     final canvas = tester.widget<ComposerCircuitCanvas>(
       find.byType(ComposerCircuitCanvas),
     );
@@ -180,6 +187,48 @@ void main() {
     expect(find.text('Live outcome'), findsNothing);
     expect(controller.state.completedLessonIds, const {1});
     expect(controller.state.maxUnlockedLevel, 2);
+  });
+
+  testWidgets('full Journey Composer and choice instructions use shared roles',
+      (tester) async {
+    await setSize(tester, const Size(700, 900));
+    for (final level in [
+      getQQLevelById(2)!,
+      allQQLevels.firstWhere((level) => level is McqLevel)
+    ]) {
+      await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+              body: WebLessonWorkspace(
+        key: ValueKey(level),
+        levelId: 2,
+        level: level,
+        journeyActivity: true,
+        alreadyCompleted: false,
+        onCompleted: () async {},
+        onNextLesson: () {},
+        onBackToChapter: () {},
+        onOpenNotebook: () {},
+      ))));
+      await tester.pumpAndSettle();
+      final task = find.byWidgetPredicate((widget) =>
+          widget is ActivityInstructionPresentation &&
+          widget.task == level.taskDescription);
+      expect(task, findsOneWidget);
+      final presentation = tester.widget<ActivityInstructionPresentation>(task);
+      expect(presentation.question, level.mysteryTitle);
+      if (level is ComposerLevel) {
+        expect(find.byKey(const ValueKey('web-lesson-check')), findsOneWidget);
+      } else {
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('web-lesson-confirm')),
+          180,
+          scrollable: find.byType(Scrollable).first,
+        );
+        expect(
+            find.byKey(const ValueKey('web-lesson-confirm')), findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
+    }
   });
 
   testWidgets('narrow chapter uses stacked lesson navigation', (tester) async {

@@ -25,6 +25,7 @@ import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
 import 'package:quantumquiz/widgets/circuit_canvas_metrics.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/activity_instruction_presentation.dart';
 import 'package:quantumquiz/widgets/mastery_evidence_view.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
@@ -820,14 +821,6 @@ class _CompactActivityContext extends StatelessWidget {
   final QQLevelsCategory category;
   final QQLevel level;
 
-  String get _task {
-    final question = level.mysteryTitle?.trim();
-    final task = level.taskDescription.trim();
-    return question != null && task.startsWith(question)
-        ? task.substring(question.length).trim()
-        : task;
-  }
-
   @override
   Widget build(BuildContext context) => Column(
         key: const ValueKey('web-compact-activity-context'),
@@ -866,30 +859,12 @@ class _CompactActivityContext extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 3),
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 7,
-            runSpacing: 2,
-            children: [
-              Text(
-                level.mysteryTitle ?? '',
-                key: const ValueKey('web-compact-question'),
-                style: const TextStyle(
-                  color: QubitQuestColors.textBody,
-                  fontSize: 14,
-                ),
-              ),
-              const Text('·', style: TextStyle(color: Colors.white38)),
-              LatexText(
-                key: const ValueKey('web-compact-task'),
-                math: _task,
-                textStyle: const TextStyle(
-                  color: QubitQuestColors.textBody,
-                  fontSize: 14,
-                ),
-                inlineMathHeight: 17,
-              ),
-            ],
+          ActivityInstructionPresentation(
+            task: level.taskDescription,
+            question: level.mysteryTitle,
+            compact: true,
+            taskKey: const ValueKey('web-compact-task'),
+            questionKey: const ValueKey('web-compact-question'),
           ),
         ],
       );
@@ -1165,29 +1140,29 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
     final challenge = widget.masteryChallenge;
     return challenge == null
         ? null
-        : mastery2Presentations[challenge.semanticId];
+        : requireMasteryPresentation(challenge.semanticId);
   }
 
-  Widget _taskContent() {
+  Widget _taskContent({bool showQuestion = true, bool showLabels = false}) {
     final presentation = _masteryPresentation;
-    if (presentation == null) {
-      return LatexText(
-        math: widget.level.taskDescription,
-        textStyle: const TextStyle(color: Colors.white, height: 1.5),
-        inlineMathHeight: 18,
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        MasteryEvidenceView(presentation: presentation),
-        const SizedBox(height: QubitQuestSpacing.regular),
-        LatexText(
-          math: presentation.question,
-          textStyle: QubitQuestTypography.question.copyWith(fontSize: 16.5),
-          inlineMathHeight: 18,
-        ),
-      ],
+    return ActivityInstructionPresentation(
+      task: presentation?.instruction ?? widget.level.taskDescription,
+      question: presentation?.question ?? widget.level.mysteryTitle,
+      showQuestion: showQuestion,
+      showLabels: showLabels,
+      questionKey: presentation == null
+          ? null
+          : const ValueKey('mastery-task-instruction'),
+      evidence: presentation == null ||
+              (presentation.evidence.isEmpty &&
+                  presentation.intro == null &&
+                  presentation.helperText == null)
+          ? null
+          : MasteryEvidenceView(
+              presentation: presentation,
+              includeInstruction: false,
+              compactSpacing: widget.level is ComposerLevel,
+            ),
     );
   }
 
@@ -1195,41 +1170,11 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
       (widget.journeyActivity || widget.masteryChallenge != null) &&
       widget.level is ComposerLevel;
 
-  String get _desktopComposerTask {
-    final question = widget.level.mysteryTitle?.trim();
-    final task = widget.level.taskDescription.trim();
-    if (question != null && task.startsWith(question)) {
-      return task.substring(question.length).trim();
-    }
-    return task;
-  }
-
   Widget _desktopComposerLearningBrief() {
     final isMastery = widget.masteryChallenge != null;
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (widget.level.hasMystery) ...[
-          const Text(
-            'QUESTION',
-            style: TextStyle(
-              color: QubitQuestColors.textMuted,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              letterSpacing: .8,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            widget.level.mysteryTitle ?? 'Mystery',
-            style: const TextStyle(
-              color: QubitQuestColors.textPrimary,
-              fontSize: 15,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-          const SizedBox(height: 9),
-        ],
         if ((widget.level.conceptIntro ?? '').trim().isNotEmpty) ...[
           Text(
             widget.level.conceptIntro!,
@@ -1237,35 +1182,7 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
           ),
           const SizedBox(height: 8),
         ],
-        if (!isMastery) ...[
-          const Text(
-            'TASK',
-            style: TextStyle(
-              color: QubitQuestColors.textMuted,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              letterSpacing: .8,
-            ),
-          ),
-          const SizedBox(height: 4),
-        ],
-        if (_masteryPresentation case final presentation?)
-          MasteryEvidenceView(
-            presentation: presentation,
-            includeQuestion: true,
-            compactSpacing: isMastery,
-          )
-        else
-          LatexText(
-            math: _desktopComposerTask,
-            textStyle: const TextStyle(
-              color: QubitQuestColors.textBody,
-              fontSize: 15,
-              height: 1.35,
-              fontWeight: FontWeight.w400,
-            ),
-            inlineMathHeight: 18,
-          ),
+        _taskContent(showLabels: !isMastery),
         if ((widget.level.mysteryText ?? '').trim().isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 7),
@@ -1338,6 +1255,9 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
             const SizedBox(height: 16),
             _ContentCard(
               title: widget.level.mysteryTitle ?? 'Mystery',
+              titleContent: ActivityInstructionPresentation(
+                question: widget.level.mysteryTitle ?? 'Mystery',
+              ),
               icon: Icons.travel_explore_outlined,
               child: Text(
                 widget.level.mysteryText ?? '',
@@ -1362,7 +1282,10 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
             _ContentCard(
               title: 'Task',
               icon: Icons.flag_outlined,
-              child: _taskContent(),
+              child: _taskContent(
+                showQuestion:
+                    _masteryPresentation != null || !widget.level.hasMystery,
+              ),
             ),
           ],
           if (!_usesDesktopComposerWorkspace &&
@@ -1459,10 +1382,14 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
 
 class _ContentCard extends StatelessWidget {
   const _ContentCard(
-      {required this.title, required this.icon, required this.child});
+      {required this.title,
+      required this.icon,
+      required this.child,
+      this.titleContent});
   final String title;
   final IconData icon;
   final Widget child;
+  final Widget? titleContent;
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
@@ -1481,10 +1408,11 @@ class _ContentCard extends StatelessWidget {
                   Icon(icon, color: _cyan, size: 19),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
+                    child: titleContent ??
+                        Text(
+                          title,
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
                   ),
                 ],
               ),

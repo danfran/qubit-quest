@@ -50,15 +50,23 @@ class MasteryChallengePresentation {
   const MasteryChallengePresentation({
     required this.question,
     required this.evidence,
+    this.instruction = '',
     this.intro,
     this.helperText,
   });
 
+  /// A task instruction, distinct from an optional concluding question.
+  final String instruction;
   final String? intro;
   final List<MasteryEvidenceBlock> evidence;
   final String question;
   final String? helperText;
 }
+
+/// Missing Mastery presentation data is a contract error, never a QQLevel fallback.
+MasteryChallengePresentation requireMasteryPresentation(String semanticId) =>
+    mastery2Presentations[semanticId] ??
+    (throw StateError('Missing typed Mastery presentation: $semanticId'));
 
 const _h0 = CanonicalCircuitStep.single(
   SelectedGateType.hadamard,
@@ -97,6 +105,36 @@ const _cz01 = CanonicalCircuitStep.controlled(
 
 final Map<String, MasteryChallengePresentation> mastery2Presentations =
     Map.unmodifiable({
+  'phase_state_uncomputation': const MasteryChallengePresentation(
+    instruction:
+        r'The fixed H → S → Z prefix prepared \( |-i\rangle \) from \( |0\rangle \). Append the inverse continuation that restores \( |0\rangle \).',
+    question: '',
+    evidence: [],
+  ),
+  'cnot_uncomputation': const MasteryChallengePresentation(
+    instruction:
+        r'A fixed CNOT(q0→q1) changed \(|11\rangle\) into \(|01\rangle\). Append the controlled operation that restores the original register and undoes the fixed operation for every input.',
+    question: '',
+    evidence: [],
+  ),
+  'clean_workspace_uncomputation': const MasteryChallengePresentation(
+    instruction:
+        r'A fixed H(q0)→CNOT(q0→q1) computes q0 into work qubit q1, then fixed Z(q1) uses that predicate as phase. Append the cleanup that restores \(q_1=0\) while preserving the phase on q0.',
+    question: '',
+    evidence: [],
+  ),
+  'phased_entanglement_uncomputation': const MasteryChallengePresentation(
+    instruction:
+        r'A fixed H(q0)→CNOT(q0→q1)→Z(q0) prefix prepared \(\Phi^-\). Append the inverse structure that returns the complete operation to identity.',
+    question: '',
+    evidence: [],
+  ),
+  'conditional_phase_decomposition': const MasteryChallengePresentation(
+    instruction:
+        'Implement the reusable CZ operation without a direct CZ gate, using H and CNOT. Validation covers the complete two-qubit unitary.',
+    question: '',
+    evidence: [],
+  ),
   'bell_input_sign_preparation': const MasteryChallengePresentation(
     intro:
         r'Starting from \(|01\rangle\) (ket order \(|q_1\,q_0\rangle\)), prepare',

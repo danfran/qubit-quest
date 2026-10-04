@@ -19,6 +19,7 @@ class WebComposerWorkbench extends StatelessWidget {
     required this.numQubits,
     required this.wideMainHeight,
     this.actionsBuilder,
+    this.measureViewBuilder,
     this.targetStateExpression,
     this.circuitHeaderTrailing,
     this.wideLayoutBreakpoint = QuantumWorkspaceLayout.wideBreakpoint,
@@ -37,6 +38,7 @@ class WebComposerWorkbench extends StatelessWidget {
   final WebComposerWorkbenchRegionBuilder gatesBuilder;
   final WebComposerWorkbenchStateBuilder stateViewBuilder;
   final WebComposerWorkbenchRegionBuilder? actionsBuilder;
+  final WebComposerWorkbenchStateBuilder? measureViewBuilder;
   final List<Complex> currentStateVector;
   final int numQubits;
   final String? targetStateExpression;
@@ -75,17 +77,33 @@ class WebComposerWorkbench extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: wide ? MainAxisSize.max : MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: _RegionLabel(
-                  icon: Icons.account_tree_outlined,
-                  label: 'CIRCUIT WORKSPACE',
-                  style: labelStyle,
-                ),
-              ),
-              if (circuitHeaderTrailing case final trailing?) trailing,
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final title = _RegionLabel(
+                icon: Icons.account_tree_outlined,
+                label: 'CIRCUIT WORKSPACE',
+                style: labelStyle,
+              );
+              final trailing = circuitHeaderTrailing;
+              if (trailing == null) return title;
+              if (constraints.maxWidth < 560 ||
+                  MediaQuery.textScalerOf(context).scale(14) > 14) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    title,
+                    Align(alignment: Alignment.centerRight, child: trailing),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: title),
+                  const SizedBox(width: 12),
+                  Flexible(child: trailing),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 12),
           if (wide)
@@ -131,6 +149,7 @@ class WebComposerWorkbench extends StatelessWidget {
       QuantumInspectorViews(
         key: inspectorViewsKey,
         stateView: stateViewBuilder(contentDriven),
+        measureView: measureViewBuilder?.call(contentDriven),
         currentStateVector: currentStateVector,
         numQubits: numQubits,
         contentDriven: contentDriven,

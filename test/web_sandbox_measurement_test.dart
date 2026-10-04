@@ -29,6 +29,9 @@ final run = find.byKey(const ValueKey('web-sandbox-run-measure'));
 final results = find.byType(MeasurementResultsView);
 
 Future<void> tapVisible(WidgetTester tester, Finder finder) async {
+  if (finder == run && run.evaluate().isEmpty) {
+    await tapVisible(tester, find.text('Measure'));
+  }
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
   await tester.tap(finder);
@@ -60,9 +63,22 @@ void main() {
       'no-op, rejected edits and Inspector interactions retain result; simulation error refuses run',
       (tester) async {
     await openSandbox(tester, InMemoryAppStorage(), qubits: 1);
+    expect(find.text('State'), findsOneWidget);
+    expect(find.text('Bloch'), findsOneWidget);
+    expect(find.text('Measure'), findsOneWidget);
+    expect(run, findsNothing);
+    await tapVisible(tester, find.text('Measure'));
+    expect(results, findsNothing);
     expect(find.text('Run 100 shots'), findsOneWidget);
     await tapVisible(tester, run);
     final result = tester.widget<MeasurementResultsView>(results).result;
+    final inspector =
+        find.byKey(const ValueKey('web-composer-state-inspection'));
+    expect(find.descendant(of: inspector, matching: run), findsOneWidget);
+    expect(find.descendant(of: inspector, matching: results), findsOneWidget);
+    expect(find.text('RESULTS'), findsNothing);
+    expect(find.text('Run 100 shots'), findsOneWidget);
+    expect(result.counts.values.reduce((a, b) => a + b), 100);
     final canvas = tester
         .widget<ComposerCircuitCanvas>(find.byType(ComposerCircuitCanvas));
     // Clearing an already empty circuit is a no-op.
@@ -77,12 +93,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.widget<MeasurementResultsView>(results).result, same(result));
     await tapVisible(tester, find.text('Bloch'));
+    expect(find.byKey(const ValueKey('quantum-inspector-bloch-view')),
+        findsOneWidget);
+    expect(results, findsNothing);
+    await tapVisible(tester, find.text('Measure'));
     expect(tester.widget<MeasurementResultsView>(results).result, same(result));
     await tapVisible(tester, find.text('State'));
     final stateDisplay = tester.widget<StateVectorDisplay>(
         find.byKey(const ValueKey('web-composer-current-state')));
     stateDisplay.onNonZeroOnlyChanged!(false);
     await tester.pumpAndSettle();
+    await tapVisible(tester, find.text('Measure'));
     expect(tester.widget<MeasurementResultsView>(results).result, same(result));
     final ideal = canvas.circuit.currentState;
     canvas.circuit.lastSimulationError = const MalformedCircuitException(
@@ -158,6 +179,7 @@ void main() {
     expect(canvas.circuit.currentState, same(state));
     expect(canvas.circuit.simulationRunCount, simulations);
     expect(await storage.readString(key), before);
+    await tapVisible(tester, find.text('State'));
     expect(
         tester
             .widget<StateVectorDisplay>(
@@ -249,6 +271,8 @@ void main() {
   for (final scenario in [
     (const Size(1440, 1000), 1.0),
     (const Size(600, 900), 1.0),
+    (const Size(1200, 900), 1.0),
+    (const Size(1200, 900), 1.5),
     (const Size(1440, 500), 1.0),
     (const Size(600, 900), 1.5),
     (const Size(1440, 900), 1.5),
@@ -259,14 +283,52 @@ void main() {
       await openSandbox(tester, InMemoryAppStorage(),
           size: scenario.$1, scale: scenario.$2, qubits: 5);
       await tapVisible(tester, run);
+      final inspectorRect = tester
+          .getRect(find.byKey(const ValueKey('web-composer-state-inspection')));
+      final selectorRect = tester.getRect(
+          find.byKey(const ValueKey('quantum-inspector-view-selector')));
+      expect(selectorRect.left, greaterThanOrEqualTo(inspectorRect.left));
+      expect(selectorRect.right, lessThanOrEqualTo(inspectorRect.right));
       await tester.ensureVisible(results);
       await tester.pumpAndSettle();
-      expect(find.descendant(of: results, matching: find.text('00000')),
+      expect(find.descendant(of: results, matching: find.text('|00000⟩')),
           findsOneWidget);
       expect(
-          find.descendant(
-              of: results, matching: find.text('100/100 · 100.0% observed')),
+          find.descendant(of: results, matching: find.text('100/100 · 100.0%')),
           findsOneWidget);
+      expect(tester.takeException(), isNull);
+      final canvas = tester
+          .widget<ComposerCircuitCanvas>(find.byType(ComposerCircuitCanvas));
+      for (var qubit = 0; qubit < 5; qubit++) {
+        await canvas.onDropRequested(ComposerCircuitDropIntent(
+          data: CircuitDragData.palette(
+              Gate.fromIdentifier(SelectedGateType.hadamard)),
+          destination: CircuitDropDestination(
+              contentPoint: const Offset(40, 20),
+              location: CircuitLocation(qubit: qubit, column: 0)),
+        ));
+      }
+      await tester.pumpAndSettle();
+      final surface = find.byKey(const ValueKey('quantum-workspace-surface'));
+      final heightBeforeRun = tester.getSize(surface).height;
+      await tapVisible(tester, run);
+      final result = tester.widget<MeasurementResultsView>(results).result;
+      expect(result.counts.values.reduce((a, b) => a + b), 100);
+      await tester.ensureVisible(find.text('|${result.counts.keys.last}⟩'));
+      await tester.pumpAndSettle();
+      if (find
+          .byKey(const ValueKey('quantum-workspace-wide-layout'))
+          .evaluate()
+          .isNotEmpty) {
+        expect(tester.getSize(surface).height, heightBeforeRun);
+      } else {
+        expect(tester.getSize(surface).height,
+            lessThanOrEqualTo(heightBeforeRun + 480));
+      }
+      final footer =
+          find.byKey(const ValueKey('quantum-workspace-contextual-actions'));
+      expect(find.descendant(of: footer, matching: run), findsNothing);
+      expect(find.text('RESULTS'), findsNothing);
       expect(tester.takeException(), isNull);
     });
   }

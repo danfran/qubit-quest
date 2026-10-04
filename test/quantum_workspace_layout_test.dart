@@ -74,6 +74,90 @@ void main() {
     );
   });
 
+  testWidgets('Sandbox chrome and selected controls stay inside workspace',
+      (tester) async {
+    await pumpApp(tester, const Size(1440, 1000));
+    expect(find.text('Level 1'), findsNothing);
+    await openComposer(tester, 1);
+    expect(find.text('Level 1'), findsNothing);
+    final primary =
+        find.byKey(const ValueKey('quantum-workspace-primary-pane'));
+    final actions =
+        find.byKey(const ValueKey('web-composer-workspace-actions'));
+    final change = find.byKey(const ValueKey('web-composer-change-qubits'));
+    final clear = find.byKey(const ValueKey('web-clear-circuit'));
+    expect(find.descendant(of: primary, matching: actions), findsOneWidget);
+    expect(find.descendant(of: actions, matching: change), findsOneWidget);
+    expect(find.descendant(of: actions, matching: clear), findsOneWidget);
+    expect(find.descendant(of: actions, matching: find.text('1 qubits')),
+        findsOneWidget);
+    expect(find.text('State'), findsOneWidget);
+    expect(find.text('Bloch'), findsOneWidget);
+    expect(find.text('Measure'), findsOneWidget);
+    final canvas = tester
+        .widget<ComposerCircuitCanvas>(find.byType(ComposerCircuitCanvas));
+    await canvas.onDropRequested(ComposerCircuitDropIntent(
+      data: CircuitDragData.palette(Gate.fromIdentifier(SelectedGateType.x)),
+      destination: const CircuitDropDestination(
+          contentPoint: Offset(40, 20),
+          location: CircuitLocation(qubit: 0, column: 0)),
+    ));
+    await tester.pumpAndSettle();
+    canvas.onGateTap(canvas.circuit.logicalGates.single.toPlacedGateRef());
+    await tester.pumpAndSettle();
+    for (final scenario in [
+      (const Size(1440, 1000), 1.0),
+      (const Size(1200, 900), 1.0),
+      (const Size(600, 900), 1.0),
+      (const Size(600, 900), 1.5),
+    ]) {
+      tester.view.physicalSize = scenario.$1;
+      tester.platformDispatcher.textScaleFactorTestValue = scenario.$2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await tester.pumpAndSettle();
+      final primaryRect = tester.getRect(primary);
+      for (final control in [change, clear]) {
+        final rect = tester.getRect(control);
+        expect(rect.left, greaterThanOrEqualTo(primaryRect.left));
+        expect(rect.right, lessThanOrEqualTo(primaryRect.right));
+      }
+      final footer = tester.getRect(
+          find.byKey(const ValueKey('quantum-workspace-contextual-actions')));
+      final inspector = tester.getRect(
+          find.byKey(const ValueKey('quantum-workspace-inspection-pane')));
+      for (final name in [
+        'inspect',
+        'replace',
+        'duplicate',
+        'move',
+        'delete'
+      ]) {
+        final control =
+            find.byKey(ValueKey('web-composer-$name-selected-gate'));
+        await tester.ensureVisible(control);
+        await tester.pumpAndSettle();
+        // Compare horizontal bounds independently of page scrolling.
+        final rect = tester.getRect(control);
+        expect(rect.left, greaterThanOrEqualTo(footer.left));
+        expect(rect.right, lessThanOrEqualTo(footer.right));
+        expect(rect.width, greaterThan(0));
+      }
+      expect(footer.overlaps(inspector), isFalse);
+      expect(tester.takeException(), isNull);
+    }
+    await tester.ensureVisible(clear);
+    await tester.tap(clear);
+    await tester.pumpAndSettle();
+    expect(canvas.circuit.logicalGates, isEmpty);
+    await tester.tap(change);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('web-composer-qubits-2')));
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: actions, matching: find.text('2 qubits')),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('wide Web Sandbox presents Circuit and State together',
       (tester) async {
     await pumpApp(tester, const Size(1440, 1000));
@@ -135,7 +219,8 @@ void main() {
     expect(find.text('LIVE INSPECTOR'), findsNothing);
     expect(find.text('LIVE'), findsNothing);
     expect(find.text('Updates as you build'), findsNothing);
-    expect(find.text('Current state · updated from this circuit'), findsNothing);
+    expect(
+        find.text('Current state · updated from this circuit'), findsNothing);
     expect(
       find.byKey(const ValueKey('web-composer-live-indicator')),
       findsNothing,

@@ -12,8 +12,6 @@ class MeasurementResultsView extends StatelessWidget {
   Widget build(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('RESULTS', style: TextStyle(fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
           Text('${result.shots} shots · Z basis',
               style: QubitQuestTypography.supporting),
           const SizedBox(height: 6),
@@ -22,22 +20,17 @@ class MeasurementResultsView extends StatelessWidget {
             style: QubitQuestTypography.supporting,
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Inspector shows the ideal quantum state. '
-            'Results show finite-shot measurement observations.',
-            style: QubitQuestTypography.supporting,
-          ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           for (final entry in result.counts.entries) ...[
             Wrap(
               alignment: WrapAlignment.spaceBetween,
               spacing: 16,
               runSpacing: 4,
               children: [
-                Text(entry.key,
+                Text('|${entry.key}⟩',
                     style: const TextStyle(fontFamily: 'monospace')),
                 Text('${entry.value}/${result.shots} · '
-                    '${(100 * entry.value / result.shots).toStringAsFixed(1)}% observed'),
+                    '${(100 * entry.value / result.shots).toStringAsFixed(1)}%'),
               ],
             ),
             const SizedBox(height: 6),
@@ -47,10 +40,8 @@ class MeasurementResultsView extends StatelessWidget {
               color: QubitQuestColors.accentInteractive,
               backgroundColor: QubitQuestColors.surface,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
           ],
-          const Text('Outcomes not listed were not observed in this run.',
-              style: QubitQuestTypography.supporting),
         ],
       );
 }

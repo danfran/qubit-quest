@@ -8,7 +8,7 @@ import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 
-enum QuantumInspectorView { state, bloch }
+enum QuantumInspectorView { state, bloch, measure }
 
 class QuantumInspectorViews extends StatefulWidget {
   const QuantumInspectorViews({
@@ -18,9 +18,11 @@ class QuantumInspectorViews extends StatefulWidget {
     required this.numQubits,
     required this.contentDriven,
     this.targetStateExpression,
+    this.measureView,
   });
 
   final Widget stateView;
+  final Widget? measureView;
   final List<Complex> currentStateVector;
   final int numQubits;
   final bool contentDriven;
@@ -38,16 +40,20 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
   @override
   void didUpdateWidget(covariant QuantumInspectorViews oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!widget.supportsBloch && _view == QuantumInspectorView.bloch) {
+    if ((!widget.supportsBloch && _view == QuantumInspectorView.bloch) ||
+        (widget.measureView == null && _view == QuantumInspectorView.measure)) {
       _view = QuantumInspectorView.state;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final content = _view == QuantumInspectorView.bloch && widget.supportsBloch
-        ? _blochView()
-        : widget.stateView;
+    final content =
+        _view == QuantumInspectorView.measure && widget.measureView != null
+            ? widget.measureView!
+            : _view == QuantumInspectorView.bloch && widget.supportsBloch
+                ? _blochView()
+                : widget.stateView;
     return Column(
       key: const ValueKey('quantum-inspector-views'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -69,6 +75,11 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
                 icon: const Icon(Icons.language_outlined, size: 15),
                 enabled: widget.supportsBloch,
               ),
+              if (widget.measureView != null)
+                const ButtonSegment(
+                  value: QuantumInspectorView.measure,
+                  label: Text('Measure'),
+                ),
             ],
             selected: {_view},
             showSelectedIcon: false,
@@ -81,7 +92,7 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
             },
           ),
         ),
-        if (!widget.supportsBloch) ...[
+        if (!widget.supportsBloch && _view != QuantumInspectorView.measure) ...[
           const SizedBox(height: 6),
           const Text(
             'Bloch view is available for single-qubit states.',

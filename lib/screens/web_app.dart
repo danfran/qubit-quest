@@ -213,24 +213,6 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
                     ),
               automaticallyImplyLeading: !wide,
               title: const _QubitQuestWordmark(),
-              actions: wide
-                  ? [
-                      AnimatedBuilder(
-                        animation: widget.progressController,
-                        builder: (context, _) => Padding(
-                          padding: const EdgeInsets.only(right: 20),
-                          child: Center(
-                            child: Text(
-                              widget.progressController.isLoaded
-                                  ? 'Level ${widget.progressController.state.maxUnlockedLevel}'
-                                  : 'Loading journey…',
-                              style: const TextStyle(color: Colors.white70),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ]
-                  : null,
               bottom: const PreferredSize(
                 preferredSize: Size.fromHeight(1),
                 child: Divider(height: 1, color: Color(0x44344A73)),
@@ -580,7 +562,8 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
     } on ArgumentError {
       setState(() {
         _measurementResult = null;
-        _status = 'This circuit cannot be measured. Check its state and try again.';
+        _status =
+            'This circuit cannot be measured. Check its state and try again.';
       });
     }
   }
@@ -798,6 +781,49 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
     return stateViews;
   }
 
+  Widget _buildMeasureView(bool contentDriven) {
+    final content = SingleChildScrollView(
+      child: Column(
+        key: const ValueKey('web-sandbox-measure-view'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('Measurement',
+              style: TextStyle(fontWeight: FontWeight.w700)),
+          if (_measurementResult == null) ...[
+            const SizedBox(height: 4),
+            const Text('Z basis', style: QubitQuestTypography.supporting),
+          ],
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton.icon(
+              key: const ValueKey('web-sandbox-run-measure'),
+              onPressed: _runAndMeasure,
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Run 100 shots'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (_measurementResult case final result?)
+            MeasurementResultsView(
+              key: const ValueKey('web-sandbox-measurement-results'),
+              result: result,
+            )
+          else
+            const Text(
+              'Each shot prepares the circuit again and measures every qubit.',
+              style: QubitQuestTypography.supporting,
+            ),
+        ],
+      ),
+    );
+    return contentDriven
+        ? ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 480), child: content)
+        : content;
+  }
+
   Widget _buildWorkspaceFooter({
     required LogicalGateFootprint? selectedGate,
     required ComposerSelectedGateCapabilities selectedCapabilities,
@@ -901,32 +927,15 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
             children: [
               Expanded(child: selectionSummary),
               const SizedBox(width: 20),
-              Flexible(flex: 2, child: actions),
+              Expanded(flex: 2, child: actions),
             ],
           )
         else ...[
           selectionSummary,
           if (actions != null) ...[
             const SizedBox(height: 10),
-            actions,
+            SizedBox(width: double.infinity, child: actions),
           ],
-        ],
-        if (widget.example == null) ...[
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.icon(
-              key: const ValueKey('web-sandbox-run-measure'),
-              onPressed: _runAndMeasure,
-              icon: const Icon(Icons.play_arrow),
-              label: const Text('Run 100 shots'),
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Each shot prepares the circuit again and measures every qubit in the Z basis.',
-            style: QubitQuestTypography.supporting,
-          ),
         ],
         const SizedBox(height: 9),
         Text(
@@ -1028,32 +1037,9 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
               24,
             ),
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  const Expanded(
-                    child: _WorkspaceHeading(
-                      title: 'Sandbox Composer',
-                      subtitle:
-                          'Experiment freely with a live quantum circuit.',
-                    ),
-                  ),
-                  if (!compact && widget.example == null) ...[
-                    Text('${_selectedQubitCount!} qubits'),
-                    const SizedBox(width: 8),
-                    TextButton(
-                      key: const ValueKey('web-composer-change-qubits'),
-                      onPressed: _closeCircuit,
-                      child: const Text('Change'),
-                    ),
-                  ],
-                  TextButton.icon(
-                    key: const ValueKey('web-clear-circuit'),
-                    onPressed: _clearCircuit,
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    label: const Text('Clear'),
-                  ),
-                ],
+              const _WorkspaceHeading(
+                title: 'Sandbox Composer',
+                subtitle: 'Experiment freely with a live quantum circuit.',
               ),
               SizedBox(height: compact ? 14 : 18),
               WebComposerWorkbench(
@@ -1062,20 +1048,28 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
                   canvasHeight,
                   integratedWorkbench: wide,
                 ),
-                circuitHeaderTrailing: compact && widget.example == null
-                    ? Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('${_selectedQubitCount!} qubits'),
-                          const SizedBox(width: 8),
-                          TextButton(
-                            key: const ValueKey('web-composer-change-qubits'),
-                            onPressed: _closeCircuit,
-                            child: const Text('Change'),
-                          ),
-                        ],
-                      )
-                    : null,
+                circuitHeaderTrailing: Wrap(
+                  key: const ValueKey('web-composer-workspace-actions'),
+                  alignment: WrapAlignment.end,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  children: [
+                    if (widget.example == null) ...[
+                      Text('${_selectedQubitCount!} qubits'),
+                      TextButton(
+                        key: const ValueKey('web-composer-change-qubits'),
+                        onPressed: _closeCircuit,
+                        child: const Text('Change'),
+                      ),
+                    ],
+                    TextButton.icon(
+                      key: const ValueKey('web-clear-circuit'),
+                      onPressed: _clearCircuit,
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      label: const Text('Clear'),
+                    ),
+                  ],
+                ),
                 gatesBuilder: (_) => ComposerGatePalette(
                   gates: _gates,
                   dense: wide,
@@ -1085,6 +1079,8 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
                   onInspectGate: _inspect,
                 ),
                 stateViewBuilder: _buildStateViews,
+                measureViewBuilder:
+                    widget.example == null ? _buildMeasureView : null,
                 currentStateVector: _activeCircuit.currentState.stateVector,
                 numQubits: _activeCircuit.currentLevel.numQubits,
                 targetStateExpression:
@@ -1105,15 +1101,6 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
                   color: QubitQuestColors.textMuted,
                 ),
               ),
-              if (widget.example == null && _measurementResult != null) ...[
-                const SizedBox(height: 18),
-                _WorkspaceCard(
-                  child: MeasurementResultsView(
-                    key: const ValueKey('web-sandbox-measurement-results'),
-                    result: _measurementResult!,
-                  ),
-                ),
-              ],
             ],
           );
         },

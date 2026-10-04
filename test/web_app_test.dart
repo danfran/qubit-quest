@@ -43,13 +43,41 @@ void main() {
     await setSize(tester, const Size(1440, 1000));
     await pumpApp(tester);
 
+    void expectNoGlobalLevel() {
+      expect(tester.widget<AppBar>(find.byType(AppBar)).actions, isNull);
+      expect(
+          find.descendant(
+              of: find.byType(AppBar),
+              matching: find.textContaining(RegExp(r'Level \d+'))),
+          findsNothing);
+      expect(find.text('Loading journey…'), findsNothing);
+    }
+
+    expectNoGlobalLevel();
+
     expect(
         find.byKey(const ValueKey('web-navigation-sidebar')), findsOneWidget);
     expect(find.byType(LearningMapScreen), findsOneWidget);
 
+    await tester.tap(find.text('Chapter 1 — Information'));
+    await tester.pumpAndSettle();
+    expect(find.text('Lesson 1 of 5'), findsOneWidget);
+    expect(find.text('0 / 5 complete'), findsOneWidget);
+    expectNoGlobalLevel();
+
+    await tester.tap(find.byKey(const ValueKey('web-nav-mastery')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('web-mastery-title')), findsOneWidget);
+    expect(
+        find.byKey(
+            const ValueKey('web-mastery-activity-global_phase_equivalence')),
+        findsOneWidget);
+    expectNoGlobalLevel();
+
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
     await tester.pump();
     expect(find.text('Choose Number of Qubits'), findsOneWidget);
+    expectNoGlobalLevel();
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-3')));
     await tester.pump();
     expect(find.byType(ComposerGatePalette), findsOneWidget);
@@ -63,6 +91,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('web-nav-bloch')));
     await tester.pump();
+    expectNoGlobalLevel();
     expect(find.byType(BlochSpherePanel), findsOneWidget);
     expect(find.byType(BlochGatePanel), findsOneWidget);
     expect(find.byType(BlochPlaybackControls), findsOneWidget);
@@ -72,6 +101,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('web-nav-notebook')));
     await tester.pump();
     expect(find.byType(WebNotebookWorkspace), findsOneWidget);
+    expectNoGlobalLevel();
   });
 
   testWidgets('narrow shell uses a drawer instead of permanent navigation',
@@ -568,7 +598,8 @@ void main() {
     await tester.pump();
     expect(find.text('Notebook example: Run the X gate'), findsOneWidget);
     expect(find.byKey(const ValueKey('web-sandbox-run-measure')), findsNothing);
-    expect(find.byKey(const ValueKey('web-sandbox-measurement-results')), findsNothing);
+    expect(find.byKey(const ValueKey('web-sandbox-measurement-results')),
+        findsNothing);
     expect(
       find.byKey(const ValueKey('web-composer-target-state')),
       findsOneWidget,

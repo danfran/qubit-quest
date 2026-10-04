@@ -7,6 +7,7 @@ import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/widgets/circuit_preview.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/activity_instruction_presentation.dart';
 import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
 
 class MasteryEvidenceView extends StatelessWidget {
@@ -14,6 +15,7 @@ class MasteryEvidenceView extends StatelessWidget {
     super.key,
     required this.presentation,
     this.includeQuestion = false,
+    this.includeInstruction = true,
     this.compactSpacing = false,
   });
 
@@ -22,6 +24,9 @@ class MasteryEvidenceView extends StatelessWidget {
   /// Composer instructions share the evidence flow. Choice presenters retain
   /// their existing, separately styled question and interaction.
   final bool includeQuestion;
+
+  /// Web instruction wrappers own this role; standalone consumers still render it.
+  final bool includeInstruction;
 
   /// Keeps sentence-like Composer briefs together without resizing their math
   /// or changing the spacing of existing evidence/choice presentations.
@@ -43,6 +48,8 @@ class MasteryEvidenceView extends StatelessWidget {
       key: const ValueKey('mastery-evidence-view'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (includeInstruction && presentation.instruction.isNotEmpty)
+          ActivityInstructionPresentation(task: presentation.instruction),
         if (presentation.intro case final intro?) ...[
           _authoredText(
             intro,

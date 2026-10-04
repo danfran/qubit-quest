@@ -11,6 +11,7 @@ import 'package:quantumquiz/screens/level_ui_router.dart';
 import 'package:quantumquiz/screens/web_learning_workspace.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/activity_instruction_presentation.dart';
 import 'package:quantumquiz/widgets/mastery_evidence_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -107,6 +108,24 @@ void main() {
           expect(tester.widget<MasteryEvidenceView>(evidence).compactSpacing,
               id == 'inverse_phase_synthesis');
         }
+        final instruction = find.descendant(
+            of: panel, matching: find.byType(ActivityInstructionPresentation));
+        expect(instruction, findsOneWidget);
+        final semantic =
+            tester.widget<ActivityInstructionPresentation>(instruction);
+        final presentation = requireMasteryPresentation(id);
+        expect(semantic.task, presentation.instruction);
+        expect(semantic.question, presentation.question);
+        if (presentation.question.isNotEmpty) {
+          final question = tester.widget<LatexText>(
+              find.byKey(const ValueKey('mastery-task-instruction')));
+          expect(question.textStyle,
+              ActivityInstructionPresentation.questionStyle);
+          expect(
+              question.math,
+              normalizeActivityInstructions(question: presentation.question)
+                  .question);
+        }
         if (id == 'inverse_phase_synthesis') {
           final math = find.byKey(const ValueKey('mastery-math-evidence'));
           final intro = find.byKey(const ValueKey('mastery-evidence-intro'));
@@ -130,13 +149,12 @@ void main() {
     expect(mastery2Catalogue.length, 36);
     Decoration? sharedDecoration;
     for (final challenge in mastery2Catalogue.orderedDefinitions) {
-      await pumpTask(tester, challenge.semanticId,
-          const Size(1440, 1000), 1, false);
+      await pumpTask(
+          tester, challenge.semanticId, const Size(1440, 1000), 1, false);
       final heading = find.text('Task');
       expect(heading, findsOneWidget, reason: challenge.semanticId);
-      final panel = find
-          .ancestor(of: heading, matching: find.byType(DecoratedBox))
-          .first;
+      final panel =
+          find.ancestor(of: heading, matching: find.byType(DecoratedBox)).first;
       final decoration = tester.widget<DecoratedBox>(panel).decoration;
       sharedDecoration ??= decoration;
       expect(decoration, sharedDecoration, reason: challenge.semanticId);
@@ -173,7 +191,7 @@ void main() {
           expect(
               identical(widget.presentation, mastery2Presentations[entry.key]),
               isTrue);
-          expect(widget.includeQuestion, isTrue);
+          expect(widget.includeQuestion, native);
           expect(
               find.descendant(
                   of: evidence, matching: find.byType(QubitQuestStaticCircuit)),
