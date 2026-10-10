@@ -12,6 +12,7 @@ import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/circuit_geometry.dart';
 import 'package:quantumquiz/widgets/quantum_workspace_layout.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
+import 'package:quantumquiz/widgets/quantum_state_inspector_content.dart';
 import 'package:quantumquiz/widgets/web_composer_workbench.dart';
 
 void main() {
@@ -55,6 +56,7 @@ void main() {
 
   test('layout policy is presentation-only and uses a stable breakpoint', () {
     const layout = QuantumWorkspaceLayout(
+      wide: false,
       circuit: SizedBox(),
       inspection: SizedBox(),
       toolbar: SizedBox(),
@@ -164,6 +166,9 @@ void main() {
     await openComposer(tester, 3);
 
     expect(find.byType(WebComposerWorkbench), findsOneWidget);
+    expect(find.byType(QuantumStateInspectorContent), findsOneWidget);
+    expect(find.text('Current State'), findsOneWidget);
+    expect(find.text('Target State'), findsNothing);
     expect(
       find.byKey(const ValueKey('quantum-workspace-wide-layout')),
       findsOneWidget,

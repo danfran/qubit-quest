@@ -12,7 +12,7 @@ class QuantumWorkspaceLayout extends StatelessWidget {
     required this.inspection,
     required this.toolbar,
     this.contextualActions,
-    this.wideLayoutBreakpoint = wideBreakpoint,
+    required this.wide,
     this.wideMainHeight = 448,
   });
 
@@ -24,29 +24,24 @@ class QuantumWorkspaceLayout extends StatelessWidget {
   final Widget inspection;
   final Widget toolbar;
   final Widget? contextualActions;
-  final double wideLayoutBreakpoint;
+  final bool wide;
   final double wideMainHeight;
 
   static bool usesWideLayout(double availableWidth) =>
       availableWidth >= wideBreakpoint;
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth >= wideLayoutBreakpoint;
-          return DecoratedBox(
-            key: const ValueKey('quantum-workspace-surface'),
-            decoration: BoxDecoration(
-              color: QubitQuestColors.surface,
-              borderRadius: QubitQuestRadii.panel,
-              border: Border.all(color: QubitQuestColors.border),
-            ),
-            child: ClipRRect(
-              borderRadius: QubitQuestRadii.panel,
-              child: wide ? _wideLayout() : _narrowLayout(),
-            ),
-          );
-        },
+  Widget build(BuildContext context) => DecoratedBox(
+        key: const ValueKey('quantum-workspace-surface'),
+        decoration: BoxDecoration(
+          color: QubitQuestColors.surface,
+          borderRadius: QubitQuestRadii.panel,
+          border: Border.all(color: QubitQuestColors.border),
+        ),
+        child: ClipRRect(
+          borderRadius: QubitQuestRadii.panel,
+          child: wide ? _wideLayout() : _narrowLayout(),
+        ),
       );
 
   Widget _wideLayout() => Column(

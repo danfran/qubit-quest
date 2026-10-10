@@ -30,7 +30,9 @@ import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
 import 'package:quantumquiz/widgets/circuit_canvas_metrics.dart';
-import 'package:quantumquiz/widgets/state_vector_display.dart';
+import 'package:quantumquiz/widgets/state_vector_display.dart'
+    show defaultNonZeroOnlyForQubitCount;
+import 'package:quantumquiz/widgets/quantum_state_inspector_content.dart';
 import 'package:quantumquiz/widgets/web_composer_workbench.dart';
 
 const _background = QubitQuestColors.background;
@@ -723,63 +725,21 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
         ),
       );
 
-  Widget _buildStateViews(bool contentDriven) {
-    final level = _activeCircuit.currentLevel;
-    final target = level.solutionFinalVector.isEmpty
-        ? null
-        : level.solutionFinalVector.map((column) => column.first).toList();
-    final current = StateVectorDisplay(
-      key: const ValueKey('web-composer-current-state'),
-      stateVector: _activeCircuit.currentState.stateVector,
-      numQubits: level.numQubits,
-      summaryTitleOverride: 'Current State',
-      tone: StateVectorDisplayTone.current,
-      showHeader: false,
-      showToggleInSummary: true,
-      showSummarySubtitle: false,
-      dense: true,
-      contentDriven: contentDriven,
-      nonZeroOnlyOverride: _nonZeroOnly,
-      onNonZeroOnlyChanged: (value) => setState(() => _nonZeroOnly = value),
-    );
-    final targetDisplay = target == null
-        ? null
-        : StateVectorDisplay(
-            key: const ValueKey('web-composer-target-state'),
-            stateVector: target,
-            numQubits: level.numQubits,
-            summaryTitleOverride: 'Target State',
-            stateExpressionLabel: level.targetStateLabel,
-            stateExpression: level.targetStateExpression,
-            tone: StateVectorDisplayTone.target,
-            showHeader: false,
-            showToggleInSummary: true,
-            showSummarySubtitle: false,
-            dense: true,
-            contentDriven: contentDriven,
-            showVisibilityControl: false,
-            nonZeroOnlyOverride: _nonZeroOnly,
-          );
-    final stateViews = targetDisplay == null
-        ? current
-        : contentDriven
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  current,
-                  const SizedBox(height: 12),
-                  targetDisplay,
-                ],
-              )
-            : Column(
-                children: [
-                  Expanded(child: current),
-                  const SizedBox(height: 10),
-                  Expanded(child: targetDisplay),
-                ],
-              );
-    return stateViews;
-  }
+  Widget _buildStateViews(bool contentDriven) => QuantumStateInspectorContent(
+        currentPanelKey: const ValueKey('web-composer-current-state'),
+        targetPanelKey: const ValueKey('web-composer-target-state'),
+        currentStateVector: _activeCircuit.currentState.stateVector,
+        numQubits: _activeCircuit.currentLevel.numQubits,
+        targetStateVector: _activeCircuit.currentLevel.solutionFinalVector
+            .map((column) => column.first)
+            .toList(),
+        targetStateLabel: _activeCircuit.currentLevel.targetStateLabel,
+        targetStateExpression:
+            _activeCircuit.currentLevel.targetStateExpression,
+        contentDriven: contentDriven,
+        nonZeroOnly: _nonZeroOnly,
+        onNonZeroOnlyChanged: (value) => setState(() => _nonZeroOnly = value),
+      );
 
   Widget _buildMeasureView(bool contentDriven) {
     final content = SingleChildScrollView(
@@ -991,7 +951,6 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
   Widget build(BuildContext context) => LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxWidth < 700;
-          final wide = constraints.maxWidth >= 1050;
           final horizontalPadding = compact ? 14.0 : 24.0;
 
           if (_circuit == null) {
@@ -1044,9 +1003,9 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
               SizedBox(height: compact ? 14 : 18),
               WebComposerWorkbench(
                 wideMainHeight: workbenchMetrics.mainRowHeight,
-                circuitBuilder: (_) => _buildCircuitStage(
+                circuitBuilder: (layout) => _buildCircuitStage(
                   canvasHeight,
-                  integratedWorkbench: wide,
+                  integratedWorkbench: layout.wide,
                 ),
                 circuitHeaderTrailing: Wrap(
                   key: const ValueKey('web-composer-workspace-actions'),
@@ -1070,25 +1029,28 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
                     ),
                   ],
                 ),
-                gatesBuilder: (_) => ComposerGatePalette(
+                gatesBuilder: (layout) => ComposerGatePalette(
                   gates: _gates,
-                  dense: wide,
+                  dense: layout.densePalette,
                   embedded: true,
                   onGateTap: (gate) => setState(() => _status =
                       'Selected ${gate.label.replaceAll('\n', ' ')}.'),
                   onInspectGate: _inspect,
                 ),
-                stateViewBuilder: _buildStateViews,
-                measureViewBuilder:
-                    widget.example == null ? _buildMeasureView : null,
+                stateViewBuilder: (layout) =>
+                    _buildStateViews(layout.contentDrivenInspector),
+                measureViewBuilder: widget.example == null
+                    ? (layout) =>
+                        _buildMeasureView(layout.contentDrivenInspector)
+                    : null,
                 currentStateVector: _activeCircuit.currentState.stateVector,
                 numQubits: _activeCircuit.currentLevel.numQubits,
                 targetStateExpression:
                     _activeCircuit.currentLevel.targetStateExpression,
-                actionsBuilder: (_) => _buildWorkspaceFooter(
+                actionsBuilder: (layout) => _buildWorkspaceFooter(
                   selectedGate: selectedGate,
                   selectedCapabilities: selectedCapabilities,
-                  wide: wide,
+                  wide: layout.inlineActions,
                 ),
                 inspectorContentSpacing: 14,
                 inspectorKey: const ValueKey('web-composer-state-inspection'),

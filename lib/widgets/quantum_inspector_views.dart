@@ -10,6 +10,18 @@ import 'package:quantumquiz/widgets/latex_text.dart';
 
 enum QuantumInspectorView { state, bloch, measure }
 
+/// Presentation state owned by the workbench, independently of Inspector elements.
+class QuantumInspectorSelection {
+  QuantumInspectorView selected = QuantumInspectorView.state;
+
+  void reconcile({required bool supportsBloch, required bool supportsMeasure}) {
+    if ((selected == QuantumInspectorView.bloch && !supportsBloch) ||
+        (selected == QuantumInspectorView.measure && !supportsMeasure)) {
+      selected = QuantumInspectorView.state;
+    }
+  }
+}
+
 class QuantumInspectorViews extends StatefulWidget {
   const QuantumInspectorViews({
     super.key,
@@ -19,8 +31,10 @@ class QuantumInspectorViews extends StatefulWidget {
     required this.contentDriven,
     this.targetStateExpression,
     this.measureView,
+    this.selection,
   });
 
+  final QuantumInspectorSelection? selection;
   final Widget stateView;
   final Widget? measureView;
   final List<Complex> currentStateVector;
@@ -35,15 +49,27 @@ class QuantumInspectorViews extends StatefulWidget {
 }
 
 class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
-  QuantumInspectorView _view = QuantumInspectorView.state;
+  final _localSelection = QuantumInspectorSelection();
+  QuantumInspectorSelection get _selection =>
+      widget.selection ?? _localSelection;
+  QuantumInspectorView get _view => _selection.selected;
+  BlochCamera _camera = const BlochCamera(zoom: 1.15);
+
+  @override
+  void initState() {
+    super.initState();
+    _reconcileSelection();
+  }
+
+  void _reconcileSelection() => _selection.reconcile(
+        supportsBloch: widget.supportsBloch,
+        supportsMeasure: widget.measureView != null,
+      );
 
   @override
   void didUpdateWidget(covariant QuantumInspectorViews oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if ((!widget.supportsBloch && _view == QuantumInspectorView.bloch) ||
-        (widget.measureView == null && _view == QuantumInspectorView.measure)) {
-      _view = QuantumInspectorView.state;
-    }
+    _reconcileSelection();
   }
 
   @override
@@ -88,7 +114,7 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             onSelectionChanged: (selection) {
-              setState(() => _view = selection.single);
+              setState(() => _selection.selected = selection.single);
             },
           ),
         ),
@@ -138,14 +164,14 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
                 height: regionHeight,
                 child: BlochSpherePanel(
                   state: state,
-                  camera: const BlochCamera(zoom: 1.15),
-                  interactive: false,
+                  camera: _camera,
+                  allowStateEditing: false,
                   reserveOverlaySafeRegions: true,
                   showHelper: false,
                   compactAnnotations: true,
                   overlaySphereFraction: .95,
                   overlaySphereAlignment: const Alignment(0, -.05),
-                  onCameraChanged: (_) {},
+                  onCameraChanged: (camera) => setState(() => _camera = camera),
                   onStatePreview: (_) {},
                   onStateCommitted: (_) {},
                   onGestureStarted: () {},

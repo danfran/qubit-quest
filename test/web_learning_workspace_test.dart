@@ -93,7 +93,7 @@ void main() {
     expect(description.message, groupedLevels.first.categoryIntro);
 
     final activityWidth = tester
-        .getSize(find.byKey(const ValueKey('web-chapter-activity-wide')))
+        .getSize(find.byKey(const ValueKey('web-chapter-activity')))
         .width;
     expect(activityWidth, greaterThan(1200));
 

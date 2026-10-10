@@ -51,6 +51,7 @@ class BlochSpherePanel extends StatefulWidget {
     this.overlaySphereFraction = .74,
     this.overlaySphereAlignment = Alignment.center,
     this.interactive = true,
+    this.allowStateEditing = true,
     required this.state,
     required this.camera,
     required this.onCameraChanged,
@@ -67,6 +68,9 @@ class BlochSpherePanel extends StatefulWidget {
   final double overlaySphereFraction;
   final Alignment overlaySphereAlignment;
   final bool interactive;
+
+  /// False enables camera gestures without allowing vector/state manipulation.
+  final bool allowStateEditing;
   final BlochState state;
   final BlochCamera camera;
   final ValueChanged<BlochCamera> onCameraChanged;
@@ -110,8 +114,10 @@ class _BlochSpherePanelState extends State<BlochSpherePanel> {
                     widget.onGestureStarted();
                     _startCamera = widget.camera;
                     _startPoint = details.localFocalPoint;
-                    _mode = BlochGestureResolver.resolveMode(
-                        details.localFocalPoint, tip);
+                    _mode = widget.allowStateEditing
+                        ? BlochGestureResolver.resolveMode(
+                            details.localFocalPoint, tip)
+                        : BlochSphereGestureMode.orbit;
                     _latestState = _mode == BlochSphereGestureMode.state
                         ? widget.onStateGestureStarted()
                         : widget.state;

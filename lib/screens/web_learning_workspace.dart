@@ -29,7 +29,9 @@ import 'package:quantumquiz/widgets/activity_instruction_presentation.dart';
 import 'package:quantumquiz/widgets/mastery_evidence_view.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
-import 'package:quantumquiz/widgets/state_vector_display.dart';
+import 'package:quantumquiz/widgets/state_vector_display.dart'
+    show defaultNonZeroOnlyForQubitCount;
+import 'package:quantumquiz/widgets/quantum_state_inspector_content.dart';
 import 'package:quantumquiz/widgets/web_composer_workbench.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
@@ -250,14 +252,12 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
                   onSelected: (id) => setState(() => _selectedSemanticId = id),
                 );
                 return Column(
-                  key: ValueKey(
-                    wide
-                        ? 'web-mastery-wide-layout'
-                        : 'web-mastery-stacked-layout',
-                  ),
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SizedBox(
+                      key: ValueKey(wide
+                          ? 'web-mastery-wide-layout'
+                          : 'web-mastery-stacked-layout'),
                       height: wide ? 126 : 148,
                       child: _MasteryHeader(
                         completed: state.completedMasterySemanticIds.length,
@@ -272,20 +272,12 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
                       ),
                     ),
                     const Divider(height: 1, color: _border),
+                    // Keep the activity in one slot when header navigation changes.
+                    if (!wide) SizedBox(height: 92, child: challengeList),
+                    if (!wide) const Divider(height: 1, color: _border),
                     Expanded(
-                      child: wide
-                          ? KeyedSubtree(
-                              key: const ValueKey('web-mastery-activity-wide'),
-                              child: activity,
-                            )
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                SizedBox(height: 92, child: challengeList),
-                                const Divider(height: 1, color: _border),
-                                Expanded(child: activity),
-                              ],
-                            ),
+                      key: const ValueKey('web-mastery-activity'),
+                      child: activity,
                     ),
                   ],
                 );
@@ -669,20 +661,12 @@ class _ChapterWorkspace extends StatelessWidget {
             children: [
               header,
               const Divider(height: 1, color: _border),
+              // Only navigation changes; the lesson and its circuit keep their lifetime.
+              if (!wide) lessons,
+              if (!wide) const Divider(height: 1, color: _border),
               Expanded(
-                child: wide
-                    ? KeyedSubtree(
-                        key: const ValueKey('web-chapter-activity-wide'),
-                        child: lesson,
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          lessons,
-                          const Divider(height: 1, color: _border),
-                          Expanded(child: lesson),
-                        ],
-                      ),
+                key: const ValueKey('web-chapter-activity'),
+                child: lesson,
               ),
             ],
           );
@@ -1563,7 +1547,14 @@ class WebComposerLesson extends StatefulWidget {
   State<WebComposerLesson> createState() => _WebComposerLessonState();
 }
 
-class _WebComposerLessonState extends State<WebComposerLesson> {
+class _WebComposerLessonState extends State<WebComposerLesson>
+    with AutomaticKeepAliveClientMixin {
+  // The lesson ListView may evict offscreen children during responsive reflow.
+  // A Composer is an active session: its circuit and Inspector belong to the
+  // selected lesson, not to the current scroll/cache extent.
+  @override
+  bool get wantKeepAlive => true;
+
   static const double _journeyWideBreakpoint = 760;
 
   late QuantumCircuit _circuit;
@@ -1747,51 +1738,21 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
         ),
       );
 
-  Widget _stateDisplays({required bool contentDriven}) {
-    final current = StateVectorDisplay(
-      key: const ValueKey('web-lesson-current-state'),
-      stateVector: _circuit.currentState.stateVector,
-      numQubits: widget.level.numQubits,
-      summaryTitleOverride: 'Current State',
-      tone: StateVectorDisplayTone.current,
-      showHeader: false,
-      showToggleInSummary: true,
-      showSummarySubtitle: false,
-      dense: true,
-      contentDriven: contentDriven,
-      lightweightTypography: true,
-      nonZeroOnlyOverride: _nonZeroOnly,
-      onNonZeroOnlyChanged: (value) => setState(() => _nonZeroOnly = value),
-    );
-    if (widget.level.solutionFinalVector.isEmpty) return current;
-    final target = StateVectorDisplay(
-      key: const ValueKey('web-lesson-target-state'),
-      stateVector: widget.level.solutionFinalVector
-          .map((column) => column.first)
-          .toList(),
-      numQubits: widget.level.numQubits,
-      summaryTitleOverride: 'Target State',
-      stateExpressionLabel: widget.level.targetStateLabel,
-      stateExpression: widget.level.targetStateExpression,
-      tone: StateVectorDisplayTone.target,
-      showHeader: false,
-      showToggleInSummary: true,
-      showSummarySubtitle: false,
-      showVisibilityControl: false,
-      dense: true,
-      contentDriven: contentDriven,
-      lightweightTypography: true,
-      nonZeroOnlyOverride: _nonZeroOnly,
-    );
-    return Column(
-      mainAxisSize: contentDriven ? MainAxisSize.min : MainAxisSize.max,
-      children: [
-        if (contentDriven) current else Expanded(child: current),
-        const SizedBox(height: 10),
-        if (contentDriven) target else Expanded(child: target),
-      ],
-    );
-  }
+  Widget _stateDisplays({required bool contentDriven}) =>
+      QuantumStateInspectorContent(
+        currentPanelKey: const ValueKey('web-lesson-current-state'),
+        targetPanelKey: const ValueKey('web-lesson-target-state'),
+        currentStateVector: _circuit.currentState.stateVector,
+        numQubits: widget.level.numQubits,
+        targetStateVector: widget.level.solutionFinalVector
+            .map((column) => column.first)
+            .toList(),
+        targetStateLabel: widget.level.targetStateLabel,
+        targetStateExpression: widget.level.targetStateExpression,
+        contentDriven: contentDriven,
+        nonZeroOnly: _nonZeroOnly,
+        onNonZeroOnlyChanged: (value) => setState(() => _nonZeroOnly = value),
+      );
 
   Widget _workspaceToolbar(bool wide) {
     final hasRotationGate = _gates.any((gate) => _isRotation(gate.type));
@@ -1919,11 +1880,12 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
 
   Widget _buildDesktopWorkspace() => WebComposerWorkbench(
         key: const ValueKey('web-lesson-1-quantum-workspace'),
-        circuitBuilder: _workspaceCanvas,
-        gatesBuilder: _workspaceToolbar,
-        stateViewBuilder: (contentDriven) =>
-            _stateDisplays(contentDriven: contentDriven),
-        actionsBuilder: (wide) => _workspaceActions(wide: wide),
+        circuitBuilder: (layout) => _workspaceCanvas(layout.wide),
+        gatesBuilder: (layout) => _workspaceToolbar(layout.densePalette),
+        stateViewBuilder: (layout) =>
+            _stateDisplays(contentDriven: layout.contentDrivenInspector),
+        actionsBuilder: (layout) =>
+            _workspaceActions(wide: layout.inlineActions),
         currentStateVector: _circuit.currentState.stateVector,
         numQubits: widget.level.numQubits,
         targetStateExpression: widget.level.targetStateExpression,
@@ -1935,6 +1897,7 @@ class _WebComposerLessonState extends State<WebComposerLesson> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     if (widget.desktopWorkspace) return _buildDesktopWorkspace();
     final hints = widget.level.hints ?? const <String>[];
     final hasRotationGate = _gates.any((gate) => _isRotation(gate.type));

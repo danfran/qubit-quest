@@ -4,12 +4,33 @@ import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/widgets/quantum_inspector_views.dart';
 import 'package:quantumquiz/widgets/quantum_workspace_layout.dart';
 
-typedef WebComposerWorkbenchRegionBuilder = Widget Function(bool wide);
-typedef WebComposerWorkbenchStateBuilder = Widget Function(
-  bool contentDriven,
-);
+/// Resolved once from the workbench's local constraints, never viewport width.
+@immutable
+class WebComposerLayoutInfo {
+  const WebComposerLayoutInfo({
+    required this.availableWidth,
+    required this.wide,
+    required this.enlargedText,
+  });
 
-class WebComposerWorkbench extends StatelessWidget {
+  final double availableWidth;
+  final bool wide;
+  final bool enlargedText;
+  // The learning policy allows a side-by-side workbench below the default
+  // threshold. Its narrower Inspector needs whole-content scrolling so the
+  // state heading/filter cannot consume a constrained panel's entire height.
+  bool get contentDrivenInspector =>
+      !wide ||
+      enlargedText ||
+      availableWidth < QuantumWorkspaceLayout.wideBreakpoint;
+  bool get densePalette => wide;
+  bool get inlineActions => wide && !enlargedText;
+}
+
+typedef WebComposerWorkbenchRegionBuilder = Widget Function(
+    WebComposerLayoutInfo layout);
+
+class WebComposerWorkbench extends StatefulWidget {
   const WebComposerWorkbench({
     super.key,
     required this.circuitBuilder,
@@ -36,9 +57,9 @@ class WebComposerWorkbench extends StatelessWidget {
 
   final WebComposerWorkbenchRegionBuilder circuitBuilder;
   final WebComposerWorkbenchRegionBuilder gatesBuilder;
-  final WebComposerWorkbenchStateBuilder stateViewBuilder;
+  final WebComposerWorkbenchRegionBuilder stateViewBuilder;
   final WebComposerWorkbenchRegionBuilder? actionsBuilder;
-  final WebComposerWorkbenchStateBuilder? measureViewBuilder;
+  final WebComposerWorkbenchRegionBuilder? measureViewBuilder;
   final List<Complex> currentStateVector;
   final int numQubits;
   final String? targetStateExpression;
@@ -51,43 +72,50 @@ class WebComposerWorkbench extends StatelessWidget {
   final double inspectorContentSpacing;
 
   @override
+  State<WebComposerWorkbench> createState() => _WebComposerWorkbenchState();
+}
+
+class _WebComposerWorkbenchState extends State<WebComposerWorkbench> {
+  // Reparent the same Inspector element when layout/scroll wrappers change.
+  final GlobalKey _inspectorLifecycleKey = GlobalKey();
+  final _inspectorSelection = QuantumInspectorSelection();
+
+  @override
   Widget build(BuildContext context) => LayoutBuilder(
         builder: (context, constraints) {
-          final wide = constraints.maxWidth >= wideLayoutBreakpoint;
-          final accessibilityConstrained =
-              wide && MediaQuery.textScalerOf(context).scale(14) > 14;
-          final contentDriven = !wide || accessibilityConstrained;
-          final inspector = _inspector(
-            contentDriven: contentDriven,
+          final layout = WebComposerLayoutInfo(
+            availableWidth: constraints.maxWidth,
+            wide: constraints.maxWidth >= widget.wideLayoutBreakpoint,
+            enlargedText: MediaQuery.textScalerOf(context).scale(14) > 14,
           );
+          final inspector = _inspector(layout);
           return QuantumWorkspaceLayout(
-            circuit: _circuit(wide),
-            inspection: accessibilityConstrained
+            wide: layout.wide,
+            circuit: _circuit(layout),
+            inspection: layout.wide && layout.contentDrivenInspector
                 ? SingleChildScrollView(child: inspector)
                 : inspector,
-            toolbar: _gates(wide),
-            contextualActions: actionsBuilder?.call(wide),
-            wideLayoutBreakpoint: wideLayoutBreakpoint,
-            wideMainHeight: wideMainHeight,
+            toolbar: _gates(layout),
+            contextualActions: widget.actionsBuilder?.call(layout),
+            wideMainHeight: widget.wideMainHeight,
           );
         },
       );
 
-  Widget _circuit(bool wide) => Column(
+  Widget _circuit(WebComposerLayoutInfo layout) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: wide ? MainAxisSize.max : MainAxisSize.min,
+        mainAxisSize: layout.wide ? MainAxisSize.max : MainAxisSize.min,
         children: [
           LayoutBuilder(
             builder: (context, constraints) {
               final title = _RegionLabel(
                 icon: Icons.account_tree_outlined,
                 label: 'CIRCUIT WORKSPACE',
-                style: labelStyle,
+                style: widget.labelStyle,
               );
-              final trailing = circuitHeaderTrailing;
+              final trailing = widget.circuitHeaderTrailing;
               if (trailing == null) return title;
-              if (constraints.maxWidth < 560 ||
-                  MediaQuery.textScalerOf(context).scale(14) > 14) {
+              if (constraints.maxWidth < 560 || layout.enlargedText) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -106,54 +134,58 @@ class WebComposerWorkbench extends StatelessWidget {
             },
           ),
           const SizedBox(height: 12),
-          if (wide)
-            Expanded(child: circuitBuilder(true))
+          if (layout.wide)
+            Expanded(child: widget.circuitBuilder(layout))
           else
-            circuitBuilder(false),
+            widget.circuitBuilder(layout),
         ],
       );
 
-  Widget _gates(bool wide) => Column(
+  Widget _gates(WebComposerLayoutInfo layout) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
           _RegionLabel(
             icon: Icons.widgets_outlined,
             label: 'GATES',
-            style: labelStyle,
+            style: widget.labelStyle,
           ),
           const SizedBox(height: 8),
-          gatesBuilder(wide),
+          widget.gatesBuilder(layout),
         ],
       );
 
-  Widget _inspector({required bool contentDriven}) => Column(
-        key: inspectorKey,
+  Widget _inspector(WebComposerLayoutInfo layout) => Column(
+        key: widget.inspectorKey,
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: contentDriven ? MainAxisSize.min : MainAxisSize.max,
+        mainAxisSize:
+            layout.contentDrivenInspector ? MainAxisSize.min : MainAxisSize.max,
         children: [
           _RegionLabel(
             icon: Icons.monitor_heart_outlined,
             label: 'INSPECTOR',
-            style: labelStyle,
+            style: widget.labelStyle,
           ),
-          SizedBox(height: inspectorContentSpacing),
-          if (contentDriven)
-            _inspectorViews(contentDriven: true)
+          SizedBox(height: widget.inspectorContentSpacing),
+          if (layout.contentDrivenInspector)
+            _inspectorViews(layout)
           else
-            Expanded(child: _inspectorViews(contentDriven: false)),
+            Expanded(child: _inspectorViews(layout)),
         ],
       );
 
-  Widget _inspectorViews({required bool contentDriven}) =>
-      QuantumInspectorViews(
-        key: inspectorViewsKey,
-        stateView: stateViewBuilder(contentDriven),
-        measureView: measureViewBuilder?.call(contentDriven),
-        currentStateVector: currentStateVector,
-        numQubits: numQubits,
-        contentDriven: contentDriven,
-        targetStateExpression: targetStateExpression,
+  Widget _inspectorViews(WebComposerLayoutInfo layout) => KeyedSubtree(
+        key: _inspectorLifecycleKey,
+        child: QuantumInspectorViews(
+          selection: _inspectorSelection,
+          key: widget.inspectorViewsKey,
+          stateView: widget.stateViewBuilder(layout),
+          measureView: widget.measureViewBuilder?.call(layout),
+          currentStateVector: widget.currentStateVector,
+          numQubits: widget.numQubits,
+          contentDriven: layout.contentDrivenInspector,
+          targetStateExpression: widget.targetStateExpression,
+        ),
       );
 }
 
