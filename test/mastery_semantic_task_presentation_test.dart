@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/widgets/web_learning_text.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_tex/flutter_tex.dart';
 import 'package:quantumquiz/models/mastery_2_catalogue.dart';
@@ -71,6 +72,8 @@ void main() {
         'phase_kickback_reveal',
         'inverse_phase_synthesis',
         'phased_entanglement_uncomputation',
+        'oracle_repair_uncompute',
+        'marked_is_not_amplified',
         'search_pipeline_forensics',
       ]) {
         await pumpTask(tester, id, size, 1, false);
@@ -97,7 +100,9 @@ void main() {
               find.descendant(
                   of: panel, matching: find.byType(MasteryEvidenceView)),
               findsNothing);
-          expect(find.descendant(of: panel, matching: find.byType(LatexText)),
+          expect(
+              find.descendant(
+                  of: panel, matching: find.byType(WebLearningText)),
               findsOneWidget);
           expect(tester.getSize(panel).height,
               lessThan(size.width > 1000 ? 160 : 200));
@@ -106,7 +111,9 @@ void main() {
               of: panel, matching: find.byType(MasteryEvidenceView));
           expect(evidence, findsOneWidget);
           expect(tester.widget<MasteryEvidenceView>(evidence).compactSpacing,
-              id == 'inverse_phase_synthesis');
+              isFalse);
+          expect(
+              tester.widget<MasteryEvidenceView>(evidence).webLearning, isTrue);
         }
         final instruction = find.descendant(
             of: panel, matching: find.byType(ActivityInstructionPresentation));
@@ -115,30 +122,41 @@ void main() {
             tester.widget<ActivityInstructionPresentation>(instruction);
         final presentation = requireMasteryPresentation(id);
         expect(semantic.task, presentation.instruction);
+        if (semantic.task.isNotEmpty) {
+          final task = tester.widget<WebLearningText>(find.descendant(
+              of: panel,
+              matching: find.byWidgetPredicate(
+                  (w) => w is WebLearningText && w.text == semantic.task)));
+          expect(task.role, WebLearningTextRole.task);
+        }
         expect(semantic.question, presentation.question);
+        expect(
+            semantic.taskContinuation, presentation.instructionAfterEvidence);
         if (presentation.question.isNotEmpty) {
-          final question = tester.widget<LatexText>(
+          final question = tester.widget<WebLearningText>(
               find.byKey(const ValueKey('mastery-task-instruction')));
-          expect(question.textStyle,
-              ActivityInstructionPresentation.questionStyle);
+          expect(question.role, WebLearningTextRole.question);
           expect(
-              question.math,
+              question.text,
               normalizeActivityInstructions(question: presentation.question)
                   .question);
         }
         if (id == 'inverse_phase_synthesis') {
           final math = find.byKey(const ValueKey('mastery-math-evidence'));
-          final intro = find.byKey(const ValueKey('mastery-evidence-intro'));
-          final instruction =
-              find.byKey(const ValueKey('mastery-task-instruction'));
+          final intro = find.byWidgetPredicate((w) =>
+              w is WebLearningText && w.text == presentation.instruction);
+          final instruction = find.byWidgetPredicate((w) =>
+              w is WebLearningText &&
+              w.text == presentation.instructionAfterEvidence);
           expect(tester.getRect(math).top - tester.getRect(intro).bottom,
               QubitQuestSpacing.micro);
           expect(tester.getRect(instruction).top - tester.getRect(math).bottom,
               QubitQuestSpacing.micro);
           final equation = tester.widget<LatexText>(
               find.descendant(of: math, matching: find.byType(LatexText)));
-          expect(equation.displayMathHeight,
-              MasteryEvidenceView.stackedMathDisplayHeight);
+          expect(
+              equation.mathFontSize, QubitQuestTypography.mathDisplay.fontSize);
+          expect(equation.displayMathHeight, 18);
         }
         expect(tester.takeException(), isNull, reason: id);
       }
@@ -208,11 +226,20 @@ void main() {
             expect(item.math, contains(r'\frac'));
             expect(item.math, isNot(contains('e^(')));
             expect(item.displayMathHeight,
-                MasteryEvidenceView.stackedMathDisplayHeight);
+                native ? MasteryEvidenceView.stackedMathDisplayHeight : 18);
+            expect(item.mathFontSize, native ? isNull : 18);
           }
           final end = entry.key == 'ghz_phase_manipulation'
               ? math.last
-              : find.byKey(const ValueKey('mastery-task-instruction'));
+              : find.byWidgetPredicate((w) => native
+                  ? w is LatexText &&
+                      w.math ==
+                          mastery2Presentations[entry.key]!
+                              .instructionAfterEvidence
+                  : w is WebLearningText &&
+                      w.text ==
+                          mastery2Presentations[entry.key]!
+                              .instructionAfterEvidence);
           await tester.ensureVisible(end);
           await tester.pumpAndSettle();
           final rect = tester.getRect(end);
@@ -243,7 +270,9 @@ void main() {
       await tester.pumpAndSettle();
       final end = id == 'ghz_phase_manipulation'
           ? find.byKey(const ValueKey('mastery-math-evidence')).last
-          : find.byKey(const ValueKey('mastery-task-instruction'));
+          : find.byWidgetPredicate((w) =>
+              w is LatexText &&
+              w.math == mastery2Presentations[id]!.instructionAfterEvidence);
       await tester.ensureVisible(end);
       await tester.pumpAndSettle();
       expect(tester.getRect(end).right, lessThanOrEqualTo(320));
@@ -338,7 +367,8 @@ void main() {
       expect(find.byType(MasteryEvidenceView), findsOneWidget);
       final question = mastery2Presentations[id]!.question;
       expect(
-          find.byWidgetPredicate((w) => w is LatexText && w.math == question),
+          find.byWidgetPredicate(
+              (w) => w is WebLearningText && w.text == question),
           findsOneWidget);
       if (id == 'same_histogram_different_state' ||
           id == 'algorithm_architecture_inspector' ||

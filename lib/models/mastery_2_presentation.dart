@@ -14,9 +14,11 @@ class MasteryMathEvidence extends MasteryEvidenceBlock {
 }
 
 class MasteryTextEvidence extends MasteryEvidenceBlock {
-  const MasteryTextEvidence({super.label, required this.text});
+  const MasteryTextEvidence(
+      {super.label, required this.text, this.isInstruction = false});
 
   final String text;
+  final bool isInstruction;
 }
 
 class MasteryCircuitEvidence extends MasteryEvidenceBlock {
@@ -51,12 +53,17 @@ class MasteryChallengePresentation {
     required this.question,
     required this.evidence,
     this.instruction = '',
+    this.instructionAfterEvidence = '',
     this.intro,
     this.helperText,
   });
 
   /// A task instruction, distinct from an optional concluding question.
   final String instruction;
+
+  /// Continuation of the same instruction around specialised evidence.
+  /// Sentence fragments here retain Task styling; questions belong in question.
+  final String instructionAfterEvidence;
   final String? intro;
   final List<MasteryEvidenceBlock> evidence;
   final String question;
@@ -136,7 +143,7 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
     evidence: [],
   ),
   'bell_input_sign_preparation': const MasteryChallengePresentation(
-    intro:
+    instruction:
         r'Starting from \(|01\rangle\) (ket order \(|q_1\,q_0\rangle\)), prepare',
     evidence: [
       MasteryMathEvidence(
@@ -144,7 +151,9 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
         expression: r'\[\Phi^-=\frac{|00\rangle-|11\rangle}{\sqrt{2}}\]',
       ),
     ],
-    question: 'using the input-dependent sign and the available H/CNOT gates.',
+    question: '',
+    instructionAfterEvidence:
+        'using the input-dependent sign and the available H/CNOT gates.',
   ),
   'ghz_phase_manipulation': const MasteryChallengePresentation(
     intro: 'The fixed starting state is',
@@ -153,7 +162,8 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
         label: 'FIXED STARTING STATE',
         expression: r'\[GHZ^+=\frac{|000\rangle+|111\rangle}{\sqrt{2}}\]',
       ),
-      MasteryTextEvidence(text: 'Use one local Z operation to produce'),
+      MasteryTextEvidence(
+          text: 'Use one local Z operation to produce', isInstruction: true),
       MasteryMathEvidence(
         label: 'TARGET',
         expression: r'\[GHZ^-=\frac{|000\rangle-|111\rangle}{\sqrt{2}}\]',
@@ -162,13 +172,14 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
     question: '',
   ),
   'inverse_phase_synthesis': const MasteryChallengePresentation(
-    intro: 'Prepare',
+    instruction: 'Prepare',
     evidence: [
       MasteryMathEvidence(
         expression: r'\[\frac{|0\rangle+e^{-i\pi/4}|1\rangle}{\sqrt{2}}\]',
       ),
     ],
-    question:
+    question: '',
+    instructionAfterEvidence:
         r'from \(|0\rangle\) without a \(T^{\dagger}\) gate. Synthesize the negative eighth-turn using H, T, S, and Z.',
   ),
   'global_phase_equivalence': const MasteryChallengePresentation(

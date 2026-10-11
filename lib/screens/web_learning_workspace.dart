@@ -25,8 +25,8 @@ import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
 import 'package:quantumquiz/widgets/circuit_canvas_metrics.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
-import 'package:quantumquiz/widgets/activity_instruction_presentation.dart';
-import 'package:quantumquiz/widgets/mastery_evidence_view.dart';
+import 'package:quantumquiz/widgets/web_learning_text.dart';
+import 'package:quantumquiz/widgets/web_activity_instruction_content.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart'
@@ -181,33 +181,33 @@ class WebMasteryWorkspace extends StatefulWidget {
   State<WebMasteryWorkspace> createState() => _WebMasteryWorkspaceState();
 }
 
+enum _MasteryFilter { all, incomplete, completed }
+
 class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
   String? _selectedSemanticId;
+  bool _showOverview = true;
+  String _query = '';
+  _MasteryFilter _filter = _MasteryFilter.all;
 
   List<MasteryChallengeDefinition> get _challenges =>
       mastery2Catalogue.orderedDefinitions;
 
-  MasteryChallengeDefinition _preferredChallenge(
-    CampaignProgressState state,
-  ) =>
-      _challenges.firstWhere(
-        (challenge) =>
-            !state.completedMasterySemanticIds.contains(challenge.semanticId),
-        orElse: () => _challenges.first,
-      );
+  void _select(String id) => setState(() {
+        _selectedSemanticId = id;
+        _showOverview = false;
+      });
 
   Future<void> _complete(String semanticId) async {
     await widget.progressController.completeMasteryChallenge(semanticId);
     if (mounted) setState(() {});
   }
 
-  void _nextChallenge(CampaignProgressState state) {
-    final current = _selectedSemanticId;
-    if (current == null) return;
+  void _move(int offset) {
     final index =
-        _challenges.indexWhere((challenge) => challenge.semanticId == current);
-    if (index >= 0 && index + 1 < _challenges.length) {
-      setState(() => _selectedSemanticId = _challenges[index + 1].semanticId);
+        _challenges.indexWhere((c) => c.semanticId == _selectedSemanticId);
+    final next = index + offset;
+    if (index >= 0 && next >= 0 && next < _challenges.length) {
+      _select(_challenges[next].semanticId);
     }
   }
 
@@ -220,159 +220,120 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
           }
           final state = widget.progressController.state;
           final selected =
-              mastery2Catalogue.bySemanticId(_selectedSemanticId ?? '') ??
-                  _preferredChallenge(state);
-          _selectedSemanticId = selected.semanticId;
-          final activity = WebLessonWorkspace(
-            key: ValueKey('web-mastery-activity-${selected.semanticId}'),
-            levelId: selected.displayOrder,
-            masteryChallenge: selected,
-            level: selected.levelDefinition,
-            alreadyCompleted:
-                state.completedMasterySemanticIds.contains(selected.semanticId),
-            onCompleted: () => _complete(selected.semanticId),
-            onNextLesson: () => _nextChallenge(
-              widget.progressController.state,
-            ),
-            onBackToChapter: () {},
-            onOpenNotebook: widget.onOpenNotebook,
-            onOpenNotebookEntry: widget.onOpenNotebookEntry,
-          );
+              mastery2Catalogue.bySemanticId(_selectedSemanticId ?? '');
+          final index = _challenges
+              .indexWhere((c) => c.semanticId == selected?.semanticId);
+          final completed = _challenges
+              .where((c) =>
+                  state.completedMasterySemanticIds.contains(c.semanticId))
+              .length;
           return Material(
             color: _background,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final wide = constraints.maxWidth >= 940;
-                final challengeList = _MasteryChallengeList(
-                  challenges: _challenges,
-                  selectedSemanticId: selected.semanticId,
-                  currentSemanticId: _preferredChallenge(state).semanticId,
-                  progressState: state,
-                  horizontal: !wide,
-                  onSelected: (id) => setState(() => _selectedSemanticId = id),
-                );
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(
-                      key: ValueKey(wide
-                          ? 'web-mastery-wide-layout'
-                          : 'web-mastery-stacked-layout'),
-                      height: wide ? 126 : 148,
-                      child: _MasteryHeader(
-                        completed: state.completedMasterySemanticIds.length,
-                        total: _challenges.length,
-                        onBackToJourney: widget.onBackToJourney,
-                        challenges: _challenges,
-                        selected: selected,
-                        progressState: state,
-                        showChallengeChooser: wide,
-                        onSelected: (id) =>
-                            setState(() => _selectedSemanticId = id),
-                      ),
-                    ),
-                    const Divider(height: 1, color: _border),
-                    // Keep the activity in one slot when header navigation changes.
-                    if (!wide) SizedBox(height: 92, child: challengeList),
-                    if (!wide) const Divider(height: 1, color: _border),
-                    Expanded(
-                      key: const ValueKey('web-mastery-activity'),
-                      child: activity,
-                    ),
-                  ],
-                );
-              },
-            ),
-          );
-        },
-      );
-}
-
-class _MasteryHeader extends StatelessWidget {
-  const _MasteryHeader({
-    required this.completed,
-    required this.total,
-    required this.onBackToJourney,
-    required this.challenges,
-    required this.selected,
-    required this.progressState,
-    required this.showChallengeChooser,
-    required this.onSelected,
-  });
-
-  final int completed;
-  final int total;
-  final VoidCallback onBackToJourney;
-  final List<MasteryChallengeDefinition> challenges;
-  final MasteryChallengeDefinition selected;
-  final CampaignProgressState progressState;
-  final bool showChallengeChooser;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < 760;
-          final heading = Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Journey  >  Mastery Challenges',
-                    style: TextStyle(color: _cyan, fontSize: 13),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Mastery Challenges',
-                    key: const ValueKey('web-mastery-title'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Independent quantum reasoning challenges.',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white70, height: 1.3),
-                  ),
-                ],
-              ),
-            ),
-          );
-          return Padding(
-            padding: EdgeInsets.fromLTRB(20, compact ? 10 : 14, 24, 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+            // Keep the selected activity alive while browsing or resizing. Only a
+            // different semantic challenge key starts a different activity session.
+            child: IndexedStack(
+              index: _showOverview || selected == null ? 0 : 1,
+              sizing: StackFit.expand,
               children: [
-                IconButton(
-                  key: const ValueKey('web-mastery-back-journey'),
-                  tooltip: 'Back to Journey',
-                  onPressed: onBackToJourney,
-                  icon: const Icon(Icons.arrow_back),
+                _MasteryOverview(
+                  challenges: _challenges,
+                  completedIds: state.completedMasterySemanticIds,
+                  completed: completed,
+                  selected: selected,
+                  query: _query,
+                  filter: _filter,
+                  onQuery: (value) => setState(() => _query = value),
+                  onFilter: (value) => setState(() => _filter = value),
+                  onSelected: _select,
+                  onBackToJourney: widget.onBackToJourney,
                 ),
-                const SizedBox(width: 8),
-                heading,
-                if (!compact) ...[
-                  const SizedBox(width: 16),
+                if (selected == null)
+                  const SizedBox.shrink()
+                else
                   Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (showChallengeChooser)
-                        _MasteryChallengeChooser(
-                          challenges: challenges,
-                          selected: selected,
-                          progressState: progressState,
-                          onSelected: onSelected,
+                      Padding(
+                        key: const ValueKey('web-mastery-workspace-header'),
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Wrap(
+                                spacing: 12,
+                                runSpacing: 8,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  TextButton.icon(
+                                    key: const ValueKey(
+                                        'web-mastery-back-overview'),
+                                    onPressed: () =>
+                                        setState(() => _showOverview = true),
+                                    icon: const Icon(Icons.arrow_back),
+                                    label: const Text('Back to Mastery'),
+                                  ),
+                                  Text(
+                                      'Challenge ${index + 1} of ${_challenges.length}'),
+                                  Text(
+                                      '$completed / ${_challenges.length} complete',
+                                      key: const ValueKey(
+                                          'web-mastery-progress')),
+                                ]),
+                            const SizedBox(height: 8),
+                            Text(selected.title,
+                                style: QubitQuestTypography.heading),
+                            const SizedBox(height: 8),
+                            Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  OutlinedButton(
+                                      key: const ValueKey(
+                                          'web-mastery-previous'),
+                                      onPressed:
+                                          index > 0 ? () => _move(-1) : null,
+                                      child: const Text('Previous')),
+                                  OutlinedButton(
+                                      key: const ValueKey('web-mastery-next'),
+                                      onPressed: index + 1 < _challenges.length
+                                          ? () => _move(1)
+                                          : null,
+                                      child: const Text('Next')),
+                                  Text(
+                                      state.completedMasterySemanticIds
+                                              .contains(selected.semanticId)
+                                          ? 'Completed'
+                                          : 'Incomplete',
+                                      key: const ValueKey(
+                                          'web-mastery-active-status'),
+                                      style: QubitQuestTypography.supporting),
+                                ]),
+                          ],
                         ),
-                      const SizedBox(height: 5),
-                      Text('$completed / $total complete'),
+                      ),
+                      const Divider(height: 1, color: _border),
+                      Expanded(
+                        key: const ValueKey('web-mastery-activity'),
+                        child: WebLessonWorkspace(
+                          key: ValueKey(
+                              'web-mastery-activity-${selected.semanticId}'),
+                          levelId: selected.displayOrder,
+                          masteryChallenge: selected,
+                          level: selected.levelDefinition,
+                          alreadyCompleted: state.completedMasterySemanticIds
+                              .contains(selected.semanticId),
+                          onCompleted: () => _complete(selected.semanticId),
+                          onNextLesson: () => _move(1),
+                          onBackToChapter: () =>
+                              setState(() => _showOverview = true),
+                          onOpenNotebook: widget.onOpenNotebook,
+                          onOpenNotebookEntry: widget.onOpenNotebookEntry,
+                        ),
+                      ),
                     ],
                   ),
-                ],
               ],
             ),
           );
@@ -380,201 +341,166 @@ class _MasteryHeader extends StatelessWidget {
       );
 }
 
-class _MasteryChallengeChooser extends StatelessWidget {
-  const _MasteryChallengeChooser({
+/// Lazy rows keep browsing proportional to the visible catalogue, not its size.
+class _MasteryOverview extends StatelessWidget {
+  const _MasteryOverview({
     required this.challenges,
-    required this.selected,
-    required this.progressState,
-    required this.onSelected,
-  });
-
-  final List<MasteryChallengeDefinition> challenges;
-  final MasteryChallengeDefinition selected;
-  final CampaignProgressState progressState;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) => PopupMenuButton<String>(
-        key: const ValueKey('web-mastery-challenge-chooser'),
-        tooltip: 'Open Mastery challenges',
-        onSelected: onSelected,
-        itemBuilder: (context) => [
-          for (final challenge in challenges)
-            PopupMenuItem<String>(
-              key: ValueKey('web-mastery-choice-${challenge.semanticId}'),
-              value: challenge.semanticId,
-              child: Row(
-                children: [
-                  Icon(
-                    progressState.completedMasterySemanticIds
-                            .contains(challenge.semanticId)
-                        ? Icons.check_circle
-                        : challenge.semanticId == selected.semanticId
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_unchecked,
-                    size: 18,
-                    color: progressState.completedMasterySemanticIds
-                            .contains(challenge.semanticId)
-                        ? Colors.greenAccent
-                        : _cyan,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      '${challenge.displayOrder}. ${challenge.title}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          decoration: BoxDecoration(
-            border: Border.all(color: _border),
-            borderRadius: QubitQuestRadii.control,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Challenge ${selected.displayOrder} of ${challenges.length}',
-                style: const TextStyle(fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(width: 4),
-              const Icon(Icons.expand_more, size: 18),
-            ],
-          ),
-        ),
-      );
-}
-
-class _MasteryChallengeList extends StatelessWidget {
-  const _MasteryChallengeList({
-    required this.challenges,
-    required this.selectedSemanticId,
-    required this.currentSemanticId,
-    required this.progressState,
-    required this.horizontal,
-    required this.onSelected,
-  });
-
-  final List<MasteryChallengeDefinition> challenges;
-  final String selectedSemanticId;
-  final String currentSemanticId;
-  final CampaignProgressState progressState;
-  final bool horizontal;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final children = [
-      for (final challenge in challenges)
-        _MasteryChallengeItem(
-          challenge: challenge,
-          selected: challenge.semanticId == selectedSemanticId,
-          current: challenge.semanticId == currentSemanticId,
-          completed: progressState.completedMasterySemanticIds
-              .contains(challenge.semanticId),
-          onSelected: onSelected,
-        ),
-    ];
-    if (horizontal) {
-      return ListView(
-        key: const ValueKey('web-mastery-challenge-list-narrow'),
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.all(10),
-        children: children,
-      );
-    }
-    return ListView(
-      key: const ValueKey('web-mastery-challenge-list-wide'),
-      padding: const EdgeInsets.all(14),
-      children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(10, 0, 10, 10),
-          child: Text(
-            'CHALLENGES',
-            style: TextStyle(
-              color: _purple,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.3,
-            ),
-          ),
-        ),
-        ...children,
-      ],
-    );
-  }
-}
-
-class _MasteryChallengeItem extends StatelessWidget {
-  const _MasteryChallengeItem({
-    required this.challenge,
-    required this.selected,
-    required this.current,
+    required this.completedIds,
     required this.completed,
+    required this.selected,
+    required this.query,
+    required this.filter,
+    required this.onQuery,
+    required this.onFilter,
     required this.onSelected,
+    required this.onBackToJourney,
   });
-
-  final MasteryChallengeDefinition challenge;
-  final bool selected;
-  final bool current;
-  final bool completed;
+  final List<MasteryChallengeDefinition> challenges;
+  final Set<String> completedIds;
+  final int completed;
+  final MasteryChallengeDefinition? selected;
+  final String query;
+  final _MasteryFilter filter;
+  final ValueChanged<String> onQuery;
+  final ValueChanged<_MasteryFilter> onFilter;
   final ValueChanged<String> onSelected;
+  final VoidCallback onBackToJourney;
 
   @override
-  Widget build(BuildContext context) {
-    final level = challenge.levelDefinition;
-    final number = challenge.displayOrder;
-    return Padding(
-      padding: const EdgeInsets.only(right: 6, bottom: 6),
-      child: Material(
-        color: selected ? const Color(0x2222D3EE) : Colors.transparent,
-        borderRadius: BorderRadius.circular(11),
+  Widget build(BuildContext context) =>
+      LayoutBuilder(builder: (context, constraints) {
+        final columns = (constraints.maxWidth / 320).floor().clamp(1, 4);
+        final visible = challenges
+            .where((c) =>
+                c.title.toLowerCase().contains(query.trim().toLowerCase()) &&
+                switch (filter) {
+                  _MasteryFilter.all => true,
+                  _MasteryFilter.completed =>
+                    completedIds.contains(c.semanticId),
+                  _MasteryFilter.incomplete =>
+                    !completedIds.contains(c.semanticId),
+                })
+            .toList();
+        return CustomScrollView(
+          key: const ValueKey('web-mastery-overview'),
+          slivers: [
+            SliverPadding(
+                padding: const EdgeInsets.all(16),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                                key: const ValueKey('web-mastery-back-journey'),
+                                onPressed: onBackToJourney,
+                                icon: const Icon(Icons.arrow_back),
+                                label: const Text('Back to Journey'))),
+                        const Text('Mastery Challenges',
+                            key: ValueKey('web-mastery-title'),
+                            style: QubitQuestTypography.title),
+                        const SizedBox(height: 6),
+                        const Text('Independent quantum reasoning challenges.',
+                            style: QubitQuestTypography.body),
+                        const SizedBox(height: 8),
+                        Text('$completed / ${challenges.length} complete',
+                            key: const ValueKey('web-mastery-progress')),
+                        if (selected != null) ...[
+                          const SizedBox(height: 12),
+                          Align(
+                              alignment: Alignment.centerLeft,
+                              child: FilledButton(
+                                  key: const ValueKey('web-mastery-continue'),
+                                  onPressed: () =>
+                                      onSelected(selected!.semanticId),
+                                  child: const Text('Continue Challenge'))),
+                        ],
+                        const SizedBox(height: 16),
+                        TextField(
+                          key: const ValueKey('web-mastery-search'),
+                          onChanged: onQuery,
+                          decoration: const InputDecoration(
+                              labelText: 'Search challenges',
+                              prefixIcon: Icon(Icons.search)),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(spacing: 8, runSpacing: 8, children: [
+                          for (final value in _MasteryFilter.values)
+                            ChoiceChip(
+                                key: ValueKey(
+                                    'web-mastery-filter-${value.name}'),
+                                label: Text(switch (value) {
+                                  _MasteryFilter.all => 'All',
+                                  _MasteryFilter.incomplete => 'Incomplete',
+                                  _MasteryFilter.completed => 'Completed',
+                                }),
+                                selected: filter == value,
+                                onSelected: (_) => onFilter(value)),
+                        ]),
+                        const SizedBox(height: 8),
+                        Text('${visible.length} challenges',
+                            key: const ValueKey('web-mastery-result-count'),
+                            style: QubitQuestTypography.supporting),
+                        if (visible.isEmpty)
+                          const Padding(
+                              padding: EdgeInsets.only(top: 16),
+                              child: Text('No matching challenges.')),
+                      ]),
+                )),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              sliver: SliverList.builder(
+                itemCount: (visible.length / columns).ceil(),
+                itemBuilder: (context, row) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (var col = 0; col < columns; col++) ...[
+                          if (col > 0) const SizedBox(width: 12),
+                          Expanded(
+                              child: row * columns + col < visible.length
+                                  ? _card(visible[row * columns + col])
+                                  : const SizedBox.shrink()),
+                        ],
+                      ]),
+                ),
+              ),
+            ),
+          ],
+        );
+      });
+
+  Widget _card(MasteryChallengeDefinition challenge) => Card(
+        margin: EdgeInsets.zero,
+        color: QubitQuestColors.surface,
+        shape: const RoundedRectangleBorder(
+            borderRadius: QubitQuestRadii.control,
+            side: QubitQuestBorders.standard),
         child: InkWell(
           key: ValueKey('web-mastery-challenge-${challenge.semanticId}'),
+          borderRadius: QubitQuestRadii.control,
           onTap: () => onSelected(challenge.semanticId),
-          borderRadius: BorderRadius.circular(11),
-          child: Container(
-            constraints: const BoxConstraints(minWidth: 190, maxWidth: 258),
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(11),
-              border: Border.all(color: selected ? _cyan : _border),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  completed
-                      ? Icons.check_circle
-                      : current
-                          ? Icons.play_circle_outline
-                          : Icons.circle_outlined,
-                  size: 20,
-                  color: completed ? Colors.greenAccent : _cyan,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '$number. ${level.title ?? 'Challenge $number'}',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Challenge ${challenge.displayOrder}',
+                      style: QubitQuestTypography.label),
+                  const SizedBox(height: 6),
+                  Text(challenge.title, style: QubitQuestTypography.body),
+                  const SizedBox(height: 8),
+                  Text(
+                      completedIds.contains(challenge.semanticId)
+                          ? 'Completed'
+                          : 'Incomplete',
+                      style: QubitQuestTypography.supporting),
+                ]),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class _ChapterWorkspace extends StatelessWidget {
@@ -843,10 +769,8 @@ class _CompactActivityContext extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 3),
-          ActivityInstructionPresentation(
-            task: level.taskDescription,
-            question: level.mysteryTitle,
-            compact: true,
+          WebActivityInstructionContent(
+            level: level,
             taskKey: const ValueKey('web-compact-task'),
             questionKey: const ValueKey('web-compact-question'),
           ),
@@ -1127,60 +1051,17 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
         : requireMasteryPresentation(challenge.semanticId);
   }
 
-  Widget _taskContent({bool showQuestion = true, bool showLabels = false}) {
-    final presentation = _masteryPresentation;
-    return ActivityInstructionPresentation(
-      task: presentation?.instruction ?? widget.level.taskDescription,
-      question: presentation?.question ?? widget.level.mysteryTitle,
-      showQuestion: showQuestion,
-      showLabels: showLabels,
-      questionKey: presentation == null
-          ? null
-          : const ValueKey('mastery-task-instruction'),
-      evidence: presentation == null ||
-              (presentation.evidence.isEmpty &&
-                  presentation.intro == null &&
-                  presentation.helperText == null)
-          ? null
-          : MasteryEvidenceView(
-              presentation: presentation,
-              includeInstruction: false,
-              compactSpacing: widget.level is ComposerLevel,
-            ),
-    );
-  }
-
   bool get _usesDesktopComposerWorkspace =>
       (widget.journeyActivity || widget.masteryChallenge != null) &&
       widget.level is ComposerLevel;
 
   Widget _desktopComposerLearningBrief() {
     final isMastery = widget.masteryChallenge != null;
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if ((widget.level.conceptIntro ?? '').trim().isNotEmpty) ...[
-          Text(
-            widget.level.conceptIntro!,
-            style: QubitQuestTypography.body,
-          ),
-          const SizedBox(height: 8),
-        ],
-        _taskContent(showLabels: !isMastery),
-        if ((widget.level.mysteryText ?? '').trim().isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 7),
-            child: Text(
-              widget.level.mysteryText!,
-              style: const TextStyle(
-                color: QubitQuestColors.textMuted,
-                fontSize: 12.5,
-                height: 1.35,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ),
-      ],
+    final content = WebActivityInstructionContent(
+      level: widget.level,
+      presentation: _masteryPresentation,
+      questionKey:
+          isMastery ? const ValueKey('mastery-task-instruction') : null,
     );
     return Padding(
       key: const ValueKey('web-lesson-1-learning-brief'),
@@ -1235,40 +1116,18 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
               _desktopComposerLearningBrief(),
             ],
           ],
-          if (!_usesDesktopComposerWorkspace && widget.level.hasMystery) ...[
-            const SizedBox(height: 16),
-            _ContentCard(
-              title: widget.level.mysteryTitle ?? 'Mystery',
-              titleContent: ActivityInstructionPresentation(
-                question: widget.level.mysteryTitle ?? 'Mystery',
-              ),
-              icon: Icons.travel_explore_outlined,
-              child: Text(
-                widget.level.mysteryText ?? '',
-                style: const TextStyle(height: 1.5, color: Colors.white70),
-              ),
-            ),
-          ],
           if (!_usesDesktopComposerWorkspace &&
-              (widget.level.conceptIntro ?? '').trim().isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _ContentCard(
-              title: 'Concept',
-              icon: Icons.lightbulb_outline,
-              child: Text(
-                widget.level.conceptIntro!,
-                style: const TextStyle(height: 1.5, color: Colors.white70),
-              ),
-            ),
-          ],
-          if (!_usesDesktopComposerWorkspace) ...[
+              !widget.compactJourneyHeader) ...[
             const SizedBox(height: 14),
             _ContentCard(
               title: 'Task',
               icon: Icons.flag_outlined,
-              child: _taskContent(
-                showQuestion:
-                    _masteryPresentation != null || !widget.level.hasMystery,
+              child: WebActivityInstructionContent(
+                level: widget.level,
+                presentation: _masteryPresentation,
+                questionKey: widget.masteryChallenge != null
+                    ? const ValueKey('mastery-task-instruction')
+                    : null,
               ),
             ),
           ],
@@ -1306,7 +1165,8 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
                         radius: 13,
                         child: Text('${index + 1}'),
                       ),
-                      title: Text(hint),
+                      title:
+                          WebLearningText(hint, role: WebLearningTextRole.hint),
                     ),
                 ],
               ),
@@ -1815,7 +1675,8 @@ class _WebComposerLessonState extends State<WebComposerLesson>
           for (int index = 0; index < _visibleHints; index++)
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
-              child: Text('Hint ${index + 1}: ${hints[index]}'),
+              child: WebLearningText('Hint ${index + 1}: ${hints[index]}',
+                  role: WebLearningTextRole.hint),
             ),
         ],
         if (_feedback != null || _visibleHints > 0) const SizedBox(height: 8),
@@ -1971,7 +1832,8 @@ class _WebComposerLessonState extends State<WebComposerLesson>
             for (int index = 0; index < _visibleHints; index++)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
-                child: Text('Hint ${index + 1}: ${hints[index]}'),
+                child: WebLearningText('Hint ${index + 1}: ${hints[index]}',
+                    role: WebLearningTextRole.hint),
               ),
           ],
           const SizedBox(height: 12),

@@ -77,11 +77,8 @@ void main() {
       ));
       await tester.pumpAndSettle();
       if (mastery) {
-        await tester
-            .tap(find.byKey(const ValueKey('web-mastery-challenge-chooser')));
-        await tester.pumpAndSettle();
         await tester.tap(find.byKey(
-            const ValueKey('web-mastery-choice-phase_state_uncomputation')));
+            const ValueKey('web-mastery-challenge-phase_state_uncomputation')));
       } else {
         await tester.tap(find.text('Chapter 1 — Information'));
       }
@@ -99,6 +96,9 @@ void main() {
       await tester.pumpAndSettle();
       final boundary = mastery ? 940.0 : 960.0;
       for (final next in [boundary - 1, boundary + 1, 803.0, 805.0, 1000.0]) {
+        final cameraBeforeResize = tester
+            .widget<BlochSpherePanel>(find.byType(BlochSpherePanel))
+            .camera;
         width.value = next;
         await tester.pumpAndSettle();
         expect(
@@ -112,6 +112,11 @@ void main() {
                     find.byType(ComposerCircuitCanvas))
                 .circuit,
             same(circuit));
+        expect(
+            tester
+                .widget<BlochSpherePanel>(find.byType(BlochSpherePanel))
+                .camera,
+            same(cameraBeforeResize));
         await tester.ensureVisible(find.byType(BlochSpherePanel));
         await tester.pumpAndSettle();
         final panel =

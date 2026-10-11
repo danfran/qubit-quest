@@ -84,9 +84,8 @@ void main() {
     expect(find.byKey(const ValueKey('web-lesson-1-learning-brief')),
         findsNothing);
 
-    final compactHeader = tester
-        .getSize(find.byKey(const ValueKey('web-compact-activity-header')));
-    expect(compactHeader.height, lessThan(130));
+    // The shared context includes the authored guidance at both widths.
+    expect(find.text(getQQLevelById(1)!.mysteryText!), findsOneWidget);
     final description = tester.widget<Tooltip>(
       find.byKey(const ValueKey('web-chapter-description')),
     );

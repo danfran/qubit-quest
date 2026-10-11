@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/web_learning_text.dart';
 
 /// Removes presentation labels only at the start of an authored field.
 /// A colon or standalone label line is required, so ordinary prose is retained.
@@ -40,6 +41,8 @@ class ActivityInstructionPresentation extends StatelessWidget {
     super.key,
     this.task = '',
     this.question,
+    this.taskContinuation = '',
+    this.webLearning = false,
     this.evidence,
     this.compact = false,
     this.showLabels = false,
@@ -49,7 +52,11 @@ class ActivityInstructionPresentation extends StatelessWidget {
   });
 
   final String task;
+  final bool webLearning;
   final String? question;
+
+  /// Instruction resumed after specialised evidence; it is not a Question.
+  final String taskContinuation;
   final Widget? evidence;
   final bool compact;
   final bool showLabels;
@@ -58,29 +65,25 @@ class ActivityInstructionPresentation extends StatelessWidget {
   final Key? taskKey;
   final Key? questionKey;
 
-  static const taskStyle = TextStyle(
-    color: QubitQuestColors.textBody,
-    fontSize: 15,
-    height: 1.35,
-    fontWeight: FontWeight.w400,
-  );
-  static const questionStyle = TextStyle(
-    color: QubitQuestColors.textPrimary,
-    fontSize: 16.5,
-    height: 1.38,
-    fontWeight: FontWeight.w700,
-  );
+  static const taskStyle = WebLearningTextStyles.task;
+  static const questionStyle = WebLearningTextStyles.question;
 
   Widget _text(String text, {required bool isQuestion, Key? key}) {
     // LatexText leaves ordinary prose in text spans. Only authored delimiters
     // opt into TeX; inline/display math and overflow use its existing policy.
-    final content = LatexText(
-      key: key,
-      math: text,
-      textStyle: isQuestion ? questionStyle : taskStyle,
-      inlineMathHeight: 18,
-      displayMathHeight: 24,
-    );
+    final content = webLearning
+        ? WebLearningText(text,
+            key: key,
+            role: isQuestion
+                ? WebLearningTextRole.question
+                : WebLearningTextRole.task)
+        : LatexText(
+            key: key,
+            math: text,
+            textStyle: isQuestion ? questionStyle : taskStyle,
+            inlineMathHeight: 18,
+            displayMathHeight: 24,
+          );
     if (!showLabels) return content;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,6 +111,8 @@ class ActivityInstructionPresentation extends StatelessWidget {
       if (evidence == null && questionView != null) questionView,
       if (taskView != null) taskView,
       if (evidence != null) evidence!,
+      if (taskContinuation.isNotEmpty)
+        _text(_withoutPresentationPrefix(taskContinuation), isQuestion: false),
       if (evidence != null && questionView != null) questionView,
     ];
     if (compact) {

@@ -1,0 +1,1876 @@
+[
+  {
+    "id": "J1",
+    "type": "ComposerLevel",
+    "title": "The First Qubit",
+    "task": "Can a quantum bit store information? Transform \\( |0\\rangle \\) into \\( |1\\rangle \\).",
+    "question": "Can a quantum bit store information?",
+    "concept": null,
+    "support": "Start with the simplest possible quantum register: one qubit showing |0⟩. Can a gate make it carry a different value?",
+    "hints": [
+      "There is only one gate available.",
+      "Use X to flip |0⟩ into |1⟩."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|1⟩"
+  },
+  {
+    "id": "J2",
+    "type": "ComposerLevel",
+    "title": "Undo The Change",
+    "task": "Can a change be reversed? The qubit has already been flipped. Return it to \\( |0\\rangle \\).",
+    "question": "Can a change be reversed?",
+    "concept": null,
+    "support": "The circuit has already flipped the qubit. Instead of erasing the circuit, try to use another operation to retrace the change.",
+    "hints": [
+      "The first X has already been placed.",
+      "X followed by X returns the qubit to its starting state."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|0⟩"
+  },
+  {
+    "id": "J3",
+    "type": "ComposerLevel",
+    "title": "Different Paths",
+    "task": "Can extra moves cancel out? Reach \\( |1\\rangle \\) from \\( |0\\rangle \\) after adding more than one gate.",
+    "question": "Can extra moves cancel out?",
+    "concept": null,
+    "support": "A circuit is not judged by how many gates it contains. Try making a longer route where part of the route erases itself.",
+    "hints": [
+      "Build a route with more gates than the direct answer needs.",
+      "Two neighboring X gates cancel; the remaining X sets the final state."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|1⟩"
+  },
+  {
+    "id": "J4",
+    "type": "ComposerLevel",
+    "title": "Information Patterns",
+    "task": "Can information move through multiple states? Transform \\( |00\\rangle \\) into \\( |11\\rangle \\).",
+    "question": "Can information move through multiple states?",
+    "concept": null,
+    "support": "One qubit can change, but useful registers contain patterns. Can you transform both parts of the pattern without treating them as one big switch?",
+    "hints": [
+      "Each qubit needs to change from 0 to 1.",
+      "Use one X on each qubit."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|11⟩"
+  },
+  {
+    "id": "J5",
+    "type": "ComposerLevel",
+    "title": "What Have We Learned?",
+    "task": "What is a qubit really? Transform the information pattern \\( |01\\rangle \\) into \\( |10\\rangle \\).",
+    "question": "What is a qubit really?",
+    "concept": null,
+    "support": "You have flipped, undone, canceled, and changed patterns. Use one final pattern change to name what the circuit has been acting on.",
+    "hints": [
+      "Both qubits need to change.",
+      "Use X on each qubit to swap the pattern from |01⟩ to |10⟩."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|10⟩"
+  },
+  {
+    "id": "J6",
+    "type": "ComposerLevel",
+    "title": "Nothing Happened?",
+    "task": "Can a quantum state change without changing its measurement? Use Z on \\( |0\\rangle \\).",
+    "question": "Can a quantum state change without changing its measurement?",
+    "concept": null,
+    "support": "So far, every useful change moved a visible 0 or 1. Try a gate whose action is real, even though this starting state still measures the same way.",
+    "hints": [
+      "There is only one gate available.",
+      "Use Z and notice that this input hides the gate in the measured result."
+    ],
+    "targetLabel": null,
+    "targetExpression": "Z|0⟩ = |0⟩"
+  },
+  {
+    "id": "J7",
+    "type": "ComposerLevel",
+    "title": "The Invisible Difference",
+    "task": "Apply Z to \\( |1\\rangle \\). Did the physical state change, or only its vector representation?",
+    "question": "Can two different vectors represent the same physical state?",
+    "concept": null,
+    "support": "Now try the same gate on |1⟩. The measured bit will not flip, but watch the state expression for a trace that was missing before.",
+    "hints": [
+      "Use the same gate as before, but start from the state where its sign effect appears.",
+      "Z does not flip |1⟩ into |0⟩; it attaches a minus sign to |1⟩."
+    ],
+    "targetLabel": null,
+    "targetExpression": "Z|1⟩ = -|1⟩ ~ |1⟩"
+  },
+  {
+    "id": "J8",
+    "type": "ComposerLevel",
+    "title": "The Minus Sign",
+    "task": "Why does a minus sign matter? Create the phase-flipped \\( |-\\rangle \\) state.",
+    "question": "Why does a minus sign matter?",
+    "concept": null,
+    "support": "A balanced state has two pieces. If only one piece receives the minus sign, the odds still look balanced, but the relationship between the pieces changes.",
+    "hints": [
+      "You are already balanced between |0⟩ and |1⟩.",
+      "Use Z to change the relationship between the two pieces."
+    ],
+    "targetLabel": "|-⟩",
+    "targetExpression": "(|0⟩ - |1⟩)/√2"
+  },
+  {
+    "id": "J9",
+    "type": "ComposerLevel",
+    "title": "Hidden Information",
+    "task": "Can information be stored in phase? Change \\( |-\\rangle \\) back into \\( |+\\rangle \\).",
+    "question": "Can information be stored in phase?",
+    "concept": null,
+    "support": "The possible outcomes are unchanged. The puzzle is whether changing only the relationship between them can still count as changing information.",
+    "hints": [
+      "The target restores the plus relationship between the two pieces.",
+      "Use the same gate again; phase changes can be reversible too."
+    ],
+    "targetLabel": "|+⟩",
+    "targetExpression": "(|0⟩ + |1⟩)/√2"
+  },
+  {
+    "id": "J10",
+    "type": "ComposerLevel",
+    "title": "What Did We Actually Discover?",
+    "task": "What was changing all along? Turn the hidden change in \\( |+\\rangle \\) into the visible state \\( |1\\rangle \\).",
+    "question": "What was changing all along?",
+    "concept": null,
+    "support": "You have changed values, signs, and relationships. Now build the reveal: make phase affect the measured bit.",
+    "hints": [
+      "First create the phase relationship with Z.",
+      "Then use H to read that relationship as a definite bit value."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|1⟩"
+  },
+  {
+    "id": "J11",
+    "type": "ComposerLevel",
+    "title": "The Third State",
+    "task": "Must a qubit always be 0 or 1? Create a state that is neither \\( |0\\rangle \\) nor \\( |1\\rangle \\).",
+    "question": "Must a qubit always be 0 or 1?",
+    "concept": null,
+    "support": "You have changed qubits between 0 and 1, and you have seen hidden phase. Now try making a state that does not look like either classical option.",
+    "hints": [
+      "There is only one gate available.",
+      "Use the gate and watch the probability bars split evenly."
+    ],
+    "targetLabel": "|+⟩",
+    "targetExpression": "(|0⟩ + |1⟩)/√2"
+  },
+  {
+    "id": "J12",
+    "type": "ComposerLevel",
+    "title": "Fifty Fifty",
+    "task": "What outcome will appear when we measure a superposition? Create a state with equal probability of \\( |0\\rangle \\) and \\( |1\\rangle \\).",
+    "question": "What outcome will appear when we measure a superposition?",
+    "concept": null,
+    "support": "A qubit can hold more than one possibility before measurement. Make a state where neither outcome has all the probability.",
+    "hints": [
+      "Start from |1⟩ and use the only available gate.",
+      "The goal is equal probabilities, not a single certain outcome."
+    ],
+    "targetLabel": "|-⟩",
+    "targetExpression": "(|0⟩ - |1⟩)/√2"
+  },
+  {
+    "id": "J13",
+    "type": "ComposerLevel",
+    "title": "Precise, Not Random",
+    "task": "If measurement is uncertain, is the state just random? Turn \\( |+\\rangle \\) back into \\( |0\\rangle \\).",
+    "question": "If measurement is uncertain, is the state just random?",
+    "concept": null,
+    "support": "A balanced state can look like a coin toss when measured. Test whether it is still a precise state that a gate can control.",
+    "hints": [
+      "Use the gate that created |+⟩ from |0⟩.",
+      "The same operation can also turn |+⟩ back into |0⟩."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|0⟩"
+  },
+  {
+    "id": "J14",
+    "type": "ComposerLevel",
+    "title": "Build The Balance",
+    "task": "Can we prepare uncertainty on purpose? Transform \\( |1\\rangle \\) into the balanced \\( |+\\rangle \\) state.",
+    "question": "Can we prepare uncertainty on purpose?",
+    "concept": null,
+    "support": "Superposition is not something that only happens by accident. Set up the input, then create the balanced state deliberately.",
+    "hints": [
+      "Using H immediately from |1⟩ gives the wrong balanced state.",
+      "First flip |1⟩ to |0⟩, then create |+⟩."
+    ],
+    "targetLabel": "|+⟩",
+    "targetExpression": "(|0⟩ + |1⟩)/√2"
+  },
+  {
+    "id": "J15",
+    "type": "ComposerLevel",
+    "title": "What Is Superposition?",
+    "task": "Can superposition be placed on one qubit inside a larger register? Transform \\( |10\\rangle \\) into \\( |+0\\rangle \\).",
+    "question": "Can only one qubit become superposed?",
+    "concept": null,
+    "support": "A register can contain more than one qubit. Prepare the register, then place superposition only where it is needed.",
+    "hints": [
+      "The second qubit should stay 0 in the final state.",
+      "First change |10⟩ to |00⟩, then apply H only to the first qubit."
+    ],
+    "targetLabel": "|+0⟩",
+    "targetExpression": "(|00⟩ + |10⟩)/√2"
+  },
+  {
+    "id": "J16",
+    "type": "ComposerLevel",
+    "title": "Phase Is Hidden",
+    "task": "Can something change without changing what we measure? Transform \\( |+\\rangle \\) into \\( |-\\rangle \\).",
+    "question": "Can something change without changing what we measure?",
+    "concept": null,
+    "support": "You have seen this kind of hidden change before. Make the same 50/50 state carry the opposite phase so the next puzzles can reveal it.",
+    "hints": [
+      "The two states have the same probabilities. Look for a gate that changes a sign, not a bit value.",
+      "Z leaves |0⟩ unchanged and gives |1⟩ a minus sign."
+    ],
+    "targetLabel": "|-⟩",
+    "targetExpression": "|-⟩ = (|0⟩ - |1⟩)/√2"
+  },
+  {
+    "id": "J17",
+    "type": "ComposerLevel",
+    "title": "HZH = X",
+    "task": "Can a phase flip become a bit flip? Starting from \\( |0\\rangle \\), reach \\( |1\\rangle \\) using only H and Z.",
+    "question": "Can a phase flip become a bit flip?",
+    "concept": null,
+    "support": "Z only changes phase, so it should not flip |0⟩ into |1⟩ directly. But what if you change the basis before and after the phase flip?",
+    "hints": [
+      "Use H to move from the computational basis into the plus/minus basis.",
+      "Try placing Z between two H gates."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|1⟩"
+  },
+  {
+    "id": "J18",
+    "type": "ComposerLevel",
+    "title": "HXH = Z",
+    "task": "Can a bit flip become a phase flip? Starting from \\( |+\\rangle \\), reach \\( |-\\rangle \\) using only H and X.",
+    "question": "Can a bit flip become a phase flip?",
+    "concept": null,
+    "support": "X is a bit flip in the normal |0⟩/|1⟩ basis. But in a different basis, the same operation can change phase instead.",
+    "hints": [
+      "Use H to change basis before applying X.",
+      "Mirror the previous pattern: H, then X, then H."
+    ],
+    "targetLabel": "|-⟩",
+    "targetExpression": "|-⟩ = (|0⟩ - |1⟩)/√2"
+  },
+  {
+    "id": "J19",
+    "type": "ComposerLevel",
+    "title": "Make Zero Impossible",
+    "task": "The first H is already placed. Complete the circuit so \\( P(|0\\rangle)=0 \\).",
+    "question": "Can you completely eliminate one outcome?",
+    "concept": null,
+    "support": "The pre-built H has created two possible paths. Can you arrange them so the |0⟩ outcome cancels away completely?",
+    "hints": [
+      "The pre-built H already created |+⟩. First change it into |−⟩.",
+      "After creating |-⟩, use H to turn cancellation into a visible |1⟩ outcome."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|1⟩"
+  },
+  {
+    "id": "J20",
+    "type": "ComposerLevel",
+    "title": "What Is Interference?",
+    "task": "The circuit already created and phase-marked two paths. Add the final gate that turns the hidden phase into \\( |1\\rangle \\).",
+    "question": "What have we actually discovered?",
+    "concept": null,
+    "support": "The pre-built H→Z has prepared |−⟩. One final basis change can make that hidden phase show up as a visible measurement result.",
+    "hints": [
+      "The pre-built gates already created |−⟩.",
+      "Use H to recombine the paths and reveal the phase as |1⟩."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|1⟩"
+  },
+  {
+    "id": "J21",
+    "type": "ComposerLevel",
+    "title": "Together",
+    "task": "Can two qubits be prepared together? Transform \\( |00\\rangle \\) into \\( |11\\rangle \\).",
+    "question": "Can two qubits be prepared together?",
+    "concept": null,
+    "support": "So far, one qubit has carried the story. Now there are two. Can you prepare a state that describes both qubits at once?",
+    "hints": [
+      "Both qubits need to change from 0 to 1.",
+      "Use one X on each qubit."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|11⟩"
+  },
+  {
+    "id": "J22",
+    "type": "ComposerLevel",
+    "title": "Connected",
+    "task": "Can changing one qubit affect another? Use the controlled operation to transform \\( |10\\rangle \\) into \\( |11\\rangle \\).",
+    "question": "Can changing one qubit affect another?",
+    "concept": null,
+    "support": "One qubit is already active. Can it act as a condition that changes the other qubit?",
+    "hints": [
+      "Kets are written |Q1 Q0⟩, so in |10⟩, Q1=1 and Q0=0. Use Q1 as the control.",
+      "CNOT(Q1→Q0) flips Q0 because control Q1 is 1."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|11⟩"
+  },
+  {
+    "id": "J23",
+    "type": "ComposerLevel",
+    "title": "The Bell State",
+    "task": "Can two qubits become one quantum system? Transform \\( |00\\rangle \\) into Bell State \\( \\Phi^+ \\).",
+    "question": "Can two qubits become one quantum system?",
+    "concept": null,
+    "support": "A superposition can hold more than one possibility. A controlled operation can connect qubits. What happens when those ideas meet?",
+    "hints": [
+      "First create a split possibility on q0.",
+      "Then connect q1 to q0 with CX."
+    ],
+    "targetLabel": "|Φ⁺⟩",
+    "targetExpression": "(|00⟩ + |11⟩)/√2"
+  },
+  {
+    "id": "J24",
+    "type": "ComposerLevel",
+    "title": "More Than Correlation",
+    "task": "Why is entanglement special? Create a Bell state from \\( |10\\rangle \\).",
+    "question": "Why is entanglement special?",
+    "concept": null,
+    "support": "Ordinary correlation says two values match. Entanglement is deeper: the whole pair has a state that cannot be assigned to each qubit separately.",
+    "hints": [
+      "Start by splitting the first qubit into two possibilities.",
+      "Then use CX to connect the second qubit to those possibilities."
+    ],
+    "targetLabel": "|Ψ⁺⟩",
+    "targetExpression": "(|01⟩ + |10⟩)/√2"
+  },
+  {
+    "id": "J25",
+    "type": "ComposerLevel",
+    "title": "What Is Entanglement?",
+    "task": "What have we actually discovered? Prepare the entangled state \\( (|00\\rangle - |11\\rangle)/\\sqrt{2} \\).",
+    "question": "What have we actually discovered?",
+    "concept": null,
+    "support": "You have seen two qubits act as one shared system. Prepare one more entangled state and focus on what cannot be described separately.",
+    "hints": [
+      "Begin with q1 set to 1.",
+      "Create a split possibility on q0, then connect the qubits with CX."
+    ],
+    "targetLabel": "|Φ⁻⟩",
+    "targetExpression": "(|00⟩ - |11⟩)/√2"
+  },
+  {
+    "id": "J26",
+    "type": "ComposerLevel",
+    "title": "The Control Qubit",
+    "task": "Can one qubit decide what happens to another? Use CX to transform \\( |01\\rangle \\) into \\( |11\\rangle \\).",
+    "question": "Can one qubit decide what happens to another?",
+    "concept": null,
+    "support": "A two-qubit circuit can contain a decision: one qubit can determine whether another qubit changes.",
+    "hints": [
+      "The active qubit should control the other one.",
+      "Use CX so the second qubit changes only when the control is active."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|11⟩"
+  },
+  {
+    "id": "J27",
+    "type": "ComposerLevel",
+    "title": "Conditional Action",
+    "task": "Can the same gate behave differently depending on the input? Use CX on \\( |00\\rangle \\).",
+    "question": "Can the same gate behave differently depending on the input?",
+    "concept": null,
+    "support": "A controlled operation does not always visibly change the bits. Its effect depends on the information already present.",
+    "hints": [
+      "There is only one gate available.",
+      "Use CX and notice that the state can stay the same for a meaningful reason."
+    ],
+    "targetLabel": null,
+    "targetExpression": "CX|00⟩ = |00⟩"
+  },
+  {
+    "id": "J28",
+    "type": "ComposerLevel",
+    "title": "Information Transfer",
+    "task": "Can information be transferred between qubits? Create information on one qubit, then propagate it to the other.",
+    "question": "Can information be transferred between qubits?",
+    "concept": null,
+    "support": "A circuit can create information on one qubit and then let that information affect another qubit.",
+    "hints": [
+      "First create an active control.",
+      "Then use CX to pass that information to the other qubit."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|11⟩"
+  },
+  {
+    "id": "J29",
+    "type": "ComposerLevel",
+    "title": "Swap Places",
+    "task": "Can two qubits exchange their information? Build a reusable SWAP circuit using only CX. It should swap any two-qubit input, including \\( |10\\rangle \\rightarrow |01\\rangle \\).",
+    "question": "Can two qubits exchange their information?",
+    "concept": null,
+    "support": "A shortcut can solve one displayed input. A true SWAP circuit must exchange the two qubits for every possible input.",
+    "hints": [
+      "Do not only solve |10⟩ → |01⟩. Build the operation that swaps both qubits for any input.",
+      "A full SWAP uses three CX gates: one direction, the other direction, then the first direction again."
+    ],
+    "targetLabel": null,
+    "targetExpression": "SWAP gate"
+  },
+  {
+    "id": "J30",
+    "type": "ComposerLevel",
+    "title": "Information Flow",
+    "task": "What have we actually learned? Create information on either qubit, then route it across the two-qubit system with the three-CX pattern.",
+    "question": "What have we actually learned?",
+    "concept": null,
+    "support": "Controlled operations can move, redirect, and reshape information. Build a small circuit where information is created, then routed to the other qubit.",
+    "hints": [
+      "First create information with X on either qubit.",
+      "Then use the three-CX routing pattern to move that information to the other qubit. The mirrored direction is valid too."
+    ],
+    "targetLabel": null,
+    "targetExpression": "Information routed"
+  },
+  {
+    "id": "J31",
+    "type": "ComposerLevel",
+    "title": "Three Qubits",
+    "task": "What changes when we add a third qubit? Prepare the full-register outcome \\( |111\\rangle \\).",
+    "question": "What changes when we add a third qubit?",
+    "concept": null,
+    "support": "A third qubit widens the state label. Start simply: prepare one complete three-qubit outcome and read it as a whole register pattern.",
+    "hints": [
+      "Each inactive qubit needs the same simple change.",
+      "Use X on all three wires."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|111⟩"
+  },
+  {
+    "id": "J32",
+    "type": "ComposerLevel",
+    "title": "Shared Information",
+    "task": "Can one part of a register constrain all the others? Prepare the globally consistent outcome \\( |111\\rangle \\).",
+    "question": "Can one part of a register constrain all the others?",
+    "concept": null,
+    "support": "A three-qubit register can be prepared so every observed part agrees with the whole outcome. If one part is 1, the complete pattern is fixed here.",
+    "hints": [
+      "Q0 is already fixed as the active part of the register.",
+      "Use CX from Q0 to each other qubit so the whole register ends in one consistent pattern."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|111⟩"
+  },
+  {
+    "id": "J33",
+    "type": "ComposerLevel",
+    "title": "All Together",
+    "task": "Can three qubits become one globally constrained system? Prepare \\( (|000\\rangle + |111\\rangle)/\\sqrt{2} \\).",
+    "question": "Can three qubits become one globally constrained system?",
+    "concept": null,
+    "support": "The register may have local uncertainty while still allowing only globally consistent outcomes. Try preparing a state with only |000⟩ and |111⟩ present.",
+    "hints": [
+      "Start by creating a split possibility on one qubit.",
+      "Use controlled operations so only the full-register outcomes |000⟩ and |111⟩ remain possible."
+    ],
+    "targetLabel": "|GHZ+⟩",
+    "targetExpression": "(|000⟩ + |111⟩)/√2"
+  },
+  {
+    "id": "J34",
+    "type": "ComposerLevel",
+    "title": "Beyond Bell States",
+    "task": "Why is a GHZ state not explained by pairs? Prepare \\( (|000\\rangle + |111\\rangle)/\\sqrt{2} \\).",
+    "question": "Why is a GHZ state not explained by pairs?",
+    "concept": null,
+    "support": "Pairwise thinking is not enough here. The important object is the complete three-qubit register and its allowed global outcomes.",
+    "hints": [
+      "Create a superposition first.",
+      "Then use control so the complete register has only the alternatives |000⟩ and |111⟩."
+    ],
+    "targetLabel": "|GHZ+⟩",
+    "targetExpression": "(|000⟩ + |111⟩)/√2"
+  },
+  {
+    "id": "J35",
+    "type": "ConceptCheckLevel",
+    "title": "One System, Three Qubits",
+    "task": "A GHZ state has already been prepared: \\( (|000\\rangle + |111\\rangle)/\\sqrt{2} \\). What does this state mean?",
+    "question": "What have we actually discovered?",
+    "concept": "This time the circuit construction is finished. Focus on the state itself: a GHZ state is a rule over the whole register, not a pattern to build again.",
+    "support": "The register is already in a GHZ state. The question is not which gate comes next, but which full-register outcomes the state allows.",
+    "hints": [
+      "Read the state as a statement about complete register outcomes.",
+      "Only |000⟩ and |111⟩ have non-zero amplitude in this GHZ state."
+    ],
+    "targetLabel": null,
+    "targetExpression": null
+  },
+  {
+    "id": "J36",
+    "type": "ComposerLevel",
+    "title": "Hidden Mark",
+    "task": "Use one controlled phase operation on \\( |+\\rangle|1\\rangle \\). The visible bit probabilities should stay the same, but the control should receive a phase mark.",
+    "question": "Can a controlled operation mark a state invisibly?",
+    "concept": null,
+    "support": "The target is fixed at |1⟩. Apply a controlled phase operation and look for a change that does not appear as a visible bit flip.",
+    "hints": [
+      "Use the controlled phase gate.",
+      "The target remains |1⟩; the control receives the phase mark."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|−⟩|1⟩"
+  },
+  {
+    "id": "J37",
+    "type": "ComposerLevel",
+    "title": "Control Affects Control",
+    "task": "Use one CX on \\( |1\\rangle|−\\rangle \\). Interpret the resulting minus sign before the control is put into superposition.",
+    "question": "Can the target setup affect the control logic?",
+    "concept": null,
+    "support": "The target is prepared as |−⟩. Apply CX and notice that the conditional flip does not show up as an ordinary target bit change.",
+    "hints": [
+      "Use CX with q0 as control and q1 as target.",
+      "The target is |−⟩, so a conditional flip becomes a phase effect."
+    ],
+    "targetLabel": null,
+    "targetExpression": "CX|1⟩|−⟩ = -|1⟩|−⟩ ~ |1⟩|−⟩"
+  },
+  {
+    "id": "J38",
+    "type": "ComposerLevel",
+    "title": "Unexpected Phase Change",
+    "task": "Use one CX on \\( |+\\rangle|−\\rangle \\). The target is acted on, but the control should become \\( |−\\rangle \\).",
+    "question": "Why did the qubit that was not targeted change?",
+    "concept": null,
+    "support": "The controlled gate targets q1, but the phase-sensitive target can kick information back onto q0. Watch which qubit carries the phase after the operation.",
+    "hints": [
+      "Use CX with q0 as control and q1 as target.",
+      "The target remains |−⟩, while q0 changes from |+⟩ to |−⟩."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|−⟩|−⟩"
+  },
+  {
+    "id": "J39",
+    "type": "ComposerLevel",
+    "title": "Setup Matters",
+    "task": "Use the same CX circuit on \\( |+\\rangle|+\\rangle \\). This time the target setup should prevent phase kickback.",
+    "question": "Does every target state create kickback?",
+    "concept": null,
+    "support": "Use the same controlled operation as before, but with the target prepared as |+⟩ instead of |−⟩. The circuit is the same; the setup changes the result.",
+    "hints": [
+      "Use CX with q0 as control and q1 as target, just like the previous level.",
+      "Because the target is |+⟩, the same gate does not create a kicked-back phase."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|+⟩|+⟩"
+  },
+  {
+    "id": "J40",
+    "type": "ComposerLevel",
+    "title": "Compute, Encode, Reveal",
+    "task": "Kick phase back onto the control with CX, then use H on the control to reveal the stored phase as \\( |1\\rangle \\).",
+    "question": "How does hidden phase become a useful answer?",
+    "concept": null,
+    "support": "First use controlled logic to write information into phase. Only after that should interference reveal the stored phase as a visible bit.",
+    "hints": [
+      "First use CX with q0 as control and q1 as target.",
+      "Then apply H to q0 to reveal |−⟩ as |1⟩."
+    ],
+    "targetLabel": null,
+    "targetExpression": "|1⟩|−⟩"
+  },
+  {
+    "id": "J41",
+    "type": "ComposerLevel",
+    "title": "Oracle Intuition",
+    "task": "Can a hidden rule classify one input differently from the others? Query the rule on \\( |++\\rangle \\).",
+    "question": "Can a circuit behave like a hidden rule?",
+    "concept": null,
+    "support": "An oracle is a black-box function. It receives possible inputs and classifies each one as valid or invalid without directly announcing the answer.",
+    "hints": [
+      "Look for the operation that classifies only the input |11⟩ as valid.",
+      "The goal is not to read the answer. It is to apply the hidden rule once."
+    ],
+    "targetLabel": null,
+    "targetExpression": "O|++⟩ = (|00⟩ + |01⟩ + |10⟩ - |11⟩)/2"
+  },
+  {
+    "id": "J42",
+    "type": "ComposerLevel",
+    "title": "Simple Marking Rule",
+    "task": "Can a rule mark one valid input without directly revealing it? Query the rule that accepts \\( |1\\rangle \\).",
+    "question": "Can a rule identify validity without showing the answer?",
+    "concept": null,
+    "support": "A classical question asks for the answer. An oracle query applies a rule and only labels whether an input is valid.",
+    "hints": [
+      "Apply the operation that labels |1⟩ as the accepted input.",
+      "Do not look for a measurement result. Look for rule-based classification."
+    ],
+    "targetLabel": "|−⟩",
+    "targetExpression": "|−⟩ = (|0⟩ - |1⟩)/√2"
+  },
+  {
+    "id": "J43",
+    "type": "ComposerLevel",
+    "title": "Hidden Structure Effect",
+    "task": "Can a hidden rule classify \\( |10\\rangle \\) as valid while the other inputs remain invalid?",
+    "question": "Can hidden structure exist before the answer is visible?",
+    "concept": null,
+    "support": "The oracle applies a function to the input space. It can classify one input as valid even when direct reading has not revealed which input matters.",
+    "hints": [
+      "Think of the oracle as the rule f(10)=1.",
+      "The other inputs should remain in the unmarked class."
+    ],
+    "targetLabel": null,
+    "targetExpression": "O|++⟩ = (|00⟩ + |01⟩ - |10⟩ + |11⟩)/2"
+  },
+  {
+    "id": "J44",
+    "type": "ComposerLevel",
+    "title": "Why Classical Fails",
+    "task": "Why is a rule query not the same as checking each answer manually? Query the hidden rule that accepts \\( |01\\rangle \\).",
+    "question": "Why is brute-force inspection the wrong model?",
+    "concept": null,
+    "support": "Classical inspection asks one candidate at a time. Oracle thinking treats the circuit as a black-box function that can be queried as a whole.",
+    "hints": [
+      "Treat |01⟩ as the only input for which f(x)=1.",
+      "The goal is a rule query, not a list of tested candidates."
+    ],
+    "targetLabel": null,
+    "targetExpression": "O|++⟩ = (|00⟩ - |01⟩ + |10⟩ + |11⟩)/2"
+  },
+  {
+    "id": "J45",
+    "type": "ComposerLevel",
+    "title": "Oracle as Computation Primitive",
+    "task": "What have we actually built? Query a reusable oracle whose hidden rule accepts \\( |00\\rangle \\).",
+    "question": "What is an oracle for?",
+    "concept": null,
+    "support": "An oracle is not the whole algorithm. It is the reusable part that encodes the problem as a hidden function.",
+    "hints": [
+      "Think of the function table: f(00)=1 and every other input maps to 0.",
+      "Build the reusable query, not a direct answer display."
+    ],
+    "targetLabel": null,
+    "targetExpression": "O|++⟩ = (-|00⟩ + |01⟩ + |10⟩ + |11⟩)/2"
+  },
+  {
+    "id": "J46",
+    "type": "ComposerLevel",
+    "title": "Why Marking Is Not Enough",
+    "task": "A valid state is known, but every outcome is still equally likely. Keep \\( |11\\rangle \\) no more likely than the others.",
+    "question": "Why is knowing the valid state not enough?",
+    "concept": null,
+    "support": "A valid answer can be identified without becoming easier to observe. If all probabilities stay equal, knowing validity has not changed the distribution.",
+    "hints": [
+      "Focus on the measurement chances, not on naming the valid state.",
+      "For this step, the valid state should remain equally likely."
+    ],
+    "targetLabel": null,
+    "targetExpression": "P(00)=P(01)=P(10)=P(11)=25%"
+  },
+  {
+    "id": "J47",
+    "type": "ComposerLevel",
+    "title": "First Sign of Bias",
+    "task": "Can a balanced distribution become uneven? Shift \\( |++\\rangle \\) so only two outcomes remain likely.",
+    "question": "Can a balanced distribution become uneven?",
+    "concept": null,
+    "support": "Before amplification feels useful, the learner needs to see a smaller move: probability does not have to stay spread evenly across every candidate.",
+    "hints": [
+      "Aim for two likely outcomes instead of four equal ones.",
+      "The final distribution should be biased, not guaranteed."
+    ],
+    "targetLabel": null,
+    "targetExpression": "P(00)=50%, P(10)=50%"
+  },
+  {
+    "id": "J48",
+    "type": "ComposerLevel",
+    "title": "Reinforcement of Probability",
+    "task": "Can a valid state become more likely without becoming certain? Bias the distribution toward \\( |11\\rangle \\).",
+    "question": "Can a valid state become more likely without becoming certain?",
+    "concept": null,
+    "support": "Start with every candidate equally likely. The task is only to make |11⟩ more likely than it was before, not to force it as the guaranteed outcome.",
+    "hints": [
+      "|11⟩ should become more likely than before, but it should not be the only possible result.",
+      "Aim for a weak bias shared with one other outcome."
+    ],
+    "targetLabel": null,
+    "targetExpression": "P(00)=50%, P(11)=50%"
+  },
+  {
+    "id": "J49",
+    "type": "ConceptCheckLevel",
+    "title": "Bias Becomes Amplification",
+    "task": "A weak bias toward \\( |11\\rangle \\) already exists. Which description correctly turns that bias into amplification?",
+    "question": "How does a small bias become an amplification pattern?",
+    "concept": "Read the probability change: amplification means a weak preference becomes stronger without becoming a guaranteed selection.",
+    "support": "Level 48 created the first weak preference. This checkpoint asks what should happen next at the probability level only.",
+    "hints": [
+      "Compare before and after probabilities.",
+      "The correct answer strengthens the bias without claiming certainty."
+    ],
+    "targetLabel": null,
+    "targetExpression": null
+  },
+  {
+    "id": "J50",
+    "type": "ConceptCheckLevel",
+    "title": "Amplification as Computational Advantage",
+    "task": "What is the final Chapter 10 takeaway about amplitude amplification?",
+    "question": "What does amplification contribute to search?",
+    "concept": "Use the probability model only: weak bias can become stronger bias, and stronger bias makes the valid answer more likely to be observed.",
+    "support": "Bring the chapter together: amplification is useful because probability can be shifted toward the valid state without treating the result as guaranteed.",
+    "hints": [
+      "Choose the answer that stays at the probability level.",
+      "The correct idea is stronger likelihood, not certainty."
+    ],
+    "targetLabel": null,
+    "targetExpression": null
+  },
+  {
+    "id": "J51",
+    "type": "ConceptCheckLevel",
+    "title": "Why One Step Is Not Enough",
+    "task": "One oracle plus amplification pass improves the chance of success. Why might that still not be enough?",
+    "question": "Why is one improvement not always enough?",
+    "concept": "Chapter 11 starts above the mechanics. Treat oracle and amplification as abstract steps: one identifies valid states, the other improves their likelihood.",
+    "support": "A single pass can make the valid answer more likely, but a small improvement may still leave too much probability on other candidates.",
+    "hints": [
+      "Do not look for certainty.",
+      "Compare a small improvement with a high chance of success."
+    ],
+    "targetLabel": null,
+    "targetExpression": null
+  },
+  {
+    "id": "J52",
+    "type": "ConceptCheckLevel",
+    "title": "Iteration Idea",
+    "task": "What is the new idea when the oracle plus amplification pattern is repeated?",
+    "question": "What does repetition add?",
+    "concept": "Iteration means using the same abstract pattern again so an existing advantage can become stronger.",
+    "support": "The chapter shift is not a new operation. The shift is using known abstractions repeatedly to improve success likelihood.",
+    "hints": [
+      "Think about likelihood across rounds.",
+      "The repeated pattern should strengthen the same valid region."
+    ],
+    "targetLabel": null,
+    "targetExpression": null
+  },
+  {
+    "id": "J53",
+    "type": "ConceptCheckLevel",
+    "title": "Convergence Toward Solution",
+    "task": "What should happen to the probability distribution across useful repeated rounds?",
+    "question": "What trend should the loop create?",
+    "concept": "Convergence means the distribution trends toward the valid answer as the abstract loop is applied carefully: flat at first, then slightly lifted, then visibly biased.",
+    "support": "The learner should track the shape of the probability distribution, not a low-level implementation.",
+    "hints": [
+      "Look for a trend, not a single guaranteed jump.",
+      "The valid answer should become more likely over useful rounds."
+    ],
+    "targetLabel": null,
+    "targetExpression": null
+  },
+  {
+    "id": "J54",
+    "type": "ConceptCheckLevel",
+    "title": "Classical vs Quantum Iteration",
+    "task": "Why is this loop idea different from simply guessing again?",
+    "question": "Why is repeated guessing not the same idea?",
+    "concept": "Classical repetition retries. Grover-style iteration is different at the abstraction level because it reshapes the probability distribution.",
+    "support": "A repeated guess samples again from the same situation. A useful Grover-style loop changes the distribution before the next observation.",
+    "hints": [
+      "Compare retrying with reshaping likelihood.",
+      "The correct answer changes the distribution before measuring."
+    ],
+    "targetLabel": null,
+    "targetExpression": null
+  },
+  {
+    "id": "J55",
+    "type": "ConceptCheckLevel",
+    "title": "Applying Iteration Thinking to Structured Problems",
+    "task": "How can iteration thinking help with structured selection problems?",
+    "question": "Can the loop idea transfer?",
+    "concept": "Use the whole chapter as a reasoning tool: a weak preference can become useful when a structured process reinforces it repeatedly.",
+    "support": "The goal is not to build a mechanism. The goal is to recognize when repeated refinement can narrow a structured set of choices.",
+    "hints": [
+      "Think about a candidate set, not a construction.",
+      "Look for weak preference becoming stronger through repeated refinement."
+    ],
+    "targetLabel": null,
+    "targetExpression": null
+  },
+  {
+    "id": "J56",
+    "type": "ConceptCheckLevel",
+    "title": "The Full Picture Appears",
+    "task": "What is the best high-level description of a quantum algorithm at this point in Qubit Quest?",
+    "question": "What has the pattern become?",
+    "concept": "Chapter 12 is a unification layer. It does not add a new concept; it connects the abstract roles learned across the last three chapters.",
+    "support": "The learner now steps back from individual ideas and sees the algorithm as a structured process rather than a single clever trick.",
+    "hints": [
+      "Look for the answer that combines roles into one process.",
+      "Do not reduce the chapter to one isolated step."
+    ],
+    "targetLabel": null,
+    "targetExpression": null
+  },
+  {
+    "id": "J57",
+    "type": "ConceptCheckLevel",
+    "title": "Separation of Roles",
+    "task": "How should the oracle, amplification, and iteration roles be separated conceptually?",
+    "question": "Which part does what?",
+    "concept": "Each role has a distinct job in the abstract model: define what counts, make valid outcomes more likely, and repeat the pattern.",
+    "support": "The goal is clean role separation. The learner should not blur definition, likelihood increase, and repetition into one vague idea.",
+    "hints": [
+      "One role defines validity.",
+      "Another role changes likelihood, and iteration organizes repeated use."
+    ],
+    "targetLabel": null,
+    "targetExpression": null
+  },
+  {
+    "id": "J58",
+    "type": "ConceptCheckLevel",
+    "title": "Why Composition Matters",
+    "task": "Why does computational advantage depend on combining the roles rather than naming them separately?",
+    "question": "Why is combination useful?",
+    "concept": "A role by itself is only part of the story. The useful model is compositional: definition, bias, and repetition work as a layered process.",
+    "support": "The learner now asks why separate abstractions become more powerful when they are arranged together.",
+    "hints": [
+      "A definition alone does not create the full advantage.",
+      "A likelihood change becomes more useful when organized by repeated structure."
+    ],
+    "targetLabel": null,
+    "targetExpression": null
+  },
+  {
+    "id": "J59",
+    "type": "ConceptCheckLevel",
+    "title": "Classical vs Quantum Structure",
+    "task": "At this meta level, what structural difference separates ordinary repeated search from the quantum algorithm model?",
+    "question": "What is structurally different?",
+    "concept": "Classical repeated search tries again. The quantum structure discussed here organizes a probability-shaping process around valid solutions.",
+    "support": "The comparison is not about implementation. It is about whether repetition merely retries or whether it is part of a structured probability-shaping system.",
+    "hints": [
+      "Classical repetition retries or checks.",
+      "The quantum model uses a structured probability-shaping process."
+    ],
+    "targetLabel": null,
+    "targetExpression": null
+  },
+  {
+    "id": "J60",
+    "type": "ConceptCheckLevel",
+    "title": "Unified Quantum Algorithm Model",
+    "task": "Which abstract pipeline best summarizes Chapters 9-12 together?",
+    "question": "What is the unified model?",
+    "concept": "The synthesis is a layered abstract pipeline: define what counts as valid, bias probability toward validity, then iterate the structure.",
+    "support": "The learner should leave the chapter with a portable algorithm model, not a construction recipe.",
+    "hints": [
+      "Look for a three-layer pipeline.",
+      "The correct answer stays conceptual: define, bias, iterate."
+    ],
+    "targetLabel": null,
+    "targetExpression": null
+  },
+  {
+    "id": "M1",
+    "semanticId": "global_phase_equivalence",
+    "type": "McqLevel",
+    "title": "Different Vectors, Same Qubit",
+    "task": "",
+    "continuation": "",
+    "question": "Which statement is physically correct?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Ask whether the factor changes one amplitude relative to another or multiplies the entire vector."
+    ],
+    "legacyTask": "Compare \\( |1\\rangle \\), \\( -|1\\rangle \\), and \\( i|1\\rangle \\). Which statement is physically correct?",
+    "evidence": [
+      {
+        "type": "MasteryMathEvidence",
+        "label": "STATEVECTOR REPRESENTATIVES",
+        "content": "\\[|1\\rangle\\qquad -|1\\rangle\\qquad i|1\\rangle\\]"
+      }
+    ]
+  },
+  {
+    "id": "M2",
+    "semanticId": "phase_state_uncomputation",
+    "type": "ComposerLevel",
+    "title": "Uncompute the Hidden Turn",
+    "task": "The fixed H → S → Z prefix prepared \\( |-i\\rangle \\) from \\( |0\\rangle \\). Append the inverse continuation that restores \\( |0\\rangle \\).",
+    "continuation": "",
+    "question": "",
+    "intro": null,
+    "concept": "The fixed prefix is part of the evidence. Work backward through what it did; the order of the undoing matters.",
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Undo the relative phase before undoing the superposition.",
+      "For this state, S cancels the accumulated relative phase; then H returns |+⟩ to |0⟩."
+    ],
+    "legacyTask": "The fixed H → S → Z prefix prepared \\( |-i\\rangle \\) from \\( |0\\rangle \\). Append the inverse continuation that restores \\( |0\\rangle \\).",
+    "evidence": []
+  },
+  {
+    "id": "M3",
+    "semanticId": "same_histogram_different_state",
+    "type": "ConceptCheckLevel",
+    "title": "Same Data, Different Qubit",
+    "task": "",
+    "continuation": "",
+    "question": "What does the additional X-basis evidence establish?",
+    "intro": "Three preparations share the same ideal Z-basis histogram.",
+    "concept": null,
+    "support": null,
+    "helper": "The third preparation randomly chooses \\(|0\\rangle\\) or \\(|1\\rangle\\).",
+    "hints": [
+      "The ensemble is a classical random preparation, not a coherent sum of amplitudes."
+    ],
+    "legacyTask": "Ideal evidence:\n\nIn the Z basis, |+⟩, |−⟩, and an ensemble where half the preparations are |0⟩ and half are |1⟩ all give P(0)=1/2 and P(1)=1/2.\n\nIn the X basis, |+⟩ always gives +, |−⟩ always gives −, while the random |0⟩/|1⟩ ensemble remains 50/50. What does this establish?",
+    "evidence": [
+      {
+        "type": "MasteryMathEvidence",
+        "label": "Z BASIS — ALL THREE",
+        "content": "\\[P(0)=\\tfrac12\\qquad P(1)=\\tfrac12\\]"
+      },
+      {
+        "type": "MasteryTextEvidence",
+        "label": "X BASIS — \\(|+\\rangle\\)",
+        "content": "Always +"
+      },
+      {
+        "type": "MasteryTextEvidence",
+        "label": "X BASIS — \\(|-\\rangle\\)",
+        "content": "Always −"
+      },
+      {
+        "type": "MasteryTextEvidence",
+        "label": "X BASIS — RANDOM \\(|0\\rangle\\) / \\(|1\\rangle\\) ENSEMBLE",
+        "content": "50% +, 50% −"
+      }
+    ]
+  },
+  {
+    "id": "M4",
+    "semanticId": "cnot_topology_inference",
+    "type": "ConceptCheckLevel",
+    "title": "Which Wire Controls the Change?",
+    "task": "",
+    "continuation": "",
+    "question": "Which control/target topology fits both cases?",
+    "intro": "One fixed CNOT produced both mappings.",
+    "concept": null,
+    "support": null,
+    "helper": "Wires: q0, q1, q2 top-to-bottom. Kets: |q2 q1 q0⟩.",
+    "hints": [
+      "Compare which ket bit changed in the second mapping, then test the proposed control against both inputs."
+    ],
+    "legacyTask": "Wires run q0, q1, q2 from top to bottom; kets read |q2 q1 q0⟩. One fixed CNOT produced both mappings:\n\n|010⟩ → |010⟩\n|100⟩ → |101⟩\n\nWhich topology fits both?",
+    "evidence": [
+      {
+        "type": "MasteryMathEvidence",
+        "label": "CASE A",
+        "content": "\\[|010\\rangle\\to|010\\rangle\\]"
+      },
+      {
+        "type": "MasteryMathEvidence",
+        "label": "CASE B",
+        "content": "\\[|100\\rangle\\to|101\\rangle\\]"
+      }
+    ]
+  },
+  {
+    "id": "M5",
+    "semanticId": "bell_decoder_bug",
+    "type": "ConceptCheckLevel",
+    "title": "The Bell Decoder Bug",
+    "task": "",
+    "continuation": "",
+    "question": "Which repair and resulting basis output are correct?",
+    "intro": "This proposed Bell decoder does not produce a basis state.",
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "A decoder applies the inverse of the preparation sequence."
+    ],
+    "legacyTask": "Input: |Φ+⟩=(|00⟩+|11⟩)/√2.\n\nA proposed decoder applies H(q0), then CNOT(control q0, target q1), but its output is not a basis state. Which repair and output are correct?",
+    "evidence": [
+      {
+        "type": "MasteryMathEvidence",
+        "label": "INPUT",
+        "content": "\\[|\\Phi^+\\rangle=\\tfrac{|00\\rangle+|11\\rangle}{\\sqrt2}\\]"
+      },
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "PROPOSED DECODER",
+        "content": "Proposed decoder: H on q0, followed by CNOT with q0 control and q1 target."
+      }
+    ]
+  },
+  {
+    "id": "M6",
+    "semanticId": "phase_kickback_conditions",
+    "type": "ConceptCheckLevel",
+    "title": "When Does Kickback Happen?",
+    "task": "",
+    "continuation": "",
+    "question": "Which input creates an observable phase change on the control while leaving the target state unchanged?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": "The first state in each option is the control.",
+    "hints": [
+      "Look for a target that returns an eigenvalue −1 and a control with two coherent branches."
+    ],
+    "legacyTask": "A controlled-X uses the first state as control and the second as target. Which input creates a useful, observable phase change on the control while leaving the target state unchanged?",
+    "evidence": [
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "CONTROLLED OPERATION",
+        "content": "Controlled X with q0 as control and q1 as target."
+      }
+    ]
+  },
+  {
+    "id": "M7",
+    "semanticId": "oracle_marked_state_inference",
+    "type": "ConceptCheckLevel",
+    "title": "Which State Did the Oracle Mark?",
+    "task": "",
+    "continuation": "",
+    "question": "Which marked state and oracle structure match the evidence?",
+    "intro": "A phase oracle changes one sign in a uniform state.",
+    "concept": null,
+    "support": null,
+    "helper": "Wires: q0 above q1. Kets: |q1 q0⟩.",
+    "hints": [
+      "The negative amplitude identifies the marked ket. An X wrapper makes CZ trigger when that wrapped qubit was initially 0."
+    ],
+    "legacyTask": "Wires are q0 above q1; kets read |q1 q0⟩. A phase oracle transforms the uniform state into\n\n( |00⟩ + |01⟩ − |10⟩ + |11⟩ ) / 2.\n\nWhich state and oracle structure match the evidence?",
+    "evidence": [
+      {
+        "type": "MasteryMathEvidence",
+        "label": "OUTPUT STATEVECTOR",
+        "content": "\\[\\tfrac12\\bigl(|00\\rangle+|01\\rangle-|10\\rangle+|11\\rangle\\bigr)\\]"
+      }
+    ]
+  },
+  {
+    "id": "M8",
+    "semanticId": "algorithm_architecture_inspector",
+    "type": "ConceptCheckLevel",
+    "title": "Algorithm Architecture Inspector",
+    "task": "",
+    "continuation": "",
+    "question": "Which diagnosis set fits all three traces?",
+    "intro": "Three traces from the search model show different failures.",
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Diagnose each symptom from the evidence: hidden sign, wrong peak, then insufficient peak."
+    ],
+    "legacyTask": "Inspect three traces from the search model used here.\n\nA. One amplitude is negative, but measurement remains uniform.\nB. After amplification, |01⟩ peaks although |10⟩ is the desired solution.\nC. For 16 candidates, one mark+amplify round gives the desired state probability 121/256—useful, but below the required confidence.\n\nWhich diagnosis set fits all three?",
+    "evidence": [
+      {
+        "type": "MasteryTextEvidence",
+        "label": "CASE A",
+        "content": "One amplitude is negative; measurement remains uniform."
+      },
+      {
+        "type": "MasteryTextEvidence",
+        "label": "CASE B",
+        "content": "After amplification, \\(|01\\rangle\\) peaks instead of desired \\(|10\\rangle\\)."
+      },
+      {
+        "type": "MasteryMathEvidence",
+        "label": "CASE C",
+        "content": "\\[P(\\text{desired after one round})=\\tfrac{121}{256}\\]"
+      }
+    ]
+  },
+  {
+    "id": "M9",
+    "semanticId": "phase_accumulation_prediction",
+    "type": "ConceptCheckLevel",
+    "title": "Follow the Phase Around",
+    "task": "",
+    "continuation": "",
+    "question": "Which final physical state leaves the circuit?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Track the phase of the |1⟩ amplitude through both phase gates."
+    ],
+    "legacyTask": "Starting from |0⟩, a fixed circuit applies H → T → S. Which final physical state leaves the circuit?",
+    "evidence": [
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "FIXED CIRCUIT",
+        "content": "Circuit: H, then T, then S on q0."
+      }
+    ]
+  },
+  {
+    "id": "M10",
+    "semanticId": "complex_y_phase_trace",
+    "type": "ConceptCheckLevel",
+    "title": "Trace the Complex Flip",
+    "task": "",
+    "continuation": "",
+    "question": "Ignoring a common global factor, which physical state leaves?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Apply Y to both basis components before removing a common factor."
+    ],
+    "legacyTask": "Starting from |0⟩, a circuit applies H → Y. Ignoring any common global factor, which physical state leaves the circuit?",
+    "evidence": [
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "FIXED CIRCUIT",
+        "content": "Circuit: H followed by Y on q0."
+      }
+    ]
+  },
+  {
+    "id": "M11",
+    "semanticId": "interferometer_repair",
+    "type": "ConceptCheckLevel",
+    "title": "Repair the Interferometer",
+    "task": "",
+    "continuation": "",
+    "question": "Which gate reveals deterministic \\(|1\\rangle\\)?",
+    "intro": "A relative phase is present, but direct Z-basis measurement is not deterministic.",
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Choose the operation that recombines the two phase-bearing paths."
+    ],
+    "legacyTask": "The fixed circuit is |0⟩ → H → Z → [?] → Z-basis measurement. The phase mark is present, but the required result is deterministic |1⟩. Which repair fills the slot?",
+    "evidence": [
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "REPAIR THE MISSING GATE",
+        "content": "Circuit: H then Z on q0, followed by a missing gate and Z-basis measurement."
+      }
+    ]
+  },
+  {
+    "id": "M12",
+    "semanticId": "phase_sandwich_unitary",
+    "type": "ConceptCheckLevel",
+    "title": "Phase Sandwich",
+    "task": "",
+    "continuation": "",
+    "question": "Across arbitrary inputs, which relationship is correct?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Multiply the complete matrices rather than checking one state."
+    ],
+    "legacyTask": "Compare the complete one-qubit operations XZX and Z—not their action on only one chosen input. Which statement is correct?",
+    "evidence": [
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "OPERATION A",
+        "content": "Operation A: X, then Z, then X on q0."
+      },
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "OPERATION B",
+        "content": "Operation B: Z on q0."
+      }
+    ]
+  },
+  {
+    "id": "M13",
+    "semanticId": "cnot_uncomputation",
+    "type": "ComposerLevel",
+    "title": "Undo the Controlled Change",
+    "task": "A fixed CNOT(q0→q1) changed \\(|11\\rangle\\) into \\(|01\\rangle\\). Append the controlled operation that restores the original register and undoes the fixed operation for every input.",
+    "continuation": "",
+    "question": "",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "The inverse must preserve both the gate type and its control/target roles."
+    ],
+    "legacyTask": "A fixed CNOT(q0→q1) changed \\(|11\\rangle\\) into \\(|01\\rangle\\). Append the controlled operation that restores the original register and undoes the fixed operation for every input.",
+    "evidence": []
+  },
+  {
+    "id": "M14",
+    "semanticId": "fanout_is_not_cloning",
+    "type": "ConceptCheckLevel",
+    "title": "Shared Control, Different Meaning",
+    "task": "",
+    "continuation": "",
+    "question": "What does the comparison establish?",
+    "intro": "Same circuit, two different inputs.",
+    "concept": null,
+    "support": null,
+    "helper": "Kets: |q2 q1 q0⟩.",
+    "hints": [
+      "Compare a definite basis value with the two coherent branches of the second output."
+    ],
+    "legacyTask": "The same fan-out uses CNOT(q0→q1), then CNOT(q0→q2).\n\nA. |001⟩ → |111⟩\nB. (|000⟩+|001⟩)/√2 → (|000⟩+|111⟩)/√2\n\nKets read |q2 q1 q0⟩. What does the comparison establish?",
+    "evidence": [
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "FAN-OUT TOPOLOGY",
+        "content": "Fan-out circuit: CNOT from q0 to q1, then CNOT from q0 to q2."
+      },
+      {
+        "type": "MasteryMathEvidence",
+        "label": "CASE A",
+        "content": "\\[|001\\rangle\\to|111\\rangle\\]"
+      },
+      {
+        "type": "MasteryMathEvidence",
+        "label": "CASE B",
+        "content": "\\[\\tfrac{|000\\rangle+|001\\rangle}{\\sqrt2}\\to\\tfrac{|000\\rangle+|111\\rangle}{\\sqrt2}\\]"
+      }
+    ]
+  },
+  {
+    "id": "M15",
+    "semanticId": "swap_unitary_diagnosis",
+    "type": "ConceptCheckLevel",
+    "title": "A Swap for Every Input",
+    "task": "",
+    "continuation": "",
+    "question": "Which conclusion is justified for arbitrary inputs?",
+    "intro": "Both candidates map \\(|01\\rangle\\) to \\(|10\\rangle\\).",
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Test the claimed operation on more than the supplied input."
+    ],
+    "legacyTask": "Both candidates map |01⟩→|10⟩.\n\nA: CNOT(q0→q1), CNOT(q1→q0), CNOT(q0→q1)\nB: CNOT(q0→q1), CNOT(q1→q0)\n\nWhich conclusion is justified for arbitrary inputs?",
+    "evidence": [
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "CANDIDATE A",
+        "content": "Candidate A: CNOT q0 to q1, CNOT q1 to q0, CNOT q0 to q1."
+      },
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "CANDIDATE B",
+        "content": "Candidate B: CNOT q0 to q1, then CNOT q1 to q0."
+      }
+    ]
+  },
+  {
+    "id": "M16",
+    "semanticId": "reversible_cancellation_trace",
+    "type": "ConceptCheckLevel",
+    "title": "A Change That Cancels",
+    "task": "",
+    "continuation": "",
+    "question": "Which description of the output is correct?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Trace both operations in order."
+    ],
+    "legacyTask": "Starting from |0⟩, a fixed circuit applies X → X. Which description of the output is correct?",
+    "evidence": [
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "FIXED CIRCUIT",
+        "content": "Circuit: X followed by X on q0, starting at 0."
+      }
+    ]
+  },
+  {
+    "id": "M17",
+    "semanticId": "hadamard_input_sign",
+    "type": "ConceptCheckLevel",
+    "title": "Same Balance, Different Sign",
+    "task": "",
+    "continuation": "",
+    "question": "Which complete output state is correct?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "The input column of H determines the relative sign."
+    ],
+    "legacyTask": "A Hadamard gate acts on |1⟩. Which complete output state is correct?",
+    "evidence": [
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "FIXED CIRCUIT",
+        "content": "Circuit: H on q0, starting at 1."
+      }
+    ]
+  },
+  {
+    "id": "M18",
+    "semanticId": "product_or_entangled",
+    "type": "ConceptCheckLevel",
+    "title": "Together or Merely Side by Side?",
+    "task": "",
+    "continuation": "",
+    "question": "Which conclusion is justified?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Try to factor each state; treat the histogram as evidence, not a statevector."
+    ],
+    "legacyTask": "Compare three pieces of evidence:\n\nA. (|00⟩+|01⟩)/√2\nB. (|00⟩+|11⟩)/√2\nC. A Z-basis histogram containing only 00 and 11.\n\nWhich conclusion is justified?",
+    "evidence": [
+      {
+        "type": "MasteryMathEvidence",
+        "label": "STATE A",
+        "content": "\\[\\tfrac{|00\\rangle+|01\\rangle}{\\sqrt2}\\]"
+      },
+      {
+        "type": "MasteryMathEvidence",
+        "label": "STATE B",
+        "content": "\\[\\tfrac{|00\\rangle+|11\\rangle}{\\sqrt2}\\]"
+      },
+      {
+        "type": "MasteryTextEvidence",
+        "label": "EVIDENCE C",
+        "content": "A Z-basis histogram contains only 00 and 11."
+      }
+    ]
+  },
+  {
+    "id": "M19",
+    "semanticId": "bell_measurement_evidence",
+    "type": "ConceptCheckLevel",
+    "title": "What Bell Measurements Prove",
+    "task": "",
+    "continuation": "",
+    "question": "What is the strongest conclusion supported by this evidence alone?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Separate the observed basis correlation from stronger state claims."
+    ],
+    "legacyTask": "Ideal repeated Z-basis measurements of a supplied Φ+ preparation give P(00)=1/2, P(11)=1/2, and zero probability for 01 or 10. What is the strongest conclusion supported by this evidence alone?",
+    "evidence": [
+      {
+        "type": "MasteryMathEvidence",
+        "label": "IDEAL Z-BASIS EVIDENCE",
+        "content": "\\[P(00)=\\tfrac12\\quad P(11)=\\tfrac12\\quad P(01)=P(10)=0\\]"
+      }
+    ]
+  },
+  {
+    "id": "M20",
+    "semanticId": "quarter_turn_relative_phase",
+    "type": "ConceptCheckLevel",
+    "title": "A Quarter Turn",
+    "task": "",
+    "continuation": "",
+    "question": "Which missing gate produces the target?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Compare the required relative phase turn."
+    ],
+    "legacyTask": "The fixed H prepares |+⟩ from |0⟩. Which missing gate produces |+i⟩ while preserving both amplitude magnitudes?",
+    "evidence": [
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "FILL THE GATE",
+        "content": "Circuit: H on q0 followed by a missing gate."
+      },
+      {
+        "type": "MasteryMathEvidence",
+        "label": "TARGET",
+        "content": "\\[|+i\\rangle=\\tfrac{|0\\rangle+i|1\\rangle}{\\sqrt2}\\]"
+      }
+    ]
+  },
+  {
+    "id": "M21",
+    "semanticId": "bell_input_sign_preparation",
+    "type": "ComposerLevel",
+    "title": "The Sign Was Already There",
+    "task": "Starting from \\(|01\\rangle\\) (ket order \\(|q_1\\,q_0\\rangle\\)), prepare",
+    "continuation": "using the input-dependent sign and the available H/CNOT gates.",
+    "question": "",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Use H on the qubit that already begins in |1⟩."
+    ],
+    "legacyTask": "Starting from |01⟩ (ket order |q1 q0⟩), prepare Φ−=(|00⟩−|11⟩)/√2 using the input-dependent sign and the available H/CNOT gates.",
+    "evidence": [
+      {
+        "type": "MasteryMathEvidence",
+        "label": "TARGET",
+        "content": "\\[\\Phi^-=\\frac{|00\\rangle-|11\\rangle}{\\sqrt{2}}\\]"
+      }
+    ]
+  },
+  {
+    "id": "M22",
+    "semanticId": "bell_phase_equivalence",
+    "type": "ConceptCheckLevel",
+    "title": "Where Can the Bell Phase Live?",
+    "task": "",
+    "continuation": "",
+    "question": "Which statement about the two placements is correct?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Apply each local Z to both correlated terms."
+    ],
+    "legacyTask": "Starting from Φ+=(|00⟩+|11⟩)/√2, compare applying Z to q0 with applying Z to q1. Which statement is correct?",
+    "evidence": [
+      {
+        "type": "MasteryMathEvidence",
+        "label": "INPUT",
+        "content": "\\[|\\Phi^+\\rangle=\\tfrac{|00\\rangle+|11\\rangle}{\\sqrt2}\\]"
+      },
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "PLACEMENT A",
+        "content": "Placement A: Z on q0."
+      },
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "PLACEMENT B",
+        "content": "Placement B: Z on q1."
+      }
+    ]
+  },
+  {
+    "id": "M23",
+    "semanticId": "ghz_outcome_constraint",
+    "type": "ConceptCheckLevel",
+    "title": "One System, Three Qubits",
+    "task": "",
+    "continuation": "",
+    "question": "Which ideal Z-basis outcome rule is correct?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Read the support of the complete three-qubit state."
+    ],
+    "legacyTask": "For GHZ+=(|000⟩+|111⟩)/√2, which Z-basis outcome rule is correct?",
+    "evidence": [
+      {
+        "type": "MasteryMathEvidence",
+        "label": "SUPPLIED STATE",
+        "content": "\\[|GHZ^+\\rangle=\\tfrac{|000\\rangle+|111\\rangle}{\\sqrt2}\\]"
+      }
+    ]
+  },
+  {
+    "id": "M24",
+    "semanticId": "ghz_broken_link",
+    "type": "ConceptCheckLevel",
+    "title": "Find the Broken GHZ Link",
+    "task": "",
+    "continuation": "",
+    "question": "Which replacement for the final link repairs the preparation?",
+    "intro": "The final controlled link is wrong.",
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "The existing correlation must propagate onto the still-zero q2 wire."
+    ],
+    "legacyTask": "A preparation applies H(q0), CNOT(q0→q1), then CNOT(q2→q1). Its output support is {000, 011}, not {000, 111}. Which replacement for the final link repairs GHZ preparation?",
+    "evidence": [
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "BROKEN PREPARATION",
+        "content": "Broken GHZ circuit: H on q0, CNOT q0 to q1, then CNOT q2 to q1."
+      },
+      {
+        "type": "MasteryMathEvidence",
+        "label": "OBSERVED SUPPORT",
+        "content": "\\[\\{000,011\\}\\]"
+      },
+      {
+        "type": "MasteryMathEvidence",
+        "label": "REQUIRED SUPPORT",
+        "content": "\\[\\{000,111\\}\\]"
+      }
+    ]
+  },
+  {
+    "id": "M25",
+    "semanticId": "ghz_phase_manipulation",
+    "type": "ComposerLevel",
+    "title": "A Hidden Sign Across Three Qubits",
+    "task": "",
+    "continuation": "",
+    "question": "",
+    "intro": "The fixed starting state is",
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Any one GHZ wire is 1 in the |111⟩ branch only."
+    ],
+    "legacyTask": "The fixed starting state is GHZ+=(|000⟩+|111⟩)/√2. Use one local Z operation to produce GHZ−=(|000⟩−|111⟩)/√2.",
+    "evidence": [
+      {
+        "type": "MasteryMathEvidence",
+        "label": "FIXED STARTING STATE",
+        "content": "\\[GHZ^+=\\frac{|000\\rangle+|111\\rangle}{\\sqrt{2}}\\]"
+      },
+      {
+        "type": "MasteryTextEvidence",
+        "label": null,
+        "content": "Use one local Z operation to produce"
+      },
+      {
+        "type": "MasteryMathEvidence",
+        "label": "TARGET",
+        "content": "\\[GHZ^-=\\frac{|000\\rangle-|111\\rangle}{\\sqrt{2}}\\]"
+      }
+    ]
+  },
+  {
+    "id": "M26",
+    "semanticId": "phase_kickback_reveal",
+    "type": "ConceptCheckLevel",
+    "title": "Reveal the Kicked-Back Bit",
+    "task": "",
+    "continuation": "",
+    "question": "Which gate reveals a deterministic control bit, and which bit?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Choose the basis change that distinguishes |+⟩ from |−⟩."
+    ],
+    "legacyTask": "After controlled-X acts on |+⟩control|−⟩target, the control is |−⟩ and the target is unchanged. Which gate on the control reveals a deterministic bit, and which bit appears?",
+    "evidence": [
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "AFTER KICKBACK",
+        "content": "Controlled X from q0 to q1, followed by a missing reveal gate on q0."
+      },
+      {
+        "type": "MasteryMathEvidence",
+        "label": "STATE BEFORE REVEAL",
+        "content": "\\[|-\\rangle_{q0}|-\\rangle_{q1}\\]"
+      }
+    ]
+  },
+  {
+    "id": "M27",
+    "semanticId": "inverse_phase_synthesis",
+    "type": "ComposerLevel",
+    "title": "Build the Missing Inverse",
+    "task": "Prepare",
+    "continuation": "from \\(|0\\rangle\\) without a \\(T^{\\dagger}\\) gate. Synthesize the negative eighth-turn using H, T, S, and Z.",
+    "question": "",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Represent −π/4 as an equivalent positive turn modulo 2π."
+    ],
+    "legacyTask": "Prepare (|0⟩+e^(−iπ/4)|1⟩)/√2 from |0⟩ without a T† gate. Synthesize the negative eighth-turn using H, T, S, and Z.",
+    "evidence": [
+      {
+        "type": "MasteryMathEvidence",
+        "label": null,
+        "content": "\\[\\frac{|0\\rangle+e^{-i\\pi/4}|1\\rangle}{\\sqrt{2}}\\]"
+      }
+    ]
+  },
+  {
+    "id": "M28",
+    "semanticId": "phased_entanglement_uncomputation",
+    "type": "ComposerLevel",
+    "title": "Uncompute the Hidden Correlation",
+    "task": "A fixed H(q0)→CNOT(q0→q1)→Z(q0) prefix prepared \\(\\Phi^-\\). Append the inverse structure that returns the complete operation to identity.",
+    "continuation": "",
+    "question": "",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Undo the phase, then disentangle, then undo the superposition."
+    ],
+    "legacyTask": "A fixed H(q0)→CNOT(q0→q1)→Z(q0) prefix prepared \\(\\Phi^-\\). Append the inverse structure that returns the complete operation to identity.",
+    "evidence": []
+  },
+  {
+    "id": "M29",
+    "semanticId": "conditional_phase_decomposition",
+    "type": "ComposerLevel",
+    "title": "Build a Conditional Sign",
+    "task": "Implement the reusable CZ operation without a direct CZ gate, using H and CNOT. Validation covers the complete two-qubit unitary.",
+    "continuation": "",
+    "question": "",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Conjugate the CNOT target with H."
+    ],
+    "legacyTask": "Implement the reusable CZ operation without a direct CZ gate, using H and CNOT. Validation covers the complete two-qubit unitary.",
+    "evidence": []
+  },
+  {
+    "id": "M30",
+    "semanticId": "oracle_repair_uncompute",
+    "type": "ConceptCheckLevel",
+    "title": "Repair the Phase Oracle",
+    "task": "",
+    "continuation": "",
+    "question": "What is the smallest repair?",
+    "intro": "The oracle marks the right phase but leaves a temporary relabelling behind.",
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Uncompute the temporary basis relabelling on the same wire."
+    ],
+    "legacyTask": "A supposed |10⟩ phase oracle applies X(q0)→CZ(q0,q1) but omits its final wrapper. It creates the intended sign during the middle step but does not restore computational labels. What is the smallest repair?",
+    "evidence": [
+      {
+        "type": "MasteryCircuitEvidence",
+        "label": "INCOMPLETE ORACLE",
+        "content": "Incomplete oracle: X on q0, then controlled Z between q0 and q1, followed by a missing cleanup gate."
+      }
+    ]
+  },
+  {
+    "id": "M31",
+    "semanticId": "marked_is_not_amplified",
+    "type": "ConceptCheckLevel",
+    "title": "Marked Is Not More Likely",
+    "task": "",
+    "continuation": "",
+    "question": "When does the marked state’s Z-basis probability increase?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Compare squared magnitudes at each snapshot."
+    ],
+    "legacyTask": "Four basis amplitudes begin at +1/2. An oracle changes only the marked amplitude to −1/2. A later amplification stage produces amplitude 1 on the marked state and 0 on the others. When does its Z-basis probability increase?",
+    "evidence": [
+      {
+        "type": "MasteryMathEvidence",
+        "label": "UNIFORM",
+        "content": "\\[\\bigl[\\tfrac12,\\tfrac12,\\tfrac12,\\tfrac12\\bigr]\\]"
+      },
+      {
+        "type": "MasteryMathEvidence",
+        "label": "AFTER ORACLE",
+        "content": "\\[\\bigl[\\tfrac12,\\tfrac12,-\\tfrac12,\\tfrac12\\bigr]\\]"
+      },
+      {
+        "type": "MasteryMathEvidence",
+        "label": "AFTER AMPLIFICATION",
+        "content": "\\[\\bigl[0,0,1,0\\bigr]\\]"
+      }
+    ]
+  },
+  {
+    "id": "M32",
+    "semanticId": "amplitude_flow_inference",
+    "type": "ConceptCheckLevel",
+    "title": "Where Did the Amplitude Go?",
+    "task": "",
+    "continuation": "",
+    "question": "What is the output amplitude vector?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Apply the supplied reflection to the negative and positive entries separately."
+    ],
+    "legacyTask": "After marking one of four uniform states, the amplitudes are [1/2, 1/2, −1/2, 1/2]. The supplied amplifier reflects each amplitude a about their mean m=1/4 using a′=2m−a. What is the output?",
+    "evidence": [
+      {
+        "type": "MasteryMathEvidence",
+        "label": "MARKED AMPLITUDES",
+        "content": "\\[\\bigl[\\tfrac12,\\tfrac12,-\\tfrac12,\\tfrac12\\bigr]\\]"
+      },
+      {
+        "type": "MasteryMathEvidence",
+        "label": "SUPPLIED REFLECTION",
+        "content": "\\[m=\\tfrac14\\qquad a^{\\prime}=2m-a\\]"
+      }
+    ]
+  },
+  {
+    "id": "M33",
+    "semanticId": "grover_round_order",
+    "type": "ConceptCheckLevel",
+    "title": "One Round, Wrong Order",
+    "task": "",
+    "continuation": "",
+    "question": "Which repair explains the symptom?",
+    "intro": "This search round produces a uniform final histogram.",
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Ask what information the amplifier receives when its input is still uniform."
+    ],
+    "legacyTask": "In the four-state search model used here, a broken round applies amplification to the uniform state, then applies the phase oracle, then measures. The final histogram remains uniform. Which repair explains the symptom?",
+    "evidence": [
+      {
+        "type": "MasteryPipelineEvidence",
+        "label": "BROKEN ROUND",
+        "content": [
+          "Uniform",
+          "Amplify",
+          "Oracle",
+          "Measure"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "M34",
+    "semanticId": "retry_or_reshape",
+    "type": "ConceptCheckLevel",
+    "title": "Retry or Reshape?",
+    "task": "",
+    "continuation": "",
+    "question": "Which next process coherently reshapes the distribution instead of repeating the same measurement?",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Look for a process that changes amplitudes before measurement."
+    ],
+    "legacyTask": "A search attempt has low success probability. Which next process coherently reshapes the distribution rather than merely trying the same measurement again?",
+    "evidence": [
+      {
+        "type": "MasteryPipelineEvidence",
+        "label": "CURRENT ATTEMPT",
+        "content": [
+          "Prepare",
+          "Low success",
+          "Measure"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "M35",
+    "semanticId": "clean_workspace_uncomputation",
+    "type": "ComposerLevel",
+    "title": "Clean the Workspace",
+    "task": "A fixed H(q0)→CNOT(q0→q1) computes q0 into work qubit q1, then fixed Z(q1) uses that predicate as phase. Append the cleanup that restores \\(q_1=0\\) while preserving the phase on q0.",
+    "continuation": "",
+    "question": "",
+    "intro": null,
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Reverse the compute step after its phase has been used."
+    ],
+    "legacyTask": "A fixed H(q0)→CNOT(q0→q1) computes q0 into work qubit q1, then fixed Z(q1) uses that predicate as phase. Append the cleanup that restores \\(q_1=0\\) while preserving the phase on q0.",
+    "evidence": []
+  },
+  {
+    "id": "M36",
+    "semanticId": "search_pipeline_forensics",
+    "type": "ConceptCheckLevel",
+    "title": "Search Pipeline Forensics",
+    "task": "",
+    "continuation": "",
+    "question": "What follows from all three clues?",
+    "intro": "An eight-state search trace contains three clues.",
+    "concept": null,
+    "support": null,
+    "helper": null,
+    "hints": [
+      "Track sign, squared magnitude, and stage placement separately."
+    ],
+    "legacyTask": "An eight-state search trace begins uniform. Snapshot A changes only the |101⟩ amplitude from +1/√8 to −1/√8. Measurement is mistakenly placed immediately after A and remains uniform. In a corrected trace, the next coherent stage gives |101⟩ amplitude 5/(2√8) and every other amplitude 1/(2√8). What follows from all three clues?",
+    "evidence": [
+      {
+        "type": "MasteryMathEvidence",
+        "label": "SNAPSHOT A",
+        "content": "\\[a_{101}:\\ +\\tfrac1{\\sqrt8}\\to-\\tfrac1{\\sqrt8}\\]"
+      },
+      {
+        "type": "MasteryTextEvidence",
+        "label": "EARLY MEASUREMENT",
+        "content": "The histogram remains uniform."
+      },
+      {
+        "type": "MasteryMathEvidence",
+        "label": "NEXT COHERENT STAGE",
+        "content": "\\[a_{101}=\\tfrac5{2\\sqrt8}\\qquad a_{other}=\\tfrac1{2\\sqrt8}\\]"
+      }
+    ]
+  }
+]
