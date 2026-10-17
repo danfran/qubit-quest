@@ -1228,12 +1228,10 @@ class _ContentCard extends StatelessWidget {
   const _ContentCard(
       {required this.title,
       required this.icon,
-      required this.child,
-      this.titleContent});
+      required this.child});
   final String title;
   final IconData icon;
   final Widget child;
-  final Widget? titleContent;
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
@@ -1252,11 +1250,10 @@ class _ContentCard extends StatelessWidget {
                   Icon(icon, color: _cyan, size: 19),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: titleContent ??
-                        Text(
-                          title,
-                          style: const TextStyle(fontWeight: FontWeight.w900),
-                        ),
+                    child: Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
                   ),
                 ],
               ),

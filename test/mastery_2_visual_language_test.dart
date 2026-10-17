@@ -376,16 +376,14 @@ void main() {
     });
 
     test('every selectable challenge has authored visual presentation', () {
-      final selectableIds = mastery2Catalogue.orderedDefinitions
-          .where((definition) => definition.levelDefinition is McqLevel)
+      final catalogueIds = mastery2Catalogue.orderedDefinitions
           .map((definition) => definition.semanticId)
           .toSet();
-      expect(mastery2Presentations.keys.toSet(), {
-        ...selectableIds,
-        'bell_input_sign_preparation',
-        'ghz_phase_manipulation',
-        'inverse_phase_synthesis',
-      });
+      final presentationIds = mastery2Presentations.keys.toSet();
+      expect(presentationIds.difference(catalogueIds), isEmpty,
+          reason: 'Typed presentations must not contain orphan challenges.');
+      expect(catalogueIds.difference(presentationIds), isEmpty,
+          reason: 'Every challenge must have an authored presentation.');
     });
   });
 

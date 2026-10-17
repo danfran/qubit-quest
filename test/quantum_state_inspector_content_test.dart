@@ -5,7 +5,6 @@ import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/mastery_2_catalogue.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
-import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/web_learning_workspace.dart';
 import 'package:quantumquiz/widgets/circuit_geometry.dart';

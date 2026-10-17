@@ -1,3 +1,4 @@
+import 'dart:ui' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/widgets/activity_instruction_presentation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,7 +23,10 @@ import 'package:quantumquiz/widgets/quantum_workspace_layout.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/widgets/web_composer_workbench.dart';
 
+import 'support/mastery_math_test_platform.dart';
+
 void main() {
+  useMasteryMathTestPlatform();
   Future<CampaignProgressController> controllerWith(
       [CampaignProgressState? state]) async {
     final controller = CampaignProgressController(
@@ -354,7 +358,25 @@ void main() {
         .tap(find.descendant(of: selector, matching: find.text('Bloch')));
     await tester.pump();
     var bloch = tester.widget<BlochSpherePanel>(find.byType(BlochSpherePanel));
-    expect(bloch.interactive, isFalse);
+    expect(bloch.interactive, isTrue);
+    final stateBeforeDrag = circuit.currentState;
+    final amplitudesBeforeDrag = List.of(stateBeforeDrag.stateVector);
+    final yawBeforeDrag = bloch.camera.yaw;
+    final sphere = find.byKey(const ValueKey('bloch-sphere-canvas'));
+    await tester.ensureVisible(sphere);
+    await tester.pumpAndSettle();
+    final mouse = await tester.startGesture(tester.getCenter(sphere),
+        kind: PointerDeviceKind.mouse);
+    await mouse.moveBy(const Offset(20, 8));
+    await tester.pump();
+    await mouse.moveBy(const Offset(40, 18));
+    await mouse.up();
+    await tester.pumpAndSettle();
+    bloch = tester.widget<BlochSpherePanel>(find.byType(BlochSpherePanel));
+    expect(bloch.camera.yaw, isNot(yawBeforeDrag));
+    expect(circuit.currentState, same(stateBeforeDrag));
+    expect(
+        circuit.currentState.stateVector, orderedEquals(amplitudesBeforeDrag));
     expect(bloch.state.z, closeTo(1, 1e-9));
     expect(identical(canvas.circuit, circuit), isTrue);
     expect(circuit.simulationRunCount, initialRuns);

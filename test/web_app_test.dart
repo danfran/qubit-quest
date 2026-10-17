@@ -21,6 +21,33 @@ import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
 import 'package:quantumquiz/widgets/circuit_canvas_metrics.dart';
 import 'package:quantumquiz/widgets/circuit_geometry.dart';
+import 'package:quantumquiz/widgets/circuit_layout_metrics.dart';
+
+// The metrics request a preferred height; the shared workbench can constrain it.
+// Check the actual constraint contract AND complete drawing/hit-area containment.
+void expectCanvasFits(WidgetTester tester, int qubits) {
+  final canvas = find.byKey(const ValueKey('web-composer-canvas'));
+  final stage = find.byKey(const ValueKey('web-composer-circuit-stage'));
+  final preferred = WebCircuitWorkbenchMetrics.calculate(
+          qubitCount: qubits, hasTargetState: false)
+      .canvasHeight;
+  final available = tester.renderObject<RenderBox>(stage).constraints.maxHeight;
+  final rect = tester.getRect(canvas);
+  expect(rect.height, math.min(preferred, available));
+  expect(rect.height,
+      greaterThanOrEqualTo(CircuitLayoutMetrics.drawingHeight(qubits)),
+      reason: 'All wires, gates and shadows must fit, even under constraints.');
+  final hitArea =
+      tester.getRect(find.byKey(const ValueKey('circuit-interaction-surface')));
+  expect(hitArea.top, greaterThanOrEqualTo(rect.top));
+  expect(hitArea.bottom, lessThanOrEqualTo(rect.bottom));
+  final lastWireHitBottom = hitArea.top +
+      CircuitLayoutMetrics.wireCenterY(qubits - 1) +
+      CircuitLayoutMetrics.hitTolerance;
+  expect(lastWireHitBottom, lessThanOrEqualTo(rect.bottom),
+      reason: 'The last qubit must retain its complete interaction area.');
+  expect(tester.takeException(), isNull);
+}
 
 void main() {
   Future<void> setSize(
@@ -68,6 +95,14 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('web-nav-mastery')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('web-mastery-title')), findsOneWidget);
+    expect(find.byKey(const ValueKey('web-mastery-overview')), findsOneWidget);
+    expect(
+        find.byKey(
+            const ValueKey('web-mastery-activity-global_phase_equivalence')),
+        findsNothing);
+    await tester.tap(find.byKey(
+        const ValueKey('web-mastery-challenge-global_phase_equivalence')));
+    await tester.pumpAndSettle();
     expect(
         find.byKey(
             const ValueKey('web-mastery-activity-global_phase_equivalence')),
@@ -159,13 +194,7 @@ void main() {
     final palette = find.byType(ComposerGatePalette);
     expect(
         tester.getTopLeft(canvas).dy, lessThan(tester.getTopLeft(palette).dy));
-    expect(
-      tester.getSize(canvas).height,
-      WebCircuitWorkbenchMetrics.calculate(
-        qubitCount: 3,
-        hasTargetState: false,
-      ).canvasHeight,
-    );
+    expectCanvasFits(tester, 3);
     expect(
         find.byKey(const ValueKey('web-composer-canvas-frame')), findsNothing);
     expect(tester.getCenter(canvas).dy, closeTo(tester.getCenter(stage).dy, 1));
@@ -258,13 +287,7 @@ void main() {
     }
 
     final populatedFiveQubitHeight = await openAndMeasure(5);
-    expect(
-      populatedFiveQubitHeight,
-      WebCircuitWorkbenchMetrics.calculate(
-        qubitCount: 5,
-        hasTargetState: false,
-      ).canvasHeight,
-    );
+    expectCanvasFits(tester, 5);
     final canvas = tester.widget<ComposerCircuitCanvas>(
       find.byType(ComposerCircuitCanvas),
     );
@@ -290,23 +313,16 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('web-composer-change-qubits')));
     await tester.pump();
-    expect(
-      await openAndMeasure(1),
-      WebCircuitWorkbenchMetrics.calculate(
-        qubitCount: 1,
-        hasTargetState: false,
-      ).canvasHeight,
-    );
+    final oneQubitHeight = await openAndMeasure(1);
+    expectCanvasFits(tester, 1);
 
     await tester.tap(find.byKey(const ValueKey('web-composer-change-qubits')));
     await tester.pump();
-    expect(
-      await openAndMeasure(2),
-      WebCircuitWorkbenchMetrics.calculate(
-        qubitCount: 2,
-        hasTargetState: false,
-      ).canvasHeight,
-    );
+    final twoQubitHeight = await openAndMeasure(2);
+    expectCanvasFits(tester, 2);
+    expect(twoQubitHeight, greaterThan(oneQubitHeight));
+    expect(populatedFiveQubitHeight - twoQubitHeight,
+        3 * CircuitLayoutMetrics.qubitSpacing);
   });
 
   testWidgets('Web Composer keeps canonical gate inspection available',

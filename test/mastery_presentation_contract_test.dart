@@ -105,10 +105,24 @@ void main() {
       expect(widget.task, requireMasteryPresentation(id).instruction);
       expect(widget.question, isEmpty);
       expect(widget.evidence, isNull);
-      final text = tester.widget<LatexText>(
-          find.descendant(of: instruction, matching: find.byType(LatexText)));
-      expect(text.math, level.taskDescription);
-      expect(text.textStyle, ActivityInstructionPresentation.taskStyle);
+      final math =
+          find.descendant(of: instruction, matching: find.byType(LatexText));
+      final TextStyle? effectiveStyle;
+      if (math.evaluate().isNotEmpty) {
+        final text = tester.widget<LatexText>(math);
+        expect(text.math, level.taskDescription);
+        effectiveStyle = text.textStyle;
+      } else {
+        final prose = find.descendant(
+            of: instruction, matching: find.text(level.taskDescription));
+        expect(prose, findsOneWidget);
+        effectiveStyle = tester.widget<Text>(prose).style;
+      }
+      final expectedStyle = ActivityInstructionPresentation.taskStyle;
+      expect(effectiveStyle?.fontSize, expectedStyle.fontSize);
+      expect(effectiveStyle?.fontWeight, expectedStyle.fontWeight);
+      expect(effectiveStyle?.color, expectedStyle.color);
+      expect(effectiveStyle?.height, expectedStyle.height);
       expect(
           find.byKey(const ValueKey('mastery-task-instruction')), findsNothing);
       expect(find.text('Task'), findsOneWidget);

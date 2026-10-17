@@ -128,6 +128,14 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('web-nav-mastery')));
     await tester.pump();
     expect(find.byType(WebMasteryWorkspace), findsOneWidget);
+    expect(find.byKey(const ValueKey('web-mastery-overview')), findsOneWidget);
+    expect(
+        find.byKey(
+            const ValueKey('web-mastery-activity-global_phase_equivalence')),
+        findsNothing);
+    await tester.tap(find.byKey(
+        const ValueKey('web-mastery-challenge-global_phase_equivalence')));
+    await tester.pumpAndSettle();
     expect(
         find.byKey(
           const ValueKey('web-mastery-activity-global_phase_equivalence'),
