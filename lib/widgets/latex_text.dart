@@ -17,6 +17,9 @@ import 'package:flutter_tex/flutter_tex.dart';
 ///   display → \[ ... \]  or  $$ ... $$
 class LatexText extends StatelessWidget {
   final String math;
+
+  /// Opt-in MathJax em sizing; null preserves the existing height contract.
+  final double? mathFontSize;
   final TextStyle? textStyle;
   final Color? inlineMathColor;
 
@@ -35,6 +38,7 @@ class LatexText extends StatelessWidget {
     super.key,
     required this.math,
     this.textStyle,
+    this.mathFontSize,
     this.inlineMathColor,
     this.inlineMathHeight = 16.0,
     this.displayMathHeight = 24.0,
@@ -118,6 +122,7 @@ class LatexText extends StatelessWidget {
             math: _mathJaxSource(seg),
             formulaWidgetBuilder: (ctx, svg) => LatexSvgPicture(
               svg: svg,
+              mathFontSize: mathFontSize,
               logicalHeight: displayMathHeight,
               color: color,
               minimumScale: minimumDisplayMathScale,
@@ -132,6 +137,7 @@ class LatexText extends StatelessWidget {
             math: _mathJaxSource(seg),
             formulaWidgetBuilder: (ctx, svg) => LatexSvgPicture(
               svg: svg,
+              mathFontSize: mathFontSize,
               logicalHeight: inlineMathHeight,
               color: inlineColor,
             ),
@@ -172,22 +178,29 @@ class LatexSvgPicture extends StatelessWidget {
     required this.logicalHeight,
     required this.color,
     this.minimumScale = 0,
+    this.mathFontSize,
   });
 
   final String svg;
   final double logicalHeight;
   final Color color;
   final double minimumScale;
+  final double? mathFontSize;
 
   @override
   Widget build(BuildContext context) {
-    final resolvedHeight =
-        MediaQuery.textScalerOf(context).scale(logicalHeight);
     final viewBox = RegExp(
       r'''viewBox=["']\s*[-\d.]+\s+[-\d.]+\s+([\d.]+)\s+([\d.]+)\s*["']''',
     ).firstMatch(svg);
     final intrinsicWidth = double.tryParse(viewBox?.group(1) ?? '');
     final intrinsicHeight = double.tryParse(viewBox?.group(2) ?? '');
+    // MathJax SVG viewBox coordinates use 1000 units per em. Preserve that
+    // scale instead of squeezing every expression into the same total height.
+    // Fractions/matrices get more height; ordinary glyphs keep the same size.
+    final emHeight = mathFontSize != null && intrinsicHeight != null
+        ? intrinsicHeight / 1000 * mathFontSize!
+        : logicalHeight;
+    final resolvedHeight = MediaQuery.textScalerOf(context).scale(emHeight);
 
     Widget picture(double height, {double? width}) => SizedBox(
           width: width,

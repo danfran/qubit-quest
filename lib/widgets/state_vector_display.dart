@@ -42,8 +42,10 @@ class StateVectorDisplay extends StatefulWidget {
   final bool dense;
   final bool showVisibilityControl;
   final bool? nonZeroOnlyOverride;
+  final ValueChanged<bool>? onNonZeroOnlyChanged;
   final Widget? visibilityControlOverride;
   final bool contentDriven;
+  final bool lightweightTypography;
 
   const StateVectorDisplay({
     super.key,
@@ -62,8 +64,10 @@ class StateVectorDisplay extends StatefulWidget {
     this.dense = false,
     this.showVisibilityControl = true,
     this.nonZeroOnlyOverride,
+    this.onNonZeroOnlyChanged,
     this.visibilityControlOverride,
     this.contentDriven = false,
+    this.lightweightTypography = false,
   });
 
   @override
@@ -176,8 +180,11 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
             numQubits: widget.numQubits,
           )
         : null;
-    final authoredExpression = widget.tone == StateVectorDisplayTone.target
+    final rawAuthoredExpression = widget.tone == StateVectorDisplayTone.target
         ? widget.stateExpression?.trim()
+        : null;
+    final authoredExpression = rawAuthoredExpression?.isNotEmpty == true
+        ? targetStateMathExpression(rawAuthoredExpression!)
         : null;
 
     final stateContent = LayoutBuilder(
@@ -326,6 +333,7 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
       icon: _summaryIcon,
       accent: _summaryAccent,
       dense: widget.dense,
+      lightweightTypography: widget.lightweightTypography,
       decorated: false,
       showChips: false,
       toggle: widget.visibilityControlOverride ??
@@ -368,6 +376,7 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
             targetPercentLabel:
                 hasTarget ? _formatPercent(targetProbability) : null,
             color: probabilityColor,
+            lightweightTypography: widget.lightweightTypography,
           );
         }),
       ],
@@ -375,11 +384,17 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
   }
 
   Widget _buildStateVisibilityControl() {
+    final nonZeroOnly = widget.nonZeroOnlyOverride ?? _nonZeroOnly;
+    void update(bool value) {
+      if (widget.nonZeroOnlyOverride == null) {
+        setState(() => _nonZeroOnly = value);
+      }
+      widget.onNonZeroOnlyChanged?.call(value);
+      _resetStateScroll();
+    }
+
     return InkWell(
-      onTap: () {
-        setState(() => _nonZeroOnly = !_nonZeroOnly);
-        _resetStateScroll();
-      },
+      onTap: () => update(!nonZeroOnly),
       borderRadius: BorderRadius.circular(6),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -387,11 +402,8 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
           Transform.scale(
             scale: widget.dense ? 0.58 : 0.70,
             child: Checkbox(
-              value: _nonZeroOnly,
-              onChanged: (v) {
-                setState(() => _nonZeroOnly = v ?? false);
-                _resetStateScroll();
-              },
+              value: nonZeroOnly,
+              onChanged: (v) => update(v ?? false),
               activeColor: _ResultPalette.qqCyan,
               checkColor: Colors.black,
               side: const BorderSide(color: Colors.white54, width: 1),
@@ -528,6 +540,7 @@ class _StateSummarySection extends StatelessWidget {
   final Widget? toggle;
   final bool decorated;
   final bool showChips;
+  final bool lightweightTypography;
 
   const _StateSummarySection({
     required this.title,
@@ -539,6 +552,7 @@ class _StateSummarySection extends StatelessWidget {
     this.toggle,
     this.decorated = true,
     this.showChips = true,
+    this.lightweightTypography = false,
   });
 
   @override
@@ -580,7 +594,9 @@ class _StateSummarySection extends StatelessWidget {
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: dense ? 10.8 : 12,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: lightweightTypography
+                            ? FontWeight.w500
+                            : FontWeight.w800,
                       ),
                     ),
                     if (!dense) const SizedBox(height: 1),
@@ -592,7 +608,9 @@ class _StateSummarySection extends StatelessWidget {
                         style: TextStyle(
                           color: Color(0xFF9BAAC4),
                           fontSize: dense ? 8.5 : 9.5,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: lightweightTypography
+                              ? FontWeight.w400
+                              : FontWeight.w600,
                         ),
                       ),
                     ],
@@ -627,6 +645,7 @@ class _ProbabilityRow extends StatelessWidget {
   final String percentLabel;
   final String? targetPercentLabel;
   final Color color;
+  final bool lightweightTypography;
 
   const _ProbabilityRow({
     required this.ket,
@@ -636,6 +655,7 @@ class _ProbabilityRow extends StatelessWidget {
     required this.percentLabel,
     required this.targetPercentLabel,
     required this.color,
+    this.lightweightTypography = false,
   });
 
   @override
@@ -661,10 +681,12 @@ class _ProbabilityRow extends StatelessWidget {
                   maxLines: 1,
                   softWrap: false,
                   overflow: TextOverflow.visible,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: lightweightTypography
+                        ? FontWeight.w500
+                        : FontWeight.w700,
                   ),
                 ),
               ),
@@ -683,10 +705,12 @@ class _ProbabilityRow extends StatelessWidget {
                   textAlign: TextAlign.right,
                   maxLines: 1,
                   softWrap: false,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 11,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: lightweightTypography
+                        ? FontWeight.w500
+                        : FontWeight.w700,
                   ),
                 ),
               ),

@@ -30,7 +30,7 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
       options: [
         'They are equal mathematical vectors and therefore describe the same gate action.',
         'They are different statevector representatives of the same physical pure state; the global factors can still record genuine operator actions.',
-        'Only |1⟩ and −|1⟩ are physically equivalent; the factor i changes later measurements.',
+        r'Only \(|1\rangle\) and −\(|1\rangle\) are physically equivalent; the factor i changes later measurements.',
         'A later gate can reveal which overall global factor was present.',
       ],
       correctOptionIndex: 1,
@@ -137,8 +137,8 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
       options: [
         'The identical Z-basis distributions prove that all three preparations are the same quantum state.',
         'Changing measurement basis changes which state was originally prepared.',
-        'The random ensemble is the pure state (|0⟩+|1⟩)/√2, so it must always give + in the X basis.',
-        'The X-basis evidence distinguishes |+⟩, |−⟩, and the random ensemble; one basis distribution was not a complete state description.',
+        r'The random ensemble is the pure state \(\frac{|0\rangle+|1\rangle}{\sqrt{2}}\), so it must always give + in the X basis.',
+        r'The X-basis evidence distinguishes \(|+\rangle\), \(|-\rangle\), and the random ensemble; one basis distribution was not a complete state description.',
       ],
       correctOptionIndex: 3,
       hints: [
@@ -204,10 +204,10 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
       taskDescription:
           'Input: |Φ+⟩=(|00⟩+|11⟩)/√2.\n\nA proposed decoder applies H(q0), then CNOT(control q0, target q1), but its output is not a basis state. Which repair and output are correct?',
       options: [
-        'Apply CNOT(q1→q0), then H(q0); output |00⟩.',
-        'Keep the order but reverse the CNOT: H(q0), then CNOT(q1→q0); output |00⟩.',
-        'Swap the gate order: CNOT(q0→q1), then H(q0); output |00⟩.',
-        'Delete H and use CNOT(q0→q1) alone; output |00⟩.',
+        r'Apply CNOT(q1→q0), then H(q0); output \(|00\rangle\).',
+        r'Keep the order but reverse the CNOT: H(q0), then CNOT(q1→q0); output \(|00\rangle\).',
+        r'Swap the gate order: CNOT(q0→q1), then H(q0); output \(|00\rangle\).',
+        r'Delete H and use CNOT(q0→q1) alone; output \(|00\rangle\).',
       ],
       correctOptionIndex: 2,
       hints: [
@@ -239,10 +239,10 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
       taskDescription:
           'A controlled-X uses the first state as control and the second as target. Which input creates a useful, observable phase change on the control while leaving the target state unchanged?',
       options: [
-        '|+⟩control |+⟩target',
-        '|+⟩control |−⟩target',
-        '|1⟩control |−⟩target',
-        '|+⟩control |0⟩target',
+        r'\(|+\rangle\)control \(|+\rangle\)target',
+        r'\(|+\rangle\)control \(|-\rangle\)target',
+        r'\(|1\rangle\)control \(|-\rangle\)target',
+        r'\(|+\rangle\)control \(|0\rangle\)target',
       ],
       correctOptionIndex: 1,
       hints: [
@@ -273,10 +273,10 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
       taskDescription:
           'Wires are q0 above q1; kets read |q1 q0⟩. A phase oracle transforms the uniform state into\n\n( |00⟩ + |01⟩ − |10⟩ + |11⟩ ) / 2.\n\nWhich state and oracle structure match the evidence?',
       options: [
-        '|00⟩; CZ(q0,q1) with no X wrappers',
-        '|01⟩; X(q0) → CZ(q0,q1) → X(q0)',
-        '|10⟩; X(q1) → CZ(q0,q1) → X(q1)',
-        '|10⟩; X(q0) → CZ(q0,q1) → X(q0)',
+        r'\(|00\rangle\); CZ(q0,q1) with no X wrappers',
+        r'\(|01\rangle\); X(q0) → CZ(q0,q1) → X(q0)',
+        r'\(|10\rangle\); X(q1) → CZ(q0,q1) → X(q1)',
+        r'\(|10\rangle\); X(q0) → CZ(q0,q1) → X(q0)',
       ],
       correctOptionIndex: 3,
       hints: [
@@ -438,10 +438,10 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
       taskDescription:
           'Compare the complete one-qubit operations XZX and Z—not their action on only one chosen input. Which statement is correct?',
       options: [
-        'XZX = −Z as matrices, so their outputs differ only by one whole-state global factor for every input.',
-        'XZX = Z as literal matrices; the minus sign appears only when the input is |0⟩.',
-        'XZX agrees with Z only on computational-basis inputs and fails on superpositions.',
-        'XZX and Z are physically different because any matrix sign is directly measurable.',
+        r'\(XZX=-Z\) as matrices, so their outputs differ only by one whole-state global factor for every input.',
+        r'\(XZX=Z\) as literal matrices; the minus sign appears only when the input is \(|0\rangle\).',
+        r'\(XZX\) agrees with \(Z\) only on computational-basis inputs and fails on superpositions.',
+        r'\(XZX\) and \(Z\) are physically different because any matrix sign is directly measurable.',
       ],
       correctOptionIndex: 0,
       hints: [
@@ -468,7 +468,7 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
     levelDefinition: ComposerLevel.fromBinaryString(
       title: 'Undo the Controlled Change',
       taskDescription:
-          'A fixed CNOT(q0→q1) changed |11⟩ into |01⟩. Append the controlled operation that restores the original register and undoes the fixed operation for every input.',
+          r'A fixed CNOT(q0→q1) changed \(|11\rangle\) into \(|01\rangle\). Append the controlled operation that restores the original register and undoes the fixed operation for every input.',
       targetStateExpression: '|11⟩',
       hints: const [
         'The inverse must preserve both the gate type and its control/target roles.',
@@ -532,7 +532,7 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
           'The same fan-out uses CNOT(q0→q1), then CNOT(q0→q2).\n\nA. |001⟩ → |111⟩\nB. (|000⟩+|001⟩)/√2 → (|000⟩+|111⟩)/√2\n\nKets read |q2 q1 q0⟩. What does the comparison establish?',
       options: [
         'Both cases create three independent copies of q0, so any unknown qubit can be cloned with two CNOTs.',
-        'B produces |+⟩ on each wire independently: |+⟩|+⟩|+⟩.',
+        r'B produces \(|+\rangle\) on each wire independently: \(|+\rangle\)\(|+\rangle\)\(|+\rangle\).',
         'A propagates a known basis value; B creates one entangled three-qubit state rather than independent copies of an unknown qubit.',
         'A is entangled while B is only a classical basis string.',
       ],
@@ -565,7 +565,7 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
           'Both candidates map |01⟩→|10⟩.\n\nA: CNOT(q0→q1), CNOT(q1→q0), CNOT(q0→q1)\nB: CNOT(q0→q1), CNOT(q1→q0)\n\nWhich conclusion is justified for arbitrary inputs?',
       options: [
         'Both are SWAP because one successful basis mapping proves unitary equality.',
-        'A is SWAP; B only matches the supplied example and fails other inputs such as |10⟩.',
+        r'A is SWAP; B only matches the supplied example and fails other inputs such as \(|10\rangle\).',
         'B is SWAP because the shortest circuit matching one input is always the reusable operation.',
         'Neither can be SWAP because a SWAP operation cannot be decomposed into CNOTs.',
       ],
@@ -593,9 +593,9 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
           'Starting from |0⟩, a fixed circuit applies X → X. Which description of the output is correct?',
       options: [
         'The two X gates are mathematically absent because their combined action is identity.',
-        'The output is |1⟩ because the first visible change determines the circuit result.',
-        'The output is |+⟩ because two bit flips create a superposition.',
-        'The output is |0⟩: each X is a real operation, and the second reverses the first.',
+        r'The output is \(|1\rangle\) because the first visible change determines the circuit result.',
+        r'The output is \(|+\rangle\) because two bit flips create a superposition.',
+        r'The output is \(|0\rangle\): each X is a real operation, and the second reverses the first.',
       ],
       correctOptionIndex: 3,
       hints: ['Trace both operations in order.'],
@@ -652,9 +652,9 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
           'Compare three pieces of evidence:\n\nA. (|00⟩+|01⟩)/√2\nB. (|00⟩+|11⟩)/√2\nC. A Z-basis histogram containing only 00 and 11.\n\nWhich conclusion is justified?',
       options: [
         'A and B are both entangled because each contains two basis terms.',
-        'A factors as |0⟩|+⟩; B is nonseparable; C alone does not prove entanglement.',
+        r'A factors as \(|0\rangle\)\(|+\rangle\); B is nonseparable; C alone does not prove entanglement.',
         'C alone proves the source emitted a Bell state.',
-        'B factors as |+⟩|+⟩ because its two terms have equal magnitudes.',
+        r'B factors as \(|+\rangle\)\(|+\rangle\) because its two terms have equal magnitudes.',
       ],
       correctOptionIndex: 1,
       hints: [
@@ -785,10 +785,10 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
       taskDescription:
           'Starting from Φ+=(|00⟩+|11⟩)/√2, compare applying Z to q0 with applying Z to q1. Which statement is correct?',
       options: [
-        'Both placements add only a global phase and leave Φ+ physically unchanged.',
+        r'Both placements add only a global phase and leave \(\Phi^+\) physically unchanged.',
         'Only Z(q0) changes the Bell phase because q0 is the top wire.',
         'The two placements produce orthogonal Bell states.',
-        'Either placement produces Φ−=(|00⟩−|11⟩)/√2; the two circuits agree on this entangled input.',
+        r'Either placement produces \(\Phi^-=\frac{|00\rangle-|11\rangle}{\sqrt{2}}\); the two circuits agree on this entangled input.',
       ],
       correctOptionIndex: 3,
       hints: ['Apply each local Z to both correlated terms.'],
@@ -938,10 +938,10 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
       taskDescription:
           'After controlled-X acts on |+⟩control|−⟩target, the control is |−⟩ and the target is unchanged. Which gate on the control reveals a deterministic bit, and which bit appears?',
       options: [
-        'H, revealing control |1⟩',
-        'X, revealing control |0⟩',
-        'Z, revealing control |1⟩',
-        'S, revealing control |0⟩',
+        r'H, revealing control \(|1\rangle\)',
+        r'X, revealing control \(|0\rangle\)',
+        r'Z, revealing control \(|1\rangle\)',
+        r'S, revealing control \(|0\rangle\)',
       ],
       correctOptionIndex: 0,
       hints: ['Choose the basis change that distinguishes |+⟩ from |−⟩.'],
@@ -1007,7 +1007,7 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
     levelDefinition: ComposerLevel.fromBinaryString(
       title: 'Uncompute the Hidden Correlation',
       taskDescription:
-          'A fixed H(q0)→CNOT(q0→q1)→Z(q0) prefix prepared Φ−. Append the inverse structure that returns the complete operation to identity.',
+          r'A fixed H(q0)→CNOT(q0→q1)→Z(q0) prefix prepared \(\Phi^-\). Append the inverse structure that returns the complete operation to identity.',
       targetStateExpression: '|00⟩ and identity overall',
       hints: const [
         'Undo the phase, then disentangle, then undo the superposition.'
@@ -1166,7 +1166,7 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
       options: [
         'Before the oracle because uniform amplitudes already identify the marked state.',
         'Immediately after the oracle because a negative amplitude has larger probability.',
-        'Only after amplification; the oracle sign alone leaves every probability at 1/4.',
+        r'Only after amplification; the oracle sign alone leaves every probability at \(\frac{1}{4}\).',
         'Never; interference cannot change measurement probabilities.',
       ],
       correctOptionIndex: 2,
@@ -1194,10 +1194,10 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
       taskDescription:
           'After marking one of four uniform states, the amplitudes are [1/2, 1/2, −1/2, 1/2]. The supplied amplifier reflects each amplitude a about their mean m=1/4 using a′=2m−a. What is the output?',
       options: [
-        '[0, 0, 1, 0]',
-        '[1/2, 1/2, −1/2, 1/2]',
-        '[1/2, 1/2, 1/2, 1/2]',
-        '[1, 0, 0, 0]',
+        r'\[\bigl[0, 0, 1, 0\bigr]\]',
+        r'\[\bigl[\frac{1}{2}, \frac{1}{2}, -\frac{1}{2}, \frac{1}{2}\bigr]\]',
+        r'\[\bigl[\frac{1}{2}, \frac{1}{2}, \frac{1}{2}, \frac{1}{2}\bigr]\]',
+        r'\[\bigl[1, 0, 0, 0\bigr]\]',
       ],
       correctOptionIndex: 0,
       hints: [
@@ -1286,7 +1286,7 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
     levelDefinition: ComposerLevel.fromBinaryString(
       title: 'Clean the Workspace',
       taskDescription:
-          'A fixed H(q0)→CNOT(q0→q1) computes q0 into work qubit q1, then fixed Z(q1) uses that predicate as phase. Append the cleanup that restores q1=0 while preserving the phase on q0.',
+          r'A fixed H(q0)→CNOT(q0→q1) computes q0 into work qubit q1, then fixed Z(q1) uses that predicate as phase. Append the cleanup that restores \(q_1=0\) while preserving the phase on q0.',
       targetStateExpression: '|−⟩q0|0⟩q1',
       hints: const ['Reverse the compute step after its phase has been used.'],
       solutionExplanation:
@@ -1350,9 +1350,9 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
       taskDescription:
           'An eight-state search trace begins uniform. Snapshot A changes only the |101⟩ amplitude from +1/√8 to −1/√8. Measurement is mistakenly placed immediately after A and remains uniform. In a corrected trace, the next coherent stage gives |101⟩ amplitude 5/(2√8) and every other amplitude 1/(2√8). What follows from all three clues?',
       options: [
-        '|010⟩ was marked because kets must be read in reverse, and the next stage is another oracle.',
-        '|101⟩ was already amplified at A; measurement erased an existing 25/32 bias.',
-        '|101⟩ was phase-marked; A is an oracle; amplification must precede measurement and raises its probability to 25/32.',
+        r'\(|010\rangle\) was marked because kets must be read in reverse, and the next stage is another oracle.',
+        r'\(|101\rangle\) was already amplified at A; measurement erased an existing \(\frac{25}{32}\) bias.',
+        r'\(|101\rangle\) was phase-marked; A is an oracle; amplification must precede measurement and raises its probability to \(\frac{25}{32}\).',
         'No state was marked because a negative amplitude cannot carry searchable information.',
       ],
       correctOptionIndex: 2,

@@ -11,12 +11,14 @@ class ComposerGatePalette extends StatefulWidget {
     required this.onGateTap,
     required this.onInspectGate,
     this.dense = false,
+    this.embedded = false,
   });
 
   final List<Gate> gates;
   final ValueChanged<Gate> onGateTap;
   final ValueChanged<Gate> onInspectGate;
   final bool dense;
+  final bool embedded;
 
   @override
   State<ComposerGatePalette> createState() => _ComposerGatePaletteState();
@@ -182,42 +184,46 @@ class _ComposerGatePaletteState extends State<ComposerGatePalette> {
     return LayoutBuilder(
       builder: (context, constraints) => Container(
         padding: EdgeInsets.fromLTRB(
-          4,
-          widget.dense ? 4 : 8,
-          4,
-          widget.dense ? 4 : 9,
+          widget.embedded ? 0 : 4,
+          widget.embedded ? 0 : (widget.dense ? 4 : 8),
+          widget.embedded ? 0 : 4,
+          widget.embedded ? 0 : (widget.dense ? 4 : 9),
         ),
-        decoration: BoxDecoration(
-          color: _cardColor,
-          borderRadius: BorderRadius.circular(widget.dense ? 12 : 14),
-          border: Border.all(color: _borderColor),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.16),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
+        decoration: widget.embedded
+            ? null
+            : BoxDecoration(
+                color: _cardColor,
+                borderRadius: BorderRadius.circular(widget.dense ? 12 : 14),
+                border: Border.all(color: _borderColor),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.16),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              height: widget.dense ? 18 : 34,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Gates',
-                  style: TextStyle(
-                    fontSize: widget.dense ? 11.5 : 14,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+            if (!widget.embedded) ...[
+              SizedBox(
+                height: widget.dense ? 18 : 34,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Gates',
+                    style: TextStyle(
+                      fontSize: widget.dense ? 11.5 : 14,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
-            SizedBox(height: widget.dense ? 0 : 3),
+              SizedBox(height: widget.dense ? 0 : 3),
+            ],
             if (constraints.hasBoundedHeight)
               Flexible(fit: FlexFit.loose, child: gateRow)
             else

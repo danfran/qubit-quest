@@ -71,3 +71,36 @@ class CircuitCanvasMetrics {
     return availableHeight.isFinite ? math.max(0, availableHeight) : 0;
   }
 }
+
+class WebCircuitWorkbenchMetrics {
+  const WebCircuitWorkbenchMetrics({
+    required this.canvasHeight,
+    required this.circuitPaneHeight,
+    required this.inspectorHeight,
+    required this.mainRowHeight,
+  });
+
+  final double canvasHeight;
+  final double circuitPaneHeight;
+  final double inspectorHeight;
+  final double mainRowHeight;
+
+  static WebCircuitWorkbenchMetrics calculate({
+    required int qubitCount,
+    required bool hasTargetState,
+  }) {
+    final drawingHeight =
+        QuantumCircuitPainter.requiredDrawingHeightFor(qubitCount);
+    final double canvasHeight = math.max(88.0, drawingHeight + 8.0);
+    final double circuitPaneHeight = canvasHeight + 200.0;
+    final inspectorHeight =
+        hasTargetState ? (qubitCount >= 3 ? 384.0 : 344.0) : 284.0;
+
+    return WebCircuitWorkbenchMetrics(
+      canvasHeight: canvasHeight,
+      circuitPaneHeight: circuitPaneHeight,
+      inspectorHeight: inspectorHeight,
+      mainRowHeight: math.max(circuitPaneHeight, inspectorHeight),
+    );
+  }
+}

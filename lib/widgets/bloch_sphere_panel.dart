@@ -7,6 +7,11 @@ import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 
 enum BlochSphereGestureMode { state, orbit, zoom }
 
+const blochTelemetryTextStyle = TextStyle(
+  fontSize: 12,
+  fontWeight: FontWeight.w400,
+);
+
 class BlochGestureResolver {
   const BlochGestureResolver._();
 
@@ -40,6 +45,13 @@ class BlochSpherePanel extends StatefulWidget {
   const BlochSpherePanel({
     super.key,
     this.reserveOverlaySafeRegions = false,
+    this.showAnnotations = true,
+    this.showHelper = true,
+    this.compactAnnotations = false,
+    this.overlaySphereFraction = .74,
+    this.overlaySphereAlignment = Alignment.center,
+    this.interactive = true,
+    this.allowStateEditing = true,
     required this.state,
     required this.camera,
     required this.onCameraChanged,
@@ -50,6 +62,15 @@ class BlochSpherePanel extends StatefulWidget {
   });
 
   final bool reserveOverlaySafeRegions;
+  final bool showAnnotations;
+  final bool showHelper;
+  final bool compactAnnotations;
+  final double overlaySphereFraction;
+  final Alignment overlaySphereAlignment;
+  final bool interactive;
+
+  /// False enables camera gestures without allowing vector/state manipulation.
+  final bool allowStateEditing;
   final BlochState state;
   final BlochCamera camera;
   final ValueChanged<BlochCamera> onCameraChanged;
@@ -71,6 +92,13 @@ class _BlochSpherePanelState extends State<BlochSpherePanel> {
   Widget _interactiveCanvas() => LayoutBuilder(builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
         final projection = BlochProjection(size: size, camera: widget.camera);
+        final canvas = CustomPaint(
+          key: const ValueKey('bloch-sphere-canvas'),
+          painter:
+              BlochSpherePainter(state: widget.state, camera: widget.camera),
+          child: const SizedBox.expand(),
+        );
+        if (!widget.interactive) return canvas;
         return RawGestureDetector(
           key: const ValueKey('bloch-sphere-gesture'),
           behavior: HitTestBehavior.opaque,
@@ -86,8 +114,10 @@ class _BlochSpherePanelState extends State<BlochSpherePanel> {
                     widget.onGestureStarted();
                     _startCamera = widget.camera;
                     _startPoint = details.localFocalPoint;
-                    _mode = BlochGestureResolver.resolveMode(
-                        details.localFocalPoint, tip);
+                    _mode = widget.allowStateEditing
+                        ? BlochGestureResolver.resolveMode(
+                            details.localFocalPoint, tip)
+                        : BlochSphereGestureMode.orbit;
                     _latestState = _mode == BlochSphereGestureMode.state
                         ? widget.onStateGestureStarted()
                         : widget.state;
@@ -125,22 +155,19 @@ class _BlochSpherePanelState extends State<BlochSpherePanel> {
               },
             ),
           },
-          child: CustomPaint(
-            key: const ValueKey('bloch-sphere-canvas'),
-            painter:
-                BlochSpherePainter(state: widget.state, camera: widget.camera),
-            child: const SizedBox.expand(),
-          ),
+          child: canvas,
         );
       });
 
   Widget _angles() => _LiveValues(
         key: const ValueKey('bloch-live-angles'),
+        compact: widget.compactAnnotations,
         values: [('θ', widget.state.theta), ('φ', widget.state.phi)],
       );
 
   Widget _cartesian() => _LiveValues(
         key: const ValueKey('bloch-live-cartesian'),
+        compact: widget.compactAnnotations,
         alignment: CrossAxisAlignment.end,
         values: [
           ('x', widget.state.x),
@@ -152,13 +179,17 @@ class _BlochSpherePanelState extends State<BlochSpherePanel> {
   Widget _probabilities() => IgnorePointer(
         child: Container(
           key: const ValueKey('bloch-live-probabilities'),
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+          padding: widget.compactAnnotations
+              ? const EdgeInsets.symmetric(horizontal: 5, vertical: 1)
+              : const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
           decoration: BoxDecoration(
             color: const Color(0xD9000712),
             borderRadius: BorderRadius.circular(8),
           ),
           child: DefaultTextStyle.merge(
-            style: const TextStyle(),
+            style: widget.compactAnnotations
+                ? blochTelemetryTextStyle.copyWith(height: .85)
+                : blochTelemetryTextStyle,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,24 +206,41 @@ class _BlochSpherePanelState extends State<BlochSpherePanel> {
         ),
       );
 
-  static const _helper = Text(
-    key: ValueKey('bloch-sphere-helper'),
-    'Drag vector • orbit elsewhere • pinch to zoom',
-    textAlign: TextAlign.center,
-    style: TextStyle(color: QubitQuestDialog.mutedText, fontSize: 10),
-  );
+  Widget get _helper => Text(
+        key: const ValueKey('bloch-sphere-helper'),
+        widget.interactive
+            ? 'Drag vector • orbit elsewhere • pinch to zoom'
+            : 'Live circuit state',
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: QubitQuestDialog.mutedText,
+          fontSize: 10,
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.showAnnotations) {
+      return KeyedSubtree(
+        key: const ValueKey('bloch-sphere-panel'),
+        child: _interactiveCanvas(),
+      );
+    }
     if (widget.reserveOverlaySafeRegions) {
       return CustomMultiChildLayout(
         key: const ValueKey('bloch-sphere-panel'),
-        delegate: _BlochLandscapeOverlayLayout(),
+        delegate: _BlochLandscapeOverlayLayout(
+          sphereFraction: widget.overlaySphereFraction,
+          sphereAlignment: widget.overlaySphereAlignment,
+        ),
         children: [
           LayoutId(id: _BlochOverlaySlot.canvas, child: _interactiveCanvas()),
           LayoutId(
-              id: _BlochOverlaySlot.helper,
-              child: const IgnorePointer(child: _helper)),
+            id: _BlochOverlaySlot.helper,
+            child: IgnorePointer(
+              child: widget.showHelper ? _helper : const SizedBox.shrink(),
+            ),
+          ),
           LayoutId(id: _BlochOverlaySlot.angles, child: _angles()),
           LayoutId(id: _BlochOverlaySlot.cartesian, child: _cartesian()),
           LayoutId(
@@ -204,7 +252,7 @@ class _BlochSpherePanelState extends State<BlochSpherePanel> {
       key: const ValueKey('bloch-sphere-panel'),
       children: [
         Positioned.fill(top: 18, child: _interactiveCanvas()),
-        const Positioned(
+        Positioned(
           top: 0,
           left: 2,
           right: 2,
@@ -221,9 +269,16 @@ class _BlochSpherePanelState extends State<BlochSpherePanel> {
 enum _BlochOverlaySlot { canvas, helper, angles, cartesian, probabilities }
 
 class _BlochLandscapeOverlayLayout extends MultiChildLayoutDelegate {
+  _BlochLandscapeOverlayLayout({
+    required this.sphereFraction,
+    required this.sphereAlignment,
+  });
+
+  final double sphereFraction;
+  final Alignment sphereAlignment;
+
   static const double edgeInset = 2;
   static const double safeGap = 6;
-  static const double spherePaneFraction = .74;
 
   @override
   void performLayout(Size size) {
@@ -238,7 +293,8 @@ class _BlochLandscapeOverlayLayout extends MultiChildLayoutDelegate {
     positionChild(_BlochOverlaySlot.helper, helperRect.topLeft);
 
     final angles = layoutChild(_BlochOverlaySlot.angles, loose);
-    final overlayTop = helperRect.bottom + safeGap;
+    final overlayTop =
+        helper.height == 0 ? edgeInset : helperRect.bottom + safeGap;
     final anglesRect =
         Rect.fromLTWH(edgeInset, overlayTop, angles.width, angles.height);
     positionChild(_BlochOverlaySlot.angles, anglesRect.topLeft);
@@ -262,13 +318,13 @@ class _BlochLandscapeOverlayLayout extends MultiChildLayoutDelegate {
 
     final usablePane = Rect.fromLTRB(
       edgeInset,
-      helperRect.bottom + safeGap,
+      overlayTop,
       size.width - edgeInset,
       size.height - edgeInset,
     );
-    final sphereExtent = usablePane.shortestSide * spherePaneFraction;
+    final sphereExtent = usablePane.shortestSide * sphereFraction;
     final canvasRect = Rect.fromCenter(
-      center: usablePane.center,
+      center: sphereAlignment.inscribe(Size.zero, usablePane).center,
       width: sphereExtent,
       height: sphereExtent,
     );
@@ -279,7 +335,8 @@ class _BlochLandscapeOverlayLayout extends MultiChildLayoutDelegate {
 
   @override
   bool shouldRelayout(covariant _BlochLandscapeOverlayLayout oldDelegate) =>
-      false;
+      sphereFraction != oldDelegate.sphereFraction ||
+      sphereAlignment != oldDelegate.sphereAlignment;
 }
 
 class _LiveValues extends StatelessWidget {
@@ -287,15 +344,19 @@ class _LiveValues extends StatelessWidget {
     super.key,
     required this.values,
     this.alignment = CrossAxisAlignment.start,
+    this.compact = false,
   });
 
   final List<(String, double)> values;
   final CrossAxisAlignment alignment;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) => IgnorePointer(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+          padding: compact
+              ? const EdgeInsets.symmetric(horizontal: 5, vertical: 1)
+              : const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
           decoration: BoxDecoration(
             color: const Color(0xD9000712),
             borderRadius: BorderRadius.circular(8),
@@ -307,7 +368,9 @@ class _LiveValues extends StatelessWidget {
               for (final value in values)
                 Text(
                   '${value.$1} = ${value.$2.toStringAsFixed(3)}',
-                  style: const TextStyle(fontSize: 11),
+                  style: compact
+                      ? blochTelemetryTextStyle.copyWith(height: .85)
+                      : blochTelemetryTextStyle,
                 ),
             ],
           ),

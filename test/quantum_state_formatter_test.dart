@@ -65,6 +65,20 @@ void main() {
   });
 
   group('shared mathematical notation', () {
+    test('Target State separates identity validation metadata from state math',
+        () {
+      expect(
+        targetStateMathExpression('|00⟩ and identity overall'),
+        '|00⟩',
+      );
+      expect(
+        quantumStateNotationToLatex(
+          targetStateMathExpression('|00⟩ and identity overall'),
+        ),
+        r'\lvert 00\rangle',
+      );
+    });
+
     test('Target State exponent notation converts to real LaTeX', () {
       expect(
         quantumStateNotationToLatex(r'e^{iπ/4}|1⟩'),
@@ -125,6 +139,21 @@ void main() {
             (span) => span.text == '(1/2 + 1/2i)',
           );
       expect(coefficientSpan.style?.color, isNull);
+    });
+
+    testWidgets('Target State does not render identity validation metadata',
+        (tester) async {
+      await pumpDisplay(
+        tester,
+        vector: [Complex.one(), Complex.zero()],
+        tone: StateVectorDisplayTone.target,
+        expression: '|00⟩ and identity overall',
+      );
+
+      final latex = tester.widget<LatexText>(find.byType(LatexText));
+      expect(latex.math, contains(r'\lvert 00\rangle'));
+      expect(latex.math, isNot(contains('identityoverall')));
+      expect(latex.math, isNot(contains('andidentityoverall')));
     });
 
     testWidgets('Current State rebuilds immediately when its vector changes',

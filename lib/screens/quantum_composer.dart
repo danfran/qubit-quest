@@ -11,6 +11,7 @@ import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/logical_gate_footprint.dart';
 import 'package:quantumquiz/models/mastery_challenge_catalogue.dart';
 import 'package:quantumquiz/models/mastery_2_reinforcement.dart';
+import 'package:quantumquiz/models/mastery_2_presentation.dart';
 import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
@@ -29,6 +30,7 @@ import 'package:quantumquiz/widgets/circuit_canvas_metrics.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/mastery_evidence_view.dart';
 import 'package:quantumquiz/widgets/level_header_router.dart';
 import 'package:quantumquiz/widgets/level_type_headers.dart';
 import 'package:quantumquiz/widgets/lesson_content_safe_area.dart';
@@ -1502,7 +1504,11 @@ class _QuantumComposerState extends State<QuantumComposer>
     final List<Complex>? targetStateVector =
         runningAsQuantumComposer() ? null : _targetStateVector();
     final bool showGoal = !runningAsQuantumComposer();
-    final double goalHeight = showGoal ? (short ? 58 : 68) : 0;
+    final double goalHeight = showGoal
+        ? (_masteryTaskPresentation != null
+            ? math.min(320, availableHeight * .42)
+            : (short ? 58 : 68))
+        : 0;
     final double circuitAvailableHeight = math.max(
       0,
       availableHeight - toolbarHeight - gap - (showGoal ? goalHeight + gap : 0),
@@ -1995,8 +2001,12 @@ class _QuantumComposerState extends State<QuantumComposer>
     return widget.level.title ?? LevelHeaderRouter.displayLabel(widget.levelId);
   }
 
+  MasteryChallengePresentation? get _masteryTaskPresentation =>
+      mastery2Presentations[widget.masteryChallenge?.semanticId];
+
   Widget _buildGoalBanner({required bool compact}) {
     final bool canShowHint = _hints.isNotEmpty && !runningAsQuantumComposer();
+    final presentation = _masteryTaskPresentation;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -2019,40 +2029,64 @@ class _QuantumComposerState extends State<QuantumComposer>
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Goal:',
-                  style: TextStyle(
-                    color: qqPurple,
-                    fontSize: compact ? 12.5 : 14,
-                    fontWeight: FontWeight.w900,
-                    height: 1.18,
-                  ),
-                ),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxHeight: compact ? 58 : 72),
-                    child: SingleChildScrollView(
-                      child: LatexText(
-                        math: _taskDescription,
-                        textStyle: TextStyle(
-                          color: Colors.white,
-                          fontSize: compact ? 12.5 : 14,
-                          fontWeight: FontWeight.w700,
-                          height: 1.18,
-                        ),
-                        inlineMathColor: qqGreen,
-                        inlineMathHeight: compact ? 12.5 : 14,
-                        displayMathHeight: compact ? 18 : 20,
+            child: presentation != null
+                ? ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: math.min(
+                        320,
+                        MediaQuery.sizeOf(context).height * .4,
                       ),
                     ),
+                    child: SingleChildScrollView(
+                      key: const ValueKey('mastery-composer-task-scroll'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text('TASK', style: QubitQuestTypography.label),
+                          const SizedBox(height: QubitQuestSpacing.compact),
+                          MasteryEvidenceView(
+                            presentation: presentation,
+                            includeQuestion: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Goal:',
+                        style: TextStyle(
+                          color: qqPurple,
+                          fontSize: compact ? 12.5 : 14,
+                          fontWeight: FontWeight.w900,
+                          height: 1.18,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: ConstrainedBox(
+                          constraints:
+                              BoxConstraints(maxHeight: compact ? 58 : 72),
+                          child: SingleChildScrollView(
+                            child: LatexText(
+                              math: _taskDescription,
+                              textStyle: TextStyle(
+                                color: Colors.white,
+                                fontSize: compact ? 12.5 : 14,
+                                fontWeight: FontWeight.w700,
+                                height: 1.18,
+                              ),
+                              inlineMathColor: qqGreen,
+                              inlineMathHeight: compact ? 12.5 : 14,
+                              displayMathHeight: compact ? 18 : 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
           if (canShowHint) ...[
             const SizedBox(width: 6),

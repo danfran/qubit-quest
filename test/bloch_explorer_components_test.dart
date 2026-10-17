@@ -32,6 +32,17 @@ void main() {
     );
     expect((paint.painter! as BlochSpherePainter).state, state);
     expect(find.byKey(const ValueKey('bloch-live-probabilities')), findsOne);
+    final angleText = tester.widget<Text>(find.text('θ = 3.142'));
+    final probabilityStyle = tester.widget<DefaultTextStyle>(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey('bloch-live-probabilities')),
+            matching: find.byType(DefaultTextStyle),
+          )
+          .last,
+    );
+    expect(angleText.style, blochTelemetryTextStyle);
+    expect(probabilityStyle.style.fontSize, blochTelemetryTextStyle.fontSize);
   });
 
   testWidgets('gate and playback panels forward semantic intents',

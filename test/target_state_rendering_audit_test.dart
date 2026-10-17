@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
+import 'package:quantumquiz/models/mastery_2_catalogue.dart';
 import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
@@ -121,6 +122,18 @@ void main() {
         expect(latex, isNot(contains('Complexequatorstate')));
         expect(latex, isNot(contains(level.targetStateLabel!)));
       }
+    });
+
+    test('mixed state and identity metadata exposes only state mathematics',
+        () {
+      final level = mastery2Catalogue.orderedDefinitions
+          .singleWhere((challenge) => challenge.displayOrder == 28)
+          .levelDefinition;
+      expect(level.targetStateExpression, '|00⟩ and identity overall');
+      expect(
+        targetStateMathExpression(level.targetStateExpression!),
+        '|00⟩',
+      );
     });
   });
 

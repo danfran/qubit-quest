@@ -16,7 +16,10 @@ import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/mastery_math_test_platform.dart';
+
 void main() {
+  useMasteryMathTestPlatform();
   Future<void> pumpEvidence(
     WidgetTester tester,
     MasteryChallengePresentation presentation, {
@@ -373,11 +376,14 @@ void main() {
     });
 
     test('every selectable challenge has authored visual presentation', () {
-      final selectableIds = mastery2Catalogue.orderedDefinitions
-          .where((definition) => definition.levelDefinition is McqLevel)
+      final catalogueIds = mastery2Catalogue.orderedDefinitions
           .map((definition) => definition.semanticId)
           .toSet();
-      expect(mastery2Presentations.keys.toSet(), selectableIds);
+      final presentationIds = mastery2Presentations.keys.toSet();
+      expect(presentationIds.difference(catalogueIds), isEmpty,
+          reason: 'Typed presentations must not contain orphan challenges.');
+      expect(catalogueIds.difference(presentationIds), isEmpty,
+          reason: 'Every challenge must have an authored presentation.');
     });
   });
 

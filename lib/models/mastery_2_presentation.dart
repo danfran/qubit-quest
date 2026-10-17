@@ -14,9 +14,11 @@ class MasteryMathEvidence extends MasteryEvidenceBlock {
 }
 
 class MasteryTextEvidence extends MasteryEvidenceBlock {
-  const MasteryTextEvidence({super.label, required this.text});
+  const MasteryTextEvidence(
+      {super.label, required this.text, this.isInstruction = false});
 
   final String text;
+  final bool isInstruction;
 }
 
 class MasteryCircuitEvidence extends MasteryEvidenceBlock {
@@ -50,15 +52,28 @@ class MasteryChallengePresentation {
   const MasteryChallengePresentation({
     required this.question,
     required this.evidence,
+    this.instruction = '',
+    this.instructionAfterEvidence = '',
     this.intro,
     this.helperText,
   });
 
+  /// A task instruction, distinct from an optional concluding question.
+  final String instruction;
+
+  /// Continuation of the same instruction around specialised evidence.
+  /// Sentence fragments here retain Task styling; questions belong in question.
+  final String instructionAfterEvidence;
   final String? intro;
   final List<MasteryEvidenceBlock> evidence;
   final String question;
   final String? helperText;
 }
+
+/// Missing Mastery presentation data is a contract error, never a QQLevel fallback.
+MasteryChallengePresentation requireMasteryPresentation(String semanticId) =>
+    mastery2Presentations[semanticId] ??
+    (throw StateError('Missing typed Mastery presentation: $semanticId'));
 
 const _h0 = CanonicalCircuitStep.single(
   SelectedGateType.hadamard,
@@ -97,6 +112,76 @@ const _cz01 = CanonicalCircuitStep.controlled(
 
 final Map<String, MasteryChallengePresentation> mastery2Presentations =
     Map.unmodifiable({
+  'phase_state_uncomputation': const MasteryChallengePresentation(
+    instruction:
+        r'The fixed H → S → Z prefix prepared \( |-i\rangle \) from \( |0\rangle \). Append the inverse continuation that restores \( |0\rangle \).',
+    question: '',
+    evidence: [],
+  ),
+  'cnot_uncomputation': const MasteryChallengePresentation(
+    instruction:
+        r'A fixed CNOT(q0→q1) changed \(|11\rangle\) into \(|01\rangle\). Append the controlled operation that restores the original register and undoes the fixed operation for every input.',
+    question: '',
+    evidence: [],
+  ),
+  'clean_workspace_uncomputation': const MasteryChallengePresentation(
+    instruction:
+        r'A fixed H(q0)→CNOT(q0→q1) computes q0 into work qubit q1, then fixed Z(q1) uses that predicate as phase. Append the cleanup that restores \(q_1=0\) while preserving the phase on q0.',
+    question: '',
+    evidence: [],
+  ),
+  'phased_entanglement_uncomputation': const MasteryChallengePresentation(
+    instruction:
+        r'A fixed H(q0)→CNOT(q0→q1)→Z(q0) prefix prepared \(\Phi^-\). Append the inverse structure that returns the complete operation to identity.',
+    question: '',
+    evidence: [],
+  ),
+  'conditional_phase_decomposition': const MasteryChallengePresentation(
+    instruction:
+        'Implement the reusable CZ operation without a direct CZ gate, using H and CNOT. Validation covers the complete two-qubit unitary.',
+    question: '',
+    evidence: [],
+  ),
+  'bell_input_sign_preparation': const MasteryChallengePresentation(
+    instruction:
+        r'Starting from \(|01\rangle\) (ket order \(|q_1\,q_0\rangle\)), prepare',
+    evidence: [
+      MasteryMathEvidence(
+        label: 'TARGET',
+        expression: r'\[\Phi^-=\frac{|00\rangle-|11\rangle}{\sqrt{2}}\]',
+      ),
+    ],
+    question: '',
+    instructionAfterEvidence:
+        'using the input-dependent sign and the available H/CNOT gates.',
+  ),
+  'ghz_phase_manipulation': const MasteryChallengePresentation(
+    intro: 'The fixed starting state is',
+    evidence: [
+      MasteryMathEvidence(
+        label: 'FIXED STARTING STATE',
+        expression: r'\[GHZ^+=\frac{|000\rangle+|111\rangle}{\sqrt{2}}\]',
+      ),
+      MasteryTextEvidence(
+          text: 'Use one local Z operation to produce', isInstruction: true),
+      MasteryMathEvidence(
+        label: 'TARGET',
+        expression: r'\[GHZ^-=\frac{|000\rangle-|111\rangle}{\sqrt{2}}\]',
+      ),
+    ],
+    question: '',
+  ),
+  'inverse_phase_synthesis': const MasteryChallengePresentation(
+    instruction: 'Prepare',
+    evidence: [
+      MasteryMathEvidence(
+        expression: r'\[\frac{|0\rangle+e^{-i\pi/4}|1\rangle}{\sqrt{2}}\]',
+      ),
+    ],
+    question: '',
+    instructionAfterEvidence:
+        r'from \(|0\rangle\) without a \(T^{\dagger}\) gate. Synthesize the negative eighth-turn using H, T, S, and Z.',
+  ),
   'global_phase_equivalence': const MasteryChallengePresentation(
     evidence: [
       MasteryMathEvidence(
@@ -114,20 +199,21 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
         expression: r'\[P(0)=\tfrac12\qquad P(1)=\tfrac12\]',
       ),
       MasteryTextEvidence(
-        label: 'X BASIS — |+⟩',
+        label: r'X BASIS — \(|+\rangle\)',
         text: 'Always +',
       ),
       MasteryTextEvidence(
-        label: 'X BASIS — |−⟩',
+        label: r'X BASIS — \(|-\rangle\)',
         text: 'Always −',
       ),
       MasteryTextEvidence(
-        label: 'X BASIS — RANDOM |0⟩ / |1⟩ ENSEMBLE',
+        label: r'X BASIS — RANDOM \(|0\rangle\) / \(|1\rangle\) ENSEMBLE',
         text: '50% +, 50% −',
       ),
     ],
     question: 'What does the additional X-basis evidence establish?',
-    helperText: 'The third preparation randomly chooses |0⟩ or |1⟩.',
+    helperText:
+        r'The third preparation randomly chooses \(|0\rangle\) or \(|1\rangle\).',
   ),
   'cnot_topology_inference': const MasteryChallengePresentation(
     intro: 'One fixed CNOT produced both mappings.',
@@ -196,7 +282,8 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
       ),
       MasteryTextEvidence(
         label: 'CASE B',
-        text: 'After amplification, |01⟩ peaks instead of desired |10⟩.',
+        text:
+            r'After amplification, \(|01\rangle\) peaks instead of desired \(|10\rangle\).',
       ),
       MasteryMathEvidence(
         label: 'CASE C',
@@ -243,7 +330,7 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
             'Circuit: H then Z on q0, followed by a missing gate and Z-basis measurement.',
       ),
     ],
-    question: 'Which gate reveals deterministic |1⟩?',
+    question: r'Which gate reveals deterministic \(|1\rangle\)?',
   ),
   'phase_sandwich_unitary': const MasteryChallengePresentation(
     evidence: [
@@ -289,7 +376,7 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
     helperText: 'Kets: |q2 q1 q0⟩.',
   ),
   'swap_unitary_diagnosis': const MasteryChallengePresentation(
-    intro: 'Both candidates map |01⟩ to |10⟩.',
+    intro: r'Both candidates map \(|01\rangle\) to \(|10\rangle\).',
     evidence: [
       MasteryCircuitEvidence(
         label: 'CANDIDATE A',
@@ -425,8 +512,10 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
         semanticDescription:
             'Broken GHZ circuit: H on q0, CNOT q0 to q1, then CNOT q2 to q1.',
       ),
-      MasteryTextEvidence(label: 'OBSERVED SUPPORT', text: '{000, 011}'),
-      MasteryTextEvidence(label: 'REQUIRED SUPPORT', text: '{000, 111}'),
+      MasteryMathEvidence(
+          label: 'OBSERVED SUPPORT', expression: r'\[\{000,011\}\]'),
+      MasteryMathEvidence(
+          label: 'REQUIRED SUPPORT', expression: r'\[\{000,111\}\]'),
     ],
     question: 'Which replacement for the final link repairs the preparation?',
   ),

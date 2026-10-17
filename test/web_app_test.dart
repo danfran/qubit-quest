@@ -19,7 +19,35 @@ import 'package:quantumquiz/widgets/bloch_explorer_panels.dart';
 import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
+import 'package:quantumquiz/widgets/circuit_canvas_metrics.dart';
 import 'package:quantumquiz/widgets/circuit_geometry.dart';
+import 'package:quantumquiz/widgets/circuit_layout_metrics.dart';
+
+// The metrics request a preferred height; the shared workbench can constrain it.
+// Check the actual constraint contract AND complete drawing/hit-area containment.
+void expectCanvasFits(WidgetTester tester, int qubits) {
+  final canvas = find.byKey(const ValueKey('web-composer-canvas'));
+  final stage = find.byKey(const ValueKey('web-composer-circuit-stage'));
+  final preferred = WebCircuitWorkbenchMetrics.calculate(
+          qubitCount: qubits, hasTargetState: false)
+      .canvasHeight;
+  final available = tester.renderObject<RenderBox>(stage).constraints.maxHeight;
+  final rect = tester.getRect(canvas);
+  expect(rect.height, math.min(preferred, available));
+  expect(rect.height,
+      greaterThanOrEqualTo(CircuitLayoutMetrics.drawingHeight(qubits)),
+      reason: 'All wires, gates and shadows must fit, even under constraints.');
+  final hitArea =
+      tester.getRect(find.byKey(const ValueKey('circuit-interaction-surface')));
+  expect(hitArea.top, greaterThanOrEqualTo(rect.top));
+  expect(hitArea.bottom, lessThanOrEqualTo(rect.bottom));
+  final lastWireHitBottom = hitArea.top +
+      CircuitLayoutMetrics.wireCenterY(qubits - 1) +
+      CircuitLayoutMetrics.hitTolerance;
+  expect(lastWireHitBottom, lessThanOrEqualTo(rect.bottom),
+      reason: 'The last qubit must retain its complete interaction area.');
+  expect(tester.takeException(), isNull);
+}
 
 void main() {
   Future<void> setSize(
@@ -42,13 +70,49 @@ void main() {
     await setSize(tester, const Size(1440, 1000));
     await pumpApp(tester);
 
+    void expectNoGlobalLevel() {
+      expect(tester.widget<AppBar>(find.byType(AppBar)).actions, isNull);
+      expect(
+          find.descendant(
+              of: find.byType(AppBar),
+              matching: find.textContaining(RegExp(r'Level \d+'))),
+          findsNothing);
+      expect(find.text('Loading journey…'), findsNothing);
+    }
+
+    expectNoGlobalLevel();
+
     expect(
         find.byKey(const ValueKey('web-navigation-sidebar')), findsOneWidget);
     expect(find.byType(LearningMapScreen), findsOneWidget);
 
+    await tester.tap(find.text('Chapter 1 — Information'));
+    await tester.pumpAndSettle();
+    expect(find.text('Lesson 1 of 5'), findsOneWidget);
+    expect(find.text('0 / 5 complete'), findsOneWidget);
+    expectNoGlobalLevel();
+
+    await tester.tap(find.byKey(const ValueKey('web-nav-mastery')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('web-mastery-title')), findsOneWidget);
+    expect(find.byKey(const ValueKey('web-mastery-overview')), findsOneWidget);
+    expect(
+        find.byKey(
+            const ValueKey('web-mastery-activity-global_phase_equivalence')),
+        findsNothing);
+    await tester.tap(find.byKey(
+        const ValueKey('web-mastery-challenge-global_phase_equivalence')));
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(
+            const ValueKey('web-mastery-activity-global_phase_equivalence')),
+        findsOneWidget);
+    expectNoGlobalLevel();
+
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
     await tester.pump();
     expect(find.text('Choose Number of Qubits'), findsOneWidget);
+    expectNoGlobalLevel();
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-3')));
     await tester.pump();
     expect(find.byType(ComposerGatePalette), findsOneWidget);
@@ -62,6 +126,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('web-nav-bloch')));
     await tester.pump();
+    expectNoGlobalLevel();
     expect(find.byType(BlochSpherePanel), findsOneWidget);
     expect(find.byType(BlochGatePanel), findsOneWidget);
     expect(find.byType(BlochPlaybackControls), findsOneWidget);
@@ -71,6 +136,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('web-nav-notebook')));
     await tester.pump();
     expect(find.byType(WebNotebookWorkspace), findsOneWidget);
+    expectNoGlobalLevel();
   });
 
   testWidgets('narrow shell uses a drawer instead of permanent navigation',
@@ -124,10 +190,30 @@ void main() {
     await tester.pump();
 
     final canvas = find.byKey(const ValueKey('web-composer-canvas'));
+    final stage = find.byKey(const ValueKey('web-composer-circuit-stage'));
     final palette = find.byType(ComposerGatePalette);
     expect(
         tester.getTopLeft(canvas).dy, lessThan(tester.getTopLeft(palette).dy));
-    expect(tester.getSize(canvas).height, 134);
+    expectCanvasFits(tester, 3);
+    expect(
+        find.byKey(const ValueKey('web-composer-canvas-frame')), findsNothing);
+    expect(tester.getCenter(canvas).dy, closeTo(tester.getCenter(stage).dy, 1));
+    final mainRow = tester.getRect(
+      find.byKey(const ValueKey('quantum-workspace-main-row')),
+    );
+    final primaryPane = tester.getRect(
+      find.byKey(const ValueKey('quantum-workspace-primary-pane')),
+    );
+    final inspectorPane = tester.getRect(
+      find.byKey(const ValueKey('quantum-workspace-inspection-pane')),
+    );
+    final toolbar = tester.getRect(
+      find.byKey(const ValueKey('quantum-workspace-toolbar')),
+    );
+    expect(toolbar.left, greaterThanOrEqualTo(primaryPane.left));
+    expect(toolbar.right, lessThanOrEqualTo(primaryPane.right));
+    expect(toolbar.right, lessThan(inspectorPane.left));
+    expect(toolbar.bottom, lessThanOrEqualTo(mainRow.bottom));
 
     final paletteWidget = tester.widget<ComposerGatePalette>(palette);
     expect(
@@ -135,11 +221,26 @@ void main() {
       orderedEquals(sandboxGatePaletteTypes),
     );
     expect(paletteWidget.dense, isTrue);
+    expect(paletteWidget.embedded, isTrue);
 
     final pointerArea = tester.widget<MouseRegion>(
       find.byKey(const ValueKey('web-composer-canvas-pointer-area')),
     );
     expect(pointerArea.cursor, SystemMouseCursors.precise);
+    expect(
+      tester
+          .widget<ComposerCircuitCanvas>(find.byType(ComposerCircuitCanvas))
+          .surfaceTreatment,
+      ComposerCircuitSurfaceTreatment.workbench,
+    );
+    expect(
+      find.byKey(const ValueKey('circuit-workbench-surface')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('circuit-horizontal-scroll')),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey('web-composer-current-state')),
       findsOneWidget,
@@ -186,7 +287,7 @@ void main() {
     }
 
     final populatedFiveQubitHeight = await openAndMeasure(5);
-    expect(populatedFiveQubitHeight, 214);
+    expectCanvasFits(tester, 5);
     final canvas = tester.widget<ComposerCircuitCanvas>(
       find.byType(ComposerCircuitCanvas),
     );
@@ -212,11 +313,16 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('web-composer-change-qubits')));
     await tester.pump();
-    expect(await openAndMeasure(1), 72);
+    final oneQubitHeight = await openAndMeasure(1);
+    expectCanvasFits(tester, 1);
 
     await tester.tap(find.byKey(const ValueKey('web-composer-change-qubits')));
     await tester.pump();
-    expect(await openAndMeasure(2), 94);
+    final twoQubitHeight = await openAndMeasure(2);
+    expectCanvasFits(tester, 2);
+    expect(twoQubitHeight, greaterThan(oneQubitHeight));
+    expect(populatedFiveQubitHeight - twoQubitHeight,
+        3 * CircuitLayoutMetrics.qubitSpacing);
   });
 
   testWidgets('Web Composer keeps canonical gate inspection available',
@@ -313,7 +419,7 @@ void main() {
     var canvas = tester.widget<ComposerCircuitCanvas>(
       find.byType(ComposerCircuitCanvas),
     );
-    final insertion = canvas.onDropRequested(
+    await canvas.onDropRequested(
       ComposerCircuitDropIntent(
         data: CircuitDragData.palette(
           Gate.fromIdentifier(SelectedGateType.cnot),
@@ -324,18 +430,12 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(
       find.byType(TwoQubitsGateTargetQubitSelectionDialog),
-      findsOneWidget,
+      findsNothing,
     );
-    expect(canvas.circuit.logicalGates, isEmpty);
-    await tester.tap(find.text('q0'));
-    await tester.pump();
-    await tester.tap(find.text('Apply'));
-    await tester.pumpAndSettle();
-    await insertion;
 
     canvas = tester.widget<ComposerCircuitCanvas>(
       find.byType(ComposerCircuitCanvas),
@@ -368,6 +468,92 @@ void main() {
     );
   });
 
+  testWidgets('Sandbox commands commit once through the live circuit',
+      (tester) async {
+    await setSize(tester, const Size(1440, 1000));
+    await pumpApp(tester);
+    await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('web-composer-qubits-2')));
+    await tester.pump();
+
+    var canvas = tester.widget<ComposerCircuitCanvas>(
+      find.byType(ComposerCircuitCanvas),
+    );
+    final circuit = canvas.circuit;
+    final initialRuns = circuit.simulationRunCount;
+    await canvas.onDropRequested(
+      ComposerCircuitDropIntent(
+        data: CircuitDragData.palette(
+          Gate.fromIdentifier(SelectedGateType.hadamard),
+        ),
+        destination: const CircuitDropDestination(
+          contentPoint: Offset(240, 20),
+          location: CircuitLocation(qubit: 0, column: 5),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(circuit.simulationRunCount, initialRuns + 1);
+    expect(circuit.logicalGates.single.column, 0);
+
+    var selected = circuit.logicalGates.single;
+    canvas.onGateTap(selected.toPlacedGateRef());
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey('web-composer-duplicate-selected-gate')),
+    );
+    await tester.pump();
+    expect(circuit.simulationRunCount, initialRuns + 2);
+    expect(circuit.logicalGates, hasLength(2));
+
+    await tester.tap(
+      find.byKey(const ValueKey('web-composer-replace-selected-gate')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('replacement-gate-x')),
+    );
+    await tester.pumpAndSettle();
+    expect(circuit.simulationRunCount, initialRuns + 3);
+    expect(
+      circuit.logicalGates.map((gate) => gate.type),
+      containsAll([SelectedGateType.hadamard, SelectedGateType.x]),
+    );
+
+    selected = circuit.logicalGates.singleWhere(
+      (gate) => gate.type == SelectedGateType.x,
+    );
+    canvas = tester.widget<ComposerCircuitCanvas>(
+      find.byType(ComposerCircuitCanvas),
+    );
+    await canvas.onDropRequested(
+      ComposerCircuitDropIntent(
+        data: CircuitDragData.placed(
+          sourceId: selected.id,
+          gate: selected.gate,
+        ),
+        destination: const CircuitDropDestination(
+          contentPoint: Offset(40, 20),
+          location: CircuitLocation(qubit: 0, column: 0),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(circuit.simulationRunCount, initialRuns + 4);
+    expect(circuit.logicalGateById(selected.id)!.column, 0);
+
+    canvas.onGateTap(circuit.logicalGateById(selected.id)!.toPlacedGateRef());
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey('web-composer-delete-selected-gate')),
+    );
+    await tester.pump();
+    expect(circuit.simulationRunCount, initialRuns + 5);
+    expect(circuit.logicalGateById(selected.id), isNull);
+    expect(circuit.logicalGates, hasLength(1));
+  });
+
   testWidgets('Notebook selection survives switching Web workspaces',
       (tester) async {
     await setSize(tester, const Size(1440, 1000));
@@ -382,8 +568,10 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('web-nav-notebook')));
     await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('web-notebook-contents')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('web-notebook-entry-${entry.id}')));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('web-notebook-reader-${entry.id}')),
         findsOneWidget);
 
@@ -413,8 +601,10 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('web-nav-notebook')));
     await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('web-notebook-contents')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('web-notebook-entry-${entry.id}')));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     tester
         .widget<OutlinedButton>(
@@ -423,6 +613,9 @@ void main() {
         .onPressed!();
     await tester.pump();
     expect(find.text('Notebook example: Run the X gate'), findsOneWidget);
+    expect(find.byKey(const ValueKey('web-sandbox-run-measure')), findsNothing);
+    expect(find.byKey(const ValueKey('web-sandbox-measurement-results')),
+        findsNothing);
     expect(
       find.byKey(const ValueKey('web-composer-target-state')),
       findsOneWidget,

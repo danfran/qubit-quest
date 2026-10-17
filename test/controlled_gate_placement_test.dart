@@ -32,6 +32,59 @@ void main() {
     );
   });
 
+  test('valid controls exclude the known target', () {
+    expect(
+      validControlQubitCandidates(targetQubit: 0, numQubits: 2),
+      [1],
+    );
+    expect(
+      validControlQubitCandidates(targetQubit: 1, numQubits: 2),
+      [0],
+    );
+    expect(
+      validControlQubitCandidates(targetQubit: 0, numQubits: 3),
+      [1, 2],
+    );
+    expect(
+      validControlQubitCandidates(targetQubit: 0, numQubits: 1),
+      isEmpty,
+    );
+  });
+
+  for (final targetQubit in [0, 1]) {
+    testWidgets('two-qubit CX targeting q$targetQubit selects its only control',
+        (tester) async {
+      ControlledGatePlacement? selected;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () async {
+                selected = await showControlledGatePlacementDialog(
+                  context,
+                  gateType: SelectedGateType.cnot,
+                  targetQubit: targetQubit,
+                  numQubits: 2,
+                );
+              },
+              child: const Text('Place'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Place'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(TwoQubitsGateTargetQubitSelectionDialog),
+        findsNothing,
+      );
+      expect(selected?.targetQubit, targetQubit);
+      expect(selected?.controlQubit, 1 - targetQubit);
+    });
+  }
+
   testWidgets('CX and CZ use the production one-control role picker',
       (tester) async {
     for (final gateType in [SelectedGateType.cnot, SelectedGateType.cz]) {
@@ -79,6 +132,46 @@ void main() {
       );
     }
   });
+
+  for (final controlQubit in [1, 2]) {
+    testWidgets('three-qubit CX can select q$controlQubit for target q0',
+        (tester) async {
+      ControlledGatePlacement? selected;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () async {
+                selected = await showControlledGatePlacementDialog(
+                  context,
+                  gateType: SelectedGateType.cnot,
+                  targetQubit: 0,
+                  numQubits: 3,
+                );
+              },
+              child: const Text('Place'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Place'));
+      await tester.pumpAndSettle();
+      expect(
+        find.byType(TwoQubitsGateTargetQubitSelectionDialog),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.widgetWithText(QubitQuestQubitButton, 'q$controlQubit'),
+      );
+      await tester.pump();
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+
+      expect(selected?.targetQubit, 0);
+      expect(selected?.controlQubit, controlQubit);
+    });
+  }
 
   testWidgets('CCX requires two distinct controls and one fixed target',
       (tester) async {

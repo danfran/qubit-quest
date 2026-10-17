@@ -7,50 +7,110 @@ import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/widgets/circuit_preview.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
+import 'package:quantumquiz/widgets/web_learning_text.dart';
+import 'package:quantumquiz/widgets/activity_instruction_presentation.dart';
 import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
 
 class MasteryEvidenceView extends StatelessWidget {
   const MasteryEvidenceView({
     super.key,
     required this.presentation,
+    this.includeQuestion = false,
+    this.includeInstruction = true,
+    this.compactSpacing = false,
+    this.webLearning = false,
   });
 
   final MasteryChallengePresentation presentation;
 
+  /// Web semantic roles; default preserves native presentation.
+  final bool webLearning;
+
+  /// Composer instructions share the evidence flow. Choice presenters retain
+  /// their existing, separately styled question and interaction.
+  final bool includeQuestion;
+
+  /// Web instruction wrappers own this role; standalone consumers still render it.
+  final bool includeInstruction;
+
+  /// Keeps sentence-like Composer briefs together without resizing their math
+  /// or changing the spacing of existing evidence/choice presentations.
+  final bool compactSpacing;
+
   /// Shared visual scale for ordinary mathematical evidence. Evidence should
   /// support the question rather than compete with its heading.
   static const double normalMathDisplayHeight = 20;
-  static const double stackedMathDisplayHeight = 34;
+  // A fraction has numerator, rule and denominator: its total viewport must
+  // be taller than a single line to keep its glyphs comparable to body text.
+  static const double stackedMathDisplayHeight = 44;
   static const double normalMathInlineHeight = 16;
 
   @override
   Widget build(BuildContext context) {
+    final proseGap = !webLearning && compactSpacing
+        ? QubitQuestSpacing.micro
+        : QubitQuestSpacing.regular;
+    final blockGap = !webLearning && compactSpacing
+        ? QubitQuestSpacing.micro
+        : QubitQuestSpacing.compact;
     return Column(
       key: const ValueKey('mastery-evidence-view'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (includeInstruction && presentation.instruction.isNotEmpty)
+          ActivityInstructionPresentation(
+              task: presentation.instruction, webLearning: webLearning),
         if (presentation.intro case final intro?) ...[
-          Text(
+          _authoredText(
             intro,
             key: const ValueKey('mastery-evidence-intro'),
+            webRole: webLearning ? WebLearningTextRole.introduction : null,
             style: QubitQuestTypography.body,
           ),
-          const SizedBox(height: QubitQuestSpacing.regular),
+          SizedBox(height: proseGap),
         ],
         for (final (index, block) in presentation.evidence.indexed) ...[
-          _MasteryEvidenceBlockView(block: block, index: index),
+          _MasteryEvidenceBlockView(
+              block: block, index: index, webLearning: webLearning),
           if (index + 1 < presentation.evidence.length)
-            const SizedBox(height: QubitQuestSpacing.compact),
+            SizedBox(height: blockGap),
         ],
         if (presentation.helperText case final helper?) ...[
-          const SizedBox(height: QubitQuestSpacing.regular),
-          LatexText(
-            key: const ValueKey('mastery-evidence-helper'),
-            math: _withInlineKetConvention(helper),
-            textStyle: QubitQuestTypography.supporting,
-            inlineMathColor: QubitQuestColors.textMuted,
-            inlineMathHeight: normalMathInlineHeight,
-          ),
+          SizedBox(height: proseGap),
+          if (webLearning)
+            WebLearningText(helper,
+                key: const ValueKey('mastery-evidence-helper'),
+                role: WebLearningTextRole.supporting)
+          else
+            LatexText(
+              key: const ValueKey('mastery-evidence-helper'),
+              math: _withInlineKetConvention(helper),
+              textStyle: QubitQuestTypography.supporting,
+              inlineMathColor: QubitQuestColors.textMuted,
+              inlineMathHeight: normalMathInlineHeight,
+            ),
+        ],
+        if (includeInstruction &&
+            presentation.instructionAfterEvidence.isNotEmpty) ...[
+          SizedBox(height: proseGap),
+          ActivityInstructionPresentation(
+              task: presentation.instructionAfterEvidence,
+              webLearning: webLearning),
+        ],
+        if (includeQuestion && presentation.question.isNotEmpty) ...[
+          SizedBox(height: proseGap),
+          if (webLearning)
+            ActivityInstructionPresentation(
+                question: presentation.question,
+                webLearning: true,
+                questionKey: const ValueKey('mastery-task-instruction'))
+          else
+            LatexText(
+              key: const ValueKey('mastery-task-instruction'),
+              math: presentation.question,
+              textStyle: QubitQuestTypography.body,
+              inlineMathHeight: normalMathInlineHeight,
+            ),
         ],
       ],
     );
@@ -72,17 +132,25 @@ class MasteryEvidenceView extends StatelessWidget {
 }
 
 class _MasteryEvidenceBlockView extends StatelessWidget {
-  const _MasteryEvidenceBlockView({required this.block, required this.index});
+  const _MasteryEvidenceBlockView(
+      {required this.block, required this.index, required this.webLearning});
 
   final MasteryEvidenceBlock block;
   final int index;
+  final bool webLearning;
 
   @override
   Widget build(BuildContext context) {
     final child = switch (block) {
-      MasteryMathEvidence math => _MathEvidence(expression: math.expression),
-      MasteryTextEvidence text => Text(
+      MasteryMathEvidence math =>
+        _MathEvidence(expression: math.expression, webLearning: webLearning),
+      MasteryTextEvidence text => _authoredText(
           text.text,
+          webRole: webLearning
+              ? (text.isInstruction
+                  ? WebLearningTextRole.task
+                  : WebLearningTextRole.evidence)
+              : null,
           style: QubitQuestTypography.body.copyWith(
             color: QubitQuestColors.textPrimary,
           ),
@@ -92,15 +160,16 @@ class _MasteryEvidenceBlockView extends StatelessWidget {
           evidence: circuit,
         ),
       MasteryPipelineEvidence pipeline =>
-        _PipelineEvidence(stages: pipeline.stages),
+        _PipelineEvidence(stages: pipeline.stages, webLearning: webLearning),
     };
 
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (block.label case final label?) ...[
-          Text(
+          _authoredText(
             label,
+            webRole: webLearning ? WebLearningTextRole.evidenceLabel : null,
             style: QubitQuestTypography.label.copyWith(
               color: QubitQuestColors.accentInteractive,
             ),
@@ -132,10 +201,26 @@ class _MasteryEvidenceBlockView extends StatelessWidget {
   }
 }
 
+/// Only explicitly delimited mathematical spans opt prose/labels into TeX.
+Widget _authoredText(String text,
+    {required TextStyle style, Key? key, WebLearningTextRole? webRole}) {
+  if (webRole != null) return WebLearningText(text, key: key, role: webRole);
+  if (text.contains(r'\(') || text.contains(r'\[') || text.contains(r'$')) {
+    return LatexText(
+      key: key,
+      math: text,
+      textStyle: style,
+      inlineMathHeight: MasteryEvidenceView.normalMathInlineHeight,
+    );
+  }
+  return Text(text, key: key, style: style);
+}
+
 class _MathEvidence extends StatelessWidget {
-  const _MathEvidence({required this.expression});
+  const _MathEvidence({required this.expression, required this.webLearning});
 
   final String expression;
+  final bool webLearning;
 
   @override
   Widget build(BuildContext context) {
@@ -158,14 +243,23 @@ class _MathEvidence extends StatelessWidget {
             alignment: Alignment.center,
             child: LatexText(
               math: renderedExpression,
-              textStyle: QubitQuestTypography.body.copyWith(
-                color: QubitQuestColors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-              inlineMathHeight: MasteryEvidenceView.normalMathInlineHeight,
-              displayMathHeight: hasStackedFraction
-                  ? MasteryEvidenceView.stackedMathDisplayHeight
-                  : MasteryEvidenceView.normalMathDisplayHeight,
+              minimumDisplayMathScale: webLearning ? 1 : 0,
+              mathFontSize: webLearning
+                  ? QubitQuestTypography.mathDisplay.fontSize
+                  : null,
+              textStyle: webLearning
+                  ? QubitQuestTypography.mathDisplay
+                  : QubitQuestTypography.body.copyWith(
+                      color: QubitQuestColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+              inlineMathHeight:
+                  webLearning ? 18 : MasteryEvidenceView.normalMathInlineHeight,
+              displayMathHeight: webLearning
+                  ? 18
+                  : hasStackedFraction
+                      ? MasteryEvidenceView.stackedMathDisplayHeight
+                      : MasteryEvidenceView.normalMathDisplayHeight,
             ),
           ),
         ),
@@ -175,9 +269,10 @@ class _MathEvidence extends StatelessWidget {
 }
 
 class _PipelineEvidence extends StatelessWidget {
-  const _PipelineEvidence({required this.stages});
+  const _PipelineEvidence({required this.stages, required this.webLearning});
 
   final List<String> stages;
+  final bool webLearning;
 
   @override
   Widget build(BuildContext context) {
@@ -199,14 +294,16 @@ class _PipelineEvidence extends StatelessWidget {
                   horizontal: QubitQuestSpacing.regular,
                   vertical: QubitQuestSpacing.compact,
                 ),
-                child: Text(
-                  stage,
-                  textAlign: TextAlign.center,
-                  style: QubitQuestTypography.body.copyWith(
-                    color: QubitQuestColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                child: webLearning
+                    ? WebLearningText(stage, role: WebLearningTextRole.evidence)
+                    : Text(
+                        stage,
+                        textAlign: TextAlign.center,
+                        style: QubitQuestTypography.body.copyWith(
+                          color: QubitQuestColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
               ),
             ),
           );
