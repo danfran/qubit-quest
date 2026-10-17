@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:quantumquiz/models/bloch_explorer_model.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
@@ -85,6 +86,7 @@ class QubitQuestWebShell extends StatefulWidget {
 
 class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
   static const double _wideNavigationBreakpoint = 900;
+  late final Future<PackageInfo> _packageInfo = PackageInfo.fromPlatform();
   WebDestination _destination = WebDestination.journey;
   String? _requestedNotebookDiscoveryTitle;
   ExecutableNotebookExample? _requestedComposerExample;
@@ -183,6 +185,7 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
             animation: widget.progressController,
             builder: (context, _) => _WebNavigation(
               selected: _destination,
+              packageInfo: _packageInfo,
               masteryUnlocked: true,
               onSelected: (destination) {
                 if (!wide) Navigator.of(context).pop();
@@ -273,36 +276,63 @@ class _QubitQuestWordmark extends StatelessWidget {
 class _WebNavigation extends StatelessWidget {
   const _WebNavigation({
     required this.selected,
+    required this.packageInfo,
     required this.masteryUnlocked,
     required this.onSelected,
   });
 
   final WebDestination selected;
+  final Future<PackageInfo> packageInfo;
   final bool masteryUnlocked;
   final ValueChanged<WebDestination> onSelected;
 
   @override
-  Widget build(BuildContext context) => ListView(
-        padding: const EdgeInsets.fromLTRB(14, 22, 14, 18),
-        children: [
-          const _NavigationHeading('LEARN'),
-          _item(WebDestination.journey, Icons.route_outlined, 'Journey'),
-          _item(WebDestination.notebook, Icons.menu_book_outlined, 'Notebook'),
-          _item(
-            WebDestination.mastery,
-            masteryUnlocked
-                ? Icons.workspace_premium_outlined
-                : Icons.lock_outline,
-            'Mastery Challenges',
-            locked: !masteryUnlocked,
-          ),
-          const SizedBox(height: 22),
-          const _NavigationHeading('EXPLORE'),
-          _item(
-              WebDestination.composer, Icons.account_tree_outlined, 'Composer'),
-          _item(WebDestination.bloch, Icons.blur_circular, 'Bloch Explorer'),
-        ],
-      );
+  Widget build(BuildContext context) => Column(children: [
+        Expanded(
+            child: ListView(
+          padding: const EdgeInsets.fromLTRB(14, 22, 14, 18),
+          children: [
+            const _NavigationHeading('LEARN'),
+            _item(WebDestination.journey, Icons.route_outlined, 'Journey'),
+            _item(
+                WebDestination.notebook, Icons.menu_book_outlined, 'Notebook'),
+            _item(
+              WebDestination.mastery,
+              masteryUnlocked
+                  ? Icons.workspace_premium_outlined
+                  : Icons.lock_outline,
+              'Mastery Challenges',
+              locked: !masteryUnlocked,
+            ),
+            const SizedBox(height: 22),
+            const _NavigationHeading('EXPLORE'),
+            _item(WebDestination.composer, Icons.account_tree_outlined,
+                'Composer'),
+            _item(WebDestination.bloch, Icons.blur_circular, 'Bloch Explorer'),
+          ],
+        )),
+        FutureBuilder<PackageInfo>(
+          future: packageInfo,
+          builder: (context, snapshot) {
+            final info = snapshot.data;
+            if (info == null) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 18),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Divider(color: QubitQuestColors.borderSoft),
+                const SizedBox(height: 8),
+                Text(
+                  'Web v${info.version} · Build ${info.buildNumber}',
+                  key: const ValueKey('web-navigation-version'),
+                  textAlign: TextAlign.center,
+                  style: QubitQuestTypography.supporting
+                      .copyWith(color: QubitQuestColors.textMuted),
+                ),
+              ]),
+            );
+          },
+        ),
+      ]);
 
   Widget _item(
     WebDestination destination,
