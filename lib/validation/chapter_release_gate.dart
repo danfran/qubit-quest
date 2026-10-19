@@ -162,7 +162,7 @@ class ChapterReleaseGate {
 
       for (int index = mastery.from; index <= mastery.to; index++) {
         final levelNumber = index + 1;
-        final level = getQQLevelById(levelNumber);
+        final level = getHistoricalMasteryById(levelNumber);
         if (level == null) {
           failures.add(
             '[Level System Validation] Missing Mastery Challenge $levelNumber.',
@@ -249,7 +249,7 @@ class ChapterReleaseGate {
 
     final levels = <QQLevel>[];
     for (int index = chapter.from; index <= chapter.to; index++) {
-      final level = getQQLevelById(index + 1);
+      final level = getJourneyLessonById(index + 1);
       if (level == null) {
         failures.add(
           '[Level System Validation] Missing level ${index + 1} in ${chapter.groupName}.',
@@ -486,7 +486,6 @@ class ChapterReleaseGate {
     final campaignChapters = groupedLevels
         .where((category) => !_isMasteryCategory(category))
         .toList();
-    final journeySections = groupedLevels.toList(growable: false);
     final chapterNumber = _chapterNumber(chapter);
 
     if (!campaignChapters.contains(chapter)) {
@@ -515,7 +514,7 @@ class ChapterReleaseGate {
       if (link.fromChapter < 1 ||
           link.toChapter < 1 ||
           link.fromChapter > campaignChapters.length ||
-          link.toChapter > journeySections.length) {
+          (!link.targetsMastery && link.toChapter > campaignChapters.length)) {
         failures.add(
           '[Learning Map Integration] Concept link ${link.label} references a missing chapter.',
         );

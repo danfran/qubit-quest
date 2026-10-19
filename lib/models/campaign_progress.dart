@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -10,7 +11,7 @@ import 'package:quantumquiz/storage/shared_preferences_app_storage.dart';
 
 @immutable
 class CampaignProgressState {
-  static const int currentSchemaVersion = 2;
+  static const int currentSchemaVersion = 3;
 
   final int schemaVersion;
   final int maxUnlockedLevel;
@@ -119,7 +120,9 @@ class CampaignProgressPolicy {
   const CampaignProgressPolicy._();
 
   static int clampFrontier(int value) {
-    return value.clamp(1, ProgressionRules.journeyLevelCount + 1).toInt();
+    return value
+        .clamp(1, ProgressionRules.guidedDiscoveryLevelCount + 1)
+        .toInt();
   }
 
   static CampaignProgressState normalize(CampaignProgressState state) {
@@ -130,9 +133,7 @@ class CampaignProgressPolicy {
     };
     final completedChallenges = <int>{
       for (final id in state.completedChallengeIds)
-        if (ProgressionRules.isMasteryLevel(id) &&
-            id <= ProgressionRules.journeyLevelCount)
-          id,
+        if (ProgressionRules.isLegacyMasteryId(id)) id,
     };
     final completedMasterySemanticIds = <String>{
       for (final semanticId in state.completedMasterySemanticIds)
@@ -149,6 +150,8 @@ class CampaignProgressPolicy {
     );
   }
 
+  // Frozen combined-campaign compatibility API. New routes must use
+  // completeLesson, completeChallenge or completeMasteryChallenge explicitly.
   static CampaignProgressState completeLevel(
     CampaignProgressState state,
     int levelNumber,
@@ -188,8 +191,7 @@ class CampaignProgressPolicy {
     CampaignProgressState state,
     int challengeLevelId,
   ) {
-    if (!ProgressionRules.isMasteryLevel(challengeLevelId) ||
-        challengeLevelId > ProgressionRules.journeyLevelCount) {
+    if (!ProgressionRules.isLegacyMasteryId(challengeLevelId)) {
       return normalize(state);
     }
     return normalize(
@@ -298,7 +300,7 @@ class CampaignProgressPolicy {
             id,
         },
         completedChallengeIds: {
-          for (int id = ProgressionRules.guidedDiscoveryLevelCount + 1;
+          for (int id = ProgressionRules.legacyMasteryFirstId;
               id <= ProgressionRules.journeyLevelCount;
               id++)
             id,
@@ -397,7 +399,7 @@ class CampaignProgressPolicy {
         .where((id) => isLessonCompleted(state, id))
         .length;
     final locked = state.maxUnlockedLevel < firstLevel;
-    final isCompleted = state.maxUnlockedLevel > lastLevel;
+    final isCompleted = completed == total;
     return ChapterProgressSnapshot(
       locked: locked,
       current: !locked && !isCompleted,
@@ -422,8 +424,7 @@ class CampaignProgressPolicy {
   }
 
   static String? discoveryIdForLevel(int levelNumber) {
-    if (levelNumber < 1 || levelNumber > allQQLevels.length) return null;
-    final title = allQQLevels[levelNumber - 1].discoveryTitle?.trim();
+    final title = getJourneyLessonById(levelNumber)?.discoveryTitle?.trim();
     if (title == null || title.isEmpty) return null;
     final id = discoveryIdForTitle(title);
     return id.isEmpty ? null : id;
@@ -491,108 +492,131 @@ class SharedPreferencesCampaignProgressStore implements CampaignProgressStore {
   static const legacyUnlockedDiscoveriesKey = 'unlockedDiscoveries';
   static const legacyOpenedNotebookEntriesKey = 'openedNotebookEntries';
 
+  // Double-buffered complete records. Old binaries never write these keys.
+  static const activeV3Key = 'qq_progress_v3_active';
+  static const recordV3AKey = 'qq_progress_v3_record_a';
+  static const recordV3BKey = 'qq_progress_v3_record_b';
+
+  Future<String?> _activeSlot() async {
+    final slot = await storage.readString(activeV3Key);
+    if (slot != null && slot != recordV3AKey && slot != recordV3BKey) {
+      throw const FormatException('Unknown progress activation record');
+    }
+    return slot;
+  }
+
   @override
   Future<CampaignProgressState> load() async {
-    final hasCanonical = await storage.readInt(schemaVersionKey) != null;
-    final canonical = hasCanonical ? await _loadCanonical() : null;
-    final legacy =
-        hasCanonical ? CampaignProgressState.fresh() : await _loadLegacy();
-
-    final merged = CampaignProgressPolicy.normalize(
-      CampaignProgressState(
-        schemaVersion: CampaignProgressState.currentSchemaVersion,
-        maxUnlockedLevel: math.max(
-          canonical?.maxUnlockedLevel ?? 1,
-          legacy.maxUnlockedLevel,
-        ),
-        completedLessonIds: {
-          ...?canonical?.completedLessonIds,
-          ...legacy.completedLessonIds,
-        },
-        completedChallengeIds: {
-          ...?canonical?.completedChallengeIds,
-          ...legacy.completedChallengeIds,
-        },
-        completedMasterySemanticIds: {
-          ...?canonical?.completedMasterySemanticIds,
-          ...legacy.completedMasterySemanticIds,
-        },
-        explicitlyUnlockedDiscoveryIds: {
-          ...?canonical?.explicitlyUnlockedDiscoveryIds,
-          ...legacy.explicitlyUnlockedDiscoveryIds,
-        },
-        legacyUnlockedDiscoveryTitles: {
-          ...?canonical?.legacyUnlockedDiscoveryTitles,
-          ...legacy.legacyUnlockedDiscoveryTitles,
-        },
-        openedDiscoveryIds: {
-          ...?canonical?.openedDiscoveryIds,
-          ...legacy.openedDiscoveryIds,
-        },
-        legacyOpenedDiscoveryTitles: {
-          ...?canonical?.legacyOpenedDiscoveryTitles,
-          ...legacy.legacyOpenedDiscoveryTitles,
-        },
-        masteryCompleteDialogShown:
-            (canonical?.masteryCompleteDialogShown ?? false) ||
-                legacy.masteryCompleteDialogShown,
-      ),
-    );
-
-    if (!hasCanonical) {
-      await save(merged);
+    final active = await _activeSlot();
+    if (active != null) {
+      // Never fall back to stale v2 data after activation, even on corruption.
+      return _decodeV3(await storage.readString(active));
     }
-    return merged;
+    final version = await storage.readInt(schemaVersionKey);
+    final CampaignProgressState historical;
+    switch (version) {
+      case null:
+        historical = await _loadLegacy();
+      case 2:
+        historical = await _loadCanonical();
+      default:
+        throw UnsupportedError(
+            'Unsupported historical progress schema: $version');
+    }
+    final lessons = historical.completedLessonIds
+        .where((id) => id >= 1 && id <= ProgressionRules.historicalJourneyCount)
+        .toSet();
+    var frontier = 1;
+    while (lessons.contains(frontier) &&
+        frontier <= ProgressionRules.historicalJourneyCount) {
+      frontier++;
+    }
+    final migrated = CampaignProgressPolicy.normalize(historical.copyWith(
+      completedLessonIds: lessons,
+      maxUnlockedLevel: frontier,
+      explicitlyUnlockedDiscoveryIds: {
+        ...historical.explicitlyUnlockedDiscoveryIds,
+        for (final id in lessons)
+          if (CampaignProgressPolicy.discoveryIdForLevel(id) != null)
+            CampaignProgressPolicy.discoveryIdForLevel(id)!,
+      },
+    ));
+    await save(migrated);
+    return migrated;
   }
 
   @override
   Future<void> save(CampaignProgressState state) async {
-    final normalized = CampaignProgressPolicy.normalize(state);
+    final active = await _activeSlot();
+    if (active != null) _decodeV3(await storage.readString(active));
+    final slot = active == recordV3AKey ? recordV3BKey : recordV3AKey;
+    final payload = _encodeV3(CampaignProgressPolicy.normalize(state));
+    await storage.writeString(slot, payload);
+    final staged = await storage.readString(slot);
+    if (staged != payload)
+      throw StateError('Progress staging verification failed');
+    _decodeV3(staged);
+    await storage.writeString(activeV3Key, slot);
+    if (await storage.readString(activeV3Key) != slot) {
+      throw StateError('Progress activation verification failed');
+    }
+    // Keep every v2/legacy key untouched as the migration recovery source.
+  }
 
-    await storage.writeInt(
-      schemaVersionKey,
-      CampaignProgressState.currentSchemaVersion,
-    );
-    await storage.writeInt(maxUnlockedLevelKey, normalized.maxUnlockedLevel);
-    await storage.writeStringList(
-      completedLessonIdsKey,
-      _sortedIntStrings(normalized.completedLessonIds),
-    );
-    await storage.writeStringList(
-      completedChallengeIdsKey,
-      _sortedIntStrings(normalized.completedChallengeIds),
-    );
-    await storage.writeStringList(
-      completedMasterySemanticIdsKey,
-      _sortedStrings(normalized.completedMasterySemanticIds),
-    );
-    await storage.writeStringList(
-      unlockedDiscoveryIdsKey,
-      _sortedStrings(normalized.explicitlyUnlockedDiscoveryIds),
-    );
-    await storage.writeStringList(
-      legacyUnlockedDiscoveryTitlesKey,
-      _sortedStrings(normalized.legacyUnlockedDiscoveryTitles),
-    );
-    await storage.writeStringList(
-      openedDiscoveryIdsKey,
-      _sortedStrings(normalized.openedDiscoveryIds),
-    );
-    await storage.writeStringList(
-      legacyOpenedDiscoveryTitlesKey,
-      _sortedStrings(normalized.legacyOpenedDiscoveryTitles),
-    );
-    await storage.writeBool(
-      masteryCompleteDialogShownKey,
-      normalized.masteryCompleteDialogShown,
-    );
+  static String _encodeV3(CampaignProgressState s) => jsonEncode({
+        'schema': 3,
+        'journey': {
+          'frontier': s.maxUnlockedLevel,
+          'completed': s.completedLessonIds.toList()..sort()
+        },
+        'legacyMastery': s.completedChallengeIds.toList()..sort(),
+        'semanticMastery': _sortedStrings(s.completedMasterySemanticIds),
+        'discoveries': _sortedStrings(s.explicitlyUnlockedDiscoveryIds),
+        'legacyTitles': _sortedStrings(s.legacyUnlockedDiscoveryTitles),
+        'opened': _sortedStrings(s.openedDiscoveryIds),
+        'legacyOpenedTitles': _sortedStrings(s.legacyOpenedDiscoveryTitles),
+        'masteryDialogShown': s.masteryCompleteDialogShown,
+      });
 
-    await _saveLegacyMirror(normalized);
+  static CampaignProgressState _decodeV3(String? raw) {
+    if (raw == null)
+      throw const FormatException('Missing active progress record');
+    try {
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      if (data['schema'] != 3)
+        throw const FormatException('Unsupported progress schema');
+      final journey = data['journey'] as Map<String, dynamic>;
+      final state = CampaignProgressState(
+        maxUnlockedLevel: journey['frontier'] as int,
+        completedLessonIds: (journey['completed'] as List).cast<int>().toSet(),
+        completedChallengeIds:
+            (data['legacyMastery'] as List).cast<int>().toSet(),
+        completedMasterySemanticIds:
+            (data['semanticMastery'] as List).cast<String>().toSet(),
+        explicitlyUnlockedDiscoveryIds:
+            (data['discoveries'] as List).cast<String>().toSet(),
+        legacyUnlockedDiscoveryTitles:
+            (data['legacyTitles'] as List).cast<String>().toSet(),
+        openedDiscoveryIds: (data['opened'] as List).cast<String>().toSet(),
+        legacyOpenedDiscoveryTitles:
+            (data['legacyOpenedTitles'] as List).cast<String>().toSet(),
+        masteryCompleteDialogShown: data['masteryDialogShown'] as bool,
+      );
+      if (_encodeV3(CampaignProgressPolicy.normalize(state)) != raw) {
+        throw const FormatException('Invalid progress record');
+      }
+      return state;
+    } on TypeError {
+      throw const FormatException('Malformed progress record');
+    }
   }
 
   @override
   Future<void> reset() async {
     for (final key in const [
+      activeV3Key,
+      recordV3AKey,
+      recordV3BKey,
       schemaVersionKey,
       maxUnlockedLevelKey,
       completedLessonIdsKey,
@@ -614,51 +638,49 @@ class SharedPreferencesCampaignProgressStore implements CampaignProgressStore {
     await save(CampaignProgressState.fresh());
   }
 
-  Future<CampaignProgressState?> _loadCanonical() async {
-    return CampaignProgressPolicy.normalize(
-      CampaignProgressState(
-        schemaVersion: await storage.readInt(schemaVersionKey) ??
-            CampaignProgressState.currentSchemaVersion,
-        maxUnlockedLevel: CampaignProgressPolicy.clampFrontier(
-            await storage.readInt(maxUnlockedLevelKey) ?? 1),
-        completedLessonIds:
-            _parseInts(await storage.readStringList(completedLessonIdsKey)),
-        completedChallengeIds:
-            _parseInts(await storage.readStringList(completedChallengeIdsKey)),
-        completedMasterySemanticIds: _validMasterySemanticIds(
-          await storage.readStringList(completedMasterySemanticIdsKey),
-        ),
-        explicitlyUnlockedDiscoveryIds: _validDiscoveryIds(
-            await storage.readStringList(unlockedDiscoveryIdsKey)),
-        legacyUnlockedDiscoveryTitles:
-            (await storage.readStringList(legacyUnlockedDiscoveryTitlesKey) ??
-                    const [])
-                .map((title) => title.trim())
-                .where((title) => title.isNotEmpty)
-                .toSet(),
-        openedDiscoveryIds: _validDiscoveryIds(
-            await storage.readStringList(openedDiscoveryIdsKey)),
-        legacyOpenedDiscoveryTitles:
-            (await storage.readStringList(legacyOpenedDiscoveryTitlesKey) ??
-                    const [])
-                .map((title) => title.trim())
-                .where((title) => title.isNotEmpty)
-                .toSet(),
-        masteryCompleteDialogShown:
-            await storage.readBool(masteryCompleteDialogShownKey) ?? false,
+  Future<CampaignProgressState> _loadCanonical() async {
+    return CampaignProgressState(
+      schemaVersion: await storage.readInt(schemaVersionKey) ??
+          CampaignProgressState.currentSchemaVersion,
+      maxUnlockedLevel: (await storage.readInt(maxUnlockedLevelKey) ?? 1)
+          .clamp(1, ProgressionRules.historicalFrontierLimit),
+      completedLessonIds:
+          _parseInts(await storage.readStringList(completedLessonIdsKey)),
+      completedChallengeIds:
+          _parseInts(await storage.readStringList(completedChallengeIdsKey)),
+      completedMasterySemanticIds: _validMasterySemanticIds(
+        await storage.readStringList(completedMasterySemanticIdsKey),
       ),
+      explicitlyUnlockedDiscoveryIds: _validDiscoveryIds(
+          await storage.readStringList(unlockedDiscoveryIdsKey)),
+      legacyUnlockedDiscoveryTitles:
+          (await storage.readStringList(legacyUnlockedDiscoveryTitlesKey) ??
+                  const [])
+              .map((title) => title.trim())
+              .where((title) => title.isNotEmpty)
+              .toSet(),
+      openedDiscoveryIds: _validDiscoveryIds(
+          await storage.readStringList(openedDiscoveryIdsKey)),
+      legacyOpenedDiscoveryTitles:
+          (await storage.readStringList(legacyOpenedDiscoveryTitlesKey) ??
+                  const [])
+              .map((title) => title.trim())
+              .where((title) => title.isNotEmpty)
+              .toSet(),
+      masteryCompleteDialogShown:
+          await storage.readBool(masteryCompleteDialogShownKey) ?? false,
     );
   }
 
   Future<CampaignProgressState> _loadLegacy() async {
-    final maxUnlocked = CampaignProgressPolicy.clampFrontier(
-      await storage.readInt(legacyMaxUnlockedCampaignLevelKey) ?? 1,
-    );
+    final maxUnlocked =
+        (await storage.readInt(legacyMaxUnlockedCampaignLevelKey) ?? 1)
+            .clamp(1, ProgressionRules.historicalFrontierLimit);
     final completedLessons = <int>{
       for (int id = 1;
           id <
               math.min(
-                  maxUnlocked, ProgressionRules.guidedDiscoveryLevelCount + 1);
+                  maxUnlocked, ProgressionRules.historicalJourneyCount + 1);
           id++)
         id,
     };
@@ -681,29 +703,6 @@ class SharedPreferencesCampaignProgressStore implements CampaignProgressStore {
       legacyOpenedDiscoveryTitles: migratedOpened.legacyTitles,
       masteryCompleteDialogShown:
           await storage.readBool(legacyMasteryCompleteDialogShownKey) ?? false,
-    );
-  }
-
-  Future<void> _saveLegacyMirror(
-    CampaignProgressState state,
-  ) async {
-    await storage.writeInt(
-        legacyMaxUnlockedCampaignLevelKey, state.maxUnlockedLevel);
-    await storage.writeStringList(
-      legacyCompletedMasteryLevelsKey,
-      _sortedIntStrings(state.completedChallengeIds),
-    );
-    await storage.writeBool(
-      legacyMasteryCompleteDialogShownKey,
-      state.masteryCompleteDialogShown,
-    );
-    await storage.writeStringList(
-      legacyUnlockedDiscoveriesKey,
-      _sortedStrings(CampaignProgressPolicy.unlockedDiscoveryTitles(state)),
-    );
-    await storage.writeStringList(
-      legacyOpenedNotebookEntriesKey,
-      _sortedStrings(CampaignProgressPolicy.openedDiscoveryTitles(state)),
     );
   }
 
@@ -741,10 +740,6 @@ class SharedPreferencesCampaignProgressStore implements CampaignProgressStore {
       }
     }
     return _MigratedDiscoveryTitles(ids, legacyTitles);
-  }
-
-  static List<String> _sortedIntStrings(Set<int> values) {
-    return (values.toList()..sort()).map((value) => value.toString()).toList();
   }
 
   static List<String> _sortedStrings(Set<String> values) {

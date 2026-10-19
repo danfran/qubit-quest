@@ -9,16 +9,17 @@ class LearningMapConceptLink {
   const LearningMapConceptLink({
     required this.fromChapter,
     required this.toChapter,
+    this.targetsMastery = false,
     required this.description,
   });
 
   final int fromChapter;
   final int toChapter;
+  final bool targetsMastery;
   final String description;
 
-  String get label => toChapter == 13
-      ? '$fromChapter -> Mastery'
-      : '$fromChapter -> $toChapter';
+  String get label =>
+      targetsMastery ? '$fromChapter -> Mastery' : '$fromChapter -> $toChapter';
 }
 
 @immutable
@@ -77,6 +78,7 @@ class LearningMapScreen extends StatelessWidget {
     super.key,
     required this.progressState,
     required this.onStartChapter,
+    this.onOpenMastery,
   });
 
   static const List<LearningMapConceptLink> conceptLinks = [
@@ -108,12 +110,14 @@ class LearningMapScreen extends StatelessWidget {
     LearningMapConceptLink(
       fromChapter: 12,
       toChapter: 13,
+      targetsMastery: true,
       description: 'Synthesis leads into integrated mastery',
     ),
   ];
 
   final CampaignProgressState progressState;
   final Future<void> Function(int levelNumber) onStartChapter;
+  final VoidCallback? onOpenMastery;
 
   @override
   Widget build(BuildContext context) {
@@ -146,6 +150,7 @@ class LearningMapScreen extends StatelessWidget {
                           progressState: progressState,
                           compact: compact,
                           onStartChapter: onStartChapter,
+                          onOpenMastery: onOpenMastery,
                         ),
                       ],
                     ),
@@ -418,12 +423,14 @@ class _LearningMapPath extends StatelessWidget {
     required this.progressState,
     required this.compact,
     required this.onStartChapter,
+    this.onOpenMastery,
   });
 
   final List<QQLevelsCategory> chapters;
   final CampaignProgressState progressState;
   final bool compact;
   final Future<void> Function(int levelNumber) onStartChapter;
+  final VoidCallback? onOpenMastery;
 
   @override
   Widget build(BuildContext context) {
@@ -440,7 +447,11 @@ class _LearningMapPath extends StatelessWidget {
               if (_statusFor(chapters[index]) == _ChapterMapStatus.locked) {
                 return;
               }
-              await onStartChapter(firstLevel);
+              if (chapters[index].isMasteryPhase) {
+                onOpenMastery?.call();
+              } else {
+                await onStartChapter(firstLevel);
+              }
             },
           ),
           if (index < chapters.length - 1)
@@ -465,6 +476,12 @@ class _LearningMapPath extends StatelessWidget {
   }
 
   _ChapterMapStatus _statusFor(QQLevelsCategory category) {
+    if (category.isMasteryPhase) {
+      return journeyLessons.indexed.every((entry) =>
+              progressState.completedLessonIds.contains(entry.$1 + 1))
+          ? _ChapterMapStatus.current
+          : _ChapterMapStatus.locked;
+    }
     final firstLevel = category.from + 1;
     final lastLevel = category.to + 1;
     final snapshot = CampaignProgressPolicy.chapterProgress(

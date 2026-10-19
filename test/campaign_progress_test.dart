@@ -175,7 +175,8 @@ void main() {
         CampaignProgressState.fresh(),
       );
 
-      expect(state.maxUnlockedLevel, ProgressionRules.journeyLevelCount + 1);
+      expect(state.maxUnlockedLevel,
+          ProgressionRules.guidedDiscoveryLevelCount + 1);
       expect(state.completedLessonIds.length,
           ProgressionRules.guidedDiscoveryLevelCount);
       expect(state.completedChallengeIds.length, 54);

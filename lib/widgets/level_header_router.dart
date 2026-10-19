@@ -1,3 +1,4 @@
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/widgets/level_type_headers.dart';
@@ -13,19 +14,22 @@ enum LevelHeaderKind {
 class LevelHeaderRouter {
   const LevelHeaderRouter._();
 
-  static const int guidedDiscoveryLevelCount = 60;
+  static const int guidedDiscoveryLevelCount =
+      ProgressionRules.historicalJourneyCount;
 
   static bool isMasteryLevel(int levelId) {
-    return levelId > guidedDiscoveryLevelCount;
+    return ProgressionRules.isLegacyMasteryId(levelId);
   }
 
   static int masteryChallengeNumber(int levelId) {
-    return levelId - guidedDiscoveryLevelCount;
+    return ProgressionRules.masteryChallengeNumber(levelId);
   }
 
-  static String displayLabel(int levelId, {bool compact = false}) {
+  static String displayLabel(int levelId,
+      {bool compact = false,
+      NumericActivityDomain activityDomain = NumericActivityDomain.journey}) {
     if (levelId == -1) return 'Composer';
-    if (isMasteryLevel(levelId)) {
+    if (activityDomain == NumericActivityDomain.historicalMastery) {
       final challengeNumber = masteryChallengeNumber(levelId);
       return compact
           ? 'Challenge $challengeNumber'
@@ -47,6 +51,7 @@ class LevelHeaderRouter {
   static PreferredSizeWidget headerFor({
     required QQLevel level,
     required int levelId,
+    NumericActivityDomain activityDomain = NumericActivityDomain.journey,
     required bool compact,
     List<Widget> actions = const [],
     String? title,
@@ -54,15 +59,17 @@ class LevelHeaderRouter {
     bool isCompleted = false,
     int? masteryDisplayOrder,
   }) {
-    final resolvedTitle = _levelTitle(level, levelId);
+    final resolvedTitle = _levelTitle(level, levelId, activityDomain);
     final displayLabel = masteryDisplayOrder == null
-        ? LevelHeaderRouter.displayLabel(levelId)
+        ? LevelHeaderRouter.displayLabel(levelId,
+            activityDomain: activityDomain)
         : 'Mastery Challenge $masteryDisplayOrder';
     final compactDisplayLabel = masteryDisplayOrder == null
-        ? LevelHeaderRouter.displayLabel(levelId, compact: true)
+        ? LevelHeaderRouter.displayLabel(levelId,
+            compact: true, activityDomain: activityDomain)
         : 'Challenge $masteryDisplayOrder';
     final isMastery = masteryDisplayOrder != null ||
-        LevelHeaderRouter.isMasteryLevel(levelId);
+        activityDomain == NumericActivityDomain.historicalMastery;
 
     if (isMastery &&
         (masteryDisplayOrder ?? masteryChallengeNumber(levelId)) <= 20) {
@@ -112,11 +119,12 @@ class LevelHeaderRouter {
     };
   }
 
-  static String _levelTitle(QQLevel level, int levelId) {
+  static String _levelTitle(
+      QQLevel level, int levelId, NumericActivityDomain activityDomain) {
     final title = level.title?.trim();
     if (title != null && title.isNotEmpty) return title;
     final task = level.taskDescription.trim();
     if (task.isNotEmpty) return task;
-    return displayLabel(levelId);
+    return displayLabel(levelId, activityDomain: activityDomain);
   }
 }

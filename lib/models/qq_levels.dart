@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:advance_math/advance_math.dart';
-import 'package:flutter/foundation.dart';
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/canonical_composer_solution.dart';
 import 'package:quantumquiz/models/canonical_solution_catalog.dart';
@@ -4798,7 +4798,56 @@ ComposerLevel _chapter4InterferenceFinale() {
   );
 }
 
-final List<QQLevel> allQQLevels = _consolidatedQQLevels();
+// Compatibility view only. Domain-aware callers use the maps below.
+final List<QQLevel> allQQLevels = [
+  ...journeyLessons,
+  ...historicalMasteryActivities
+];
+final List<QQLevel> journeyLessons = _consolidatedQQLevels();
+final List<QQLevel> historicalMasteryActivities = [
+  for (final entry in _authoredQQLevels.sublist(0, 54).indexed)
+    _attachCanonical(
+        _withMasteryMetadata(entry.$2, entry.$1),
+        ProgressionRules.legacyMasteryFirstId + entry.$1,
+        NumericActivityDomain.historicalMastery),
+];
+
+class NumericActivityCatalogue {
+  NumericActivityCatalogue(
+      {required Map<int, QQLevel> journey,
+      required Map<int, QQLevel> historicalMastery})
+      : journey = Map.unmodifiable(journey),
+        historicalMastery = Map.unmodifiable(historicalMastery);
+  final Map<int, QQLevel> journey;
+  final Map<int, QQLevel> historicalMastery;
+  QQLevel? lookup(int id, NumericActivityDomain domain) =>
+      (domain == NumericActivityDomain.journey
+          ? journey
+          : historicalMastery)[id];
+}
+
+final numericActivityCatalogue = NumericActivityCatalogue(
+  journey: {for (final entry in journeyLessons.indexed) entry.$1 + 1: entry.$2},
+  historicalMastery: {
+    for (final entry in historicalMasteryActivities.indexed)
+      ProgressionRules.legacyMasteryFirstId + entry.$1: entry.$2
+  },
+);
+QQLevel? getJourneyLessonById(int id) =>
+    numericActivityCatalogue.lookup(id, NumericActivityDomain.journey);
+QQLevel? getHistoricalMasteryById(int id) => numericActivityCatalogue.lookup(
+    id, NumericActivityDomain.historicalMastery);
+
+QQLevel _attachCanonical(
+    QQLevel level, int historicalId, NumericActivityDomain domain) {
+  // This solution table belongs to the frozen combined catalogue. New Journey
+  // lessons must author their own solution, never inherit legacy Mastery61+.
+  if (domain == NumericActivityDomain.journey &&
+      historicalId > ProgressionRules.historicalJourneyCount) return level;
+  if (level is! ComposerLevel || level.canonicalSolution != null) return level;
+  final canonical = canonicalComposerSolutionCatalog[historicalId];
+  return canonical == null ? level : _withCanonicalSolution(level, canonical);
+}
 
 List<QQLevel> _consolidatedQQLevels() {
   final chapter1Information = _authoredQQLevels.sublist(83, 88);
@@ -4821,13 +4870,6 @@ List<QQLevel> _consolidatedQQLevels() {
   final chapter10AmplitudeAmplification = _authoredQQLevels.sublist(68, 73);
   final chapter11GroverLoopIntuition = _authoredQQLevels.sublist(73, 78);
   final chapter12QuantumAlgorithmStructure = _authoredQQLevels.sublist(78, 83);
-  final masteryChallenges = _authoredQQLevels
-      .sublist(0, 54)
-      .asMap()
-      .entries
-      .map((entry) => _withMasteryMetadata(entry.value, entry.key))
-      .toList(growable: false);
-
   final levels = <QQLevel>[
     ...chapter1Information,
     ...chapter2HiddenChange,
@@ -4841,18 +4883,11 @@ List<QQLevel> _consolidatedQQLevels() {
     ...chapter10AmplitudeAmplification,
     ...chapter11GroverLoopIntuition,
     ...chapter12QuantumAlgorithmStructure,
-    ...masteryChallenges,
   ];
-  return levels.indexed.map((entry) {
-    final id = entry.$1 + 1;
-    final level = entry.$2;
-    if (level is! ComposerLevel || level.canonicalSolution != null) {
-      return level;
-    }
-    final canonical = canonicalComposerSolutionCatalog[id];
-    if (canonical == null) return level;
-    return _withCanonicalSolution(level, canonical);
-  }).toList(growable: false);
+  return levels.indexed
+      .map((entry) => _attachCanonical(
+          entry.$2, entry.$1 + 1, NumericActivityDomain.journey))
+      .toList(growable: false);
 }
 
 ComposerLevel _withCanonicalSolution(
@@ -5099,14 +5134,10 @@ List<String> _masteryRelatedDiscoveriesFor(int index) {
 int numberOfLevels = allQQLevels.length;
 
 // Helper to get a level by ID
-QQLevel? getQQLevelById(int id) {
-  try {
-    return allQQLevels[id - 1];
-  } catch (e) {
-    debugPrint('QQLevel with ID $id not found: $e');
-    return null;
-  }
-}
+// Frozen compatibility lookup. Never use this to route a new Journey lesson.
+QQLevel? getQQLevelById(int id) => id <= ProgressionRules.historicalJourneyCount
+    ? getJourneyLessonById(id)
+    : getHistoricalMasteryById(id);
 
 ComposerLevel getComposerAsLevel(int numQubits) {
   return createSandboxComposerLevel(numQubits);
@@ -5117,7 +5148,7 @@ ComposerLevel getComposerAsLevel(int numQubits) {
 //   is synthesis or interpretation rather than another construction puzzle.
 // - The second-to-last level should carry the final gameplay synthesis.
 // - Concept checks are first-class chapter components, not legacy quiz screens.
-final List<QQLevelsCategory> groupedLevels = [
+final List<QQLevelsCategory> journeyChapters = [
   QQLevelsCategory(
     groupName: 'Chapter 1 - Information',
     from: 0,
@@ -5202,14 +5233,27 @@ final List<QQLevelsCategory> groupedLevels = [
     categoryIntro:
         'Step back and unify the last three abstractions into a meta-level algorithm model: define valid solutions, bias toward them, and iterate the structure.',
   ),
-  QQLevelsCategory(
-    groupName: 'Mastery Challenges',
-    from: 60,
-    to: 113,
-    categoryIntro:
-        'Independent challenges for testing, combining, and reinforcing quantum concepts through practice.',
-    phaseTitle: 'Mastery Challenges',
-    phasePurpose: 'Concept Integration',
-    isMasteryPhase: true,
-  ),
 ];
+
+final historicalMasteryGroup = QQLevelsCategory(
+  groupName: 'Mastery Challenges',
+  from: 60,
+  to: 113,
+  categoryIntro:
+      'Independent challenges for testing, combining, and reinforcing quantum concepts through practice.',
+  phaseTitle: 'Mastery Challenges',
+  phasePurpose: 'Concept Integration',
+  isMasteryPhase: true,
+);
+
+// Mastery is a distinct section, never a Journey chapter identity.
+final List<QQLevelsCategory> groupedLevels = [
+  ...journeyChapters,
+  historicalMasteryGroup
+];
+QQLevelsCategory? journeyChapterForLesson(int id) {
+  for (final chapter in journeyChapters) {
+    if (id >= chapter.from + 1 && id <= chapter.to + 1) return chapter;
+  }
+  return null;
+}

@@ -67,20 +67,12 @@ class _WebJourneyWorkspaceState extends State<WebJourneyWorkspace> {
   int? _selectedLevelId;
 
   QQLevelsCategory? _categoryForLevel(int levelId) {
-    final index = levelId - 1;
-    for (final category in groupedLevels) {
-      if (index >= category.from && index <= category.to) return category;
-    }
-    return null;
+    return journeyChapterForLesson(levelId);
   }
 
   Future<void> _openChapter(int firstLevelId) async {
     final category = _categoryForLevel(firstLevelId);
     if (category == null) return;
-    if (category.isMasteryPhase && widget.onOpenMastery != null) {
-      widget.onOpenMastery!();
-      return;
-    }
     setState(() {
       _chapter = category;
       _selectedLevelId = firstLevelId;
@@ -100,18 +92,16 @@ class _WebJourneyWorkspaceState extends State<WebJourneyWorkspace> {
   }
 
   bool _isUnlocked(int levelId, CampaignProgressState state) =>
-      ProgressionRules.isLevelUnlocked(
-        levelNumber: levelId,
+      ProgressionRules.isJourneyLessonUnlocked(
+        lessonId: levelId,
         maxUnlockedLevel: state.maxUnlockedLevel,
       );
 
   bool _isCompleted(int levelId, CampaignProgressState state) =>
-      ProgressionRules.isMasteryLevel(levelId)
-          ? state.completedChallengeIds.contains(levelId)
-          : state.completedLessonIds.contains(levelId);
+      state.completedLessonIds.contains(levelId);
 
   Future<void> _complete(int levelId) async {
-    await widget.progressController.completeLevel(levelId);
+    await widget.progressController.completeLesson(levelId);
     if (!mounted) return;
     setState(() {});
   }
@@ -144,6 +134,7 @@ class _WebJourneyWorkspaceState extends State<WebJourneyWorkspace> {
               key: const ValueKey('web-workspace-journey'),
               progressState: widget.progressController.state,
               onStartChapter: _openChapter,
+              onOpenMastery: widget.onOpenMastery,
             );
           }
           return _ChapterWorkspace(
@@ -537,7 +528,7 @@ class _ChapterWorkspace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final level = getQQLevelById(selectedLevelId)!;
+    final level = getJourneyLessonById(selectedLevelId)!;
     return ColoredBox(
       color: _background,
       child: LayoutBuilder(
@@ -828,7 +819,7 @@ class _LessonChooser extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '${index + 1}. ${getQQLevelById(id)!.title}',
+                    '${index + 1}. ${getJourneyLessonById(id)!.title}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -886,7 +877,7 @@ class _LessonList extends StatelessWidget {
         _LessonItem(
           index: index + 1,
           levelId: id,
-          level: getQQLevelById(id)!,
+          level: getJourneyLessonById(id)!,
           selected: id == selectedLevelId,
           unlocked: isUnlocked(id, progressState),
           completed: isCompleted(id, progressState),
@@ -1001,6 +992,7 @@ class WebLessonWorkspace extends StatefulWidget {
   const WebLessonWorkspace({
     super.key,
     required this.levelId,
+    this.activityDomain = NumericActivityDomain.journey,
     required this.level,
     required this.alreadyCompleted,
     required this.onCompleted,
@@ -1013,6 +1005,7 @@ class WebLessonWorkspace extends StatefulWidget {
     this.journeyActivity = false,
   });
 
+  final NumericActivityDomain activityDomain;
   final int levelId;
   final QQLevel level;
   final bool alreadyCompleted;
@@ -1091,7 +1084,8 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
             Text(
               widget.masteryChallenge != null
                   ? 'Mastery Challenge ${widget.masteryChallenge!.displayOrder}'
-                  : ProgressionRules.isMasteryLevel(widget.levelId)
+                  : widget.activityDomain ==
+                          NumericActivityDomain.historicalMastery
                       ? 'Mastery Challenge ${ProgressionRules.masteryChallengeNumber(widget.levelId)}'
                       : 'Lesson ${widget.levelId}',
               style: TextStyle(
@@ -1183,7 +1177,8 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
             _SuccessPanel(
               level: widget.level,
               isMastery: widget.masteryChallenge != null ||
-                  ProgressionRules.isMasteryLevel(widget.levelId),
+                  widget.activityDomain ==
+                      NumericActivityDomain.historicalMastery,
               onOpenNotebook: widget.onOpenNotebook,
               onOpenNotebookEntry: widget.onOpenNotebookEntry,
               onNext: widget.onNextLesson,
@@ -1226,9 +1221,7 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
 
 class _ContentCard extends StatelessWidget {
   const _ContentCard(
-      {required this.title,
-      required this.icon,
-      required this.child});
+      {required this.title, required this.icon, required this.child});
   final String title;
   final IconData icon;
   final Widget child;

@@ -1,3 +1,4 @@
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/models/qq_level.dart';
@@ -14,6 +15,7 @@ import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
 import 'package:quantumquiz/widgets/qubit_quest_activity_shell.dart';
 
 class FillTheGateScreen extends StatefulWidget {
+  final NumericActivityDomain activityDomain;
   final int levelId;
   final FillTheGateLevel level;
   final Function(int)? onLevelUnlocked;
@@ -22,6 +24,7 @@ class FillTheGateScreen extends StatefulWidget {
   const FillTheGateScreen({
     super.key,
     required this.levelId,
+    this.activityDomain = NumericActivityDomain.journey,
     required this.level,
     required this.onLevelUnlocked,
     this.isCompleted = false,
@@ -78,7 +81,8 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
       _selectedIndex = idx;
       _answered = true;
       _correct = correct;
-      if (correct && LevelHeaderRouter.isMasteryLevel(widget.levelId)) {
+      if (correct &&
+          (widget.activityDomain == NumericActivityDomain.historicalMastery)) {
         _isCompleted = true;
       }
     });
@@ -88,6 +92,7 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
   }
 
   bool get _usesCanonicalVisualGrammar =>
+      widget.activityDomain == NumericActivityDomain.historicalMastery &&
       const {64, 68}.contains(widget.levelId);
 
   void _finish() => Navigator.of(context).pop(
@@ -118,6 +123,7 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
       header: LevelHeaderRouter.headerFor(
         level: widget.level,
         levelId: widget.levelId,
+        activityDomain: widget.activityDomain,
         compact: false,
         isCompleted: _isCompleted,
       ),
@@ -226,6 +232,7 @@ class _FillTheGateScreenState extends State<FillTheGateScreen> {
       appBar: LevelHeaderRouter.headerFor(
         level: widget.level,
         levelId: widget.levelId,
+        activityDomain: widget.activityDomain,
         compact: false,
         isCompleted: _isCompleted,
       ),

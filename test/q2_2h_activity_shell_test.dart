@@ -1,3 +1,4 @@
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/activity_behavior_contract.dart';
@@ -34,6 +35,9 @@ void main() {
           child: LevelUIRouter.buildLevelUI(
             level: getQQLevelById(levelId)!,
             levelId: levelId,
+            activityDomain: levelId >= ProgressionRules.legacyMasteryFirstId
+                ? NumericActivityDomain.historicalMastery
+                : NumericActivityDomain.journey,
             onLevelUnlocked: (_) {},
             isCompleted: isCompleted,
           ),
@@ -49,6 +53,9 @@ void main() {
         LevelHeaderRouter.headerFor(
           level: getQQLevelById(levelId)!,
           levelId: levelId,
+          activityDomain: levelId >= ProgressionRules.legacyMasteryFirstId
+              ? NumericActivityDomain.historicalMastery
+              : NumericActivityDomain.journey,
           compact: false,
         ),
         isA<MasteryActivityHeader>(),
@@ -59,6 +66,9 @@ void main() {
       LevelHeaderRouter.headerFor(
         level: getQQLevelById(81)!,
         levelId: 81,
+        activityDomain: 81 >= ProgressionRules.legacyMasteryFirstId
+            ? NumericActivityDomain.historicalMastery
+            : NumericActivityDomain.journey,
         compact: false,
       ),
       isNot(isA<MasteryActivityHeader>()),

@@ -1,3 +1,4 @@
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -104,6 +105,7 @@ bool requiresRotationAngleSelection(Gate gate) {
 }
 
 class QuantumComposer extends StatefulWidget {
+  final NumericActivityDomain activityDomain;
   final int levelId;
   final ComposerLevel level;
   final Function(int unlockedLevel)? onLevelUnlocked;
@@ -117,6 +119,7 @@ class QuantumComposer extends StatefulWidget {
   const QuantumComposer({
     super.key,
     required this.levelId,
+    this.activityDomain = NumericActivityDomain.journey,
     required this.level,
     required this.onLevelUnlocked,
     this.isCompleted = false,
@@ -153,7 +156,7 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   bool get _isMastery =>
       widget.masteryChallenge != null ||
-      LevelHeaderRouter.isMasteryLevel(widget.levelId);
+      (widget.activityDomain == NumericActivityDomain.historicalMastery);
 
   late int _numQubits;
   late String _taskDescription;
@@ -1263,11 +1266,13 @@ class _QuantumComposerState extends State<QuantumComposer>
     final header = LevelHeaderRouter.headerFor(
       level: widget.level,
       levelId: widget.levelId,
+      activityDomain: widget.activityDomain,
       compact: compactAppBar,
       title: runningAsQuantumComposer()
           ? 'Composer'
           : widget.masteryChallenge == null
-              ? LevelHeaderRouter.displayLabel(widget.levelId)
+              ? LevelHeaderRouter.displayLabel(widget.levelId,
+                  activityDomain: widget.activityDomain)
               : null,
       subtitle: runningAsQuantumComposer() ? '' : _goalTitle(),
       isCompleted: _isCompleted,
@@ -1979,26 +1984,18 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   bool runningAsQuantumComposer() => widget.levelId == -1;
 
-  bool get _usesEarlyMasteryVisualGrammar => const {
-        65,
-        67,
-        70,
-        72,
-        73,
-        74,
-        75,
-        76,
-        77,
-        78,
-        79,
-        80
-      }.contains(widget.levelId);
+  bool get _usesEarlyMasteryVisualGrammar =>
+      widget.activityDomain == NumericActivityDomain.historicalMastery &&
+      const {65, 67, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80}
+          .contains(widget.levelId);
 
   String _goalTitle() {
     if (runningAsQuantumComposer()) {
       return 'Composer';
     }
-    return widget.level.title ?? LevelHeaderRouter.displayLabel(widget.levelId);
+    return widget.level.title ??
+        LevelHeaderRouter.displayLabel(widget.levelId,
+            activityDomain: widget.activityDomain);
   }
 
   MasteryChallengePresentation? get _masteryTaskPresentation =>
@@ -2241,7 +2238,8 @@ class _QuantumComposerState extends State<QuantumComposer>
                   Text(
                     runningAsQuantumComposer()
                         ? 'Sandbox'
-                        : LevelHeaderRouter.displayLabel(widget.levelId),
+                        : LevelHeaderRouter.displayLabel(widget.levelId,
+                            activityDomain: widget.activityDomain),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.52),
                       fontSize: 11,

@@ -1,3 +1,4 @@
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
@@ -11,6 +12,7 @@ import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
 import 'package:quantumquiz/widgets/qubit_quest_activity_shell.dart';
 
 class MeasurementLabScreen extends StatefulWidget {
+  final NumericActivityDomain activityDomain;
   final int levelId;
   final MeasurementLabLevel level;
   final Function(int)? onLevelUnlocked;
@@ -19,6 +21,7 @@ class MeasurementLabScreen extends StatefulWidget {
   const MeasurementLabScreen({
     super.key,
     required this.levelId,
+    this.activityDomain = NumericActivityDomain.journey,
     required this.level,
     required this.onLevelUnlocked,
     this.isCompleted = false,
@@ -71,7 +74,8 @@ class _MeasurementLabScreenState extends State<MeasurementLabScreen> {
       _total++;
       if (_total >= widget.level.requiredMeasurements && !_unlocked) {
         _unlocked = true;
-        if (LevelHeaderRouter.isMasteryLevel(widget.levelId)) {
+        if ((widget.activityDomain ==
+            NumericActivityDomain.historicalMastery)) {
           _isCompleted = true;
         }
         widget.onLevelUnlocked?.call(widget.levelId + 1);
@@ -79,7 +83,9 @@ class _MeasurementLabScreenState extends State<MeasurementLabScreen> {
     });
   }
 
-  bool get _usesCanonicalVisualGrammar => widget.levelId == 69;
+  bool get _usesCanonicalVisualGrammar =>
+      widget.activityDomain == NumericActivityDomain.historicalMastery &&
+      widget.levelId == 69;
 
   Widget _buildCanonicalMastery(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).width < 680;
@@ -93,6 +99,7 @@ class _MeasurementLabScreenState extends State<MeasurementLabScreen> {
       header: LevelHeaderRouter.headerFor(
         level: widget.level,
         levelId: widget.levelId,
+        activityDomain: widget.activityDomain,
         compact: false,
         isCompleted: _isCompleted,
       ),
@@ -215,6 +222,7 @@ class _MeasurementLabScreenState extends State<MeasurementLabScreen> {
       appBar: LevelHeaderRouter.headerFor(
         level: widget.level,
         levelId: widget.levelId,
+        activityDomain: widget.activityDomain,
         compact: false,
         isCompleted: _isCompleted,
       ),

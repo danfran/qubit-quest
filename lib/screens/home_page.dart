@@ -138,7 +138,6 @@ class _HomePageState extends State<HomePage> {
   };
   static const int _guidedDiscoveryLevelCount =
       ProgressionRules.guidedDiscoveryLevelCount;
-  static const int _journeyLevelCount = ProgressionRules.journeyLevelCount;
 
   CampaignProgressController get _progressController =>
       widget.progressController;
@@ -194,9 +193,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Preserve the existing completion callback contract while centralizing writes.
-  Future<void> _updateMaxUnlockedLevel(int completedLevelNumber) async {
+  Future<void> _updateMaxUnlockedLevel(
+      int completedLevelNumber, NumericActivityDomain domain) async {
     final completedLevel = completedLevelNumber - 1;
-    if (ProgressionRules.isMasteryLevel(completedLevel)) {
+    if (domain == NumericActivityDomain.historicalMastery) {
       final wasAlreadyCompleted =
           _progressState.completedChallengeIds.contains(completedLevel);
       await _progressController.completeChallenge(completedLevel);
@@ -692,14 +692,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   bool _isLevelNumberInRange(QQLevel level, int firstLevel, int lastLevel) {
-    final index = allQQLevels.indexOf(level);
+    final index = journeyLessons.indexOf(level);
     final levelNumber = index + 1;
     return index >= 0 && levelNumber >= firstLevel && levelNumber <= lastLevel;
   }
 
   bool _isLegacyChallengeLevel(QQLevel level) {
-    final index = allQQLevels.indexOf(level);
-    return index >= _guidedDiscoveryLevelCount;
+    return historicalMasteryActivities.contains(level);
   }
 
   bool _isMasteryChallengeLevel(QQLevel level) {
@@ -729,64 +728,65 @@ class _HomePageState extends State<HomePage> {
   }
 
   int? _firstChapter1InformationLevelNumber() {
-    final index = allQQLevels.indexWhere(_isChapter1InformationLevel);
+    final index = journeyLessons.indexWhere(_isChapter1InformationLevel);
     return index < 0 ? null : index + 1;
   }
 
   int? _firstChapter2HiddenChangeLevelNumber() {
-    final index = allQQLevels.indexWhere(_isChapter2HiddenChangeLevel);
+    final index = journeyLessons.indexWhere(_isChapter2HiddenChangeLevel);
     return index < 0 ? null : index + 1;
   }
 
   int? _firstChapter3SuperpositionLevelNumber() {
-    final index = allQQLevels.indexWhere(_isChapter3SuperpositionLevel);
+    final index = journeyLessons.indexWhere(_isChapter3SuperpositionLevel);
     return index < 0 ? null : index + 1;
   }
 
   int? _firstChapter4InterferenceLevelNumber() {
-    final index = allQQLevels.indexWhere(_isChapter4InterferenceLevel);
+    final index = journeyLessons.indexWhere(_isChapter4InterferenceLevel);
     return index < 0 ? null : index + 1;
   }
 
   int? _firstChapter5EntanglementLevelNumber() {
-    final index = allQQLevels.indexWhere(_isChapter5EntanglementLevel);
+    final index = journeyLessons.indexWhere(_isChapter5EntanglementLevel);
     return index < 0 ? null : index + 1;
   }
 
   int? _firstChapter6InformationFlowLevelNumber() {
-    final index = allQQLevels.indexWhere(_isChapter6InformationFlowLevel);
+    final index = journeyLessons.indexWhere(_isChapter6InformationFlowLevel);
     return index < 0 ? null : index + 1;
   }
 
   int? _firstChapter7GhzStatesLevelNumber() {
-    final index = allQQLevels.indexWhere(_isChapter7GhzStatesLevel);
+    final index = journeyLessons.indexWhere(_isChapter7GhzStatesLevel);
     return index < 0 ? null : index + 1;
   }
 
   int? _firstChapter8PhaseKickbackLevelNumber() {
-    final index = allQQLevels.indexWhere(_isChapter8PhaseKickbackLevel);
+    final index = journeyLessons.indexWhere(_isChapter8PhaseKickbackLevel);
     return index < 0 ? null : index + 1;
   }
 
   int? _firstChapter9OracleThinkingLevelNumber() {
-    final index = allQQLevels.indexWhere(_isChapter9OracleThinkingLevel);
+    final index = journeyLessons.indexWhere(_isChapter9OracleThinkingLevel);
     return index < 0 ? null : index + 1;
   }
 
   int? _firstChapter10AmplitudeAmplificationLevelNumber() {
     final index =
-        allQQLevels.indexWhere(_isChapter10AmplitudeAmplificationLevel);
+        journeyLessons.indexWhere(_isChapter10AmplitudeAmplificationLevel);
     return index < 0 ? null : index + 1;
   }
 
   int? _firstChapter11GroverLoopIntuitionLevelNumber() {
-    final index = allQQLevels.indexWhere(_isChapter11GroverLoopIntuitionLevel);
+    final index =
+        journeyLessons.indexWhere(_isChapter11GroverLoopIntuitionLevel);
     return index < 0 ? null : index + 1;
   }
 
   int? _firstChapter12QuantumAlgorithmStructureLevelNumber() {
     final index =
-        allQQLevels.indexWhere(_isChapter12QuantumAlgorithmStructureLevel);
+        journeyLessons.indexWhere(_isChapter12QuantumAlgorithmStructureLevel);
     return index < 0 ? null : index + 1;
   }
 
@@ -1233,6 +1233,12 @@ class _HomePageState extends State<HomePage> {
       MaterialPageRoute(
         builder: (context) => LearningMapScreen(
           progressState: _progressState,
+          onOpenMastery: () {
+            Navigator.of(context).pop();
+            _playLevelSequence(
+                ProgressionRules.legacyMasteryFirstId, this.context,
+                domain: NumericActivityDomain.historicalMastery);
+          },
           onStartChapter: (levelNumber) async {
             Navigator.of(context).pop();
             await _playLevelSequence(levelNumber, this.context);
@@ -1475,11 +1481,15 @@ class _HomePageState extends State<HomePage> {
               itemBuilder: (context, index) {
                 final int currentIndex = indexStart + index;
                 final int levelNumber = currentIndex + 1;
-                final QQLevel level = allQQLevels[currentIndex];
-                final bool isUnlocked = CampaignProgressPolicy.isLevelUnlocked(
-                  displayedProgress,
-                  levelNumber,
-                );
+                final domain = category.isMasteryPhase
+                    ? NumericActivityDomain.historicalMastery
+                    : NumericActivityDomain.journey;
+                final QQLevel level =
+                    numericActivityCatalogue.lookup(levelNumber, domain)!;
+                final bool isUnlocked = category.isMasteryPhase ||
+                    ProgressionRules.isJourneyLessonUnlocked(
+                        lessonId: levelNumber,
+                        maxUnlockedLevel: displayedProgress.maxUnlockedLevel);
                 final bool isCompleted = isMasterySection &&
                     CampaignProgressPolicy.isChallengeCompleted(
                       displayedProgress,
@@ -1531,8 +1541,8 @@ class _HomePageState extends State<HomePage> {
                           ),
                           onPressed: isUnlocked
                               ? () async {
-                                  await _playLevelSequence(
-                                      levelNumber, context);
+                                  await _playLevelSequence(levelNumber, context,
+                                      domain: domain);
                                 }
                               : null,
                           style: ElevatedButton.styleFrom(
@@ -1627,12 +1637,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Route to the correct screen based on level type
-  Widget _screenForLevel(QQLevel level, int levelId) {
+  Widget _screenForLevel(
+      QQLevel level, int levelId, NumericActivityDomain domain) {
     return LevelUIRouter.buildLevelUI(
       level: level,
       levelId: levelId,
-      onLevelUnlocked: _updateMaxUnlockedLevel,
-      isCompleted: _isMasteryCompleted(levelId),
+      onLevelUnlocked: (next) => _updateMaxUnlockedLevel(next, domain),
+      activityDomain: domain,
+      isCompleted: domain == NumericActivityDomain.historicalMastery &&
+          _isMasteryCompleted(levelId),
     );
   }
 
@@ -1978,14 +1991,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   QQLevelsCategory? _chapterCategoryForLevel(int levelNumber) {
-    final int levelIndex = levelNumber - 1;
-    for (final category in groupedLevels) {
-      if (category.isMasteryPhase) continue;
-      if (levelIndex >= category.from && levelIndex <= category.to) {
-        return category;
-      }
-    }
-    return null;
+    return journeyChapterForLesson(levelNumber);
   }
 
   bool _isFinalChapterLevel(int levelNumber) {
@@ -2023,12 +2029,14 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<void> _playLevelSequence(int levelNumber, BuildContext context) async {
+  Future<void> _playLevelSequence(int levelNumber, BuildContext context,
+      {NumericActivityDomain domain = NumericActivityDomain.journey}) async {
     int currentLevelToPlay = levelNumber;
     bool continueLevelChain = true;
 
     while (continueLevelChain) {
-      final levelData = getQQLevelById(currentLevelToPlay);
+      final levelData =
+          numericActivityCatalogue.lookup(currentLevelToPlay, domain);
 
       if (levelData == null) {
         debugPrint(
@@ -2052,7 +2060,8 @@ class _HomePageState extends State<HomePage> {
       final result = await Navigator.push<LevelCompletionAction>(
         context,
         MaterialPageRoute(
-          builder: (context) => _screenForLevel(levelData, currentLevelToPlay),
+          builder: (context) =>
+              _screenForLevel(levelData, currentLevelToPlay, domain),
         ),
       );
 
@@ -2070,12 +2079,16 @@ class _HomePageState extends State<HomePage> {
       }
 
       if (result == LevelCompletionAction.nextLevel) {
-        await _showChapterCompleteIfNeeded(currentLevelToPlay);
+        if (domain == NumericActivityDomain.journey) {
+          await _showChapterCompleteIfNeeded(currentLevelToPlay);
+        }
         if (!context.mounted) break;
 
-        if (currentLevelToPlay == _guidedDiscoveryLevelCount) {
+        if (domain == NumericActivityDomain.journey &&
+            currentLevelToPlay == _guidedDiscoveryLevelCount) {
           continueLevelChain = false;
-        } else if (currentLevelToPlay == _journeyLevelCount) {
+        } else if (domain == NumericActivityDomain.historicalMastery &&
+            currentLevelToPlay == ProgressionRules.legacyMasteryLastId) {
           continueLevelChain = false;
         } else {
           currentLevelToPlay++;

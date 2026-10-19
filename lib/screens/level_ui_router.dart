@@ -1,3 +1,4 @@
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:flutter/widgets.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/mastery_challenge_catalogue.dart';
@@ -31,6 +32,7 @@ class LevelUIRouter {
   static Widget buildLevelUI({
     required QQLevel level,
     required int levelId,
+    NumericActivityDomain activityDomain = NumericActivityDomain.journey,
     required Function(int)? onLevelUnlocked,
     bool isCompleted = false,
     MasteryChallengeDefinition? masteryChallenge,
@@ -38,6 +40,7 @@ class LevelUIRouter {
     return switch (level) {
       ComposerLevel l => QuantumComposer(
           levelId: levelId,
+          activityDomain: activityDomain,
           level: l,
           onLevelUnlocked: onLevelUnlocked,
           isCompleted: isCompleted,
@@ -45,6 +48,7 @@ class LevelUIRouter {
         ),
       ConceptCheckLevel l => McqScreen(
           levelId: levelId,
+          activityDomain: activityDomain,
           level: l,
           onLevelUnlocked: onLevelUnlocked,
           isCompleted: isCompleted,
@@ -52,6 +56,7 @@ class LevelUIRouter {
         ),
       McqLevel l => McqScreen(
           levelId: levelId,
+          activityDomain: activityDomain,
           level: l,
           onLevelUnlocked: onLevelUnlocked,
           isCompleted: isCompleted,
@@ -59,18 +64,21 @@ class LevelUIRouter {
         ),
       FillTheGateLevel l => FillTheGateScreen(
           levelId: levelId,
+          activityDomain: activityDomain,
           level: l,
           onLevelUnlocked: onLevelUnlocked,
           isCompleted: isCompleted,
         ),
       CircuitReadingLevel l => CircuitReadingScreen(
           levelId: levelId,
+          activityDomain: activityDomain,
           level: l,
           onLevelUnlocked: onLevelUnlocked,
           isCompleted: isCompleted,
         ),
       MeasurementLabLevel l => MeasurementLabScreen(
           levelId: levelId,
+          activityDomain: activityDomain,
           level: l,
           onLevelUnlocked: onLevelUnlocked,
           isCompleted: isCompleted,

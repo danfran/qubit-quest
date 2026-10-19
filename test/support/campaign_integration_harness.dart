@@ -1,3 +1,4 @@
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -60,6 +61,9 @@ class CampaignIntegrationHarness {
         home: QuantumComposer(
           key: ValueKey('campaign-composer-$id'),
           levelId: id,
+          activityDomain: id >= ProgressionRules.legacyMasteryFirstId
+              ? NumericActivityDomain.historicalMastery
+              : NumericActivityDomain.journey,
           level: level,
           controller: composerController,
           onLevelUnlocked: (nextLevel) {

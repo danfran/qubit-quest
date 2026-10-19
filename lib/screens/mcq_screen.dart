@@ -1,3 +1,4 @@
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/adaptive_learning.dart';
 import 'package:quantumquiz/models/discovery_progress.dart';
@@ -21,6 +22,7 @@ import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
 import 'package:quantumquiz/widgets/qubit_quest_activity_shell.dart';
 
 class McqScreen extends StatefulWidget {
+  final NumericActivityDomain activityDomain;
   final int levelId;
   final McqLevel level;
   final Function(int)? onLevelUnlocked;
@@ -30,6 +32,7 @@ class McqScreen extends StatefulWidget {
   const McqScreen({
     super.key,
     required this.levelId,
+    this.activityDomain = NumericActivityDomain.journey,
     required this.level,
     required this.onLevelUnlocked,
     this.isCompleted = false,
@@ -73,10 +76,12 @@ class _McqScreenState extends State<McqScreen> {
 
   bool get _isMastery =>
       widget.masteryChallenge != null ||
-      LevelHeaderRouter.isMasteryLevel(widget.levelId);
+      (widget.activityDomain == NumericActivityDomain.historicalMastery);
 
   bool get _usesCanonicalVisualGrammar =>
-      widget.masteryChallenge != null || widget.levelId == 62;
+      widget.masteryChallenge != null ||
+      (widget.activityDomain == NumericActivityDomain.historicalMastery &&
+          widget.levelId == 62);
 
   void _finish() {
     if (_isCorrect) {
@@ -320,12 +325,11 @@ class _McqScreenState extends State<McqScreen> {
                                 ? () {
                                     if (_isCorrect) {
                                       setState(() {
-                                        _isCompleted =
-                                            LevelHeaderRouter.isMasteryLevel(
-                                          widget.levelId,
-                                        )
-                                                ? true
-                                                : _isCompleted;
+                                        _isCompleted = (widget.activityDomain ==
+                                                NumericActivityDomain
+                                                    .historicalMastery)
+                                            ? true
+                                            : _isCompleted;
                                       });
                                       widget.onLevelUnlocked
                                           ?.call(widget.levelId + 1);
@@ -357,6 +361,7 @@ class _McqScreenState extends State<McqScreen> {
     return LevelHeaderRouter.headerFor(
       level: widget.level,
       levelId: widget.levelId,
+      activityDomain: widget.activityDomain,
       compact: compact,
       actions: _buildAppBarActions(compact),
       isCompleted: _isCompleted,

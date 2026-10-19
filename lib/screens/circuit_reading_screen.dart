@@ -1,3 +1,4 @@
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/level_completion_action.dart';
 import 'package:quantumquiz/models/qq_level.dart';
@@ -11,6 +12,7 @@ import 'package:quantumquiz/widgets/qubit_quest_primitives.dart';
 import 'package:quantumquiz/widgets/qubit_quest_activity_shell.dart';
 
 class CircuitReadingScreen extends StatefulWidget {
+  final NumericActivityDomain activityDomain;
   final int levelId;
   final CircuitReadingLevel level;
   final Function(int)? onLevelUnlocked;
@@ -19,6 +21,7 @@ class CircuitReadingScreen extends StatefulWidget {
   const CircuitReadingScreen({
     super.key,
     required this.levelId,
+    this.activityDomain = NumericActivityDomain.journey,
     required this.level,
     required this.onLevelUnlocked,
     this.isCompleted = false,
@@ -50,6 +53,7 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
   }
 
   bool get _usesCanonicalVisualGrammar =>
+      widget.activityDomain == NumericActivityDomain.historicalMastery &&
       const {61, 63, 66, 71}.contains(widget.levelId);
 
   String _canonicalKey(String role) => widget.levelId == 61
@@ -65,9 +69,10 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
   void _finish() {
     if (_isCorrect) {
       setState(() {
-        _isCompleted = LevelHeaderRouter.isMasteryLevel(widget.levelId)
-            ? true
-            : _isCompleted;
+        _isCompleted =
+            (widget.activityDomain == NumericActivityDomain.historicalMastery)
+                ? true
+                : _isCompleted;
       });
       widget.onLevelUnlocked?.call(widget.levelId + 1);
     }
@@ -117,6 +122,7 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
       header: LevelHeaderRouter.headerFor(
         level: widget.level,
         levelId: widget.levelId,
+        activityDomain: widget.activityDomain,
         compact: false,
         isCompleted: _isCompleted,
       ),
@@ -236,6 +242,7 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
       appBar: LevelHeaderRouter.headerFor(
         level: widget.level,
         levelId: widget.levelId,
+        activityDomain: widget.activityDomain,
         compact: false,
         isCompleted: _isCompleted,
       ),
@@ -436,12 +443,11 @@ class _CircuitReadingScreenState extends State<CircuitReadingScreen> {
                             ? () {
                                 if (_isCorrect) {
                                   setState(() {
-                                    _isCompleted =
-                                        LevelHeaderRouter.isMasteryLevel(
-                                      widget.levelId,
-                                    )
-                                            ? true
-                                            : _isCompleted;
+                                    _isCompleted = (widget.activityDomain ==
+                                            NumericActivityDomain
+                                                .historicalMastery)
+                                        ? true
+                                        : _isCompleted;
                                   });
                                   widget.onLevelUnlocked
                                       ?.call(widget.levelId + 1);
