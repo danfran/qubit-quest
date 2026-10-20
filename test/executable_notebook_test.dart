@@ -16,7 +16,7 @@ void main() {
   group('Executable Notebook corpus contract', () {
     test('every discovered example is unique, valid, executable and normalized',
         () {
-      expect(executableNotebookExamples, hasLength(7));
+      expect(executableNotebookExamples, hasLength(15));
       final ids = <String>{};
       for (final example in executableNotebookExamples) {
         expect(ids.add(example.id), isTrue, reason: example.id);

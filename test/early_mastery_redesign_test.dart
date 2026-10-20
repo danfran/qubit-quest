@@ -9,7 +9,7 @@ import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/level_ui_router.dart';
 
 void main() {
-  QQLevel mastery(int challenge) => getQQLevelById(60 + challenge)!;
+  QQLevel mastery(int challenge) => getHistoricalMasteryById(60 + challenge)!;
 
   QuantumCircuit simulate(ComposerLevel level) {
     final circuit = QuantumCircuit(currentLevel: level);
@@ -40,7 +40,8 @@ void main() {
         expect(level.runtimeType, expectedTypes[challenge - 1],
             reason:
                 'Unexpected activity type for M$challenge / ID ${60 + challenge}');
-        expect(allQQLevels[59 + challenge], same(level));
+        expect(getHistoricalMasteryById(60 + challenge), same(level));
+        expect(historicalMasteryActivities[challenge - 1], same(level));
       }
       expect(getQQLevelById(74)!.title, 'CNOT Gate',
           reason: 'M14 is outside Q2.2');

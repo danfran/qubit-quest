@@ -23,12 +23,13 @@ void main() {
   useMasteryMathTestPlatform();
 
   test(
-      'all 36 identities, answers and quantum data match the pre-pass baseline',
+      'original 36 identities, answers and quantum data match the pre-pass baseline',
       () {
     final expected = jsonDecode(
         File('test/fixtures/mastery_presentation_semantics.json')
             .readAsStringSync());
-    expect(masterySemanticSnapshot(mastery2Catalogue), expected);
+    expect(
+        masterySemanticSnapshot(mastery2Catalogue).take(36).toList(), expected);
   });
 
   Future<void> pumpTask(WidgetTester tester, String id, Size size, double scale,
@@ -163,8 +164,8 @@ void main() {
     });
   }
 
-  testWidgets('all 36 Web Mastery tasks share the outer panel', (tester) async {
-    expect(mastery2Catalogue.length, 36);
+  testWidgets('all 42 Web Mastery tasks share the outer panel', (tester) async {
+    expect(mastery2Catalogue.length, 42);
     Decoration? sharedDecoration;
     for (final challenge in mastery2Catalogue.orderedDefinitions) {
       await pumpTask(

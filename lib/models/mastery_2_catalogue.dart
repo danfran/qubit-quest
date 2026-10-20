@@ -1367,4 +1367,260 @@ final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
       difficulty: 'Advanced',
     ),
   ),
+  MasteryChallengeDefinition(
+    semanticId: 'finite_shot_evidence',
+    displayOrder: 37,
+    title: 'What Do One Hundred Shots Establish?',
+    difficulty: MasteryDifficulty.integration,
+    conceptTags: const {
+      MasteryConceptTag.measurementBasis,
+      MasteryConceptTag.entanglement,
+      MasteryConceptTag.classicalMixture
+    },
+    interactionType: MasteryInteractionType.evidence,
+    levelDefinition: const ConceptCheckLevel(
+      title: 'What Do One Hundred Shots Establish?',
+      taskDescription:
+          'Audit two 100-shot Z-basis records claimed to come from an ideal noiseless Bell Φ+ source. Record A contains 53 observations of 00 and 47 of 11. Record B contains 52 of 00, 47 of 11 and one of 01. Which conclusion is justified?',
+      options: [
+        'Both records are compatible: finite sampling can produce any outcome, including 01.',
+        'Neither record is compatible: an ideal source must produce exactly 50 observations of each allowed outcome.',
+        'A is compatible and B is incompatible with the ideal source, but correlations in this basis alone do not certify entanglement.',
+        'A is compatible and B is incompatible; A alone proves that the source is entangled.',
+      ],
+      correctOptionIndex: 2,
+      hints: [
+        'Distinguish a probability of one half from a probability of exactly zero. Which counts can fluctuate?',
+        'Compare the Z-basis record with a classical source that randomly prepares 00 or 11 with equal probability.',
+      ],
+      solutionExplanation:
+          'Φ+ has P(00)=P(11)=1/2 and P(01)=P(10)=0. A 53/47 split has nonzero probability; exactly 50/50 is not required. Even one forbidden outcome contradicts the ideal noiseless model, although it does not by itself identify the experimental fault. A classical equal mixture of 00 and 11 has the same Z-basis statistics, so this single-basis record alone cannot establish entanglement.',
+    ),
+  ),
+  MasteryChallengeDefinition(
+    semanticId: 'four_bell_decoder',
+    displayOrder: 38,
+    title: 'One Decoder, Four Messages',
+    difficulty: MasteryDifficulty.advanced,
+    conceptTags: const {
+      MasteryConceptTag.entanglement,
+      MasteryConceptTag.relativePhase,
+      MasteryConceptTag.inverseOrder
+    },
+    interactionType: MasteryInteractionType.construction,
+    levelDefinition: ComposerLevel.fromBinaryString(
+      title: 'One Decoder, Four Messages',
+      taskDescription:
+          'Build one reusable Bell-basis decoder using H and CX. It must map Φ+ to |00⟩, Φ− to |01⟩, Ψ+ to |10⟩ and Ψ− to −|11⟩. Match the complete operator, including the displayed signs, rather than just one input. Basis labels are |q1 q0⟩; q0 is the top, least-significant wire.',
+      initialQubitsStateString: '00',
+      availableGates: [
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        Gate.fromIdentifier(SelectedGateType.cnot)
+      ],
+      solutionFinalVector: [
+        [Complex(math.sqrt1_2)],
+        [Complex(math.sqrt1_2)],
+        [Complex.zero()],
+        [Complex.zero()]
+      ],
+      targetStateExpression: r'\frac{|00\rangle+|01\rangle}{\sqrt{2}}',
+      validationMode: ValidationMode.unitary,
+      targetUnitary: [
+        [
+          Complex(math.sqrt1_2),
+          Complex.zero(),
+          Complex.zero(),
+          Complex(math.sqrt1_2)
+        ],
+        [
+          Complex(math.sqrt1_2),
+          Complex.zero(),
+          Complex.zero(),
+          Complex(-math.sqrt1_2)
+        ],
+        [
+          Complex.zero(),
+          Complex(math.sqrt1_2),
+          Complex(math.sqrt1_2),
+          Complex.zero()
+        ],
+        [
+          Complex.zero(),
+          Complex(-math.sqrt1_2),
+          Complex(math.sqrt1_2),
+          Complex.zero()
+        ],
+      ],
+      canonicalSolution: CanonicalComposerSolution(const [
+        CanonicalCircuitStep.controlled(SelectedGateType.cnot,
+            controlQubit: 0, targetQubit: 1),
+        CanonicalCircuitStep.single(SelectedGateType.hadamard, targetQubit: 0),
+      ]),
+      hints: const [
+        'Reverse a Bell preparation, keeping the control and target roles fixed.',
+        'First separate the correlated wires. Then convert the remaining relative sign into a computational-basis bit.'
+      ],
+      solutionExplanation:
+          'Chronologically CX(q0→q1) then H(q0) decodes all four Bell states. With Ψ−=(|01⟩−|10⟩)/√2 the exact output is −|11⟩. Relative signs distinguish Φ+ from Φ− and Ψ+ from Ψ−. The displayed current/target state previews the |00⟩ test input; validation checks the full operator, not only that preview.',
+    ),
+  ),
+  MasteryChallengeDefinition(
+    semanticId: 'odd_parity_oracle',
+    displayOrder: 39,
+    title: 'Mark a Property, Not One Answer',
+    difficulty: MasteryDifficulty.advanced,
+    conceptTags: const {
+      MasteryConceptTag.oracle,
+      MasteryConceptTag.relativePhase,
+      MasteryConceptTag.operatorAction
+    },
+    interactionType: MasteryInteractionType.construction,
+    levelDefinition: ComposerLevel.fromBinaryString(
+      title: 'Mark a Property, Not One Answer',
+      taskDescription:
+          'Construct a reusable three-qubit phase oracle: negate every odd-parity basis amplitude and preserve every even-parity amplitude. Parity counts the 1 bits, not the numerical value of the label. Do not change any basis label. Match the exact operator on all eight inputs.',
+      initialQubitsStateString: '000',
+      availableGates: [
+        Gate.fromIdentifier(SelectedGateType.z),
+        Gate.fromIdentifier(SelectedGateType.x),
+        Gate.fromIdentifier(SelectedGateType.cnot)
+      ],
+      solutionFinalVector: [
+        for (var i = 0; i < 8; i++) [Complex(i == 0 ? 1 : 0)]
+      ],
+      targetStateExpression: '|000⟩',
+      validationMode: ValidationMode.unitary,
+      targetUnitary: [
+        for (var row = 0; row < 8; row++)
+          [
+            for (var col = 0; col < 8; col++)
+              Complex(row != col ? 0 : const [1, -1, -1, 1, -1, 1, 1, -1][row])
+          ]
+      ],
+      canonicalSolution: CanonicalComposerSolution(const [
+        CanonicalCircuitStep.single(SelectedGateType.z, targetQubit: 0),
+        CanonicalCircuitStep.single(SelectedGateType.z, targetQubit: 1),
+        CanonicalCircuitStep.single(SelectedGateType.z, targetQubit: 2),
+      ]),
+      hints: const [
+        'Find a gate that contributes a minus sign for one occupied bit without changing that bit.',
+        'Multiply the phase contributions. Two minus signs cancel; three give one minus sign.'
+      ],
+      solutionExplanation:
+          'Z on each wire contributes (−1) for each 1 bit. Their product is (−1)^popcount(x): 001, 010, 100 and 111 are negated; 000, 011, 101 and 110 are preserved. This is a predicate oracle, not a single-answer mark. The unchanged |000⟩ preview is insufficient: validation tests the complete eight-input operator.',
+    ),
+  ),
+  MasteryChallengeDefinition(
+    semanticId: 'half_marked_search',
+    displayOrder: 40,
+    title: 'When Amplification Cannot Help',
+    difficulty: MasteryDifficulty.advanced,
+    conceptTags: const {
+      MasteryConceptTag.amplification,
+      MasteryConceptTag.iteration,
+      MasteryConceptTag.relativePhase
+    },
+    interactionType: MasteryInteractionType.evidence,
+    levelDefinition: const ConceptCheckLevel(
+      title: 'When Amplification Cannot Help',
+      taskDescription:
+          'A four-state search starts with amplitudes [1/2,1/2,1/2,1/2] in order 00,01,10,11. The oracle marks 01 and 10. Each round applies the oracle then D, where D reflects signed amplitudes about their mean: a′=2m−a. What happens to the total probability of either marked outcome after one round and after repeated complete rounds?',
+      options: [
+        'It is 1/2 after one round and remains 1/2 after every complete round; signs change without increasing marked weight.',
+        'It starts at 1/2 and rises toward certainty as more rounds accumulate amplification.',
+        'It becomes 1 after one round because marking half the states guarantees a marked outcome.',
+        'It exceeds 1/2 after one round because reversing the marked amplitude signs already increases their probabilities.',
+      ],
+      correctOptionIndex: 0,
+      hints: [
+        'Apply the oracle to signed amplitudes, then calculate their mean before reflecting.',
+        'Square each marked amplitude and add the two probabilities. Trace a second round and look for a cycle up to a global sign.'
+      ],
+      solutionExplanation:
+          'Write s=[1/2,1/2,1/2,1/2]. The oracle gives [1/2,−1/2,−1/2,1/2], with mean zero. D gives [−1/2,1/2,1/2,−1/2]. The second oracle gives −s, and D leaves −s unchanged. Thus (DO)^2 s=−s and the magnitudes cycle: every marked amplitude has magnitude 1/2, so total success is 1/4+1/4=1/2 at every round. With the circuit convention −D, round r differs by (−1)^r globally, with the same probabilities. Sign changes are not automatically amplification.',
+    ),
+  ),
+  MasteryChallengeDefinition(
+    semanticId: 'search_overshoot_forensics',
+    displayOrder: 41,
+    title: 'The Search That Went Too Far',
+    difficulty: MasteryDifficulty.advanced,
+    conceptTags: const {
+      MasteryConceptTag.amplification,
+      MasteryConceptTag.iteration,
+      MasteryConceptTag.algorithmStructure
+    },
+    interactionType: MasteryInteractionType.algorithm,
+    levelDefinition: const ConceptCheckLevel(
+      title: 'The Search That Went Too Far',
+      taskDescription:
+          'An eight-state, one-mark search log has missing round labels. Scaled marked/unmarked amplitudes start at (b,c)=(1,1), then (5/2,1/2) after one round. Snapshot A is (11/4,−1/4); snapshot B is (13/8,−7/8), taken one complete round later. Each unmarked state has amplitude c/√8; the marked state has b/√8. Use μ=(7c−b)/8, b′=2μ+b, c′=2μ−c. Which diagnosis identifies A and B, the best stopping point among rounds 0–3, and why the extra round hurts?',
+      options: [
+        'B is best: another coherent round must increase success, even when the marked amplitude shrinks.',
+        'A and B differ only by global phase, so they have equal success and either stopping point is equivalent.',
+        'A is invalid because 11/4 exceeds one; b itself is a probability, so stop after the first round.',
+        'A is round 2 and B is round 3. Stop at A: success falls from 121/128 to 169/512 as coherent evolution overshoots, not because of a global phase.',
+      ],
+      correctOptionIndex: 3,
+      hints: [
+        'Apply the recurrence simultaneously to (5/2,1/2). A negative c is an amplitude sign, not a negative probability.',
+        'Compare b²/8 at all four candidate round counts. A global phase cannot change any amplitude magnitude.'
+      ],
+      solutionExplanation:
+          'The recurrence gives (1,1) → (5/2,1/2) → (11/4,−1/4) → (13/8,−7/8). The post-oracle scaled means are 3/4, 1/8 and −9/16. Probabilities b²/8 are 1/8, 25/32, 121/128 and 169/512, so A (round 2) is best among 0–3. Every pair satisfies (b²+7c²)/8=1. The third round reduces the marked magnitude and increases unmarked magnitudes: coherent overshoot, not a global-sign change or loss of normalization. Using −D instead of D changes only the global sign per round. This stopping point depends on search-space size and marked count.',
+    ),
+  ),
+  MasteryChallengeDefinition(
+    semanticId: 'nonuniform_reference_reflection',
+    displayOrder: 42,
+    title: 'Reflect About a Different State',
+    difficulty: MasteryDifficulty.advanced,
+    conceptTags: const {
+      MasteryConceptTag.operatorAction,
+      MasteryConceptTag.relativePhase,
+      MasteryConceptTag.amplification
+    },
+    interactionType: MasteryInteractionType.construction,
+    levelDefinition: ComposerLevel.fromBinaryString(
+      title: 'Reflect About a Different State',
+      taskDescription:
+          'Construct R=I−2|r⟩⟨r| for |r⟩=|0+⟩=(|00⟩+|01⟩)/√2 using H, X and CZ. Labels are |q1 q0⟩: q1 is 0, q0 is +, and q0 is the top wire. R negates |r⟩ and preserves every orthogonal state. This is the negative of the mathematical reflection 2|r⟩⟨r|−I. Match this exact full operator, not just the initial-state preview.',
+      initialQubitsStateString: '00',
+      availableGates: [
+        Gate.fromIdentifier(SelectedGateType.hadamard),
+        Gate.fromIdentifier(SelectedGateType.x),
+        Gate.fromIdentifier(SelectedGateType.cz)
+      ],
+      solutionFinalVector: [
+        [Complex.zero()],
+        [Complex(-1)],
+        [Complex.zero()],
+        [Complex.zero()]
+      ],
+      targetStateExpression: '−|01⟩',
+      validationMode: ValidationMode.unitary,
+      targetUnitary: [
+        [Complex.zero(), Complex(-1), Complex.zero(), Complex.zero()],
+        [Complex(-1), Complex.zero(), Complex.zero(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.one(), Complex.zero()],
+        [Complex.zero(), Complex.zero(), Complex.zero(), Complex.one()],
+      ],
+      canonicalSolution: CanonicalComposerSolution(const [
+        CanonicalCircuitStep.single(SelectedGateType.hadamard, targetQubit: 0),
+        CanonicalCircuitStep.single(SelectedGateType.x, targetQubit: 0),
+        CanonicalCircuitStep.single(SelectedGateType.x, targetQubit: 1),
+        CanonicalCircuitStep.controlled(SelectedGateType.cz,
+            controlQubit: 0, targetQubit: 1),
+        CanonicalCircuitStep.single(SelectedGateType.x, targetQubit: 0),
+        CanonicalCircuitStep.single(SelectedGateType.x, targetQubit: 1),
+        CanonicalCircuitStep.single(SelectedGateType.hadamard, targetQubit: 0),
+      ]),
+      hints: const [
+        'Which single-wire basis change prepares |0+⟩ from |00⟩? Conjugate a phase operation on |00⟩ by that preparation and its inverse.',
+        'CZ negates |11⟩. Relabel the basis before and after it to negate only |00⟩, then return to the reference basis. Check the sign on |r⟩.'
+      ],
+      solutionExplanation:
+          'Let U=H(q0), so U|00⟩=|0+⟩. X on both wires around CZ gives P=I−2|00⟩⟨00|. The chronological circuit U → X(q0)X(q1) → CZ → X(q0)X(q1) → U implements U P U†=I−2|r⟩⟨r|, because U=U†. In basis 00,01,10,11, its columns are −|01⟩, −|00⟩, |10⟩, |11⟩. It is exactly the negative of 2|r⟩⟨r|−I; that opposite matrix is not accepted by the exact operator contract. The |00⟩ preview alone cannot certify the reflection.',
+    ),
+  ),
 ];

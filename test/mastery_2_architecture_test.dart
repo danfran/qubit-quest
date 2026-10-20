@@ -23,7 +23,7 @@ void main() {
       interactionType: interaction,
       // Existing payloads are fixtures only; this test does not author Mastery 2
       // challenge content.
-      levelDefinition: allQQLevels[61],
+      levelDefinition: getHistoricalMasteryById(62)!,
     );
   }
 

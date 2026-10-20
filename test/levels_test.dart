@@ -364,8 +364,8 @@ void main() {
     final s = math.sqrt1_2;
 
     // ── Structural sanity ───────────────────────────────────────────────────
-    test('total level count is 114', () {
-      expect(numberOfLevels, equals(114));
+    test('combined catalogue has 66 Journey and 54 archived activities', () {
+      expect(numberOfLevels, equals(120));
     });
 
     test('levels 1–60 are the discovery campaign levels', () {
@@ -423,6 +423,7 @@ void main() {
           'Chapter 10 - Amplitude Amplification',
           'Chapter 11 - Grover Loop Intuition',
           'Chapter 12 - Quantum Algorithm Structure',
+          'Chapter 13 - Building and Stopping Quantum Search',
           'Mastery Challenges',
         ]),
       );
@@ -619,6 +620,12 @@ void main() {
           'Why Composition Creates Advantage',
           'Classical vs Quantum Structural Difference',
           'Unified Quantum Algorithm Model',
+          'Reflection About the Mean',
+          'Diffusion as a Circuit',
+          'Four-State Quantum Search',
+          'Search Round Order',
+          'Search Stopping Point',
+          'Quantitative Search',
         ]),
       );
     });
@@ -2428,9 +2435,10 @@ void main() {
   // accidental renames or copy-paste errors.
   group('Titles', () {
     // ── Exhaustive: every level must have a title ──────────────────────────
-    test('all 114 levels have a non-null, non-empty title', () {
-      for (int id = 1; id <= numberOfLevels; id++) {
-        final level = getQQLevelById(id)!;
+    test('all Journey and archived activities have a non-null, non-empty title',
+        () {
+      for (final (index, level) in allQQLevels.indexed) {
+        final id = index + 1;
         expect(level.title, isNotNull,
             reason: 'Level $id is missing a title (null)');
         expect(level.title!, isNotEmpty,

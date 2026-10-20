@@ -2706,6 +2706,200 @@ const List<NotebookEntry> notebookEntries = [
     ],
   ),
   NotebookEntry(
+    id: 'reflection_about_mean',
+    discoveryTitle: 'Reflection About the Mean',
+    chapterIndex: 13,
+    chapterTitle: 'Chapter 13 - Building and Stopping Quantum Search',
+    title: 'Amplitudes Around the Mean',
+    summary:
+        'Reflect signed amplitudes before calculating search probabilities.',
+    executableExampleIds: ['search_marked_input'],
+    intuition: NotebookSection(
+        title: 'Intuition',
+        body:
+            'A phase mark can change a sign without changing a probability. Reflection uses the mean of signed amplitudes, not the mean of probabilities.'),
+    whatChanged: NotebookSection(
+        title: 'What Changed?',
+        body:
+            'In basis order 00,01,10,11, [1/2,1/2,−1/2,1/2] has mean 1/4. Applying a′=2m−a gives [0,0,1,0]. Only then square amplitudes: outcome 10 is certain for this input.'),
+    quantumView: NotebookSection(
+        title: 'Quantum View',
+        body:
+            'D=2|s⟩⟨s|−I reflects about the uniform reference. It preserves normalization, but does not always increase marked probability. The executable example prepares the marked input; the reflection calculation here uses mathematical D.',
+        examples: [
+          NotebookExample.math(
+              label: 'Search mathematics',
+              notation:
+                  'm=\\frac14,\\qquad [\\frac12,\\frac12,-\\frac12,\\frac12]\\xrightarrow{D}[0,0,1,0]',
+              latexLines: [
+                'm=\\frac14,\\qquad [\\frac12,\\frac12,-\\frac12,\\frac12]\\xrightarrow{D}[0,0,1,0]'
+              ]),
+        ]),
+    relatedDiscoveryTitles: ['Diffusion as a Circuit'],
+  ),
+  NotebookEntry(
+    id: 'diffusion_as_circuit',
+    discoveryTitle: 'Diffusion as a Circuit',
+    chapterIndex: 13,
+    chapterTitle: 'Chapter 13 - Building and Stopping Quantum Search',
+    title: 'A Reusable Reflection',
+    summary:
+        'Change basis to turn one phase mark into a reusable search reflection.',
+    executableExampleIds: ['search_reflection'],
+    intuition: NotebookSection(
+        title: 'Intuition',
+        body:
+            'Prepare the reference, apply a phase operation in its original basis, and undo the basis change. This changes an operator, not just one convenient output.'),
+    whatChanged: NotebookSection(
+        title: 'What Changed?',
+        body:
+            'Let U=H(q0)H(q1). X on both wires around CZ negates only 00. Chronologically U → X(q0)X(q1) → CZ → X(q0)X(q1) → U implements I−2|s⟩⟨s|=−D.'),
+    quantumView: NotebookSection(
+        title: 'Quantum View',
+        body:
+            'The exact sign matters for the authored operator contract. On 00, −D produces [1/2,−1/2,−1/2,−1/2]. On |s⟩ it produces −|s⟩. D and −D have identical probabilities on the same input, but their exact matrices differ.',
+        examples: [
+          NotebookExample.math(
+              label: 'Search mathematics',
+              notation: '-D=I-2|s\\rangle\\langle s|',
+              latexLines: ['-D=I-2|s\\rangle\\langle s|']),
+        ]),
+    relatedDiscoveryTitles: [
+      'Reflection About the Mean',
+      'Four-State Quantum Search'
+    ],
+  ),
+  NotebookEntry(
+    id: 'four_state_search',
+    discoveryTitle: 'Four-State Quantum Search',
+    chapterIndex: 13,
+    chapterTitle: 'Chapter 13 - Building and Stopping Quantum Search',
+    title: 'From a Mark to a Measurable Answer',
+    summary: 'Preparation, phase marking and interference have distinct jobs.',
+    executableExampleIds: ['search_correct_order'],
+    intuition: NotebookSection(
+        title: 'Intuition',
+        body:
+            'The oracle identifies a branch by sign; interference makes the mark observable. Measuring immediately after marking still gives a uniform distribution.'),
+    whatChanged: NotebookSection(
+        title: 'What Changed?',
+        body:
+            'Prepare U=H(q0)H(q1), then O10=X(q0) CZ X(q0), then −D. With q0 top/least-significant and labels |q1 q0⟩, this marks 10. The final vector is [0,0,−1,0], so P(10)=1.'),
+    quantumView: NotebookSection(
+        title: 'Quantum View',
+        body:
+            'The global minus does not change the certain outcome. A shortcut that merely prepares 10 is not the complete search operator; the Journey construction checks the full unitary.',
+        examples: [
+          NotebookExample.math(
+              label: 'Search mathematics',
+              notation:
+                  '|00\\rangle\\xrightarrow{U}|s\\rangle\\xrightarrow{O_{10}}\\frac12[1,1,-1,1]\\xrightarrow{-D}-|10\\rangle',
+              latexLines: [
+                '|00\\rangle\\xrightarrow{U}|s\\rangle\\xrightarrow{O_{10}}\\frac12[1,1,-1,1]\\xrightarrow{-D}-|10\\rangle'
+              ]),
+        ]),
+    relatedDiscoveryTitles: ['Diffusion as a Circuit', 'Search Round Order'],
+  ),
+  NotebookEntry(
+    id: 'search_round_order',
+    discoveryTitle: 'Search Round Order',
+    chapterIndex: 13,
+    chapterTitle: 'Chapter 13 - Building and Stopping Quantum Search',
+    title: 'Order Is Part of Search',
+    summary:
+        'The same search blocks in a different order need not produce the same distribution.',
+    executableExampleIds: ['search_reordered'],
+    intuition: NotebookSection(
+        title: 'Intuition',
+        body:
+            'Operations compose chronologically from left to right in these examples. An oracle and a reflection do not generally commute.'),
+    whatChanged: NotebookSection(
+        title: 'What Changed?',
+        body:
+            'U → O10 → (−D) yields [0,0,−1,0], with P(10)=1. U → (−D) → O10 first gives −|s⟩, then [−1/2,−1/2,1/2,−1/2]. All four probabilities remain 1/4.'),
+    quantumView: NotebookSection(
+        title: 'Quantum View',
+        body:
+            'Because (−D)|s⟩=−|s⟩, applying reflection before marking cannot create a probability bias here. The oracle then changes relative signs, but without subsequent interference those signs do not change measurement probabilities. Compare this executable reordered circuit with the preceding discovery.',
+        examples: [
+          NotebookExample.math(
+              label: 'Search mathematics',
+              notation:
+                  '(-D)|s\\rangle=-|s\\rangle,\\qquad P_{\\mathrm{reordered}}(x)=\\frac14',
+              latexLines: [
+                '(-D)|s\\rangle=-|s\\rangle,\\qquad P_{\\mathrm{reordered}}(x)=\\frac14'
+              ]),
+        ]),
+    relatedDiscoveryTitles: [
+      'Four-State Quantum Search',
+      'Search Stopping Point'
+    ],
+  ),
+  NotebookEntry(
+    id: 'search_stopping_point',
+    discoveryTitle: 'Search Stopping Point',
+    chapterIndex: 13,
+    chapterTitle: 'Chapter 13 - Building and Stopping Quantum Search',
+    title: 'One More Round Can Be Worse',
+    summary: 'Coherent search can move past the best stopping point.',
+    executableExampleIds: ['search_two_rounds'],
+    intuition: NotebookSection(
+        title: 'Intuition',
+        body:
+            'Amplification is a reversible evolution, not an irreversible accumulation of success. Repeat the complete oracle-plus-reflection round and track signed amplitudes.'),
+    whatChanged: NotebookSection(
+        title: 'What Changed?',
+        body:
+            'For mathematical D: [1/2,1/2,1/2,1/2] → oracle [1/2,1/2,−1/2,1/2] → D [0,0,1,0] → oracle [0,0,−1,0] → D [−1/2,−1/2,1/2,−1/2]. Success at rounds 0,1,2 is 1/4,1,1/4.'),
+    quantumView: NotebookSection(
+        title: 'Quantum View',
+        body:
+            'The physical −D circuit gives −|10⟩ after one round; the second oracle gives +|10⟩, then the second −D gives [−1/2,−1/2,1/2,−1/2]. At the same round count r, the −D result is (−1)^r times the D result. That is a global sign between conventions, not an explanation for the probability drop between rounds.',
+        examples: [
+          NotebookExample.math(
+              label: 'Search mathematics',
+              notation: 'P_0=\\frac14,\\qquad P_1=1,\\qquad P_2=\\frac14',
+              latexLines: ['P_0=\\frac14,\\qquad P_1=1,\\qquad P_2=\\frac14']),
+        ]),
+    relatedDiscoveryTitles: ['Search Round Order', 'Quantitative Search'],
+  ),
+  NotebookEntry(
+    id: 'quantitative_search',
+    discoveryTitle: 'Quantitative Search',
+    chapterIndex: 13,
+    chapterTitle: 'Chapter 13 - Building and Stopping Quantum Search',
+    title: 'Calculate When to Stop',
+    summary:
+        'Search-space size and marked count determine the useful number of rounds.',
+    executableExampleIds: [
+      'search_eight_1',
+      'search_eight_2',
+      'search_eight_3'
+    ],
+    intuition: NotebookSection(
+        title: 'Intuition',
+        body:
+            'For eight states with one marked outcome, use b/√8 for the marked amplitude and c/√8 for each of the seven unmarked amplitudes. Start with b=c=1.'),
+    whatChanged: NotebookSection(
+        title: 'What Changed?',
+        body:
+            'After the oracle μ=(7c−b)/8. Simultaneously update b′=2μ+b and c′=2μ−c. The pairs at rounds 0–3 are (1,1), (5/2,1/2), (11/4,−1/4), (13/8,−7/8). P=b²/8 gives 1/8,25/32,121/128,169/512, or 12.5%,78.125%,94.53125%,33.0078125%.'),
+    quantumView: NotebookSection(
+        title: 'Quantum View',
+        body:
+            'Each pair obeys (b²+7c²)/8=1. Round 2 is the first above 90% and the best among 0–3; it is not universally optimal. More marked solutions change the mean and initial marked weight. The examples mark 110 in |q2 q1 q0⟩ order and implement −D with existing gates, so round r has global factor (−1)^r relative to this D recurrence. H(q2) around Toffoli implements the three-bit phase mark.',
+        examples: [
+          NotebookExample.math(
+              label: 'Search mathematics',
+              notation:
+                  '\\mu=\\frac{7c-b}{8},\\quad b^{\\prime}=2\\mu+b,\\quad c^{\\prime}=2\\mu-c,\\quad P=\\frac{b^2}{8}',
+              latexLines: [
+                '\\mu=\\frac{7c-b}{8},\\quad b^{\\prime}=2\\mu+b,\\quad c^{\\prime}=2\\mu-c,\\quad P=\\frac{b^2}{8}'
+              ]),
+        ]),
+    relatedDiscoveryTitles: ['Search Stopping Point'],
+  ),
+  NotebookEntry(
     id: 'notation_and_terms',
     discoveryTitle: 'Notation & Terms',
     chapterIndex: 0,

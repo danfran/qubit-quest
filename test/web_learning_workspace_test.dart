@@ -909,12 +909,11 @@ void main() {
   testWidgets('Mastery answer uses shared challenge completion state',
       (tester) async {
     await setSize(tester, const Size(1100, 1400));
-    final indexed = allQQLevels.indexed.firstWhere(
-      (entry) =>
-          ProgressionRules.isMasteryLevel(entry.$1 + 1) && entry.$2 is McqLevel,
+    final entry = numericActivityCatalogue.historicalMastery.entries.firstWhere(
+      (entry) => entry.value is McqLevel,
     );
-    final levelId = indexed.$1 + 1;
-    final level = indexed.$2 as McqLevel;
+    final levelId = entry.key;
+    final level = entry.value as McqLevel;
     final controller = await controllerWith(
       CampaignProgressState(
         maxUnlockedLevel: ProgressionRules.guidedDiscoveryLevelCount + 1,
@@ -933,9 +932,10 @@ void main() {
         home: Scaffold(
           body: WebLessonWorkspace(
             levelId: levelId,
+            activityDomain: NumericActivityDomain.historicalMastery,
             level: level,
             alreadyCompleted: false,
-            onCompleted: () => controller.completeLevel(levelId),
+            onCompleted: () => controller.completeChallenge(levelId),
             onNextLesson: () {},
             onBackToChapter: () {},
             onOpenNotebook: () {},

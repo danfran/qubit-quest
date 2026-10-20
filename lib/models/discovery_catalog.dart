@@ -59,4 +59,10 @@ const List<String> discoveryOrder = [
   'Why Composition Creates Advantage',
   'Classical vs Quantum Structural Difference',
   'Unified Quantum Algorithm Model',
+  'Reflection About the Mean',
+  'Diffusion as a Circuit',
+  'Four-State Quantum Search',
+  'Search Round Order',
+  'Search Stopping Point',
+  'Quantitative Search',
 ];

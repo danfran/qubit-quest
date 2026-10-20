@@ -120,12 +120,12 @@ class ChapterReleaseGate {
     final masteryPhases =
         groupedLevels.where((category) => category.isMasteryPhase).toList();
 
-    if (guidedDiscovery.length != 12) {
+    if (guidedDiscovery.length != 13) {
       failures.add(
-        '[Level System Validation] Phase 1 expected 12 guided discovery chapters but found ${guidedDiscovery.length}.',
+        '[Level System Validation] Phase 1 expected 13 guided discovery chapters but found ${guidedDiscovery.length}.',
       );
       fixPlan
-          .add('Keep Chapters 1-12 as the Phase 1 concept acquisition path.');
+          .add('Keep Chapters 1-13 as the Phase 1 concept acquisition path.');
     }
     if (masteryPhases.length != 1) {
       failures.add(
@@ -147,10 +147,10 @@ class ChapterReleaseGate {
       }
       if (mastery.from != 60) {
         failures.add(
-          '[Level System Validation] Phase 2 should begin immediately after Chapter 12 at level 61.',
+          '[Level System Validation] The historical Mastery namespace must still begin at legacy ID61.',
         );
         fixPlan.add(
-            'Place Mastery Challenges after the 60 guided discovery levels.');
+            'Keep historical Mastery IDs fixed independently of Journey size.');
       }
       if (mastery.phasePurpose != 'Concept Integration') {
         failures.add(
@@ -208,7 +208,8 @@ class ChapterReleaseGate {
       failures.add(
         '[Learning Map Integration] The journey should end by flowing into Mastery Challenges.',
       );
-      fixPlan.add('Keep Mastery Challenges after Chapter 12 in groupedLevels.');
+      fixPlan.add(
+          'Keep Mastery Challenges after the Journey chapters in groupedLevels.');
     }
 
     return ChapterReleaseGateResult(

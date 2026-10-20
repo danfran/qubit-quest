@@ -3,9 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/screens/home_page.dart';
+import 'package:quantumquiz/models/qq_levels.dart';
+import 'package:quantumquiz/screens/mcq_screen.dart';
+import 'support/mastery_math_test_platform.dart';
 import 'package:quantumquiz/screens/learning_flow_widgets.dart';
 
 void main() {
+  useMasteryMathTestPlatform();
   setUpAll(() {
     PackageInfo.setMockInitialValues(
       appName: 'Qubit Quest',
@@ -148,6 +152,40 @@ void main() {
     expect(lesson3.onPressed, isNull);
   });
 
+  for (final completed in [60, 63]) {
+    testWidgets(
+        '$completed completed lessons open the next real Journey activity on native',
+        (tester) async {
+      await pumpHome(
+          tester,
+          CampaignProgressPolicy.completeLesson(
+              CampaignProgressState.fresh(), completed));
+      await tester
+          .tap(find.byKey(const ValueKey('home-action-Continue Journey')));
+      await tester.pumpAndSettle();
+      final lesson = find.byKey(ValueKey('journey-lesson-${completed + 1}'));
+      await tester.ensureVisible(lesson);
+      await tester.pumpAndSettle();
+      expect(tester.widget<ElevatedButton>(lesson).onPressed, isNotNull);
+      expect(
+          tester
+              .widget<ElevatedButton>(
+                  find.byKey(ValueKey('journey-lesson-${completed + 2}')))
+              .onPressed,
+          isNull);
+      await tester.tap(lesson);
+      await tester.pumpAndSettle();
+      expect(find.byType(MysteryPanel), findsOneWidget);
+      await tester.tap(find.text('Experiment'));
+      await tester.pumpAndSettle();
+      final activity = tester.widget<McqScreen>(find.byType(McqScreen));
+      expect(activity.levelId, completed + 1);
+      expect(activity.level, same(getJourneyLessonById(completed + 1)));
+      expect(find.text('Lesson ${completed + 1}'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('fresh user can browse and open Challenge 2 independently',
       (tester) async {
     await pumpHome(tester, CampaignProgressState.fresh());
@@ -208,12 +246,12 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('1 / 36 completed'), findsOneWidget);
+    expect(find.textContaining('1 / 42 completed'), findsOneWidget);
     await tester
         .tap(find.byKey(const ValueKey('home-action-Mastery Challenges')));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Completed: 1 / 36'), findsOneWidget);
+    expect(find.textContaining('Completed: 1 / 42'), findsOneWidget);
     expect(
       find.byKey(
         const ValueKey('mastery-completed-global_phase_equivalence'),

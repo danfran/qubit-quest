@@ -10,7 +10,11 @@ void main() {
 
   setUpAll(() {
     report = ComposerContentAuditor().audit(allQQLevels);
-    byId = {for (final level in report.levels) level.id: level};
+    final historicalReport = ComposerContentAuditor().audit([
+      ...journeyLessons.take(60),
+      ...historicalMasteryActivities,
+    ]);
+    byId = {for (final level in historicalReport.levels) level.id: level};
   });
 
   group('Composer Content Auditor historical regressions', () {
@@ -61,7 +65,7 @@ void main() {
     test('canonical levels build and validate through production paths', () {
       for (final level in report.levels.where(
         (result) =>
-            (getQQLevelById(result.id) as ComposerLevel).canonicalSolution !=
+            (allQQLevels[result.id - 1] as ComposerLevel).canonicalSolution !=
             null,
       )) {
         expect(

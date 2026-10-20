@@ -148,13 +148,17 @@ void main() {
   });
 
   group('self-verifying Composer campaign', () {
-    final composerEntries = allQQLevels.indexed
-        .where((entry) => entry.$2 is ComposerLevel)
-        .map((entry) => (id: entry.$1 + 1, level: entry.$2 as ComposerLevel))
-        .toList(growable: false);
+    final composerEntries = [
+      for (final entry in numericActivityCatalogue.journey.entries)
+        if (entry.value is ComposerLevel)
+          (id: 'Journey ${entry.key}', level: entry.value as ComposerLevel),
+      for (final entry in numericActivityCatalogue.historicalMastery.entries)
+        if (entry.value is ComposerLevel)
+          (id: 'Legacy ${entry.key}', level: entry.value as ComposerLevel),
+    ];
 
-    test('all 85 active Composer levels carry canonical metadata', () {
-      expect(composerEntries, hasLength(85));
+    test('all 87 active Composer levels carry canonical metadata', () {
+      expect(composerEntries, hasLength(87));
       for (final entry in composerEntries) {
         expect(
           entry.level.canonicalSolution,

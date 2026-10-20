@@ -1,3 +1,4 @@
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/activity_behavior_contract.dart';
@@ -27,7 +28,8 @@ void main() {
             viewPadding: safePadding,
           ),
           child: LevelUIRouter.buildLevelUI(
-            level: getQQLevelById(levelId)!,
+            activityDomain: NumericActivityDomain.historicalMastery,
+            level: getHistoricalMasteryById(levelId)!,
             levelId: levelId,
             onLevelUnlocked: (_) {},
           ),
@@ -67,8 +69,8 @@ void main() {
     };
 
     for (final entry in expected.entries) {
-      final kind =
-          ActivityBehaviorContract.forLevel(getQQLevelById(entry.key)!);
+      final kind = ActivityBehaviorContract.forLevel(
+          getHistoricalMasteryById(entry.key)!);
       expect(kind, entry.value, reason: 'global ID ${entry.key}');
       expect(
         ActivityBehaviorContract.requiresExplicitEvaluation(kind),
@@ -120,7 +122,7 @@ void main() {
   });
 
   testWidgets('M4 gate choice performs immediate evaluation', (tester) async {
-    final level = getQQLevelById(64)! as FillTheGateLevel;
+    final level = getHistoricalMasteryById(64)! as FillTheGateLevel;
     final correctIndex = level.options.indexWhere(
       (gate) => gate.type == level.correctGate.type,
     );
@@ -150,7 +152,7 @@ void main() {
   testWidgets(
       'incorrect gate is incorrect state but explanation is educational',
       (tester) async {
-    final level = getQQLevelById(68)! as FillTheGateLevel;
+    final level = getHistoricalMasteryById(68)! as FillTheGateLevel;
     final wrongIndex = level.options.indexWhere(
       (gate) => gate.type != level.correctGate.type,
     );
@@ -219,7 +221,7 @@ void main() {
   });
 
   test('M21 remains outside the current migration batch', () {
-    expect(getQQLevelById(81), isA<ComposerLevel>());
+    expect(getHistoricalMasteryById(81), isA<ComposerLevel>());
     expect(81, greaterThan(80));
   });
 }

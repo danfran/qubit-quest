@@ -14,16 +14,16 @@ import 'support/mastery_math_test_platform.dart';
 void main() {
   useMasteryMathTestPlatform();
   testWidgets(
-      '60 Journey and 36 Mastery contexts preserve roles and order at both widths',
+      '66 Journey and 42 Mastery contexts preserve roles and order at both widths',
       (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1200, 1800);
     addTearDown(tester.view.reset);
     final activities = [
-      for (var id = 1; id <= 60; id++)
+      for (var id = 1; id <= 66; id++)
         (
           id: 'Journey $id',
-          level: getQQLevelById(id)!,
+          level: getJourneyLessonById(id)!,
           presentation: null as MasteryChallengePresentation?
         ),
       for (final c in mastery2Catalogue.orderedDefinitions)
@@ -33,7 +33,7 @@ void main() {
           presentation: requireMasteryPresentation(c.semanticId)
         ),
     ];
-    expect(activities.length, 96);
+    expect(activities.length, 108);
     for (final p in mastery2Presentations.values) {
       expect(p.question.isEmpty || p.question.trim().endsWith('?'), isTrue,
           reason:

@@ -1,3 +1,4 @@
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -39,7 +40,8 @@ void main() {
             textScaler: TextScaler.linear(textScale),
           ),
           child: LevelUIRouter.buildLevelUI(
-            level: getQQLevelById(levelId)!,
+            activityDomain: NumericActivityDomain.historicalMastery,
+            level: getHistoricalMasteryById(levelId)!,
             levelId: levelId,
             onLevelUnlocked: (_) {},
           ),

@@ -660,9 +660,9 @@ void main() {
   });
 
   test('catalogue identity and interaction metadata remain intact', () {
-    expect(mastery2Catalogue.length, 36);
+    expect(mastery2Catalogue.length, 42);
     for (final definition in mastery2Catalogue.orderedDefinitions) {
-      expect(definition.displayOrder, inInclusiveRange(1, 36));
+      expect(definition.displayOrder, inInclusiveRange(1, 42));
       expect(definition.semanticId, isNotEmpty);
       expect(definition.interactionType, isA<MasteryInteractionType>());
     }

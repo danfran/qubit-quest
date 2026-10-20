@@ -623,4 +623,127 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
     ],
     question: 'What follows from all three clues?',
   ),
+  'finite_shot_evidence': const MasteryChallengePresentation(
+    instruction:
+        'Audit two 100-shot Z-basis records claimed to come from an ideal noiseless Bell source.',
+    evidence: [
+      MasteryMathEvidence(
+          label: 'CLAIMED SOURCE',
+          expression: r'\[|\Phi^+\rangle=(|00\rangle+|11\rangle)/\sqrt{2}\]'),
+      MasteryTextEvidence(
+          label: 'RECORD A', text: '00: 53 · 11: 47 · 01: 0 · 10: 0'),
+      MasteryTextEvidence(
+          label: 'RECORD B', text: '00: 52 · 11: 47 · 01: 1 · 10: 0'),
+    ],
+    question:
+        'Which conclusion about compatibility and entanglement is justified?',
+  ),
+  'four_bell_decoder': const MasteryChallengePresentation(
+    instruction:
+        'Build one reusable Bell-basis decoder using H and CX. Match all four mappings, including their signs.',
+    evidence: [
+      MasteryCircuitEvidence(
+          label: 'REFERENCE BELL PREPARATION',
+          qubitCount: 2,
+          initialBasis: '00',
+          operations: [_h0, _cnot01],
+          semanticDescription:
+              'H(q0) then CX(q0→q1) prepares Φ+ from 00. Your task is a decoder for all four messages.'),
+      MasteryMathEvidence(
+          label: 'BELL CONVENTIONS',
+          expression:
+              r'\[\Phi^{\pm}=(|00\rangle\pm|11\rangle)/\sqrt{2},\quad\Psi^{\pm}=(|01\rangle\pm|10\rangle)/\sqrt{2}\]'),
+      MasteryMathEvidence(
+          label: 'REQUIRED MAPPINGS',
+          expression:
+              r'\[\Phi^+\to|00\rangle,\quad\Phi^-\to|01\rangle,\quad\Psi^+\to|10\rangle,\quad\Psi^-\to-|11\rangle\]'),
+    ],
+    question: '',
+    helperText:
+        'q0 is the top, least-significant wire; labels are |q1 q0⟩. The State preview uses |00⟩; the complete operator is checked.',
+  ),
+  'odd_parity_oracle': const MasteryChallengePresentation(
+    instruction:
+        'Construct a reusable three-qubit phase oracle that negates odd-parity amplitudes and preserves even-parity amplitudes without changing basis labels.',
+    evidence: [
+      MasteryMathEvidence(
+          label: 'PREDICATE',
+          expression:
+              r'\[O|x\rangle=(-1)^{\operatorname{popcount}(x)}|x\rangle\]'),
+      MasteryMathEvidence(
+          label: 'MARKED STATES',
+          expression:
+              r'\[|001\rangle,\ |010\rangle,\ |100\rangle,\ |111\rangle\]'),
+      MasteryTextEvidence(
+          label: 'PARITY',
+          text:
+              'Count the 1 bits, not the numerical value of the label. Two occupied bits have even parity.'),
+    ],
+    question: '',
+    helperText:
+        'Labels are |q2 q1 q0⟩; q0 is the top wire. The unchanged |000⟩ preview is not sufficient: all eight inputs are checked.',
+  ),
+  'half_marked_search': const MasteryChallengePresentation(
+    instruction:
+        'Audit a four-state search with two marked states. A complete round applies the oracle, then D.',
+    evidence: [
+      MasteryMathEvidence(
+          label: 'INITIAL AMPLITUDES',
+          expression: r'\[s=[\tfrac12,\tfrac12,\tfrac12,\tfrac12]\]'),
+      MasteryTextEvidence(
+          label: 'PREDICATE',
+          text:
+              'Mark 01 and 10. Basis order: 00,01,10,11; q0 is the least-significant wire.'),
+      MasteryMathEvidence(
+          label: 'REFLECTION RULE',
+          expression: r'\[m=\tfrac14\sum_i a_i,\qquad a_i^{\prime}=2m-a_i\]'),
+    ],
+    question:
+        'What happens to the total probability of either marked outcome after one round and after repeated complete rounds?',
+  ),
+  'search_overshoot_forensics': const MasteryChallengePresentation(
+    instruction:
+        'Recover the missing round labels in an eight-state, one-mark search log and diagnose the change between snapshots. All signed amplitudes use D.',
+    evidence: [
+      MasteryTextEvidence(
+          label: 'SCALE',
+          text:
+              'The marked amplitude is b/√8; each of seven unmarked amplitudes is c/√8. Initially (b,c)=(1,1); after round 1 it is (5/2,1/2).'),
+      MasteryMathEvidence(
+          label: 'UNLABELLED SNAPSHOTS',
+          expression:
+              r'\[A:(b,c)=(\tfrac{11}{4},-\tfrac14),\qquad B:(b,c)=(\tfrac{13}{8},-\tfrac78)\]'),
+      MasteryTextEvidence(
+          label: 'LOG TIMING',
+          text:
+              'B was recorded one complete round after A. No measurement occurred between snapshots.'),
+      MasteryMathEvidence(
+          label: 'ROUND RECURRENCE',
+          expression:
+              r'\[\mu=\tfrac{7c-b}{8},\quad b^{\prime}=2\mu+b,\quad c^{\prime}=2\mu-c,\quad P=\tfrac{b^2}{8}\]'),
+    ],
+    question:
+        'Which diagnosis identifies A and B, the best stopping point among rounds 0–3, and why the extra round hurts?',
+  ),
+  'nonuniform_reference_reflection': const MasteryChallengePresentation(
+    instruction:
+        'Construct the exact operator R using H, X and CZ. Negate the reference state and preserve its orthogonal subspace.',
+    evidence: [
+      MasteryMathEvidence(
+          label: 'REFERENCE STATE',
+          expression:
+              r'\[|r\rangle=|0+\rangle=(|00\rangle+|01\rangle)/\sqrt2\]'),
+      MasteryTextEvidence(
+          label: 'WIRE CONVENTION',
+          text:
+              'Labels are |q1 q0⟩: q1 is 0 and q0 is +. q0 is the top, least-significant wire.'),
+      MasteryMathEvidence(
+          label: 'EXACT OPERATOR',
+          expression:
+              r'\[R=I-2|r\rangle\langle r|=-(2|r\rangle\langle r|-I)\]'),
+    ],
+    question: '',
+    helperText:
+        'The |00⟩ preview must become −|01⟩, but validation checks the full operator, including its sign.',
+  ),
 });
