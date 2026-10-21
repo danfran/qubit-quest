@@ -19,6 +19,8 @@ void main() {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1200, 1800);
     addTearDown(tester.view.reset);
+    expect(journeyLessons, hasLength(66));
+    expect(mastery2Catalogue.length, 42);
     final activities = [
       for (var id = 1; id <= 66; id++)
         (

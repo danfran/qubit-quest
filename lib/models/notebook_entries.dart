@@ -5,7 +5,7 @@ const List<NotebookEntry> notebookEntries = [
     id: 'information',
     discoveryTitle: 'Information',
     chapterIndex: 1,
-    chapterTitle: 'Chapter 1 - The Quantum Bit',
+    chapterTitle: 'Chapter 1 - Information',
     title: 'The First Qubit',
     summary: 'A qubit can hold a state, and a circuit can change that state.',
     executableExampleIds: ['x_from_zero'],
@@ -44,7 +44,7 @@ const List<NotebookEntry> notebookEntries = [
     id: 'reversibility',
     discoveryTitle: 'Reversibility',
     chapterIndex: 1,
-    chapterTitle: 'Chapter 1 - The Quantum Bit',
+    chapterTitle: 'Chapter 1 - Information',
     title: 'Undo The Change',
     summary: 'A quantum change can be undone by applying another operation.',
     intuition: NotebookSection(
@@ -105,7 +105,7 @@ const List<NotebookEntry> notebookEntries = [
     id: 'equivalent_results',
     discoveryTitle: 'Equivalent Results',
     chapterIndex: 1,
-    chapterTitle: 'Chapter 1 - The Quantum Bit',
+    chapterTitle: 'Chapter 1 - Information',
     title: 'Different Paths',
     summary: 'Different gate sequences can produce the same final state.',
     intuition: NotebookSection(
@@ -149,7 +149,7 @@ const List<NotebookEntry> notebookEntries = [
     id: 'state_transformations',
     discoveryTitle: 'State Transformations',
     chapterIndex: 1,
-    chapterTitle: 'Chapter 1 - The Quantum Bit',
+    chapterTitle: 'Chapter 1 - Information',
     title: 'Information Patterns',
     summary:
         'A multi-qubit state is an information pattern, and gates can transform selected parts of that pattern.',
@@ -190,7 +190,7 @@ const List<NotebookEntry> notebookEntries = [
     id: 'the_quantum_bit',
     discoveryTitle: 'The Quantum Bit',
     chapterIndex: 1,
-    chapterTitle: 'Chapter 1 - The Quantum Bit',
+    chapterTitle: 'Chapter 1 - Information',
     title: 'What Have We Learned?',
     summary:
         'A qubit is the object that stores quantum information and responds to gates.',
@@ -454,6 +454,58 @@ const List<NotebookEntry> notebookEntries = [
       'Invisible Difference',
       'Relative Phase',
       'State Transformations',
+    ],
+  ),
+  NotebookEntry(
+    id: 'phase',
+    discoveryTitle: 'Phase',
+    chapterIndex: 2,
+    chapterTitle: 'Chapter 2 - Hidden Change',
+    title: 'Phase',
+    summary:
+        'Relative phase changes how amplitudes interfere, even when their initial measurement probabilities agree.',
+    intuition: NotebookSection(
+        title: 'Intuition',
+        body:
+            'Phase describes the angle of a complex amplitude. What matters for interference is the relationship between amplitudes: they can reinforce or cancel when a later gate combines them.'),
+    whatChanged: NotebookSection(
+        title: 'What Changed?',
+        body:
+            'In Lesson 10, Z changes |+⟩ into |−⟩ without changing the 50/50 computational-basis probabilities. H then recombines the amplitudes: |−⟩ becomes |1⟩. Without the Z step, H would instead map |+⟩ to |0⟩.',
+        examples: [
+          NotebookExample.math(
+              label: 'Reveal the relative sign',
+              notation: '|+⟩ → Z → |−⟩ → H → |1⟩',
+              latex:
+                  r'|+\rangle\xrightarrow{Z}|-\rangle\xrightarrow{H}|1\rangle'),
+          NotebookExample.math(
+              label: 'Compare without the phase change',
+              notation: 'H|+⟩ = |0⟩',
+              latex: r'H|+\rangle=|0\rangle'),
+        ]),
+    quantumView: NotebookSection(
+        title: 'Quantum View',
+        body:
+            'A global phase multiplies the entire pure-state vector by the same unit-magnitude factor and changes no measurement prediction, including after later gates. Relative phase changes the ratio between occupied amplitudes. It need not change probabilities in the current basis, but interference in another basis can reveal it.',
+        examples: [
+          NotebookExample.math(
+              label: 'Global versus relative phase',
+              notation:
+                  'e^(iφ)|ψ⟩ has the same physical pure state as |ψ⟩; (|0⟩ + |1⟩)/√2 and (|0⟩ − |1⟩)/√2 are different states.',
+              latexLines: [
+                r'|\psi\rangle\sim e^{i\phi}|\psi\rangle',
+                r'|\pm\rangle=(|0\rangle\pm|1\rangle)/\sqrt{2}'
+              ]),
+        ]),
+    advancedNotes: NotebookSection(
+        title: 'Advanced Notes',
+        body:
+            'For any linear gate U, U(e^(iφ)|ψ⟩)=e^(iφ)U|ψ⟩, so interference cannot expose a common global phase. H distinguishes |+⟩ and |−⟩ because their relative signs differ. A negative amplitude is not a negative probability: probabilities are squared magnitudes.'),
+    relatedDiscoveryTitles: [
+      'Invisible Difference',
+      'Relative Phase',
+      'Phase Information',
+      'Interference'
     ],
   ),
   NotebookEntry(
