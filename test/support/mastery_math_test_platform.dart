@@ -8,20 +8,22 @@ import 'package:webview_flutter_platform_interface/webview_flutter_platform_inte
 
 /// Widget tests exercise TeX routing/SVG layout, not an unavailable OS WebView.
 /// Real formula appearance is checked separately in the browser review.
-void useMasteryMathTestPlatform() {
+void useMasteryMathTestPlatform({String? svg}) {
   setUpAll(() async {
-    WebViewPlatform.instance = _MathPlatform();
+    WebViewPlatform.instance = _MathPlatform(svg);
     await TeXRenderingServer.start();
   });
   tearDownAll(TeXRenderingServer.stop);
 }
 
 class _MathPlatform extends WebViewPlatform {
+  _MathPlatform(this.svg);
+  final String? svg;
   @override
   PlatformWebViewController createPlatformWebViewController(
     PlatformWebViewControllerCreationParams params,
   ) =>
-      _MathController(params);
+      _MathController(params, svg);
 
   @override
   PlatformNavigationDelegate createPlatformNavigationDelegate(
@@ -44,7 +46,8 @@ class _MathNavigation extends PlatformNavigationDelegate {
 }
 
 class _MathController extends PlatformWebViewController {
-  _MathController(super.params) : super.implementation();
+  _MathController(super.params, this.svg) : super.implementation();
+  final String? svg;
   _MathNavigation? delegate;
   @override
   Future<void> setPlatformNavigationDelegate(
@@ -68,6 +71,7 @@ class _MathController extends PlatformWebViewController {
       void Function(JavaScriptConsoleMessage) callback) async {}
   @override
   Future<Object> runJavaScriptReturningResult(String javaScript) async =>
+      svg ??
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4000 1000">'
-      '<path d="M0 0 H4000 V1000 H0 Z"/></svg>';
+          '<path d="M0 0 H4000 V1000 H0 Z"/></svg>';
 }

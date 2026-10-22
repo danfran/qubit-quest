@@ -484,7 +484,9 @@ class _StateExpressionLineState extends State<_StateExpressionLine> {
                   '\$${quantumStateNotationToLatex(widget.authoredExpression!)}\$',
               textStyle: _baseStyle,
               inlineMathColor: Colors.white,
-              inlineMathHeight: widget.dense ? 13 : 15,
+              // Size glyphs in MathJax em units, not the total formula height:
+              // fractions and superscripts need additional vertical space.
+              mathFontSize: widget.dense ? 14 : 16,
             )
           : RichText(
               key: const ValueKey('current-state-rich-text'),
