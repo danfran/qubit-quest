@@ -55,6 +55,8 @@ class NotebookEntry {
         return 'How repeated abstractions build search advantage';
       case 12:
         return 'How algorithm roles compose into structured advantage';
+      case 13:
+        return 'How signed amplitudes build search advantage and determine when to stop';
       default:
         return '';
     }

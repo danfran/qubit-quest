@@ -1,3 +1,4 @@
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/activity_behavior_contract.dart';
@@ -23,7 +24,8 @@ void main() {
       MaterialApp(
         theme: QubitQuestTheme.mobile(),
         home: LevelUIRouter.buildLevelUI(
-          level: getQQLevelById(levelId)!,
+          activityDomain: NumericActivityDomain.historicalMastery,
+          level: getHistoricalMasteryById(levelId)!,
           levelId: levelId,
           onLevelUnlocked: (_) {},
         ),
@@ -47,7 +49,7 @@ void main() {
   }
 
   test('M2 guidance uses precise mathematical and physical-state language', () {
-    final m2 = getQQLevelById(62)!;
+    final m2 = getHistoricalMasteryById(62)!;
     expect(m2.conceptIntro, isNot(contains('vector written on the page')));
     expect(m2.conceptIntro, contains('mathematical state vector'));
     expect(m2.conceptIntro, contains('physical quantum state'));
@@ -103,7 +105,7 @@ void main() {
             of: firstGate, matching: find.byType(QubitQuestGateTile)),
         findsOneWidget,
       );
-      final level = getQQLevelById(levelId)! as FillTheGateLevel;
+      final level = getHistoricalMasteryById(levelId)! as FillTheGateLevel;
       final tile = tester.widget<QubitQuestGateTile>(
         find.descendant(
             of: firstGate, matching: find.byType(QubitQuestGateTile)),
@@ -160,7 +162,7 @@ void main() {
     };
     for (final entry in expected.entries) {
       expect(
-        ActivityBehaviorContract.forLevel(getQQLevelById(entry.key)!),
+        ActivityBehaviorContract.forLevel(getHistoricalMasteryById(entry.key)!),
         entry.value,
       );
     }

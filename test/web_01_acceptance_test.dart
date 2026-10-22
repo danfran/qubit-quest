@@ -28,7 +28,7 @@ void main() {
   }
 
   CampaignProgressState masteryUnlockedState() => CampaignProgressState(
-        maxUnlockedLevel: ProgressionRules.guidedDiscoveryLevelCount + 1,
+        maxUnlockedLevel: ProgressionRules.legacyMasteryFirstId,
         completedLessonIds: {
           for (var id = 1;
               id <= ProgressionRules.guidedDiscoveryLevelCount;
@@ -70,7 +70,10 @@ void main() {
   }
 
   test('release scope consumes the complete canonical feature catalogues', () {
-    expect(allQQLevels, hasLength(ProgressionRules.journeyLevelCount));
+    expect(
+        allQQLevels,
+        hasLength(ProgressionRules.guidedDiscoveryLevelCount +
+            historicalMasteryActivities.length));
     expect(
       allQQLevels.map((level) => level.runtimeType).toSet(),
       {
@@ -83,8 +86,7 @@ void main() {
       },
     );
     expect(groupedLevels.last.isMasteryPhase, isTrue);
-    expect(groupedLevels.last.from + 1,
-        ProgressionRules.guidedDiscoveryLevelCount + 1);
+    expect(groupedLevels.last.from + 1, ProgressionRules.legacyMasteryFirstId);
     expect(groupedLevels.last.to + 1, ProgressionRules.journeyLevelCount);
     expect(
       createSandboxComposerLevel(3).availableGates.map((gate) => gate.type),

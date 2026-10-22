@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/tutorial_flags_store.dart';
@@ -43,18 +44,26 @@ void main() {
 
       expect(loaded.maxUnlockedLevel, 4);
       expect(loaded.completedLessonIds, {1, 2, 3});
+      final active = await storage
+          .readString(SharedPreferencesCampaignProgressStore.activeV3Key);
       expect(
-        await storage.readInt(
-          SharedPreferencesCampaignProgressStore.maxUnlockedLevelKey,
-        ),
-        4,
-      );
+          active,
+          isIn([
+            SharedPreferencesCampaignProgressStore.recordV3AKey,
+            SharedPreferencesCampaignProgressStore.recordV3BKey
+          ]));
+      final record = jsonDecode((await storage.readString(active!))!)
+          as Map<String, dynamic>;
+      expect(record['schema'], CampaignProgressState.currentSchemaVersion);
+      expect(record['journey'], {
+        'frontier': 4,
+        'completed': [1, 2, 3]
+      });
       expect(
-        await storage.readInt(
-          SharedPreferencesCampaignProgressStore.schemaVersionKey,
-        ),
-        CampaignProgressState.currentSchemaVersion,
-      );
+          await storage.readInt(
+              SharedPreferencesCampaignProgressStore.maxUnlockedLevelKey),
+          isNull,
+          reason: 'Schema 3 must not overwrite the separate legacy namespace');
     });
 
     test('tutorial flags persist once with their authoritative key', () async {

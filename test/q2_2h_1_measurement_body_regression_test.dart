@@ -1,3 +1,4 @@
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/activity_behavior_contract.dart';
@@ -24,7 +25,8 @@ void main() {
             textScaler: TextScaler.linear(1.1),
           ),
           child: LevelUIRouter.buildLevelUI(
-            level: getQQLevelById(levelId)!,
+            activityDomain: NumericActivityDomain.historicalMastery,
+            level: getHistoricalMasteryById(levelId)!,
             levelId: levelId,
             onLevelUnlocked: (_) {},
           ),
@@ -111,7 +113,7 @@ void main() {
 
   test('M9 remains experiment observation', () {
     expect(
-      ActivityBehaviorContract.forLevel(getQQLevelById(69)!),
+      ActivityBehaviorContract.forLevel(getHistoricalMasteryById(69)!),
       ActivityInteractionKind.experimentObservation,
     );
   });

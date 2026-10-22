@@ -35,6 +35,9 @@ void main() {
     'grover_round_order': 'Apply the oracle before amplification',
     'retry_or_reshape': 'Reprepare, apply an oracle-plus-amplifier round',
     'search_pipeline_forensics': '|101⟩ was phase-marked',
+    'finite_shot_evidence': 'A is compatible and B is incompatible',
+    'half_marked_search': 'remains 1/2 after every complete round',
+    'search_overshoot_forensics': 'A is round 2 and B is round 3',
   };
 
   final selectable = mastery2Catalogue.orderedDefinitions.where(
@@ -49,7 +52,7 @@ void main() {
         (definition.levelDefinition as McqLevel).correctOptionIndex,
     ];
 
-    expect(definitions, hasLength(28));
+    expect(definitions, hasLength(31));
     expect(positions.toSet(), {0, 1, 2, 3});
 
     final counts = <int, int>{};

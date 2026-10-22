@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:quantumquiz/models/chapter_13_levels.dart';
 
 import 'package:advance_math/advance_math.dart';
 import 'package:quantumquiz/models/progression_rules.dart';
@@ -4883,6 +4884,7 @@ List<QQLevel> _consolidatedQQLevels() {
     ...chapter10AmplitudeAmplification,
     ...chapter11GroverLoopIntuition,
     ...chapter12QuantumAlgorithmStructure,
+    ...chapter13Lessons,
   ];
   return levels.indexed
       .map((entry) => _attachCanonical(
@@ -5232,6 +5234,12 @@ final List<QQLevelsCategory> journeyChapters = [
     to: 59,
     categoryIntro:
         'Step back and unify the last three abstractions into a meta-level algorithm model: define valid solutions, bias toward them, and iterate the structure.',
+  ),
+  QQLevelsCategory(
+    groupName: 'Chapter 13 - Building and Stopping Quantum Search',
+    from: 60,
+    to: 65,
+    categoryIntro: 'Turn a phase mark into an observable search result.',
   ),
 ];
 

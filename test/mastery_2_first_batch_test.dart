@@ -58,7 +58,7 @@ void main() {
           ]);
       expect(
         mastery2Catalogue.orderedDefinitions.map((item) => item.displayOrder),
-        List.generate(36, (index) => index + 1),
+        List.generate(42, (index) => index + 1),
       );
     });
 

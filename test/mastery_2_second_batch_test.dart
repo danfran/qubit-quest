@@ -289,7 +289,7 @@ void main() {
 
   test('catalogue retains the first eight and preserves progress', () {
     final ordered = mastery2Catalogue.orderedDefinitions;
-    expect(ordered, hasLength(36));
+    expect(ordered, hasLength(42));
     expect(
       ordered.take(8).map((item) => item.displayOrder),
       [1, 2, 3, 4, 5, 6, 7, 8],

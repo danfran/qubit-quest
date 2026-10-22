@@ -373,17 +373,61 @@ void main() {
     });
   });
 
-  for (final scenario in [
-    'legacy decoding remains capped at60 with an actual66-lesson catalogue',
-    'Journey61 completion coexists with archived Mastery61',
-    'appended discoveries preserve old unlock identities',
-  ]) {
-    test(scenario, () {
-      fail('Exercise new content through production APIs: $scenario');
-    },
-        skip:
-            'Deferred until lessons/discoveries are authored; no new content in schema3 phase.');
-  }
+  test('legacy decoding stays capped at60 with the real66-lesson catalogue',
+      () async {
+    final store = SharedPreferencesCampaignProgressStore(
+        storage: InMemoryAppStorage({
+      'maxUnlockedCampaignLevel': 115,
+      'completedMasteryLevels': ['61', '114'],
+    }));
+    final state = await store.load();
+    expect(state.completedLessonIds, lessonsThrough(60));
+    expect(state.completedChallengeIds, {61, 114});
+    expect(state.maxUnlockedLevel, 61);
+    expect(CampaignProgressPolicy.derivedUnlockedDiscoveryIds(state),
+        discoveriesThrough(60));
+  });
+  test('real Journey61 completion coexists with archived Mastery61 on restart',
+      () async {
+    final store =
+        SharedPreferencesCampaignProgressStore(storage: InMemoryAppStorage());
+    final before = CampaignProgressPolicy.completeChallenge(
+        CampaignProgressPolicy.completeLesson(
+            CampaignProgressState.fresh(), 60),
+        61);
+    final after = CampaignProgressPolicy.completeLesson(before, 61);
+    await store.save(after);
+    final restored = await store.load();
+    expect(restored.completedLessonIds, lessonsThrough(61));
+    expect(restored.completedChallengeIds, {61});
+    expect(restored.completedMasterySemanticIds, isEmpty);
+    expect(restored.maxUnlockedLevel, 62);
+  });
+  test(
+      'appended discovery is earned only by its lesson and retains explicit old unlocks',
+      () async {
+    final store = SharedPreferencesCampaignProgressStore(
+        storage: InMemoryAppStorage({
+      'maxUnlockedCampaignLevel': 1,
+      'unlockedDiscoveries': [
+        'Amplification as Computational Advantage',
+        'Old title'
+      ],
+    }));
+    final before = await store.load();
+    expect(CampaignProgressPolicy.derivedUnlockedDiscoveryIds(before),
+        {'discovery_050'});
+    final after = CampaignProgressPolicy.completeLesson(before, 61);
+    await store.save(after);
+    final restored = await store.load();
+    expect(CampaignProgressPolicy.derivedUnlockedDiscoveryIds(restored),
+        discoveriesThrough(61));
+    expect(restored.legacyUnlockedDiscoveryTitles, {'Old title'});
+    expect(
+        CampaignProgressPolicy.derivedUnlockedDiscoveryIds(restored)
+            .contains('discovery_062'),
+        isFalse);
+  });
 }
 
 class FaultStorage extends InMemoryAppStorage {

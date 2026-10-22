@@ -1,3 +1,4 @@
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -25,6 +26,7 @@ void main() {
     Size viewportSize = const Size(1200, 800),
     int placedGateCount = 1,
     int levelId = -1,
+    NumericActivityDomain activityDomain = NumericActivityDomain.journey,
     String? levelTitle,
     void Function(QuantumCircuit circuit)? preInsertGates,
   }) async {
@@ -69,6 +71,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: QuantumComposer(
+          activityDomain: activityDomain,
           key: UniqueKey(),
           levelId: levelId,
           level: level,
@@ -146,6 +149,7 @@ void main() {
       tester,
       levelId: 61,
       levelTitle: 'Contextual mastery title',
+      activityDomain: NumericActivityDomain.historicalMastery,
     );
     expect(find.text('Mastery Challenge 1'), findsWidgets);
     expect(find.text('Contextual mastery title'), findsOneWidget);

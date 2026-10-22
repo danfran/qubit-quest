@@ -3,7 +3,7 @@ enum NumericActivityDomain { journey, historicalMastery }
 class ProgressionRules {
   const ProgressionRules._();
 
-  static const int guidedDiscoveryLevelCount = 60;
+  static const int guidedDiscoveryLevelCount = 66;
   // Frozen historical identity domain, never derived from the live Journey size.
   static const int historicalJourneyCount = 60;
   static const int legacyMasteryFirstId = 61;
