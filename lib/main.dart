@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart'; // Import for orientation control
-import 'package:flutter_tex/flutter_tex.dart';
+import 'package:quantumquiz/startup/startup_coordinator.dart';
+import 'package:quantumquiz/startup/startup_gate.dart';
+import 'package:quantumquiz/startup/tex_initializer.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
 import 'package:quantumquiz/models/tutorial_flags_store.dart';
@@ -11,25 +13,25 @@ import 'package:quantumquiz/storage/app_storage.dart';
 import 'package:quantumquiz/storage/shared_preferences_app_storage.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await TeXRenderingServer.start();
-
-  if (kIsWeb) {
-    runApp(QubitQuestWebApp());
-    return;
-  }
-
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
-  ]).then((_) {
-    runApp(MyApp());
-  });
+  runApp(StartupGate(
+    createCoordinator: () => StartupCoordinator(
+      initialize: initializeMathService,
+      configureOrientation: kIsWeb ? null : configureAppOrientation,
+    ),
+    theme: kIsWeb ? QubitQuestTheme.web() : QubitQuestTheme.mobile(),
+    readyBuilder: (_) => kIsWeb ? QubitQuestWebApp() : MyApp(),
+  ));
 }
+
+Future<void> configureAppOrientation() =>
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
 
 class MyApp extends StatelessWidget {
   MyApp({super.key, this.storage = const SharedPreferencesAppStorage()})
