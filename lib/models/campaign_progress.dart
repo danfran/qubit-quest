@@ -776,6 +776,8 @@ class InMemoryCampaignProgressStore implements CampaignProgressStore {
   }
 }
 
+enum ProgressSaveStatus { saved, pending, failed }
+
 class CampaignProgressController extends ChangeNotifier {
   CampaignProgressController({CampaignProgressStore? store})
       : _store = store ?? const SharedPreferencesCampaignProgressStore();
@@ -796,69 +798,108 @@ class CampaignProgressController extends ChangeNotifier {
   bool get isLoaded => _loaded;
 
   Future<CampaignProgressState> load() async {
-    _state = await _store.load();
-    _loaded = true;
-    notifyListeners();
+    await _enqueue(() async {
+      final restored = await _store.load();
+      _state = restored;
+      _loaded = true;
+      _notifySave();
+    });
     return _state;
   }
 
-  Future<void> _commit(CampaignProgressState state) async {
-    _state = CampaignProgressPolicy.normalize(state);
-    await _store.save(_state);
-    _loaded = true;
-    notifyListeners();
+  ProgressSaveStatus saveStatus = ProgressSaveStatus.saved;
+  final List<CampaignProgressState Function(CampaignProgressState)> _pending =
+      [];
+  Future<void>? _saveQueue;
+  bool _disposed = false;
+
+  void _notifySave() {
+    if (!_disposed) notifyListeners();
   }
 
-  Future<void> completeLevel(int levelNumber) async {
-    await _commit(CampaignProgressPolicy.completeLevel(_state, levelNumber));
+  Future<void> _commit(
+      CampaignProgressState Function(CampaignProgressState) edit) {
+    return _enqueue(() async {
+      _pending.add(edit);
+      await _savePending();
+    });
   }
 
-  Future<void> completeLesson(int lessonId) async {
-    await _commit(CampaignProgressPolicy.completeLesson(_state, lessonId));
+  Future<void> _enqueue(Future<void> Function() action) {
+    final previous = _saveQueue;
+    final operation = previous == null
+        ? Future<void>.microtask(action)
+        : previous.then((_) => action(),
+            onError: (Object _, StackTrace __) => action());
+    late final Future<void> queued;
+    queued = operation.whenComplete(() {
+      // Do not retain a completed future (or its execution zone) when idle.
+      // Cleanup completes before the caller observes operation completion.
+      if (identical(_saveQueue, queued)) _saveQueue = null;
+    });
+    _saveQueue = queued;
+    return queued;
   }
 
-  Future<void> completeChallenge(int levelId) async {
-    await _commit(CampaignProgressPolicy.completeChallenge(_state, levelId));
+  Future<void> _savePending() async {
+    if (_pending.isEmpty) return;
+    saveStatus = ProgressSaveStatus.pending;
+    _notifySave();
+    var candidate = _state;
+    for (final edit in _pending) {
+      candidate = edit(candidate);
+    }
+    candidate = CampaignProgressPolicy.normalize(candidate);
+    try {
+      await _store.save(candidate);
+      _state = candidate;
+      _loaded = true;
+      _pending.clear();
+      saveStatus = ProgressSaveStatus.saved;
+    } catch (_) {
+      saveStatus = ProgressSaveStatus.failed;
+      rethrow;
+    } finally {
+      _notifySave();
+    }
   }
 
-  Future<void> completeMasteryChallenge(String semanticId) async {
-    await _commit(
-      CampaignProgressPolicy.completeMasteryChallenge(_state, semanticId),
-    );
+  Future<void> retrySave() => _enqueue(_savePending);
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 
-  Future<void> discardLegacyMasteryCompletion() async {
-    await _commit(
-      CampaignProgressPolicy.discardLegacyMasteryCompletion(_state),
-    );
-  }
+  Future<void> completeLevel(int id) =>
+      _commit((state) => CampaignProgressPolicy.completeLevel(state, id));
+  Future<void> completeLesson(int id) =>
+      _commit((state) => CampaignProgressPolicy.completeLesson(state, id));
+  Future<void> completeChallenge(int id) =>
+      _commit((state) => CampaignProgressPolicy.completeChallenge(state, id));
+  Future<void> completeMasteryChallenge(String id) => _commit(
+      (state) => CampaignProgressPolicy.completeMasteryChallenge(state, id));
+  Future<void> discardLegacyMasteryCompletion() =>
+      _commit(CampaignProgressPolicy.discardLegacyMasteryCompletion);
+  Future<void> unlockDiscovery(String title) => _commit(
+      (state) => CampaignProgressPolicy.unlockDiscoveryByTitle(state, title));
+  Future<void> markNotebookEntryOpened(String title) => _commit(
+      (state) => CampaignProgressPolicy.markNotebookEntryOpened(state, title));
+  Future<void> markMasteryCompleteDialogShown() =>
+      _commit((state) => state.copyWith(masteryCompleteDialogShown: true));
+  Future<void> unlockAllCampaignContent() =>
+      _commit(CampaignProgressPolicy.unlockAllCampaignContent);
 
-  Future<void> unlockDiscovery(String discoveryTitle) async {
-    await _commit(
-      CampaignProgressPolicy.unlockDiscoveryByTitle(_state, discoveryTitle),
-    );
-  }
-
-  Future<void> markNotebookEntryOpened(String discoveryTitle) async {
-    await _commit(
-      CampaignProgressPolicy.markNotebookEntryOpened(_state, discoveryTitle),
-    );
-  }
-
-  Future<void> markMasteryCompleteDialogShown() async {
-    await _commit(_state.copyWith(masteryCompleteDialogShown: true));
-  }
-
-  Future<void> unlockAllCampaignContent() async {
-    await _commit(CampaignProgressPolicy.unlockAllCampaignContent(_state));
-  }
-
-  Future<void> resetProgress() async {
-    await _store.reset();
-    _state = await _store.load();
-    _loaded = true;
-    notifyListeners();
-  }
+  Future<void> resetProgress() => _enqueue(() async {
+        await _store.reset();
+        final restored = await _store.load();
+        _state = restored;
+        _pending.clear();
+        _loaded = true;
+        saveStatus = ProgressSaveStatus.saved;
+        _notifySave();
+      });
 
   bool isLevelUnlocked(int levelNumber) {
     return CampaignProgressPolicy.isLevelUnlocked(_state, levelNumber);

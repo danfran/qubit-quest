@@ -21,6 +21,16 @@ class _FailingSandboxPersistenceStore extends SandboxPersistenceStore {
       Future<void>.error(StateError('storage unavailable'));
 }
 
+class _RetrySandboxStore extends SandboxPersistenceStore {
+  bool fail = true;
+  SandboxCircuitSnapshot? saved;
+  @override
+  Future<void> saveSnapshot(SandboxCircuitSnapshot snapshot) async {
+    if (fail) throw StateError('storage unavailable');
+    saved = snapshot;
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -672,6 +682,31 @@ void main() {
         await tester.pumpAndSettle();
       }
       expect((await store.loadSnapshot(2))!.encode(), before);
+    });
+
+    testWidgets('native save failure retries the latest edited circuit',
+        (tester) async {
+      final controller = QuantumComposerController();
+      final store = _RetrySandboxStore();
+      await pumpComposer(tester,
+          ownership: ComposerSessionOwnership.sandbox,
+          controller: controller,
+          store: store);
+      expect(find.text('Circuit not saved. Please retry.'), findsOneWidget);
+      for (var i = 0; i < 2; i++) {
+        controller.insertGate(
+            gate: Gate.fromIdentifier(SelectedGateType.x),
+            location: CircuitLocation(column: i, qubit: 0));
+      }
+      await tester.pumpAndSettle();
+      expect(store.saved, isNull);
+      expect(find.text('Circuit saved'), findsNothing);
+      store.fail = false;
+      await tester.tap(find.text('Retry save'));
+      await tester.pumpAndSettle();
+      expect(store.saved!.operations, hasLength(2));
+      expect(find.text('Circuit saved'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('save failure does not make the Sandbox unusable',

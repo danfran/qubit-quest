@@ -49,6 +49,17 @@ void expectCanvasFits(WidgetTester tester, int qubits) {
   expect(tester.takeException(), isNull);
 }
 
+class _FailingCircuitStorage extends InMemoryAppStorage {
+  bool fail = false;
+  @override
+  Future<void> writeString(String key, String value) async {
+    if (fail && key.startsWith(SandboxPersistenceStore.storageKey)) {
+      throw StateError('save rejected');
+    }
+    await super.writeString(key, value);
+  }
+}
+
 void main() {
   Future<void> setSize(
     WidgetTester tester,
@@ -155,6 +166,35 @@ void main() {
     await tester.pump();
     expect(find.byType(ComposerCircuitCanvas), findsOneWidget);
     expect(find.byKey(const ValueKey('web-navigation-drawer')), findsNothing);
+  });
+
+  testWidgets(
+      'Web Sandbox exposes failed clear and retries without losing saved data',
+      (tester) async {
+    await setSize(tester, const Size(1440, 1000));
+    final storage = _FailingCircuitStorage();
+    final store = SandboxPersistenceStore(storage: storage);
+    final circuit = QuantumCircuit(currentLevel: createSandboxComposerLevel(1));
+    circuit.insertSingleGateWithOutcome(
+        Gate.fromIdentifier(SelectedGateType.x), 0, 0);
+    await store.saveCircuit(circuit);
+    storage.fail = true;
+    await tester.pumpWidget(QubitQuestWebApp(storage: storage));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('web-composer-qubits-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Clear'));
+    await tester.pumpAndSettle();
+    expect(find.text('Circuit not saved. Please retry.'), findsOneWidget);
+    expect((await store.loadSnapshot(1))!.operations, hasLength(1));
+    storage.fail = false;
+    await tester.tap(find.text('Retry save'));
+    await tester.pumpAndSettle();
+    expect((await store.loadSnapshot(1))!.operations, isEmpty);
+    expect(find.text('Circuit saved'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Composer restores the existing Sandbox workspace',

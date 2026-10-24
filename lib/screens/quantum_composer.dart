@@ -1,7 +1,9 @@
-import 'package:quantumquiz/models/progression_rules.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:quantumquiz/models/circuit_save_queue.dart';
+import 'package:quantumquiz/widgets/circuit_save_status.dart';
+import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/adaptive_learning.dart';
@@ -195,7 +197,8 @@ class _QuantumComposerState extends State<QuantumComposer>
   late AdaptiveLearningSession _adaptiveLearningSession;
   AdaptiveLearningInsight? _adaptiveInsight;
   bool _adaptiveInsightDismissed = false;
-  Future<void> _sandboxSaveQueue = Future<void>.value();
+  late final CircuitSaveQueue _sandboxSaves =
+      CircuitSaveQueue(widget.sandboxPersistenceStore.saveSnapshot);
 
   @override
   void initState() {
@@ -257,6 +260,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     if (_ownsSandboxWorkspace) {
       unawaited(_scheduleSandboxPersistence());
     }
+    _sandboxSaves.dispose();
     WidgetsBinding.instance.removeObserver(this);
     widget.controller?._detach();
     _notebookPulseController.dispose();
@@ -283,18 +287,7 @@ class _QuantumComposerState extends State<QuantumComposer>
 
   Future<void> _scheduleSandboxPersistence() {
     if (!_ownsSandboxWorkspace) return Future<void>.value();
-    final snapshot = SandboxCircuitSnapshot.capture(_circuit);
-    _sandboxSaveQueue = _sandboxSaveQueue.then((_) async {
-      try {
-        await widget.sandboxPersistenceStore.saveSnapshot(snapshot);
-      } catch (error) {
-        assert(() {
-          debugPrint('Unable to persist Sandbox circuit: $error');
-          return true;
-        }());
-      }
-    });
-    return _sandboxSaveQueue;
+    return _sandboxSaves.save(SandboxCircuitSnapshot.capture(_circuit));
   }
 
   @override
@@ -1332,7 +1325,14 @@ class _QuantumComposerState extends State<QuantumComposer>
     return Scaffold(
       backgroundColor: qqBlack,
       appBar: header,
-      body: LessonContentSafeArea(child: body),
+      body: LessonContentSafeArea(
+          child: Column(children: [
+        if (_ownsSandboxWorkspace)
+          Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: CircuitSaveStatusView(queue: _sandboxSaves)),
+        Expanded(child: body),
+      ])),
     );
   }
 

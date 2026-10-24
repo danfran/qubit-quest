@@ -1,3 +1,4 @@
+import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -83,6 +84,33 @@ void main() {
       });
     }
   }
+  for (final mode in ['false', 'throw']) {
+    test(
+        'progress $mode keeps confirmed data and retries without duplicate unlocks',
+        () async {
+      final controller = CampaignProgressController(
+          store: const SharedPreferencesCampaignProgressStore());
+      await controller.load();
+      await controller.completeLesson(1);
+      final originalDisk = Map<String, Object>.from(disk);
+      failure = mode;
+      await expectLater(controller.completeLesson(2), throwsA(anything));
+      expect(controller.state.completedLessonIds, {1});
+      expect(controller.saveStatus, ProgressSaveStatus.failed);
+      expect(disk, originalDisk);
+      SharedPreferences.resetStatic();
+      final restored =
+          await const SharedPreferencesCampaignProgressStore().load();
+      expect(restored.completedLessonIds, {1});
+      failure = null;
+      await controller.retrySave();
+      await controller.retrySave();
+      expect(controller.state.completedLessonIds, {1, 2});
+      expect(controller.unlockedDiscoveryTitles(), hasLength(2));
+      expect(controller.saveStatus, ProgressSaveStatus.saved);
+    });
+  }
+
   test('successful operations survive cache recreation', () async {
     await adapter.writeString('s', 'value');
     await adapter.writeBool('b', true);

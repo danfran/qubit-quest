@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:quantumquiz/widgets/progress_save_feedback.dart';
+import 'package:quantumquiz/models/circuit_save_queue.dart';
+import 'package:quantumquiz/widgets/circuit_save_status.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -204,6 +207,8 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
           );
           return Scaffold(
             key: const ValueKey('web-shell'),
+            bottomNavigationBar:
+                ProgressSaveStatusView(controller: widget.progressController),
             backgroundColor: _background,
             appBar: AppBar(
               leading: wide
@@ -409,6 +414,8 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
   QuantumMeasurementResult? _measurementResult;
   int? _selectedQubitCount;
   GateId? _selectedGateId;
+  late final CircuitSaveQueue _saves =
+      CircuitSaveQueue(widget.persistence.saveSnapshot);
   String _status = 'Choose a circuit size to open the Sandbox.';
   bool? _nonZeroOnly;
 
@@ -468,6 +475,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
 
   @override
   void dispose() {
+    _saves.dispose();
     _circuit?.dispose();
     super.dispose();
   }
@@ -498,7 +506,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
       setState(() => _measurementResult = null);
       _activeCircuit.runSimulation();
       if (widget.example == null) {
-        await widget.persistence.saveCircuit(_activeCircuit);
+        unawaited(_saves.save(SandboxCircuitSnapshot.capture(_activeCircuit)));
       }
     }
     if (!mounted) return;
@@ -506,7 +514,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
       _selectedGateId = outcome.affectedGateId ?? _selectedGateId;
       _status = outcome.changed
           ? widget.example == null
-              ? 'Saved ${_activeCircuit.logicalGates.length} operation(s) locally.'
+              ? '${_activeCircuit.logicalGates.length} operation(s) in circuit.'
               : 'Updated Notebook example (${_activeCircuit.logicalGates.length} operation(s)).'
           : 'Edit result: ${outcome.status.name}';
     });
@@ -606,13 +614,13 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
     }
     _activeCircuit.clearPlacedGates();
     if (widget.example == null) {
-      await widget.persistence.saveCircuit(_activeCircuit);
+      unawaited(_saves.save(SandboxCircuitSnapshot.capture(_activeCircuit)));
     }
     if (!mounted) return;
     setState(() {
       _selectedGateId = null;
       _status = widget.example == null
-          ? 'Saved an empty circuit.'
+          ? 'Circuit cleared.'
           : 'Cleared Notebook example.';
     });
   }
@@ -928,6 +936,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
           ],
         ],
         const SizedBox(height: 9),
+        if (widget.example == null) CircuitSaveStatusView(queue: _saves),
         Text(
           _status,
           key: const ValueKey('web-storage-status'),

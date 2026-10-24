@@ -1,3 +1,4 @@
+import 'package:quantumquiz/widgets/progress_save_feedback.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -101,7 +102,10 @@ class _WebJourneyWorkspaceState extends State<WebJourneyWorkspace> {
       state.completedLessonIds.contains(levelId);
 
   Future<void> _complete(int levelId) async {
-    await widget.progressController.completeLesson(levelId);
+    if (!await saveProgressWithFeedback(
+        context, () => widget.progressController.completeLesson(levelId))) {
+      return;
+    }
     if (!mounted) return;
     setState(() {});
   }
@@ -189,7 +193,10 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
       });
 
   Future<void> _complete(String semanticId) async {
-    await widget.progressController.completeMasteryChallenge(semanticId);
+    if (!await saveProgressWithFeedback(context,
+        () => widget.progressController.completeMasteryChallenge(semanticId))) {
+      return;
+    }
     if (mounted) setState(() {});
   }
 

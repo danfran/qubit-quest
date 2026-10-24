@@ -1,3 +1,4 @@
+import 'package:quantumquiz/widgets/progress_save_feedback.dart';
 // home_page.dart
 
 import 'package:flutter/material.dart';
@@ -158,8 +159,36 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _populateAboutData();
+    _progressController.addListener(_syncConfirmedProgress);
     _loadMaxUnlockedLevel();
     _initPackageInfo();
+  }
+
+  void _syncConfirmedProgress() {
+    if (!mounted ||
+        !_progressController.isLoaded ||
+        identical(_progressState, _progressController.state)) {
+      return;
+    }
+    setState(() {
+      _progressState = _progressController.state;
+      _maxUnlockedLevel = _progressState.maxUnlockedLevel;
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.progressController != widget.progressController) {
+      oldWidget.progressController.removeListener(_syncConfirmedProgress);
+      _progressController.addListener(_syncConfirmedProgress);
+    }
+  }
+
+  @override
+  void dispose() {
+    _progressController.removeListener(_syncConfirmedProgress);
+    super.dispose();
   }
 
   Future<void> _initPackageInfo() async {
@@ -222,7 +251,11 @@ class _HomePageState extends State<HomePage> {
     if (domain == NumericActivityDomain.historicalMastery) {
       final wasAlreadyCompleted =
           _progressState.completedChallengeIds.contains(completedLevel);
-      await _progressController.completeChallenge(completedLevel);
+      if (!await saveProgressWithFeedback(context,
+          () => _progressController.completeChallenge(completedLevel))) {
+        return;
+      }
+      if (!mounted) return;
       final updatedProgressState = _progressController.state;
       final updatedCompletedMasteryLevels =
           updatedProgressState.completedChallengeIds;
@@ -232,7 +265,10 @@ class _HomePageState extends State<HomePage> {
           updatedCompletedMasteryLevels.length >= masteryChallengeCount;
       if (shouldShowMasteryComplete &&
           !updatedProgressState.masteryCompleteDialogShown) {
-        await _progressController.markMasteryCompleteDialogShown();
+        if (!await saveProgressWithFeedback(context,
+            () => _progressController.markMasteryCompleteDialogShown())) {
+          return;
+        }
         _showMasteryCompleteDialogAfterReturn = true;
       }
       if (mounted) {
@@ -245,7 +281,10 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    await _progressController.completeLesson(completedLevel);
+    if (!await saveProgressWithFeedback(
+        context, () => _progressController.completeLesson(completedLevel))) {
+      return;
+    }
     if (mounted) {
       final progressState = _progressController.state;
       setState(() {
@@ -858,6 +897,8 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: qqBlack,
+      bottomNavigationBar:
+          ProgressSaveStatusView(controller: _progressController),
       appBar: AppBar(
         scrolledUnderElevation: 0.0,
         surfaceTintColor: Colors.transparent,
@@ -1228,7 +1269,12 @@ class _HomePageState extends State<HomePage> {
   Future<void> _completeSemanticMasteryChallenge(
     MasteryChallengeDefinition definition,
   ) async {
-    await _progressController.completeMasteryChallenge(definition.semanticId);
+    if (!await saveProgressWithFeedback(
+        context,
+        () => _progressController
+            .completeMasteryChallenge(definition.semanticId))) {
+      return;
+    }
     if (!mounted) return;
     setState(() => _progressState = _progressController.state);
   }
@@ -2024,7 +2070,10 @@ class _HomePageState extends State<HomePage> {
 
     final String? discoveryTitle = level.discoveryTitle?.trim();
     if (discoveryTitle != null && discoveryTitle.isNotEmpty) {
-      await _progressController.unlockDiscovery(discoveryTitle);
+      if (!await saveProgressWithFeedback(
+          context, () => _progressController.unlockDiscovery(discoveryTitle))) {
+        return;
+      }
       if (mounted) {
         final progressState = _progressController.state;
         setState(() {
