@@ -345,22 +345,19 @@ class SandboxPersistenceStore {
       encoded = await storage.readString(storageKey);
     }
     if (encoded == null) return null;
-    try {
-      final snapshot = SandboxCircuitSnapshot.decode(encoded);
-      snapshot.restoreCircuit();
-      if (snapshot.qubitCount != qubitCount) return null;
-      if (sourceKey == storageKey) {
-        await storage.writeString(workspaceKey, encoded);
-        await storage.delete(storageKey);
+    // Decode errors and storage failures both propagate without deleting source
+    // data. Neither is permission to replace a saved circuit with an empty one.
+    final snapshot = SandboxCircuitSnapshot.decode(encoded);
+    snapshot.restoreCircuit();
+    if (snapshot.qubitCount != qubitCount) return null;
+    if (sourceKey == storageKey) {
+      await storage.writeString(workspaceKey, encoded);
+      if (await storage.readString(workspaceKey) != encoded) {
+        throw StateError('Sandbox migration destination verification failed');
       }
-      return snapshot;
-    } catch (error) {
-      assert(() {
-        debugPrint('Discarding invalid Sandbox snapshot: $error');
-        return true;
-      }());
-      await storage.delete(sourceKey);
-      return null;
+      // AppStorage has no durable-flush contract. Keep the legacy recovery copy;
+      // the per-qubit record takes precedence on subsequent loads.
     }
+    return snapshot;
   }
 }

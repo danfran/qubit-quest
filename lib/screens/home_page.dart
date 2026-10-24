@@ -45,6 +45,8 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
+enum _HomeLoadState { loading, ready, error }
+
 class _HomePageState extends State<HomePage> {
   // Compatibility aliases. QubitQuestColors is the canonical authority.
   static const Color qqBlack = QubitQuestColors.background;
@@ -143,10 +145,11 @@ class _HomePageState extends State<HomePage> {
       widget.progressController;
   CampaignProgressState _progressState = CampaignProgressState.fresh();
   int _maxUnlockedLevel = 1;
-  bool _isLoadingLevels = true; // To show loading state
+  _HomeLoadState _loadState = _HomeLoadState.loading;
+  bool _progressLoadPending = false;
   bool _showMasteryCompleteDialogAfterReturn = false;
 
-  late PackageInfo _packageInfo;
+  PackageInfo? _packageInfo;
   List<MapEntry<String, String>>? _aboutData; // Data for the about dialog
 
   final InAppReview _inAppReview = InAppReview.instance;
@@ -154,42 +157,62 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _populateAboutData();
     _loadMaxUnlockedLevel();
     _initPackageInfo();
   }
 
   Future<void> _initPackageInfo() async {
-    final info = await PackageInfo.fromPlatform();
-    setState(() {
-      _packageInfo = info;
-      _populateAboutData(); // Populate the data once package info is loaded
-    });
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      setState(() {
+        _packageInfo = info;
+        _populateAboutData();
+      });
+    } catch (error) {
+      // The static About details remain usable without platform metadata.
+      if (!mounted) return;
+      debugPrint('Unable to load app information: $error');
+    }
   }
 
   void _populateAboutData() {
     // This method creates the list of data to display in the grid
     _aboutData = [
-      MapEntry('App name', _packageInfo.appName),
+      MapEntry('App name', _packageInfo?.appName ?? 'Qubit Quest'),
       MapEntry('Author', 'Eigenplay'),
-      MapEntry('Package name', _packageInfo.packageName),
-      MapEntry('App version', _packageInfo.version),
-      MapEntry('Build number', _packageInfo.buildNumber),
-      MapEntry('Build signature', _packageInfo.buildSignature),
+      MapEntry('Package name', _packageInfo?.packageName ?? 'com.qubitquest'),
+      MapEntry('App version', _packageInfo?.version ?? 'Unavailable'),
+      MapEntry('Build number', _packageInfo?.buildNumber ?? 'Unavailable'),
       MapEntry(
-          'Installer store', _packageInfo.installerStore ?? 'not available'),
+          'Build signature', _packageInfo?.buildSignature ?? 'Unavailable'),
+      MapEntry(
+          'Installer store', _packageInfo?.installerStore ?? 'not available'),
       MapEntry('Contact', 'qubitquestapp@gmail.com'),
     ];
   }
 
   // Load campaign progression through the central controller.
   Future<void> _loadMaxUnlockedLevel() async {
-    final progressState = await _progressController.load();
-    setState(() {
-      _progressState = progressState;
-      _maxUnlockedLevel = progressState.maxUnlockedLevel;
-      _isLoadingLevels = false; // Loading complete
-    });
-    debugPrint('Loaded max unlocked level: $_maxUnlockedLevel');
+    if (!mounted || _progressLoadPending) return;
+    _progressLoadPending = true;
+    setState(() => _loadState = _HomeLoadState.loading);
+    try {
+      final progressState = await _progressController.load();
+      if (!mounted) return;
+      setState(() {
+        _progressState = progressState;
+        _maxUnlockedLevel = progressState.maxUnlockedLevel;
+        _loadState = _HomeLoadState.ready;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      debugPrint('Unable to load campaign progress: $error');
+      setState(() => _loadState = _HomeLoadState.error);
+    } finally {
+      _progressLoadPending = false;
+    }
   }
 
   // Preserve the existing completion callback contract while centralizing writes.
@@ -258,7 +281,8 @@ class _HomePageState extends State<HomePage> {
 
   void _showAboutDialog() {
     // Ensure data is ready before showing the dialog
-    if (!mounted || _aboutData == null) {
+    if (!mounted) return;
+    if (_aboutData == null) {
       debugPrint('About data not yet loaded.');
       _showUtilityFallbackMessage('About information is still loading.');
       return;
@@ -296,8 +320,7 @@ class _HomePageState extends State<HomePage> {
 
   // NEW: Method to handle rating the app
   Future<void> _rateApp() async {
-    final String packageName =
-        _aboutData == null ? 'com.qubitquest' : _packageInfo.packageName;
+    final String packageName = _packageInfo?.packageName ?? 'com.qubitquest';
 
     try {
       if (await _inAppReview.isAvailable()) {
@@ -792,9 +815,44 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoadingLevels) {
+    if (_loadState == _HomeLoadState.loading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_loadState == _HomeLoadState.error) {
+      return Scaffold(
+        backgroundColor: qqBlack,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Unable to load your progress',
+                        style: Theme.of(context).textTheme.titleLarge,
+                        textAlign: TextAlign.center),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Please try again. Your saved progress has not been reset. '
+                      'If this continues, contact support before changing app data.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: _loadMaxUnlockedLevel,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       );
     }
 

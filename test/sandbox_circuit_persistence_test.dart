@@ -259,61 +259,61 @@ void main() {
   group('Sandbox corruption handling', () {
     setUp(() => SharedPreferences.setMockInitialValues({}));
 
-    Future<void> expectDiscarded(String encoded) async {
+    Future<void> expectPreserved(String encoded) async {
       SharedPreferences.setMockInitialValues({
         SandboxPersistenceStore.storageKey: encoded,
       });
       const store = SandboxPersistenceStore();
-      expect(await store.loadSnapshot(1), isNull);
+      await expectLater(store.loadSnapshot(1), throwsFormatException);
       final preferences = await SharedPreferences.getInstance();
       expect(
-          preferences.containsKey(SandboxPersistenceStore.storageKey), isFalse);
+          preferences.getString(SandboxPersistenceStore.storageKey), encoded);
     }
 
-    test('malformed JSON and unknown schema are discarded', () async {
-      await expectDiscarded('{bad json');
-      await expectDiscarded(
+    test('malformed JSON and unknown schema are preserved', () async {
+      await expectPreserved('{bad json');
+      await expectPreserved(
         '{"schemaVersion":99,"qubitCount":1,"initialState":"0","operations":[]}',
       );
     });
 
-    test('missing fields and invalid qubit counts are discarded', () async {
-      await expectDiscarded(
+    test('missing fields and invalid qubit counts are preserved', () async {
+      await expectPreserved(
         '{"schemaVersion":1,"qubitCount":1,"initialState":"0"}',
       );
-      await expectDiscarded(
+      await expectPreserved(
         '{"schemaVersion":1,"qubitCount":0,"initialState":"",'
         '"operations":[]}',
       );
-      await expectDiscarded(
+      await expectPreserved(
         '{"schemaVersion":1,"qubitCount":6,"initialState":"000000",'
         '"operations":[]}',
       );
     });
 
-    test('unknown gate and out-of-range qubit are discarded', () async {
-      await expectDiscarded(
+    test('unknown gate and out-of-range qubit are preserved', () async {
+      await expectPreserved(
         '{"schemaVersion":1,"qubitCount":1,"initialState":"0",'
         '"operations":[{"gateType":"futureGate","column":0,"targetQubit":0}]}',
       );
-      await expectDiscarded(
+      await expectPreserved(
         '{"schemaVersion":1,"qubitCount":1,"initialState":"0",'
         '"operations":[{"gateType":"x","column":0,"targetQubit":2}]}',
       );
-      await expectDiscarded(
+      await expectPreserved(
         '{"schemaVersion":1,"qubitCount":2,"initialState":"00",'
         '"operations":[{"gateType":"cnot","column":0,"targetQubit":0,'
         '"controlQubit":2}]}',
       );
     });
 
-    test('malformed controlled topology is discarded', () async {
-      await expectDiscarded(
+    test('malformed controlled topology is preserved', () async {
+      await expectPreserved(
         '{"schemaVersion":1,"qubitCount":2,"initialState":"00",'
         '"operations":[{"gateType":"cnot","column":0,"targetQubit":0,'
         '"controlQubit":0}]}',
       );
-      await expectDiscarded(
+      await expectPreserved(
         '{"schemaVersion":1,"qubitCount":3,"initialState":"000",'
         '"operations":[{"gateType":"ccnot","column":0,"targetQubit":2,'
         '"controlQubit":0,"secondControlQubit":0}]}',
@@ -321,11 +321,11 @@ void main() {
     });
 
     test('missing, NaN-like and infinite rotations are rejected', () async {
-      await expectDiscarded(
+      await expectPreserved(
         '{"schemaVersion":1,"qubitCount":1,"initialState":"0",'
         '"operations":[{"gateType":"rx","column":0,"targetQubit":0}]}',
       );
-      await expectDiscarded(
+      await expectPreserved(
         '{"schemaVersion":1,"qubitCount":1,"initialState":"0",'
         '"operations":[{"gateType":"rx","column":0,"targetQubit":0,'
         '"angle":"NaN"}]}',
@@ -504,7 +504,7 @@ void main() {
       expect((await store.loadSnapshot(5))!.operations, hasLength(1));
       final preferences = await SharedPreferences.getInstance();
       expect(
-          preferences.containsKey(SandboxPersistenceStore.storageKey), isFalse);
+          preferences.containsKey(SandboxPersistenceStore.storageKey), isTrue);
       expect(
         preferences
             .containsKey(SandboxPersistenceStore.storageKeyForQubitCount(5)),
