@@ -1,3 +1,4 @@
+import 'package:quantumquiz/diagnostics/startup_diagnostics.dart';
 import 'package:quantumquiz/widgets/progress_save_feedback.dart';
 // home_page.dart
 
@@ -199,10 +200,11 @@ class _HomePageState extends State<HomePage> {
         _packageInfo = info;
         _populateAboutData();
       });
-    } catch (error) {
+    } catch (error, stack) {
       // The static About details remain usable without platform metadata.
       if (!mounted) return;
-      debugPrint('Unable to load app information: $error');
+      StartupDiagnostics.instance
+          .event('package_info.failed', error: error, stack: stack);
     }
   }
 
@@ -226,6 +228,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadMaxUnlockedLevel() async {
     if (!mounted || _progressLoadPending) return;
     _progressLoadPending = true;
+    StartupDiagnostics.instance.event('home.progress.begin');
     setState(() => _loadState = _HomeLoadState.loading);
     try {
       final progressState = await _progressController.load();
@@ -235,9 +238,16 @@ class _HomePageState extends State<HomePage> {
         _maxUnlockedLevel = progressState.maxUnlockedLevel;
         _loadState = _HomeLoadState.ready;
       });
-    } catch (error) {
+      StartupDiagnostics.instance.event('home.progress.succeeded');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _loadState == _HomeLoadState.ready) {
+          StartupDiagnostics.instance.event('home.ready');
+        }
+      });
+    } catch (error, stack) {
       if (!mounted) return;
-      debugPrint('Unable to load campaign progress: $error');
+      StartupDiagnostics.instance
+          .event('home.progress.failed', error: error, stack: stack);
       setState(() => _loadState = _HomeLoadState.error);
     } finally {
       _progressLoadPending = false;
@@ -883,7 +893,11 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 16),
                     FilledButton(
-                      onPressed: _loadMaxUnlockedLevel,
+                      onPressed: () {
+                        StartupDiagnostics.instance
+                            .event('home.retry_requested');
+                        _loadMaxUnlockedLevel();
+                      },
                       child: const Text('Retry'),
                     ),
                   ],

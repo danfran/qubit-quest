@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:quantumquiz/diagnostics/startup_diagnostics.dart';
+
 import 'package:flutter/foundation.dart';
 
 enum StartupPhase { loading, ready, error }
@@ -25,12 +27,14 @@ class StartupCoordinator extends ChangeNotifier {
   void start() {
     if (_started || _disposed) return;
     _started = true;
+    StartupDiagnostics.instance.event('startup.gate_activated');
     final orientation = configureOrientation;
     if (orientation != null) {
       // Optional platform configuration must never hold the readiness gate.
       unawaited(Future<void>.sync(orientation).then<void>((_) {},
           onError: (Object error, StackTrace stack) {
-        debugPrint('Startup orientation configuration failed: $error');
+        StartupDiagnostics.instance
+            .event('orientation.failed', error: error, stack: stack);
       }));
     }
     _waitOrInitialize();
@@ -38,6 +42,7 @@ class StartupCoordinator extends ChangeNotifier {
 
   void retry() {
     if (_disposed || phase != StartupPhase.error) return;
+    StartupDiagnostics.instance.event('startup.retry_requested');
     _waitOrInitialize();
   }
 
@@ -47,6 +52,7 @@ class StartupCoordinator extends ChangeNotifier {
     _timer?.cancel();
     _timer = Timer(waitLimit, () {
       if (_disposed) return;
+      StartupDiagnostics.instance.event('math.timeout');
       timedOut = true;
       phase = StartupPhase.error;
       notifyListeners();
@@ -54,24 +60,28 @@ class StartupCoordinator extends ChangeNotifier {
     notifyListeners();
     if (_pending) return;
     _pending = true;
+    StartupDiagnostics.instance.event('math.begin');
     unawaited(Future<void>.sync(initialize).then<void>((_) {
       _pending = false;
       if (_disposed) return;
       _timer?.cancel();
+      StartupDiagnostics.instance.event('math.succeeded');
       phase = StartupPhase.ready;
+      StartupDiagnostics.instance.event('application.ready');
       notifyListeners();
     }, onError: (Object error, StackTrace stack) {
       _pending = false;
-      _failed(error);
+      _failed(error, stack);
     }));
   }
 
-  void _failed(Object error) {
+  void _failed(Object error, StackTrace stack) {
     if (_disposed) return;
     _timer?.cancel();
     timedOut = false;
     phase = StartupPhase.error;
-    debugPrint('Startup math initialization failed: $error');
+    StartupDiagnostics.instance
+        .event('math.failed', error: error, stack: stack);
     notifyListeners();
   }
 

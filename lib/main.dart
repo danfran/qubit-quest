@@ -1,3 +1,4 @@
+import 'package:quantumquiz/diagnostics/startup_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart'; // Import for orientation control
@@ -14,7 +15,9 @@ import 'package:quantumquiz/storage/shared_preferences_app_storage.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
 void main() {
+  StartupDiagnostics.instance.event('flutter.start');
   WidgetsFlutterBinding.ensureInitialized();
+  StartupDiagnostics.instance.installErrorHandlers();
   runApp(StartupGate(
     createCoordinator: () => StartupCoordinator(
       initialize: initializeMathService,

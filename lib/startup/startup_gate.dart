@@ -1,3 +1,4 @@
+import 'package:quantumquiz/diagnostics/startup_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/startup/startup_coordinator.dart';
 
@@ -29,7 +30,10 @@ class _StartupGateState extends State<StartupGate> {
     _coordinator.addListener(_changed);
     // Let Flutter paint its own first frame before touching the WebView plugin.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _coordinator.start();
+      if (mounted) {
+        StartupDiagnostics.instance.event('flutter.first_frame');
+        _coordinator.start();
+      }
     });
   }
 

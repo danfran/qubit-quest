@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:quantumquiz/diagnostics/startup_diagnostics.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -49,6 +51,17 @@ class _DelayedStore extends InMemoryCampaignProgressStore {
 }
 
 void main() {
+  final diagnosticEvents = <Map<String, dynamic>>[];
+  late StartupDiagnostics originalDiagnostics;
+  setUp(() {
+    originalDiagnostics = StartupDiagnostics.instance;
+    diagnosticEvents.clear();
+    StartupDiagnostics.instance = StartupDiagnostics(sink: (line) {
+      diagnosticEvents.add(jsonDecode(line) as Map<String, dynamic>);
+    });
+  });
+  tearDown(() => StartupDiagnostics.instance = originalDiagnostics);
+
   const packageChannel =
       MethodChannel('dev.fluttercommunity.plus/package_info');
   setUp(() {
@@ -75,6 +88,33 @@ void main() {
 
   SharedPreferencesCampaignProgressStore backed(_Storage storage) =>
       SharedPreferencesCampaignProgressStore(storage: storage);
+
+  testWidgets('Home diagnostics identify failed loading, retry and ready frame',
+      (tester) async {
+    final storage = _Storage()..failRead = true;
+    await mount(tester, backed(storage));
+    await tester.pumpAndSettle();
+    final failed = diagnosticEvents
+        .singleWhere((e) => e['event'] == 'home.progress.failed');
+    expect(failed['error_type'], 'PlatformException');
+    expect(failed['message'], contains('storage_unavailable'));
+    expect(failed['stack'], isNotEmpty);
+    expect(diagnosticEvents.any((e) => e['event'] == 'home.ready'), false);
+    storage.failRead = false;
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+    final homeEvents = diagnosticEvents
+        .map((e) => e['event'])
+        .where((e) => (e as String).startsWith('home.'));
+    expect(homeEvents, [
+      'home.progress.begin',
+      'home.progress.failed',
+      'home.retry_requested',
+      'home.progress.begin',
+      'home.progress.succeeded',
+      'home.ready'
+    ]);
+  });
 
   testWidgets('successful load moves from spinner to Home', (tester) async {
     final store = _DelayedStore();

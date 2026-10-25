@@ -1,6 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:quantumquiz/diagnostics/startup_diagnostics.dart';
+
 import 'package:flutter_tex/flutter_tex.dart';
 
 /// Keeps the singleton server's cached URL valid across settled controller failures.
@@ -21,7 +22,8 @@ Future<void> initializeMathService() {
       result.completeError(error, stack);
     }
   }, (error, stack) {
-    debugPrint('Math service plugin setup error: $error');
+    StartupDiagnostics.instance
+        .event('math.plugin_async_error', error: error, stack: stack);
   });
   return result.future;
 }
