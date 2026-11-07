@@ -18,6 +18,10 @@ enum SelectedGateType {
   rz,
   delete,
   draggedGate,
+
+  /// Z-basis measurement grid cell. Not a unitary gate: it never enters the
+  /// unitary matrix engine and is excluded from logical gate footprints.
+  measureZ,
   // Add other gate types here
 }
 
@@ -157,6 +161,10 @@ class Gate {
       case SelectedGateType.rz:
         gateColor = Colors.purple.shade600;
         gateLabel = () => angle == null ? 'Rz' : 'Rz\n${formatAngle(angle)}';
+        break;
+      case SelectedGateType.measureZ:
+        gateColor = Colors.blueGrey;
+        gateLabel = () => 'M';
         break;
       default:
         gateColor = Colors.transparent;

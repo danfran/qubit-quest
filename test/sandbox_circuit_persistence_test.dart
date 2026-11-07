@@ -1,3 +1,6 @@
+import 'package:quantumquiz/models/sandbox_program_snapshot.dart';
+import 'package:quantumquiz/models/sandbox_workspace_persistence.dart';
+import 'package:quantumquiz/storage/app_storage.dart';
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -13,22 +16,18 @@ import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class _FailingSandboxPersistenceStore extends SandboxPersistenceStore {
-  const _FailingSandboxPersistenceStore();
-
+class _FaultStorage extends InMemoryAppStorage {
+  bool fail = true;
   @override
-  Future<void> saveSnapshot(SandboxCircuitSnapshot snapshot) =>
-      Future<void>.error(StateError('storage unavailable'));
+  Future<void> writeString(String key, String value) async {
+    if (fail) throw StateError('storage unavailable');
+    await super.writeString(key, value);
+  }
 }
 
 class _RetrySandboxStore extends SandboxPersistenceStore {
-  bool fail = true;
-  SandboxCircuitSnapshot? saved;
-  @override
-  Future<void> saveSnapshot(SandboxCircuitSnapshot snapshot) async {
-    if (fail) throw StateError('storage unavailable');
-    saved = snapshot;
-  }
+  _RetrySandboxStore() : super(storage: _FaultStorage());
+  set fail(bool value) => (storage as _FaultStorage).fail = value;
 }
 
 void main() {
@@ -524,17 +523,23 @@ void main() {
   });
 
   group('Sandbox Composer persistence ownership', () {
-    setUp(() => SharedPreferences.setMockInitialValues({}));
+    late SandboxPersistenceStore sandboxStore;
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+      sandboxStore = SandboxPersistenceStore(storage: InMemoryAppStorage());
+    });
 
     Future<QuantumCircuit> pumpComposer(
       WidgetTester tester, {
       required ComposerSessionOwnership ownership,
       SandboxCircuitSnapshot? snapshot,
+      SandboxProgramSnapshot? program,
       QuantumComposerController? controller,
       ComposerLevel? level,
       int? levelId,
-      SandboxPersistenceStore store = const SandboxPersistenceStore(),
+      SandboxPersistenceStore? store,
     }) async {
+      store ??= sandboxStore;
       tester.view.physicalSize = const Size(1200, 800);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
@@ -549,6 +554,7 @@ void main() {
             onLevelUnlocked: null,
             sessionOwnership: ownership,
             initialSandboxSnapshot: snapshot,
+            initialSandboxProgram: program,
             sandboxPersistenceStore: store,
             controller: controller,
           ),
@@ -587,16 +593,16 @@ void main() {
       );
       await tester.pumpAndSettle();
       final expectedState = List.of(original.currentState.stateVector);
-      final stored = await const SandboxPersistenceStore().loadSnapshot(2);
+      final stored = await sandboxStore.programs.load(2);
       expect(stored, isNotNull);
-      expect(stored!.operations, hasLength(1));
+      expect(stored!.program.operations, hasLength(1));
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
       final restored = await pumpComposer(
         tester,
         ownership: ComposerSessionOwnership.sandbox,
-        snapshot: stored,
+        program: stored,
       );
       expect(restored.logicalGates, hasLength(1));
       expect(restored.logicalGates.single.type, SelectedGateType.hadamard);
@@ -616,9 +622,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('clear-circuit')));
       await tester.pumpAndSettle();
-      final stored = await const SandboxPersistenceStore().loadSnapshot(2);
+      final stored = await sandboxStore.programs.load(2);
       expect(stored, isNotNull);
-      expect(stored!.operations, isEmpty);
+      expect(stored!.program.operations, isEmpty);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
@@ -629,7 +635,7 @@ void main() {
         (tester) async {
       final saved = circuit(2);
       insertSingle(saved, SelectedGateType.z, 0, 1);
-      const store = SandboxPersistenceStore();
+      final store = sandboxStore;
       await store.saveCircuit(saved);
       final before = (await store.loadSnapshot(2))!.encode();
 
@@ -699,12 +705,19 @@ void main() {
             location: CircuitLocation(column: i, qubit: 0));
       }
       await tester.pumpAndSettle();
-      expect(store.saved, isNull);
+      expect(
+          await store.storage
+              .readString(SandboxWorkspacePersistence.activeKey(2)),
+          isNull);
       expect(find.text('Circuit saved'), findsNothing);
       store.fail = false;
       await tester.tap(find.text('Retry save'));
       await tester.pumpAndSettle();
-      expect(store.saved!.operations, hasLength(2));
+      expect(
+          (await SandboxWorkspacePersistence(store.storage).load(2))!
+              .program
+              .operations,
+          hasLength(2));
       expect(find.text('Circuit saved'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
@@ -716,7 +729,7 @@ void main() {
         tester,
         ownership: ComposerSessionOwnership.sandbox,
         controller: controller,
-        store: const _FailingSandboxPersistenceStore(),
+        store: _RetrySandboxStore(),
       );
       expect(
         controller
@@ -736,7 +749,7 @@ void main() {
         (tester) async {
       final saved = circuit(2);
       insertSingle(saved, SelectedGateType.s, 0, 1);
-      const store = SandboxPersistenceStore();
+      final store = sandboxStore;
       await store.saveCircuit(saved);
       final before = (await store.loadSnapshot(2))!.encode();
 

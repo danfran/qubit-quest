@@ -1,3 +1,5 @@
+import 'sandbox_workspace_persistence.dart';
+import 'circuit_program.dart';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -138,6 +140,7 @@ class SandboxCircuitSnapshot {
       );
 
   factory SandboxCircuitSnapshot.capture(QuantumCircuit circuit) {
+    if (circuit.hasMeasurements) throw const NonUnitaryProgram();
     final footprints = [...circuit.logicalGates]..sort((first, second) {
         final column = first.column.compareTo(second.column);
         return column != 0
@@ -320,6 +323,8 @@ class SandboxPersistenceStore {
   });
 
   final AppStorage storage;
+  SandboxWorkspacePersistence get programs =>
+      SandboxWorkspacePersistence.forStorage(storage);
 
   static const String storageKey = 'sandbox_circuit_snapshot';
 

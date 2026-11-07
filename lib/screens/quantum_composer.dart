@@ -1,3 +1,5 @@
+import '../models/sandbox_program_snapshot.dart';
+import '../widgets/sandbox_load_recovery.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -115,6 +117,7 @@ class QuantumComposer extends StatefulWidget {
   final QuantumComposerController? controller;
   final ComposerSessionOwnership sessionOwnership;
   final SandboxCircuitSnapshot? initialSandboxSnapshot;
+  final SandboxProgramSnapshot? initialSandboxProgram;
   final SandboxPersistenceStore sandboxPersistenceStore;
   final MasteryChallengeDefinition? masteryChallenge;
 
@@ -128,6 +131,7 @@ class QuantumComposer extends StatefulWidget {
     this.controller,
     this.sessionOwnership = ComposerSessionOwnership.campaign,
     this.initialSandboxSnapshot,
+    this.initialSandboxProgram,
     this.sandboxPersistenceStore = const SandboxPersistenceStore(),
     this.masteryChallenge,
   });
@@ -198,7 +202,7 @@ class _QuantumComposerState extends State<QuantumComposer>
   AdaptiveLearningInsight? _adaptiveInsight;
   bool _adaptiveInsightDismissed = false;
   late final CircuitSaveQueue _sandboxSaves =
-      CircuitSaveQueue(widget.sandboxPersistenceStore.saveSnapshot);
+      widget.sandboxPersistenceStore.programs.queue(_numQubits);
 
   @override
   void initState() {
@@ -236,6 +240,8 @@ class _QuantumComposerState extends State<QuantumComposer>
     _currentHintIndex = -1;
 
     _circuit = _createInitialCircuit();
+    _previouslyMeasured = _circuit.hasMeasurements;
+    if (_ownsSandboxWorkspace) _circuit.addListener(_sandboxDefinitionChanged);
     final activeLevel = _circuit.currentLevel;
     _numQubits = activeLevel.numQubits;
     _sharedNonZeroOnly = defaultNonZeroOnlyForQubitCount(_numQubits);
@@ -260,7 +266,8 @@ class _QuantumComposerState extends State<QuantumComposer>
     if (_ownsSandboxWorkspace) {
       unawaited(_scheduleSandboxPersistence());
     }
-    _sandboxSaves.dispose();
+    if (_ownsSandboxWorkspace)
+      _circuit.removeListener(_sandboxDefinitionChanged);
     WidgetsBinding.instance.removeObserver(this);
     widget.controller?._detach();
     _notebookPulseController.dispose();
@@ -271,23 +278,31 @@ class _QuantumComposerState extends State<QuantumComposer>
       widget.sessionOwnership == ComposerSessionOwnership.sandbox;
 
   QuantumCircuit _createInitialCircuit() {
-    if (!_ownsSandboxWorkspace || widget.initialSandboxSnapshot == null) {
-      return QuantumCircuit(currentLevel: widget.level);
+    if (_ownsSandboxWorkspace) {
+      final program = widget.initialSandboxProgram;
+      if (program != null) {
+        final restored = program.restoreCircuit();
+        if (!restored.hasMeasurements) restored.runSimulation();
+        return restored;
+      }
+      final legacy = widget.initialSandboxSnapshot;
+      if (legacy != null) return legacy.restoreCircuit();
     }
-    try {
-      return widget.initialSandboxSnapshot!.restoreCircuit();
-    } catch (error) {
-      assert(() {
-        debugPrint('Unable to restore Sandbox circuit: $error');
-        return true;
-      }());
-      return QuantumCircuit(currentLevel: widget.level);
-    }
+    return QuantumCircuit(currentLevel: widget.level);
+  }
+
+  bool _previouslyMeasured = false;
+  void _sandboxDefinitionChanged() {
+    final becameUnitary = _previouslyMeasured && !_circuit.hasMeasurements;
+    _previouslyMeasured = _circuit.hasMeasurements;
+    if (becameUnitary) _circuit.runSimulation();
+    unawaited(_scheduleSandboxPersistence());
+    if (mounted) setState(() {});
   }
 
   Future<void> _scheduleSandboxPersistence() {
     if (!_ownsSandboxWorkspace) return Future<void>.value();
-    return _sandboxSaves.save(SandboxCircuitSnapshot.capture(_circuit));
+    return _sandboxSaves.saveProgram(SandboxProgramSnapshot.capture(_circuit));
   }
 
   @override
@@ -747,6 +762,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     // ** Call the void simulation method on the circuit **
     // This method executes the simulation and updates circuit.currentState internally.
     debugPrint(_circuit.toString());
+    if (_circuit.hasMeasurements) return;
     _circuit.runSimulation();
     final simulationError = _circuit.lastSimulationError;
     if (simulationError != null) {
@@ -1236,6 +1252,12 @@ class _QuantumComposerState extends State<QuantumComposer>
   }
 
   void _showOperatorMatrixDialog() {
+    if (_circuit.hasMeasurements) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content:
+              Text('Measurements cannot be represented by a unitary matrix.')));
+      return;
+    }
     final String teXMatrix =
         _formatMatrixForTeX(_circuit.getOverallCircuitMatrix());
 
@@ -2167,6 +2189,10 @@ class _QuantumComposerState extends State<QuantumComposer>
           ],
           Expanded(
             child: ComposerCircuitCanvas(
+              measurementPlacement:
+                  _ownsSandboxWorkspace && _placingMeasurement,
+              onMeasurementPlaced: () =>
+                  setState(() => _placingMeasurement = false),
               circuit: _circuit,
               selectedGateId: _selectedGateId,
               onGateTap: _handleCircuitTap,
@@ -2493,8 +2519,13 @@ class _QuantumComposerState extends State<QuantumComposer>
     );
   }
 
+  bool _placingMeasurement = false;
+
   Widget _buildGatePalette({required bool dense}) {
     return ComposerGatePalette(
+      onMeasurementTap: _ownsSandboxWorkspace
+          ? () => setState(() => _placingMeasurement = !_placingMeasurement)
+          : null,
       gates: _availableGates,
       dense: dense,
       onGateTap: (_) => _setInteractionMode(SelectedGateType.none),
@@ -2525,6 +2556,7 @@ class _QuantumComposerState extends State<QuantumComposer>
     bool dense = false,
     bool contentDriven = false,
   }) {
+    if (_circuit.hasMeasurements) return const UnexecutedMeasuredCircuit();
     return Container(
       key: ValueKey(
         summaryTitle == 'Target State'

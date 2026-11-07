@@ -7,6 +7,7 @@ import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
+import 'package:quantumquiz/models/sandbox_workspace_persistence.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/learning_map_screen.dart';
 import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
@@ -53,7 +54,8 @@ class _FailingCircuitStorage extends InMemoryAppStorage {
   bool fail = false;
   @override
   Future<void> writeString(String key, String value) async {
-    if (fail && key.startsWith(SandboxPersistenceStore.storageKey)) {
+    // Covers legacy schema-1 keys and schema-2 staging/active/recovery keys.
+    if (fail && key.startsWith('sandbox_circuit')) {
       throw StateError('save rejected');
     }
     await super.writeString(key, value);
@@ -188,11 +190,20 @@ void main() {
     await tester.tap(find.text('Clear'));
     await tester.pumpAndSettle();
     expect(find.text('Circuit not saved. Please retry.'), findsOneWidget);
-    expect((await store.loadSnapshot(1))!.operations, hasLength(1));
+    // Schema 2 owns Sandbox saves; a fresh reader still sees the saved gate.
+    expect(
+        (await SandboxWorkspacePersistence(storage).load(1))!
+            .program
+            .operations,
+        hasLength(1));
     storage.fail = false;
     await tester.tap(find.text('Retry save'));
     await tester.pumpAndSettle();
-    expect((await store.loadSnapshot(1))!.operations, isEmpty);
+    expect(
+        (await SandboxWorkspacePersistence(storage).load(1))!
+            .program
+            .operations,
+        isEmpty);
     expect(find.text('Circuit saved'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
+import 'package:quantumquiz/widgets/measurement_glyph.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
@@ -11,9 +12,17 @@ class ComposerGatePalette extends StatefulWidget {
     required this.onGateTap,
     required this.onInspectGate,
     this.dense = false,
+    this.onMeasurementTap,
+    this.measurementDraggable = false,
     this.embedded = false,
   });
 
+  /// Legacy tap-to-place measurement button (native host).
+  final VoidCallback? onMeasurementTap;
+
+  /// Shows a draggable measurement tile that behaves like the gate tiles and
+  /// produces [CircuitDragData.measurement] (Web host).
+  final bool measurementDraggable;
   final List<Gate> gates;
   final ValueChanged<Gate> onGateTap;
   final ValueChanged<Gate> onInspectGate;
@@ -157,12 +166,27 @@ class _ComposerGatePaletteState extends State<ComposerGatePalette> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
+                      if (widget.onMeasurementTap != null)
+                        Tooltip(
+                            message:
+                                'Measure Z: select, then tap a circuit slot',
+                            child: OutlinedButton(
+                                key: const ValueKey('measurement-palette'),
+                                onPressed: widget.onMeasurementTap,
+                                child: const Text('M'))),
                       for (final gate in widget.gates)
                         Padding(
                           padding: EdgeInsets.symmetric(
                             horizontal: widget.dense ? 1 : 2,
                           ),
                           child: _draggableGate(gate),
+                        ),
+                      if (widget.measurementDraggable)
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: widget.dense ? 1 : 2,
+                          ),
+                          child: _draggableMeasurement(),
                         ),
                     ],
                   ),
@@ -229,6 +253,31 @@ class _ComposerGatePaletteState extends State<ComposerGatePalette> {
             else
               gateRow,
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _draggableMeasurement() {
+    final size = widget.dense ? 38.0 : 52.0;
+    return Draggable<CircuitDragData>(
+      key: const ValueKey('measurement-palette'),
+      data: const CircuitDragData.measurement(),
+      feedback: Material(
+        color: Colors.transparent,
+        child: MeasurementGlyph(size: size),
+      ),
+      childWhenDragging: Opacity(
+        opacity: 0.46,
+        child: MeasurementGlyph(size: size),
+      ),
+      child: Tooltip(
+        message: 'Measure (Z basis): drag onto a qubit wire',
+        child: Semantics(
+          button: true,
+          label: 'Measurement',
+          hint: 'Drag onto a qubit wire',
+          child: MeasurementGlyph(size: size),
         ),
       ),
     );

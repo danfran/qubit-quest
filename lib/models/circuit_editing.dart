@@ -137,20 +137,36 @@ enum MoveResult { moved, sameSlot, invalid, notFound, notMovable }
 
 enum RemoveGateResult { removed, notFound, notDeletable, notSingleQubit }
 
-enum CircuitDragSource { palette, placed }
+enum CircuitDragSource { palette, placed, measurement }
 
 @immutable
 class CircuitDragData {
   final CircuitDragSource source;
-  final Gate gate;
+  final Gate? _gate;
   final GateId? sourceId;
 
-  const CircuitDragData.palette(this.gate)
-      : source = CircuitDragSource.palette,
+  const CircuitDragData.palette(Gate gate)
+      : _gate = gate,
+        source = CircuitDragSource.palette,
         sourceId = null;
 
-  const CircuitDragData.placed({required this.sourceId, required this.gate})
-      : source = CircuitDragSource.placed;
+  const CircuitDragData.placed({required this.sourceId, required Gate gate})
+      : _gate = gate,
+        source = CircuitDragSource.placed;
+
+  /// A Z-basis measurement (new from the palette, or an existing one being
+  /// moved). It is not a unitary [Gate]; check [isMeasurement] before [gate].
+  /// [sourceId] is set when an existing measurement is being moved.
+  const CircuitDragData.measurement({this.sourceId})
+      : _gate = null,
+        source = CircuitDragSource.measurement;
+
+  /// The dragged unitary gate. Throws for measurement drags.
+  Gate get gate =>
+      _gate ??
+      (throw StateError('Measurement drag data carries no unitary gate.'));
 
   bool get isPlaced => source == CircuitDragSource.placed;
+  bool get isMeasurement => source == CircuitDragSource.measurement;
+  bool get isMeasurementMove => isMeasurement && sourceId != null;
 }

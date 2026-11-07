@@ -57,14 +57,16 @@ class LogicalGateFootprint {
         SelectedGateType.ry,
         SelectedGateType.rz,
       }.contains(type);
-  bool get isControlled => !isSingleQubit;
+  bool get isMeasurement =>
+      type == SelectedGateType.measureZ && fragments.length == 1;
+  bool get isControlled => !isSingleQubit && !isMeasurement;
   bool get isEditable => isSingleQubit && isDeletable;
   bool get supportsControlledHorizontalMovement =>
       type == SelectedGateType.cnot ||
       type == SelectedGateType.cz ||
       type == SelectedGateType.ccnot;
   bool get canMoveHorizontally =>
-      isSingleQubit || supportsControlledHorizontalMovement;
+      isSingleQubit || isMeasurement || supportsControlledHorizontalMovement;
   bool get canTranslateRigidly => canMoveHorizontally;
   bool get isMovable => canMoveHorizontally && isDeletable;
   bool get supportsParameterEditing => isSingleQubit && gate.requiresAngle;
@@ -83,7 +85,7 @@ class LogicalGateFootprint {
             fragments.length) {
       return false;
     }
-    if (isSingleQubit) return true;
+    if (isSingleQubit || isMeasurement) return true;
 
     bool metadataMatches(PlacedQuantumGate fragment) =>
         fragment.controlQubitIndex == controlQubit &&

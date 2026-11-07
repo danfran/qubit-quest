@@ -403,7 +403,9 @@ class QuantumCircuitPainter extends CustomPainter {
       debugPrint(
           'Drawing qubit line $primaryDrawingQubit with ${row.length} gates');
       for (final (currentX, placedGate) in row.indexed) {
-        if (previewGates == null && placedGate.id == ghostedGateId) {
+        if ((previewGates == null && placedGate.id == ghostedGateId) ||
+            // Measurement cells are drawn by the canvas measurement layer.
+            placedGate.isMeasurement) {
           gateXPosititionPerQubit[primaryDrawingQubit] += 1;
           continue;
         }

@@ -28,6 +28,7 @@ class QuantumInspectorViews extends StatefulWidget {
     required this.stateView,
     required this.currentStateVector,
     required this.numQubits,
+    this.allowBloch = true,
     required this.contentDriven,
     this.targetStateExpression,
     this.measureView,
@@ -39,10 +40,12 @@ class QuantumInspectorViews extends StatefulWidget {
   final Widget? measureView;
   final List<Complex> currentStateVector;
   final int numQubits;
+  final bool allowBloch;
   final bool contentDriven;
   final String? targetStateExpression;
 
-  bool get supportsBloch => numQubits == 1 && currentStateVector.length >= 2;
+  bool get supportsBloch =>
+      allowBloch && numQubits == 1 && currentStateVector.length >= 2;
 
   @override
   State<QuantumInspectorViews> createState() => _QuantumInspectorViewsState();
@@ -118,7 +121,9 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
             },
           ),
         ),
-        if (!widget.supportsBloch && _view != QuantumInspectorView.measure) ...[
+        if (widget.allowBloch &&
+            !widget.supportsBloch &&
+            _view != QuantumInspectorView.measure) ...[
           const SizedBox(height: 6),
           const Text(
             'Bloch view is available for single-qubit states.',

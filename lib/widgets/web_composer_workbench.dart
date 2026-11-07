@@ -38,6 +38,7 @@ class WebComposerWorkbench extends StatefulWidget {
     required this.stateViewBuilder,
     required this.currentStateVector,
     required this.numQubits,
+    this.allowBloch = true,
     required this.wideMainHeight,
     this.actionsBuilder,
     this.measureViewBuilder,
@@ -62,6 +63,7 @@ class WebComposerWorkbench extends StatefulWidget {
   final WebComposerWorkbenchRegionBuilder? measureViewBuilder;
   final List<Complex> currentStateVector;
   final int numQubits;
+  final bool allowBloch;
   final String? targetStateExpression;
   final Widget? circuitHeaderTrailing;
   final double wideLayoutBreakpoint;
@@ -183,6 +185,7 @@ class _WebComposerWorkbenchState extends State<WebComposerWorkbench> {
           measureView: widget.measureViewBuilder?.call(layout),
           currentStateVector: widget.currentStateVector,
           numQubits: widget.numQubits,
+          allowBloch: widget.allowBloch,
           contentDriven: layout.contentDrivenInspector,
           targetStateExpression: widget.targetStateExpression,
         ),

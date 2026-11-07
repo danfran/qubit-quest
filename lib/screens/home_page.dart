@@ -1,3 +1,4 @@
+import '../widgets/sandbox_load_recovery.dart';
 import 'package:quantumquiz/diagnostics/startup_diagnostics.dart';
 import 'package:quantumquiz/widgets/progress_save_feedback.dart';
 // home_page.dart
@@ -465,20 +466,22 @@ class _HomePageState extends State<HomePage> {
     ).then((selectedNumQubits) async {
       if (!mounted) return;
       if (selectedNumQubits != null) {
-        final snapshot = await widget.sandboxPersistenceStore
-            .loadSnapshot(selectedNumQubits);
-        if (!mounted) return;
+        final loaded = await loadSandboxWithRecovery(context,
+            widget.sandboxPersistenceStore.programs, selectedNumQubits);
+        if (!mounted || !loaded.opened) return;
+        final snapshot = loaded.snapshot;
+        final restored = snapshot?.restoreCircuit();
+        final level = restored?.currentLevel ??
+            createSandboxComposerLevel(selectedNumQubits);
+        restored?.dispose();
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
             builder: (context) => QuantumComposer(
               levelId: -1,
-              level: createSandboxComposerLevel(
-                selectedNumQubits,
-                initialBinaryState: snapshot?.initialBinaryState,
-              ),
+              level: level,
               onLevelUnlocked: null,
               sessionOwnership: ComposerSessionOwnership.sandbox,
-              initialSandboxSnapshot: snapshot,
+              initialSandboxProgram: snapshot,
               sandboxPersistenceStore: widget.sandboxPersistenceStore,
             ),
           ),

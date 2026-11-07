@@ -1,3 +1,4 @@
+import 'circuit_program.dart';
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/foundation.dart'; // Import this for ChangeNotifier
 import 'package:quantumquiz/models/qq_level.dart';
@@ -43,7 +44,326 @@ class QuantumCircuit extends ChangeNotifier {
   int _nextGateId = 1;
   bool _suppressStructuralNotifications = false;
 
-  GateId _allocateGateId() => GateId(_nextGateId++);
+  GateId _allocateGateId() {
+    final used = <int>{
+      for (final row in placedGates)
+        for (final cell in row)
+          if (cell.id != null) cell.id!.value,
+    };
+    while (used.contains(_nextGateId)) {
+      _nextGateId++;
+    }
+    return GateId(_nextGateId++);
+  }
+
+  // ── Measurements ─────────────────────────────────────────────────────────
+  //
+  // A measurement is a single-qubit grid cell ([SelectedGateType.measureZ])
+  // carrying its classical destination. Living in the grid, measurements take
+  // part in the same column shifting, compaction and move planning as gates,
+  // which never reorder cells within one qubit row. Ordering rules that the
+  // grid alone cannot express are enforced by [_orderingFacts].
+
+  /// Exclusive upper bound for classical destinations (schema-2 width limit).
+  static const int maxClassicalBits = 1024;
+
+  static PlacedQuantumGate _measurementCell(GateId id, int classicalBit) =>
+      PlacedQuantumGate(
+        id: id,
+        gate: Gate.fromIdentifier(SelectedGateType.measureZ),
+        classicalBit: classicalBit,
+      );
+
+  /// Measurements stored in [rows], ordered by column then qubit.
+  static List<MeasureZOperation> measurementsInRows(
+    List<List<PlacedQuantumGate>> rows,
+  ) {
+    final result = <MeasureZOperation>[];
+    for (final (qubit, row) in rows.indexed) {
+      for (final (column, cell) in row.indexed) {
+        if (cell.isMeasurement && cell.id != null) {
+          result.add(MeasureZOperation(
+            id: cell.id!,
+            column: column,
+            qubit: qubit,
+            classicalBit: cell.classicalBit ?? 0,
+          ));
+        }
+      }
+    }
+    result.sort((a, b) {
+      final column = a.column.compareTo(b.column);
+      return column != 0 ? column : a.qubit.compareTo(b.qubit);
+    });
+    return result;
+  }
+
+  List<MeasureZOperation> get measurements =>
+      List.unmodifiable(measurementsInRows(placedGates));
+  bool get hasMeasurements =>
+      placedGates.any((row) => row.any((cell) => cell.isMeasurement));
+
+  MeasureZOperation? measurementById(GateId id) {
+    for (final m in measurementsInRows(placedGates)) {
+      if (m.id == id) return m;
+    }
+    return null;
+  }
+
+  /// Ordering facts an edit must never newly create:
+  /// * `t:m:op` — an operation acts on a qubit after that qubit's
+  ///   measurement `m` (terminal-measurement policy; links are not operands);
+  /// * `c:a:b` / `c=a:b` — measurements sharing a classical bit, ordered or
+  ///   in one column.
+  /// Legacy circuits may already contain such facts; edits keep them (IDs are
+  /// stable) but cannot add new ones.
+  static Set<String> _orderingFacts(List<List<PlacedQuantumGate>> rows) {
+    final facts = <String>{};
+    final measured = measurementsInRows(rows);
+    for (final m in measured) {
+      final row = rows[m.qubit];
+      for (var column = m.column + 1; column < row.length; column++) {
+        final cell = row[column];
+        if (cell.id == null ||
+            cell.gate.type == SelectedGateType.none ||
+            cell.isLink) {
+          continue;
+        }
+        facts.add('t:${m.id.value}:${cell.id!.value}');
+      }
+    }
+    for (final a in measured) {
+      for (final b in measured) {
+        if (a.id == b.id || a.classicalBit != b.classicalBit) continue;
+        if (a.column < b.column) {
+          facts.add('c:${a.id.value}:${b.id.value}');
+        } else if (a.column == b.column && a.id.value < b.id.value) {
+          facts.add('c=${a.id.value}:${b.id.value}');
+        }
+      }
+    }
+    return facts;
+  }
+
+  static const String terminalMeasurementReason =
+      'A measured qubit cannot receive further operations. Place gates '
+      'before the measurement on that qubit.';
+  static const String classicalOrderReason =
+      'Each classical bit can be written by one measurement.';
+
+  static String? _orderingRegression(
+    List<List<PlacedQuantumGate>> before,
+    List<List<PlacedQuantumGate>> after,
+  ) {
+    final added = _orderingFacts(after).difference(_orderingFacts(before));
+    if (added.isEmpty) return null;
+    return added.any((fact) => fact.startsWith('t:'))
+        ? terminalMeasurementReason
+        : classicalOrderReason;
+  }
+
+  /// Whether the circuit already breaks the terminal-measurement policy
+  /// (possible only for circuits saved before it existed). Such circuits stay
+  /// as saved; edits may not add further violations.
+  bool get hasPostMeasurementOperations =>
+      _orderingFacts(placedGates).any((fact) => fact.startsWith('t:'));
+
+  int _deferredNotificationDepth = 0;
+  bool _pendingNotification = false;
+
+  @override
+  void notifyListeners() {
+    if (_deferredNotificationDepth > 0) {
+      _pendingNotification = true;
+      return;
+    }
+    super.notifyListeners();
+  }
+
+  /// Runs [edit] with notifications deferred, then keeps it only if it
+  /// changed the circuit without adding ordering violations and [dryRun] is
+  /// false. Otherwise the grid and ID allocator are restored exactly (cell
+  /// identities included) and listeners never observe the attempt.
+  ({CircuitEditOutcome outcome, List<List<PlacedQuantumGate>> rows})
+      _transaction(CircuitEditOutcome Function() edit, {bool dryRun = false}) {
+    final baseRows = _copyRows(placedGates);
+    final baseNextId = _nextGateId;
+    final wasPending = _pendingNotification;
+    _pendingNotification = false;
+    _deferredNotificationDepth++;
+    CircuitEditOutcome outcome;
+    try {
+      outcome = edit();
+    } catch (_) {
+      placedGates = baseRows;
+      _nextGateId = baseNextId;
+      _pendingNotification = wasPending;
+      rethrow;
+    } finally {
+      _deferredNotificationDepth--;
+    }
+    if (outcome.changed) {
+      final reason = _orderingRegression(baseRows, placedGates);
+      if (reason != null) {
+        outcome = CircuitEditOutcome(CircuitEditStatus.invalid, detail: reason);
+      }
+    }
+    final proposed = _copyRows(placedGates);
+    final keep = outcome.changed && !dryRun;
+    if (!keep) {
+      placedGates = baseRows;
+      _nextGateId = baseNextId;
+    }
+    final notify = keep && _pendingNotification;
+    _pendingNotification = wasPending;
+    if (notify) notifyListeners();
+    return (outcome: outcome, rows: proposed);
+  }
+
+  /// Gate edits are unchanged for unmeasured circuits; with measurements they
+  /// are validated against the ordering rules and rolled back if rejected.
+  CircuitEditOutcome _guardOrdering(CircuitEditOutcome Function() edit) =>
+      hasMeasurements ? _transaction(edit).outcome : edit();
+
+  /// Low-level exact placement into an empty cell (tests and constructed
+  /// programs). Never shifts, compacts or applies editing policy; Composer
+  /// editing uses [insertMeasurementWithOutcome].
+  MeasureZOperation addMeasurement(
+      {required int column, required int qubit, required int classicalBit}) {
+    if (classicalBit < 0 ||
+        classicalBit >= maxClassicalBits ||
+        qubit < 0 ||
+        qubit >= currentLevel.numQubits ||
+        column < 0 ||
+        _cellAt(placedGates, qubit, column).gate.type !=
+            SelectedGateType.none) {
+      throw const InvalidCircuitProgram('Invalid or occupied measurement slot');
+    }
+    final id = _allocateGateId();
+    final row = placedGates[qubit];
+    while (row.length <= column) {
+      row.add(PlacedQuantumGate.emptyGate());
+    }
+    row[column] = _measurementCell(id, classicalBit);
+    notifyListeners();
+    return measurementById(id)!;
+  }
+
+  CircuitEditOutcome _insertMeasurement(int qubit, int column, int? bit) {
+    final classicalBit = bit ?? qubit;
+    if (qubit < 0 ||
+        qubit >= currentLevel.numQubits ||
+        column < 0 ||
+        classicalBit < 0 ||
+        classicalBit >= maxClassicalBits) {
+      return CircuitEditOutcome.invalid;
+    }
+    final id = _allocateGateId();
+    return _insertSingleCell(_measurementCell(id, classicalBit), column, qubit);
+  }
+
+  /// Inserts a measurement like a single-qubit gate: into an empty slot, or
+  /// by shifting later operations right. The classical destination defaults
+  /// to the measured qubit index. Rejected (without change) when the qubit
+  /// already has later operations or the classical bit is in use.
+  CircuitEditOutcome insertMeasurementWithOutcome({
+    required int qubit,
+    required int column,
+    int? classicalBit,
+  }) =>
+      _transaction(() => _insertMeasurement(qubit, column, classicalBit))
+          .outcome;
+
+  /// Dry run of [insertMeasurementWithOutcome]; returns the proposed grid for
+  /// previews. Never mutates or notifies.
+  ({CircuitEditOutcome outcome, List<List<PlacedQuantumGate>> rows})
+      previewMeasurementInsertion({
+    required int qubit,
+    required int column,
+    int? classicalBit,
+  }) =>
+          _transaction(() => _insertMeasurement(qubit, column, classicalBit),
+              dryRun: true);
+
+  /// Dry run of a single-qubit gate insertion, used for drop previews.
+  ({
+    CircuitEditOutcome outcome,
+    List<List<PlacedQuantumGate>> rows
+  }) previewSingleGateInsertion(Gate gate, CircuitLocation location) =>
+      _transaction(
+        () => _insertSingleGate(gate, location.column, location.qubit),
+        dryRun: true,
+      );
+
+  /// Horizontal move of a measurement on its own qubit, using the shared
+  /// logical move planner (shifting and compaction included).
+  LogicalMovePlan planMeasurementMove(GateId id, int column) {
+    final footprint = _footprintById(id);
+    if (footprint == null || !footprint.isMeasurement) {
+      return LogicalMovePlan(
+        status: CircuitEditStatus.notFound,
+        sourceId: id,
+        baseRows: _copyRows(placedGates),
+        reason: 'Measurement not found.',
+      );
+    }
+    return _planMove(
+      id,
+      CircuitLocation(qubit: footprint.anchor.qubit, column: column),
+      footprint,
+    );
+  }
+
+  CircuitEditOutcome moveMeasurementWithOutcome(GateId id, int column) =>
+      commitLogicalGateMovePlan(planMeasurementMove(id, column));
+
+  /// Changes only the classical destination; ID, qubit and column are kept.
+  CircuitEditOutcome updateMeasurementClassicalBitWithOutcome(
+    GateId id,
+    int classicalBit,
+  ) {
+    if (classicalBit < 0 || classicalBit >= maxClassicalBits) {
+      return const CircuitEditOutcome(
+        CircuitEditStatus.invalid,
+        detail: 'Invalid classical bit.',
+      );
+    }
+    final current = measurementById(id);
+    if (current == null) return CircuitEditOutcome.notFound;
+    if (current.classicalBit == classicalBit) return CircuitEditOutcome.same;
+    return _transaction(() {
+      placedGates[current.qubit][current.column] =
+          _measurementCell(id, classicalBit);
+      notifyListeners();
+      return CircuitEditOutcome(CircuitEditStatus.changed, affectedGateId: id);
+    }).outcome;
+  }
+
+  /// Returns false when nothing changed; throws when the update is invalid.
+  bool updateMeasurementClassicalBit(GateId id, int classicalBit) {
+    final outcome = updateMeasurementClassicalBitWithOutcome(id, classicalBit);
+    if (outcome.status == CircuitEditStatus.invalid ||
+        outcome.status == CircuitEditStatus.notFound) {
+      throw InvalidCircuitProgram(outcome.detail ?? 'Measurement not found');
+    }
+    return outcome.changed;
+  }
+
+  CircuitEditOutcome removeMeasurementWithOutcome(GateId id) {
+    final current = measurementById(id);
+    if (current == null) return CircuitEditOutcome.notFound;
+    return _transaction(() {
+      placedGates[current.qubit][current.column] =
+          PlacedQuantumGate.emptyGate();
+      shiftLeft();
+      trimCircuit();
+      notifyListeners();
+      return CircuitEditOutcome(CircuitEditStatus.changed, affectedGateId: id);
+    }).outcome;
+  }
+
+  bool removeMeasurement(GateId id) => removeMeasurementWithOutcome(id).changed;
+
   // List to store the placed gate instances that define the circuit structure
   List<List<PlacedQuantumGate>> placedGates;
 
@@ -69,6 +389,74 @@ class QuantumCircuit extends ChangeNotifier {
     runSimulation(); // Automatically calls the simulation method
     debugPrint(
         'QuantumCircuit initialized and simulation started automatically!');
+  }
+
+  final Map<GateId, int> _restoredOrder = {};
+  int? restoredOrderFor(GateId id) => _restoredOrder[id];
+  int _reservedClassicalBits = 0;
+  int get classicalBitCount => measurementsInRows(placedGates).fold(
+      _reservedClassicalBits, (width, m) => max(width, m.classicalBit + 1));
+
+  /// Validated definition restoration only: no editing compaction or simulation.
+  QuantumCircuit.restoreProgram(
+      {required this.currentLevel, required CircuitProgram program})
+      : initialState = QubitState.fromList(program.initialState),
+        currentState = QubitState.fromList(program.initialState),
+        placedGates = List.generate(program.qubitCount, (_) => []) {
+    if (currentLevel.numQubits != program.qubitCount ||
+        !listEquals(currentLevel.initialQubitsState, program.initialState)) {
+      throw const InvalidCircuitProgram(
+          'Restoration level does not match program');
+    }
+    _reservedClassicalBits = program.classicalBitCount;
+    for (final op in program.operations) {
+      _restoredOrder[op.id] = _restoredOrder.length;
+      _nextGateId = max(_nextGateId, op.id.value + 1);
+      switch (op) {
+        case MeasureZOperation():
+          final row = placedGates[op.qubit];
+          while (row.length <= op.column) {
+            row.add(PlacedQuantumGate.emptyGate());
+          }
+          if (row[op.column].gate.type != SelectedGateType.none) {
+            throw const InvalidCircuitProgram('Overlapping editor footprints');
+          }
+          row[op.column] = _measurementCell(op.id, op.classicalBit);
+        case UnitaryOperation():
+          final operands = [
+            op.target,
+            if (op.control != null) op.control!,
+            if (op.secondControl != null) op.secondControl!
+          ];
+          final controlled = op.control != null;
+          final from = controlled ? operands.reduce(min) : op.target;
+          final to = controlled ? operands.reduce(max) : op.target;
+          for (var q = from; q <= to; q++) {
+            final row = placedGates[q];
+            while (row.length <= op.column) {
+              row.add(PlacedQuantumGate.emptyGate());
+            }
+            if (row[op.column].gate.type != SelectedGateType.none) {
+              throw const InvalidCircuitProgram(
+                  'Overlapping editor footprints');
+            }
+            row[op.column] = PlacedQuantumGate(
+                id: op.id,
+                gate: op.gate,
+                isDeletable: op.isDeletable,
+                controlQubitIndex: op.control,
+                control2QubitIndex: op.secondControl,
+                targetQubitIndex: controlled ? op.target : null,
+                isControl: q == op.control,
+                isControl2: q == op.secondControl,
+                isTarget: controlled && q == op.target,
+                isLink: controlled && !operands.contains(q));
+          }
+      }
+    }
+    if (logicalGates.any((g) => !g.hasValidTopology(program.qubitCount))) {
+      throw const InvalidCircuitProgram('Invalid restored footprint');
+    }
   }
 
   int maxCircuitDepth() => placedGates.map((e) => e.length).reduce(max);
@@ -110,6 +498,20 @@ class QuantumCircuit extends ChangeNotifier {
   }
 
   CircuitEditOutcome insertSingleGateWithOutcome(
+          Gate gate, int insertionPosition, int tappedQubitIndex,
+          {bool isDeletable = true,
+          GateId? gateId,
+          bool notifyChange = true}) =>
+      _guardOrdering(() => _insertSingleGate(
+            gate,
+            insertionPosition,
+            tappedQubitIndex,
+            isDeletable: isDeletable,
+            gateId: gateId,
+            notifyChange: notifyChange,
+          ));
+
+  CircuitEditOutcome _insertSingleGate(
       Gate gate, int insertionPosition, int tappedQubitIndex,
       {bool isDeletable = true, GateId? gateId, bool notifyChange = true}) {
     if (tappedQubitIndex < 0 ||
@@ -124,16 +526,36 @@ class QuantumCircuit extends ChangeNotifier {
       return CircuitEditOutcome.invalid;
     }
 
+    if (gateId != null && measurementById(gateId) != null) {
+      return CircuitEditOutcome.invalid;
+    }
     final resolvedId = gateId ?? _allocateGateId();
+    final outcome = _insertSingleCell(
+      PlacedQuantumGate(id: resolvedId, gate: gate, isDeletable: isDeletable),
+      insertionPosition,
+      tappedQubitIndex,
+      notifyChange: notifyChange,
+    );
+    return CircuitEditOutcome(
+      outcome.status,
+      affectedGateId: resolvedId,
+      resultingLocation: logicalGateById(resolvedId)?.anchor,
+    );
+  }
+
+  /// Places one single-qubit cell (gate or measurement): into an empty slot,
+  /// or by inserting a vertical line that shifts later operations right, then
+  /// compacts. Shared by gate and measurement insertion.
+  CircuitEditOutcome _insertSingleCell(
+    PlacedQuantumGate gateToInsert,
+    int insertionPosition,
+    int tappedQubitIndex, {
+    bool notifyChange = true,
+  }) {
     insertionPosition = _firstColumnWithoutProtectedCollision(
       placedGates,
       destinationQubits: [tappedQubitIndex],
       requestedColumn: insertionPosition,
-    );
-    PlacedQuantumGate gateToInsert = PlacedQuantumGate(
-      id: resolvedId,
-      gate: gate,
-      isDeletable: isDeletable,
     );
 
     if (placedGates[tappedQubitIndex].length <= insertionPosition) {
@@ -156,18 +578,24 @@ class QuantumCircuit extends ChangeNotifier {
     trimCircuit();
 
     if (notifyChange && !_suppressStructuralNotifications) notifyListeners();
+    final id = gateToInsert.id!;
+    final measurement = measurementById(id);
     return CircuitEditOutcome(
       CircuitEditStatus.changed,
-      affectedGateId: resolvedId,
-      resultingLocation: logicalGateById(resolvedId)?.anchor,
+      affectedGateId: id,
+      resultingLocation: measurement == null
+          ? logicalGateById(id)?.anchor
+          : CircuitLocation(
+              qubit: measurement.qubit, column: measurement.column),
     );
   }
 
+  /// Unitary gate footprints only; measurements are listed by [measurements].
   List<LogicalGateFootprint> get logicalGates {
     final ids = <GateId>{};
     for (final row in placedGates) {
       for (final gate in row) {
-        if (gate.id != null) ids.add(gate.id!);
+        if (gate.id != null && !gate.isMeasurement) ids.add(gate.id!);
       }
     }
     return ids
@@ -176,7 +604,16 @@ class QuantumCircuit extends ChangeNotifier {
         .toList(growable: false);
   }
 
+  /// Unitary gate footprint; null for measurements and unknown IDs.
   LogicalGateFootprint? logicalGateById(GateId id) {
+    final footprint = _footprintById(id);
+    return footprint == null || footprint.type == SelectedGateType.measureZ
+        ? null
+        : footprint;
+  }
+
+  /// Any grid footprint, measurements included (editing internals only).
+  LogicalGateFootprint? _footprintById(GateId id) {
     final fragments = <LogicalGateFragment>[];
     for (final (qubit, row) in placedGates.indexed) {
       for (final (column, placedGate) in row.indexed) {
@@ -294,6 +731,13 @@ class QuantumCircuit extends ChangeNotifier {
   LogicalMovePlan planLogicalGateMove(
     GateId id,
     CircuitLocation destination,
+  ) =>
+      _planMove(id, destination, logicalGateById(id));
+
+  LogicalMovePlan _planMove(
+    GateId id,
+    CircuitLocation destination,
+    LogicalGateFootprint? footprint,
   ) {
     final baseRows = _copyRows(placedGates);
     LogicalMovePlan rejected(CircuitEditStatus status, String reason) =>
@@ -304,7 +748,6 @@ class QuantumCircuit extends ChangeNotifier {
           reason: reason,
         );
 
-    final footprint = logicalGateById(id);
     if (footprint == null) {
       return rejected(CircuitEditStatus.notFound, 'Source GateId not found.');
     }
@@ -444,6 +887,10 @@ class QuantumCircuit extends ChangeNotifier {
         CircuitEditStatus.same,
         'Canonical compaction resolves to the original circuit.',
       );
+    }
+    final orderingReason = _orderingRegression(baseRows, compacted);
+    if (orderingReason != null) {
+      return rejected(CircuitEditStatus.invalid, orderingReason);
     }
 
     return LogicalMovePlan(
@@ -607,6 +1054,10 @@ class QuantumCircuit extends ChangeNotifier {
         'Proposal would corrupt a logical footprint.',
       );
     }
+    final orderingReason = _orderingRegression(baseRows, proposal);
+    if (orderingReason != null) {
+      return rejected(CircuitEditStatus.invalid, orderingReason);
+    }
 
     return LogicalDuplicationPlan(
       status: CircuitEditStatus.changed,
@@ -670,6 +1121,7 @@ class QuantumCircuit extends ChangeNotifier {
       isControl: gate.isControl,
       isControl2: gate.isControl2,
       isDeletable: gate.isDeletable,
+      classicalBit: gate.classicalBit,
     );
   }
 
@@ -688,6 +1140,7 @@ class QuantumCircuit extends ChangeNotifier {
         isControl: gate.isControl,
         isControl2: gate.isControl2,
         isDeletable: gate.isDeletable,
+        classicalBit: gate.classicalBit,
       );
 
   static int _maxDepthOf(List<List<PlacedQuantumGate>> rows) =>
@@ -801,7 +1254,7 @@ class QuantumCircuit extends ChangeNotifier {
     return CircuitEditStatus.changed;
   }
 
-  static List<List<PlacedQuantumGate>>? _compactDetachedRows(
+  List<List<PlacedQuantumGate>>? _compactDetachedRows(
     List<List<PlacedQuantumGate>> rows,
   ) {
     var moved = true;
@@ -988,7 +1441,10 @@ class QuantumCircuit extends ChangeNotifier {
     };
   }
 
-  CircuitEditOutcome removeLogicalGateByIdWithOutcome(GateId id) {
+  CircuitEditOutcome removeLogicalGateByIdWithOutcome(GateId id) =>
+      _guardOrdering(() => _removeLogicalGate(id));
+
+  CircuitEditOutcome _removeLogicalGate(GateId id) {
     final footprint = logicalGateById(id);
     if (footprint == null) return CircuitEditOutcome.notFound;
     if (!footprint.isDeletable) return CircuitEditOutcome.protected;
@@ -1142,7 +1598,14 @@ class QuantumCircuit extends ChangeNotifier {
   }
 
   CircuitEditOutcome insertDoubleGateWithOutcome(Gate gate,
-      int insertionPosition, int targetQubitIndex, int controlQubitIndex,
+          int insertionPosition, int targetQubitIndex, int controlQubitIndex,
+          {bool isDeletable = true}) =>
+      _guardOrdering(() => _insertDoubleGate(
+          gate, insertionPosition, targetQubitIndex, controlQubitIndex,
+          isDeletable: isDeletable));
+
+  CircuitEditOutcome _insertDoubleGate(Gate gate, int insertionPosition,
+      int targetQubitIndex, int controlQubitIndex,
       {bool isDeletable = true}) {
     if ((gate.type != SelectedGateType.cnot &&
             gate.type != SelectedGateType.cz) ||
@@ -1282,11 +1745,18 @@ class QuantumCircuit extends ChangeNotifier {
   }
 
   CircuitEditOutcome insertTripleGateWithOutcome(
-      Gate gate,
-      int insertionPosition,
-      int targetQubitIndex,
-      int control1QubitIndex,
-      int control2QubitIndex,
+          Gate gate,
+          int insertionPosition,
+          int targetQubitIndex,
+          int control1QubitIndex,
+          int control2QubitIndex,
+          {bool isDeletable = true}) =>
+      _guardOrdering(() => _insertTripleGate(gate, insertionPosition,
+          targetQubitIndex, control1QubitIndex, control2QubitIndex,
+          isDeletable: isDeletable));
+
+  CircuitEditOutcome _insertTripleGate(Gate gate, int insertionPosition,
+      int targetQubitIndex, int control1QubitIndex, int control2QubitIndex,
       {bool isDeletable = true}) {
     final qubits = {targetQubitIndex, control1QubitIndex, control2QubitIndex};
     if (gate.type != SelectedGateType.ccnot ||
@@ -1539,10 +2009,11 @@ class QuantumCircuit extends ChangeNotifier {
     return const CircuitEditOutcome(CircuitEditStatus.changed);
   }
 
-  List<List<PlacedQuantumGate>> clone(List<List<PlacedQuantumGate>> gates) =>
-      placedGates = gates
-          .map((element) => List<PlacedQuantumGate>.from(element))
-          .toList();
+  List<List<PlacedQuantumGate>> clone(List<List<PlacedQuantumGate>> gates) {
+    if (hasMeasurements) throw const NonUnitaryProgram();
+    return placedGates =
+        gates.map((element) => List<PlacedQuantumGate>.from(element)).toList();
+  }
 
   // --- BACKEND MATRIX GENERATION LOGIC ---
 
@@ -1662,6 +2133,7 @@ class QuantumCircuit extends ChangeNotifier {
   /// Generates the overall unitary matrix representing the entire quantum circuit.
   /// This is the "transform operator".
   QuantumMatrix getOverallCircuitMatrix() {
+    if (hasMeasurements) throw const NonUnitaryProgram();
     lastSimulationError = null;
     for (final footprint in logicalGates) {
       if (!footprint.hasValidTopology(currentLevel.numQubits)) {
@@ -1695,6 +2167,7 @@ class QuantumCircuit extends ChangeNotifier {
 
   /// Runs the quantum simulation, updating the current state vector.
   void runSimulation() {
+    if (hasMeasurements) throw const NonUnitaryProgram();
     simulationRunCount++;
     try {
       QuantumMatrix circuitMatrix = getOverallCircuitMatrix();

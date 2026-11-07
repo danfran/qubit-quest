@@ -13,6 +13,11 @@ class PlacedQuantumGate {
   final bool isControl2;
   final bool isDeletable;
 
+  /// Classical destination; set only on [SelectedGateType.measureZ] cells.
+  final int? classicalBit;
+
+  bool get isMeasurement => gate.type == SelectedGateType.measureZ;
+
   static PlacedQuantumGate emptyGate() =>
       PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.none));
 
@@ -30,7 +35,8 @@ class PlacedQuantumGate {
           controlQubitIndex == other.controlQubitIndex &&
           control2QubitIndex == other.control2QubitIndex &&
           targetQubitIndex == other.targetQubitIndex &&
-          isDeletable == other.isDeletable;
+          isDeletable == other.isDeletable &&
+          classicalBit == other.classicalBit;
 
   PlacedQuantumGate({
     required this.gate,
@@ -43,6 +49,7 @@ class PlacedQuantumGate {
     this.isTarget = false,
     this.isLink = false,
     this.isDeletable = true,
+    this.classicalBit,
   });
 
   @override
@@ -56,5 +63,6 @@ class PlacedQuantumGate {
       controlQubitIndex.hashCode ^
       control2QubitIndex.hashCode ^
       targetQubitIndex.hashCode ^
-      isDeletable.hashCode;
+      isDeletable.hashCode ^
+      classicalBit.hashCode;
 }

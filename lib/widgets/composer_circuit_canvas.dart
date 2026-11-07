@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:quantumquiz/models/circuit_program.dart';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,8 @@ import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/circuit_geometry.dart';
+import 'package:quantumquiz/widgets/circuit_layout_metrics.dart';
+import 'package:quantumquiz/widgets/measurement_glyph.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
@@ -40,10 +43,37 @@ class ComposerCircuitCanvas extends StatefulWidget {
     required this.onPlacedGateDragStarted,
     required this.onDeletePlacedGateRequested,
     this.onDragActiveChanged,
+    this.measurementPlacement = false,
+    this.onMeasurementPlaced,
+    this.onMeasurementDropped,
+    this.onMeasurementMoved,
+    this.onMeasurementSelected,
+    this.onDropRejected,
     this.enableDesktopHorizontalScrolling = false,
     this.surfaceTreatment = ComposerCircuitSurfaceTreatment.inset,
   });
 
+  final bool measurementPlacement;
+  final VoidCallback? onMeasurementPlaced;
+
+  /// Host-owned measurement placement from a [CircuitDragData.measurement]
+  /// drag. The location may be occupied; the host validates and reports it.
+  /// When null, measurement drags are refused.
+  final ValueChanged<CircuitLocation>? onMeasurementDropped;
+
+  /// Host-owned horizontal move of an existing measurement to a column.
+  /// When null, placed measurements are not draggable.
+  final void Function(GateId id, int column)? onMeasurementMoved;
+
+  /// Receives the reason when a drop targets a destination the circuit
+  /// rejects (shown in red while hovering). Opting in also enables exact
+  /// previews and rejection for gate drags in measured circuits.
+  final ValueChanged<String>? onDropRejected;
+
+  /// Host-owned measurement selection: the canvas highlights the measurement
+  /// whose ID equals [selectedGateId] and shows no canvas-local delete icon.
+  /// When null, the legacy canvas-local selection is used.
+  final ValueChanged<GateId>? onMeasurementSelected;
   final QuantumCircuit circuit;
   final GateId? selectedGateId;
   final ValueChanged<PlacedGateRef?> onGateTap;
@@ -67,6 +97,7 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
   final GlobalKey _gestureDetectorKey = GlobalKey();
   late final ScrollController _scrollController;
 
+  GateId? _selectedMeasurement;
   Offset? _draggingOffset;
   CircuitDropDestination? _draggingDestination;
   LogicalMovePlan? _draggingMovePlan;
@@ -79,13 +110,28 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
   bool _placedDragWasCancelled = false;
   Rect? _circuitViewportBounds;
   bool _reportedDragActive = false;
+  bool _draggingMeasurement = false;
+  CircuitDragData? _measurementDragData;
+
+  /// Exact proposed grid from a dry run or move plan, drawn while hovering.
+  List<List<PlacedQuantumGate>>? _editPreviewRows;
+
+  /// The operation being inserted or moved within [_editPreviewRows].
+  GateId? _previewId;
+
+  /// Reason the hovered destination is rejected, if it is.
+  String? _dropRejection;
+  CircuitDropDestination? _rejectedDestination;
+
+  bool get _hostOwnsMeasurements => widget.onMeasurementSelected != null;
 
   int get _numQubits => widget.circuit.currentLevel.numQubits;
 
   bool get _isDraggingGate =>
       _draggingOffset != null &&
-      _draggingGate.type != SelectedGateType.none &&
-      _draggingGate.type != SelectedGateType.delete;
+      (_draggingMeasurement ||
+          (_draggingGate.type != SelectedGateType.none &&
+              _draggingGate.type != SelectedGateType.delete));
 
   @override
   void initState() {
@@ -156,6 +202,7 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
                 columns: math.max(4, maxPosition + 4),
                 isDragging: _isDraggingGate,
                 destination: _draggingDestination,
+                rejectedDestination: _rejectedDestination,
               ),
             ),
             CustomPaint(
@@ -175,6 +222,7 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
                 child: _EmptyCircuitPrompt(isDragging: _isDraggingGate),
               ),
             ..._placedGateDragOverlays(),
+            ..._measurementOverlays(),
           ],
         ),
       ),
@@ -237,7 +285,120 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
       plan.status == CircuitEditStatus.changed ||
       plan.status == CircuitEditStatus.same;
 
+  void _updateMeasurementDrag(
+    Offset contentPosition,
+    CircuitDragData data, {
+    Offset? pointer,
+  }) {
+    final destination = CircuitGeometry.dropDestinationForPoint(
+      circuit: widget.circuit,
+      contentPoint: contentPosition,
+    );
+    List<List<PlacedQuantumGate>>? rows;
+    GateId? previewId;
+    String? rejection;
+    if (destination != null) {
+      final location = destination.location;
+      if (data.isMeasurementMove) {
+        final plan =
+            widget.circuit.planMeasurementMove(data.sourceId!, location.column);
+        if (plan.changed) {
+          rows = plan.proposedRows;
+          previewId = data.sourceId;
+        } else if (plan.status != CircuitEditStatus.same) {
+          rejection = plan.reason ?? 'The measurement cannot move there.';
+        }
+      } else {
+        final preview = widget.circuit.previewMeasurementInsertion(
+          qubit: location.qubit,
+          column: location.column,
+        );
+        if (preview.outcome.changed) {
+          rows = preview.rows;
+          previewId = preview.outcome.affectedGateId;
+        } else {
+          rejection =
+              preview.outcome.detail ?? 'A measurement cannot be placed there.';
+        }
+      }
+    }
+    setState(() {
+      if (pointer != null) _latestCircuitDragGlobalPosition = pointer;
+      _draggingMeasurement = true;
+      _measurementDragData = data;
+      _draggingOffset = contentPosition;
+      _draggingDestination = destination;
+      _draggingMovePlan = null;
+      _editPreviewRows = rows;
+      _previewId = previewId;
+      _dropRejection = rejection;
+      _rejectedDestination = rejection == null ? null : destination;
+    });
+    _reportDragActive(true);
+  }
+
+  /// Exact preview and rejection for gate drags in measured circuits, where
+  /// the terminal-measurement policy can reject a destination.
+  void _updateGateDropCheck(
+    CircuitDragData data,
+    CircuitDropDestination? destination,
+    LogicalMovePlan? movePlan,
+  ) {
+    _editPreviewRows = null;
+    _previewId = null;
+    _dropRejection = null;
+    _rejectedDestination = null;
+    if (widget.onDropRejected == null ||
+        !widget.circuit.hasMeasurements ||
+        destination == null) {
+      return;
+    }
+    if (data.isPlaced) {
+      if (movePlan != null && movePlan.status == CircuitEditStatus.invalid) {
+        _dropRejection = movePlan.reason ?? 'The gate cannot move there.';
+        _rejectedDestination = destination;
+      }
+      return;
+    }
+    // Ordering depends only on the occupied wire, so a plain X stands in for
+    // the dragged gate (rotation angles and controls are chosen on drop).
+    final preview = widget.circuit.previewSingleGateInsertion(
+      Gate.fromIdentifier(SelectedGateType.x),
+      destination.location,
+    );
+    if (preview.outcome.status == CircuitEditStatus.invalid) {
+      _dropRejection =
+          preview.outcome.detail ?? 'A gate cannot be placed there.';
+      _rejectedDestination = destination;
+    } else if (preview.outcome.changed && _isSingleQubitType(data.gate.type)) {
+      final id = preview.outcome.affectedGateId;
+      _editPreviewRows = [
+        for (final row in preview.rows)
+          [
+            for (final cell in row)
+              cell.id != null && cell.id == id
+                  ? PlacedQuantumGate(
+                      gate: Gate.fromIdentifier(SelectedGateType.draggedGate))
+                  : cell,
+          ],
+      ];
+    }
+  }
+
+  static bool _isSingleQubitType(SelectedGateType type) =>
+      type != SelectedGateType.cnot &&
+      type != SelectedGateType.cz &&
+      type != SelectedGateType.ccnot;
+
   void _onDragEnter(Offset globalPosition, CircuitDragData data) {
+    if (data.isMeasurement) {
+      if (!_acceptsMeasurementDrag(data)) return;
+      final contentPosition = _gatePositionToContent(globalPosition);
+      if (contentPosition != null) {
+        _updateMeasurementDrag(contentPosition, data, pointer: globalPosition);
+      }
+      return;
+    }
     if (data.isPlaced) {
       final source = widget.circuit.logicalGateById(data.sourceId!);
       if (source == null || !source.isMovable) {
@@ -260,6 +421,7 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
             destination.location,
           )
         : null;
+    final candidate = destination;
     if (movePlan != null && !_isValidMovePlan(movePlan)) destination = null;
     setState(() {
       _latestCircuitDragGlobalPosition = globalPosition;
@@ -267,6 +429,7 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
       _draggingDestination = destination;
       _draggingMovePlan = movePlan;
       _draggingGate = data.gate;
+      _updateGateDropCheck(data, candidate, movePlan);
     });
     _reportDragActive(_isDraggingGate);
   }
@@ -276,6 +439,10 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
     if (!mounted || pointer == null || !_isDraggingGate) return;
     final contentPosition = _gatePositionToContent(pointer);
     if (contentPosition == null) return;
+    if (_draggingMeasurement && _measurementDragData != null) {
+      _updateMeasurementDrag(contentPosition, _measurementDragData!);
+      return;
+    }
     final rawDestination = CircuitGeometry.dropDestinationForPoint(
       circuit: widget.circuit,
       contentPoint: contentPosition,
@@ -306,6 +473,12 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
     _draggingMovePlan = null;
     _latestCircuitDragGlobalPosition = null;
     _draggingGate = Gate.fromIdentifier(SelectedGateType.none);
+    _draggingMeasurement = false;
+    _measurementDragData = null;
+    _editPreviewRows = null;
+    _previewId = null;
+    _dropRejection = null;
+    _rejectedDestination = null;
     _reportDragActive(false);
   }
 
@@ -344,10 +517,232 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
       horizontalScrollOffset:
           _scrollController.hasClients ? _scrollController.offset : 0,
     );
+    final measurement = _measurementAt(contentPosition);
+    if (_hostOwnsMeasurements && measurement != null) {
+      widget.onMeasurementSelected!(measurement.id);
+      return;
+    }
+    if (widget.measurementPlacement) {
+      final qubit = CircuitGeometry.qubitForPoint(contentPosition, _numQubits);
+      if (qubit != null)
+        _placeMeasurement(
+            qubit, CircuitGeometry.insertionColumnForPoint(contentPosition));
+      return;
+    }
+    setState(() => _selectedMeasurement = null);
     widget.onGateTap(CircuitGeometry.hitTestGate(
       widget.circuit,
       contentPosition,
     ));
+  }
+
+  Future<void> _placeMeasurement(int qubit, int column) async {
+    final circuit = widget.circuit;
+    var destination = qubit;
+    final chosen = await showDialog<int>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+          builder: (context, update) => AlertDialog(
+                title: Text('Measure q$qubit in Z basis'),
+                content: DropdownButton<int>(
+                  value: destination,
+                  items: List.generate(
+                      math.max(_numQubits, circuit.classicalBitCount),
+                      (i) => DropdownMenuItem(value: i, child: Text('c$i'))),
+                  onChanged: (value) {
+                    if (value != null) update(() => destination = value);
+                  },
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel')),
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, destination),
+                      child: const Text('Place measurement')),
+                ],
+              )),
+    );
+    if (!mounted || chosen == null || !identical(circuit, widget.circuit))
+      return;
+    // Same ordering rules as the Web host (terminal measurement per qubit).
+    final outcome = circuit.insertMeasurementWithOutcome(
+        qubit: qubit, column: column, classicalBit: chosen);
+    if (outcome.changed) {
+      setState(() => _selectedMeasurement = outcome.affectedGateId);
+      widget.onGateTap(null);
+      widget.onMeasurementPlaced?.call();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Cannot place measurement: '
+              '${outcome.detail ?? 'choose another slot.'}')));
+    }
+  }
+
+  MeasureZOperation? _measurementAt(Offset contentPosition) {
+    for (final m in widget.circuit.measurements) {
+      final bounds = CircuitGeometry.singleGateBounds(
+          CircuitLocation(qubit: m.qubit, column: m.column));
+      if (bounds.inflate(5).contains(contentPosition)) return m;
+    }
+    return null;
+  }
+
+  bool _acceptsMeasurementDrag(CircuitDragData data) => data.isMeasurementMove
+      ? widget.onMeasurementMoved != null
+      : widget.onMeasurementDropped != null;
+
+  Widget _measurementGlyph(MeasureZOperation m, {bool selected = false}) =>
+      MeasurementGlyph(
+        size: CircuitLayoutMetrics.gateSize,
+        radius: 6,
+        classicalBit: m.classicalBit,
+        selected: selected,
+      );
+
+  Rect _measurementRect(MeasureZOperation m) =>
+      CircuitGeometry.singleGateBounds(
+          CircuitLocation(qubit: m.qubit, column: m.column));
+
+  List<Widget> _measurementOverlays() =>
+      _hostOwnsMeasurements ? _hostMeasurementLayers() : _legacyMeasurements();
+
+  /// Web host: a visual layer drawn from the current grid, or from the exact
+  /// proposed grid while hovering, plus transparent drag handles for moving.
+  List<Widget> _hostMeasurementLayers() {
+    final previewRows = _editPreviewRows;
+    final shown = QuantumCircuit.measurementsInRows(
+        previewRows ?? widget.circuit.placedGates);
+    final rejected = _draggingMeasurement ? _rejectedDestination : null;
+    final movingId = _measurementDragData?.sourceId;
+    return [
+      for (final m in shown)
+        Positioned.fromRect(
+          rect: _measurementRect(m),
+          child: IgnorePointer(
+            child: previewRows != null && m.id == _previewId
+                ? Opacity(
+                    key: const ValueKey('measurement-drop-preview'),
+                    opacity: .8,
+                    child: _measurementGlyph(m),
+                  )
+                : Semantics(
+                    key: ValueKey('measurement-${m.id.value}'),
+                    selected: widget.selectedGateId == m.id,
+                    label: 'Measure Z q${m.qubit} to c${m.classicalBit}',
+                    child: Opacity(
+                      opacity: previewRows == null &&
+                              rejected != null &&
+                              m.id == movingId
+                          ? .45
+                          : 1,
+                      child: _measurementGlyph(
+                        m,
+                        selected: widget.selectedGateId == m.id,
+                      ),
+                    ),
+                  ),
+          ),
+        ),
+      if (rejected != null)
+        Positioned.fromRect(
+          rect: CircuitGeometry.singleGateBounds(rejected.location),
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: .85,
+              child: MeasurementGlyph(
+                key: const ValueKey('measurement-drop-preview-rejected'),
+                size: CircuitLayoutMetrics.gateSize,
+                radius: 6,
+                classicalBit: movingId == null
+                    ? rejected.location.qubit
+                    : widget.circuit.measurementById(movingId)?.classicalBit,
+                rejected: true,
+              ),
+            ),
+          ),
+        ),
+      if (widget.onMeasurementMoved != null)
+        for (final m in widget.circuit.measurements)
+          Positioned.fromRect(
+            rect: _measurementRect(m).inflate(3),
+            child: Draggable<CircuitDragData>(
+              key: ValueKey('measurement-drag-${m.id.value}'),
+              data: CircuitDragData.measurement(sourceId: m.id),
+              dragAnchorStrategy: pointerDragAnchorStrategy,
+              feedback: Transform.translate(
+                offset: const Offset(
+                  -CircuitLayoutMetrics.gateSize / 2,
+                  -CircuitLayoutMetrics.gateSize / 2,
+                ),
+                child: Opacity(opacity: .85, child: _measurementGlyph(m)),
+              ),
+              // Taps fall through to the canvas gesture detector (selection);
+              // only a drag beyond touch slop starts a move.
+              child: const ColoredBox(color: Colors.transparent),
+            ),
+          ),
+    ];
+  }
+
+  /// Native host: canvas-local selection with the legacy delete affordance.
+  List<Widget> _legacyMeasurements() {
+    final preview = _draggingMeasurement ? _draggingDestination : null;
+    return [
+      for (final measurement in widget.circuit.measurements)
+        Positioned.fromRect(
+          rect: _measurementRect(measurement),
+          child: Semantics(
+            button: true,
+            selected: _selectedMeasurement == measurement.id,
+            label: 'Measure Z q${measurement.qubit} to '
+                'c${measurement.classicalBit}',
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                key: ValueKey('measurement-${measurement.id.value}'),
+                borderRadius: BorderRadius.circular(6),
+                onTap: () {
+                  widget.onGateTap(null);
+                  setState(() => _selectedMeasurement = measurement.id);
+                },
+                child: _measurementGlyph(
+                  measurement,
+                  selected: _selectedMeasurement == measurement.id,
+                ),
+              ),
+            ),
+          ),
+        ),
+      if (preview != null)
+        Positioned.fromRect(
+          rect: CircuitGeometry.singleGateBounds(preview.location),
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: .8,
+              child: MeasurementGlyph(
+                key: const ValueKey('measurement-drop-preview'),
+                size: CircuitLayoutMetrics.gateSize,
+                radius: 6,
+                classicalBit: preview.location.qubit,
+              ),
+            ),
+          ),
+        ),
+      if (_selectedMeasurement != null &&
+          widget.circuit.measurements.any((m) => m.id == _selectedMeasurement))
+        Positioned(
+            right: 8,
+            top: 0,
+            child: IconButton(
+              tooltip: 'Remove measurement',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () {
+                widget.circuit.removeMeasurement(_selectedMeasurement!);
+                setState(() => _selectedMeasurement = null);
+              },
+            )),
+    ];
   }
 
   void _capturePlacedDragOrigin(
@@ -419,8 +814,9 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
   }
 
   List<List<PlacedQuantumGate>>? _dragPreview() {
+    if (_editPreviewRows != null) return _editPreviewRows;
     final destination = _draggingDestination;
-    if (destination == null) return null;
+    if (destination == null || _draggingMeasurement) return null;
     if (_activeDragData?.isPlaced ?? false) {
       return _draggingMovePlan?.proposedRows;
     }
@@ -469,13 +865,17 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
         builder: (context, constraints) {
+          // Includes measurement barrier columns, not only gate rows.
           final maxPosition = widget.circuit.isCircuitEmpty()
               ? -1
-              : widget.circuit.placedGates
-                  .map((row) => row.length)
-                  .reduce(math.max);
+              : widget.circuit.maxCircuitDepth();
           final width = math.max(
-            CircuitGeometry.contentWidth(widget.circuit),
+            math.max(
+                CircuitGeometry.contentWidth(widget.circuit),
+                (widget.circuit.measurements.fold<int>(
+                            0, (v, m) => math.max(v, m.column + 3))) *
+                        QuantumCircuitPainter.gateSpacing +
+                    QuantumCircuitPainter.padding * 2),
             constraints.maxWidth,
           );
           final drawingHeight =
@@ -483,6 +883,34 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
           final viewportHeight = math.max(drawingHeight, constraints.maxHeight);
           return DragTarget<CircuitDragData>(
             onAcceptWithDetails: (details) async {
+              final data = details.data;
+              final rejection = _dropRejection;
+              if (data.isMeasurement) {
+                final contentPosition = _gatePositionToContent(details.offset);
+                final destination = _draggingDestination ??
+                    (contentPosition == null
+                        ? null
+                        : CircuitGeometry.dropDestinationForPoint(
+                            circuit: widget.circuit,
+                            contentPoint: contentPosition,
+                          ));
+                if (mounted) setState(_clearDragState);
+                if (destination == null) return;
+                if (rejection != null) {
+                  widget.onDropRejected?.call(rejection);
+                } else if (data.isMeasurementMove) {
+                  widget.onMeasurementMoved
+                      ?.call(data.sourceId!, destination.location.column);
+                } else {
+                  widget.onMeasurementDropped?.call(destination.location);
+                }
+                return;
+              }
+              if (rejection != null) {
+                if (mounted) setState(_clearDragState);
+                widget.onDropRejected?.call(rejection);
+                return;
+              }
               final intent = _dropIntent(details);
               if (intent != null) await widget.onDropRequested(intent);
               if (mounted) setState(_clearDragState);
@@ -490,8 +918,13 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
             onLeave: (_) => setState(_clearDragState),
             onMove: (details) => _onDragEnter(details.offset, details.data),
             onWillAcceptWithDetails: (details) {
+              if (details.data.isMeasurement &&
+                  !_acceptsMeasurementDrag(details.data)) {
+                return false;
+              }
               _onDragEnter(details.offset, details.data);
-              return details.data.gate.type != SelectedGateType.delete;
+              return details.data.isMeasurement ||
+                  details.data.gate.type != SelectedGateType.delete;
             },
             builder: (context, candidateData, rejectedData) => KeyedSubtree(
               key: const ValueKey('circuit-interaction-surface'),
@@ -663,12 +1096,16 @@ class _CircuitGuidePainter extends CustomPainter {
     required this.columns,
     required this.isDragging,
     required this.destination,
+    this.rejectedDestination,
   });
 
   final int numQubits;
   final int columns;
   final bool isDragging;
   final CircuitDropDestination? destination;
+
+  /// Hovered destination the circuit rejects; drawn in red.
+  final CircuitDropDestination? rejectedDestination;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -689,6 +1126,14 @@ class _CircuitGuidePainter extends CustomPainter {
     final activeLanePaint = Paint()
       ..color = _ComposerCircuitCanvasState._cyan.withValues(alpha: 0.06)
       ..style = PaintingStyle.fill;
+    final rejectedSlotPaint = Paint()
+      ..color = const Color(0xFFFF6B6B).withValues(alpha: 0.85)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    final rejectedSlotFillPaint = Paint()
+      ..color = const Color(0xFFFF6B6B).withValues(alpha: 0.12)
+      ..style = PaintingStyle.fill;
+    final rejected = rejectedDestination?.location;
     final activeQubit = destination?.location.qubit;
     final activeColumn = destination?.location.column;
 
@@ -728,7 +1173,15 @@ class _CircuitGuidePainter extends CustomPainter {
           ),
           const Radius.circular(7),
         );
-        if (isDragging && activeQubit == qubit && activeColumn == column) {
+        if (isDragging &&
+            rejected != null &&
+            rejected.qubit == qubit &&
+            rejected.column == column) {
+          canvas.drawRRect(slot, rejectedSlotFillPaint);
+          canvas.drawRRect(slot, rejectedSlotPaint);
+        } else if (isDragging &&
+            activeQubit == qubit &&
+            activeColumn == column) {
           canvas.drawRRect(slot, activeSlotFillPaint);
           canvas.drawRRect(slot, activeSlotPaint);
         }
@@ -741,5 +1194,6 @@ class _CircuitGuidePainter extends CustomPainter {
       oldDelegate.numQubits != numQubits ||
       oldDelegate.columns != columns ||
       oldDelegate.isDragging != isDragging ||
-      oldDelegate.destination != destination;
+      oldDelegate.destination != destination ||
+      oldDelegate.rejectedDestination != rejectedDestination;
 }

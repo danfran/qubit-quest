@@ -7,6 +7,7 @@ import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/circuit_geometry.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
+import 'package:quantumquiz/widgets/measurement_glyph.dart';
 
 void main() {
   QuantumCircuit circuitWithControlledGate() {
@@ -28,6 +29,39 @@ void main() {
     );
     return circuit;
   }
+
+  testWidgets(
+      'measurement destination renders and stable selection removes only measurement',
+      (tester) async {
+    final circuit = circuitWithControlledGate();
+    final measurement =
+        circuit.addMeasurement(column: 2, qubit: 1, classicalBit: 4);
+    final gateId = circuit.logicalGates.single.id;
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: SizedBox(
+      width: 400,
+      height: 180,
+      child: ComposerCircuitCanvas(
+        circuit: circuit,
+        selectedGateId: null,
+        onGateTap: (_) {},
+        onDropRequested: (_) async {},
+        onPlacedGateDragStarted: (_) {},
+        onDeletePlacedGateRequested: (_) {},
+      ),
+    ))));
+    expect(find.byType(MeasurementGlyph), findsOneWidget);
+    expect(find.text('c4'), findsOneWidget);
+    await tester
+        .tap(find.byKey(ValueKey('measurement-${measurement.id.value}')));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Remove measurement'));
+    await tester.pump();
+    expect(circuit.hasMeasurements, isFalse);
+    expect(circuit.logicalGates.single.id, gateId);
+    expect(find.byType(MeasurementGlyph), findsNothing);
+  });
 
   testWidgets('renders and reports one logical controlled gate independently',
       (tester) async {

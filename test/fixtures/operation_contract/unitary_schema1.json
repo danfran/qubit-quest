@@ -1,0 +1,1 @@
+{"schemaVersion":1,"qubitCount":3,"initialState":"000","operations":[{"gateType":"hadamard","column":0,"targetQubit":0},{"gateType":"rx","column":1,"targetQubit":0,"angle":0.375},{"gateType":"cnot","column":2,"targetQubit":1,"controlQubit":0},{"gateType":"ccnot","column":3,"targetQubit":2,"controlQubit":0,"secondControlQubit":1}]}
