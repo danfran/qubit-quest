@@ -29,6 +29,10 @@ class QuantumInspectorViews extends StatefulWidget {
     required this.currentStateVector,
     required this.numQubits,
     this.allowBloch = true,
+    this.blochCaption,
+    this.blochNote,
+    this.blochUnavailableMessage,
+    this.keepBlochTabSelectable = false,
     required this.contentDriven,
     this.targetStateExpression,
     this.measureView,
@@ -41,6 +45,19 @@ class QuantumInspectorViews extends StatefulWidget {
   final List<Complex> currentStateVector;
   final int numQubits;
   final bool allowBloch;
+
+  /// Optional heading and explanation shown above the sphere, e.g. when the
+  /// vector is the state immediately before a terminal measurement.
+  final String? blochCaption;
+  final String? blochNote;
+
+  /// Explains why Bloch is unavailable; shown inside the Bloch tab when
+  /// [keepBlochTabSelectable] is true.
+  final String? blochUnavailableMessage;
+
+  /// Keeps the Bloch tab selectable even when the Bloch view is unsupported,
+  /// so navigation never changes; the tab then explains why instead.
+  final bool keepBlochTabSelectable;
   final bool contentDriven;
   final String? targetStateExpression;
 
@@ -65,7 +82,7 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
   }
 
   void _reconcileSelection() => _selection.reconcile(
-        supportsBloch: widget.supportsBloch,
+        supportsBloch: widget.supportsBloch || widget.keepBlochTabSelectable,
         supportsMeasure: widget.measureView != null,
       );
 
@@ -82,7 +99,10 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
             ? widget.measureView!
             : _view == QuantumInspectorView.bloch && widget.supportsBloch
                 ? _blochView()
-                : widget.stateView;
+                : _view == QuantumInspectorView.bloch &&
+                        widget.keepBlochTabSelectable
+                    ? _blochUnavailable()
+                    : widget.stateView;
     return Column(
       key: const ValueKey('quantum-inspector-views'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -102,7 +122,7 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
                 value: QuantumInspectorView.bloch,
                 label: const Text('Bloch'),
                 icon: const Icon(Icons.language_outlined, size: 15),
-                enabled: widget.supportsBloch,
+                enabled: widget.supportsBloch || widget.keepBlochTabSelectable,
               ),
               if (widget.measureView != null)
                 const ButtonSegment(
@@ -123,6 +143,7 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
         ),
         if (widget.allowBloch &&
             !widget.supportsBloch &&
+            !widget.keepBlochTabSelectable &&
             _view != QuantumInspectorView.measure) ...[
           const SizedBox(height: 6),
           const Text(
@@ -139,6 +160,29 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
       ],
     );
   }
+
+  Widget _blochUnavailable() => Padding(
+        key: const ValueKey('quantum-inspector-bloch-unavailable-panel'),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.info_outline,
+                size: 16, color: QubitQuestColors.textMuted),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                widget.blochUnavailableMessage ??
+                    'The Bloch sphere shows a single qubit. This circuit has '
+                        '${widget.numQubits} qubits; use State to inspect it.',
+                key: const ValueKey(
+                    'quantum-inspector-bloch-unavailable-reason'),
+                style: QubitQuestTypography.supporting,
+              ),
+            ),
+          ],
+        ),
+      );
 
   Widget _blochView() {
     final state = BlochState.fromAmplitudes(
@@ -162,6 +206,25 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
           mainAxisSize:
               widget.contentDriven ? MainAxisSize.min : MainAxisSize.max,
           children: [
+            if (widget.blochCaption case final caption?) ...[
+              Text(
+                caption,
+                key: const ValueKey('quantum-inspector-bloch-caption'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: QubitQuestColors.textPrimary,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              if (widget.blochNote case final note?)
+                Text(
+                  note,
+                  key: const ValueKey('quantum-inspector-bloch-note'),
+                  textAlign: TextAlign.center,
+                  style: QubitQuestTypography.supporting,
+                ),
+              const SizedBox(height: 6),
+            ],
             Center(
               child: SizedBox(
                 key: const ValueKey('quantum-inspector-bloch-sphere-region'),

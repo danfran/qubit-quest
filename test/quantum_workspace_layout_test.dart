@@ -127,13 +127,10 @@ void main() {
           find.byKey(const ValueKey('quantum-workspace-contextual-actions')));
       final inspector = tester.getRect(
           find.byKey(const ValueKey('quantum-workspace-inspection-pane')));
-      for (final name in [
-        'inspect',
-        'replace',
-        'duplicate',
-        'move',
-        'delete'
-      ]) {
+      // W4.3: movement is a hint, not a disabled control.
+      expect(find.byKey(const ValueKey('web-composer-move-selected-gate')),
+          findsNothing);
+      for (final name in ['inspect', 'replace', 'duplicate', 'delete']) {
         final control =
             find.byKey(ValueKey('web-composer-$name-selected-gate'));
         await tester.ensureVisible(control);
@@ -147,7 +144,9 @@ void main() {
       expect(footer.overlaps(inspector), isFalse);
       expect(tester.takeException(), isNull);
     }
-    await tester.ensureVisible(clear);
+    // Centre it: a minimal scroll can leave it under the pinned top bar.
+    await Scrollable.ensureVisible(tester.element(clear), alignment: .5);
+    await tester.pumpAndSettle();
     await tester.tap(clear);
     await tester.pumpAndSettle();
     expect(canvas.circuit.logicalGates, isEmpty);
@@ -217,7 +216,12 @@ void main() {
     expect(toolbar.right, lessThanOrEqualTo(primary.right));
     expect(toolbar.bottom, lessThanOrEqualTo(primary.bottom));
     expect(toolbar.right, lessThan(inspection.left));
-    expect(contextual.top, greaterThanOrEqualTo(mainRow.bottom));
+    // W4.2: independent cards. Selection/editing controls belong to the
+    // Circuit Workspace card; no footer spans both cards.
+    expect(contextual.top, greaterThanOrEqualTo(toolbar.bottom));
+    expect(contextual.left, greaterThanOrEqualTo(primary.left));
+    expect(contextual.right, lessThan(inspection.left));
+    expect(contextual.bottom, lessThanOrEqualTo(mainRow.bottom));
     expect(find.text('INSPECTOR'), findsOneWidget);
     expect(find.text('State'), findsOneWidget);
     expect(find.text('Bloch'), findsOneWidget);
@@ -230,9 +234,10 @@ void main() {
       find.byKey(const ValueKey('web-composer-live-indicator')),
       findsNothing,
     );
+    // The Inspector card sizes to its content (it scrolls inside its card).
     expect(
       tester.widget<StateVectorDisplay>(currentStateDisplay()).contentDriven,
-      isFalse,
+      isTrue,
     );
     expect(tester.takeException(), isNull);
   });
@@ -258,9 +263,12 @@ void main() {
     final contextual = tester.getRect(
       find.byKey(const ValueKey('quantum-workspace-contextual-actions')),
     );
-    expect(primary.bottom, lessThanOrEqualTo(toolbar.top));
-    expect(toolbar.bottom, lessThanOrEqualTo(inspection.top));
-    expect(inspection.bottom, lessThanOrEqualTo(contextual.top));
+    // W4.2: the Circuit Workspace card (canvas, palette, editing controls)
+    // stacks above the Inspector card.
+    expect(toolbar.top, greaterThanOrEqualTo(primary.top));
+    expect(toolbar.bottom, lessThanOrEqualTo(contextual.top));
+    expect(contextual.bottom, lessThanOrEqualTo(primary.bottom));
+    expect(primary.bottom, lessThanOrEqualTo(inspection.top));
     expect(
       tester.widget<StateVectorDisplay>(currentStateDisplay()).contentDriven,
       isTrue,

@@ -5,20 +5,23 @@ import 'package:advance_math/advance_math.dart';
 /// Transient observations from independent all-qubit Z-basis shots.
 /// Ownership and invalidation belong to the activity, not QuantumCircuit.
 class QuantumMeasurementResult {
-  QuantumMeasurementResult._(this.numQubits, Map<String, int> counts)
+  QuantumMeasurementResult._(
+      this.numQubits, this.shots, Map<String, int> counts)
       : counts = Map.unmodifiable(counts);
 
   static const int defaultShots = 100;
   final int numQubits;
   final Map<String, int> counts;
-  int get shots => defaultShots;
+  final int shots;
 
   /// Samples without modifying the ideal state. Keys use q0-LSB ordering.
   factory QuantumMeasurementResult.sample({
     required List<Complex> stateVector,
     required int numQubits,
     math.Random? random,
+    int shots = defaultShots,
   }) {
+    if (shots < 1) throw ArgumentError.value(shots, 'shots');
     if (numQubits < 1 || stateVector.length != 1 << numQubits) {
       throw ArgumentError('Statevector size does not match the qubit count.');
     }
@@ -46,7 +49,7 @@ class QuantumMeasurementResult {
     cumulative[cumulative.length - 1] = 1;
     final rng = random ?? math.Random();
     final counts = <String, int>{};
-    for (var shot = 0; shot < defaultShots; shot++) {
+    for (var shot = 0; shot < shots; shot++) {
       final draw = rng.nextDouble();
       var position = 0;
       while (position < cumulative.length - 1 && draw >= cumulative[position]) {
@@ -55,7 +58,7 @@ class QuantumMeasurementResult {
       final bits = support[position].toRadixString(2).padLeft(numQubits, '0');
       counts[bits] = (counts[bits] ?? 0) + 1;
     }
-    return QuantumMeasurementResult._(numQubits, {
+    return QuantumMeasurementResult._(numQubits, shots, {
       for (final bits in counts.keys.toList()..sort()) bits: counts[bits]!,
     });
   }

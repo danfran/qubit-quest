@@ -7,7 +7,6 @@ import 'package:quantumquiz/models/sandbox_workspace_persistence.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
-import 'package:quantumquiz/widgets/sandbox_load_recovery.dart';
 import 'package:quantumquiz/models/circuit_program.dart';
 import 'package:quantumquiz/models/sandbox_program_snapshot.dart';
 import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
@@ -141,10 +140,11 @@ void main() {
 
     final m = _circuit(tester).measurements.single;
     expect((m.qubit, m.column, m.classicalBit), (2, 0, 2));
-    expect(find.text('Measurement Z — q2 → c2'), findsOneWidget);
+    expect(find.textContaining('q2 → c2 · column'), findsOneWidget);
     expect(_noSelection, findsNothing);
     expect(_statusText(tester), contains('Measurement added: q2 → c2'));
-    expect(_statusText(tester), contains('results will appear'));
+    expect(_statusText(tester), contains('Measure tab'));
+    expect(_statusText(tester), isNot(contains('supported')));
     expect(find.byTooltip('Remove measurement'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -179,8 +179,9 @@ void main() {
     final id = circuit.measurements.single.id;
     // Compaction settles q1's measurement in column 0, sharing it with H.
     expect(circuit.measurements.single.column, 0);
-    // Inspector explains the unexecuted measured circuit.
-    expect(find.byType(UnexecutedMeasuredCircuit), findsOneWidget);
+    // W4.2: State shows the state before measurement; Measure runs it.
+    expect(find.byKey(const ValueKey('web-composer-pre-measurement-caption')),
+        findsOneWidget);
 
     await tester.tapAt(_slot(tester, 0, 4));
     await tester.pumpAndSettle();
@@ -189,7 +190,7 @@ void main() {
     await tester.tapAt(_slot(tester, 1, 0));
     await tester.pumpAndSettle();
     expect(_selectedMeasurement, findsOneWidget);
-    expect(find.text('Measurement Z — q1 → c1'), findsOneWidget);
+    expect(find.textContaining('q1 → c1 · column'), findsOneWidget);
     expect(_noSelection, findsNothing);
     expect(find.text('NO GATE SELECTED'), findsNothing);
     expect(find.byTooltip('Remove measurement'), findsNothing);
@@ -227,7 +228,7 @@ void main() {
     final after = circuit.measurements.single;
     expect((after.id, after.column, after.qubit, after.classicalBit),
         (before.id, before.column, 2, 0));
-    expect(find.text('Measurement Z — q2 → c0'), findsOneWidget);
+    expect(find.textContaining('q2 → c0 · column'), findsOneWidget);
     expect(_statusText(tester), contains('now stores its outcome in c0'));
 
     final saved = (await SandboxWorkspacePersistence(storage).load(3))!;
@@ -268,8 +269,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('web-composer-selected-gate')),
         findsOneWidget);
-    expect(find.byKey(const ValueKey('web-composer-move-selected-gate')),
-        findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('web-composer-move-hint')), findsOneWidget);
     expect(find.byKey(const ValueKey('web-composer-duplicate-selected-gate')),
         findsOneWidget);
     expect(tester.takeException(), isNull);

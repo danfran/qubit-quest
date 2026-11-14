@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:quantumquiz/widgets/progress_save_feedback.dart';
 import 'package:quantumquiz/models/circuit_save_queue.dart';
 import 'package:quantumquiz/widgets/circuit_save_status.dart';
+import 'package:advance_math/advance_math.dart' show Complex;
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -13,14 +14,15 @@ import 'package:quantumquiz/models/bloch_explorer_model.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/circuit_program.dart';
+import 'package:quantumquiz/models/circuit_executor.dart';
+import 'package:quantumquiz/models/measured_circuit_runner.dart';
+import 'package:quantumquiz/widgets/measured_circuit_run_panel.dart';
 import 'package:quantumquiz/models/composer_gate_capabilities.dart';
 import 'package:quantumquiz/models/executable_notebook_example.dart';
 import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/gate_id.dart';
 import 'package:quantumquiz/models/logical_gate_footprint.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
-import 'package:quantumquiz/models/quantum_measurement_result.dart';
-import 'package:quantumquiz/widgets/measurement_results_view.dart';
 import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
@@ -36,6 +38,9 @@ import 'package:quantumquiz/widgets/bloch_explorer_panels.dart';
 import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
+import 'package:quantumquiz/widgets/composer_selection_toolbar.dart';
+import 'package:quantumquiz/widgets/measurement_glyph.dart';
+import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 import 'package:quantumquiz/widgets/circuit_canvas_metrics.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart'
     show defaultNonZeroOnlyForQubitCount;
@@ -414,7 +419,6 @@ class _ComposerWorkspace extends StatefulWidget {
 
 class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
   QuantumCircuit? _circuit;
-  QuantumMeasurementResult? _measurementResult;
   int? _selectedQubitCount;
   GateId? _selectedGateId;
   CircuitSaveQueue get _saves =>
@@ -429,12 +433,103 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
       if (becameUnitary) _activeCircuit.runSimulation();
       unawaited(
           _saves.saveProgram(SandboxProgramSnapshot.capture(_activeCircuit)));
-      if (mounted) setState(() => _measurementResult = null);
+      if (mounted) setState(_resetResults);
     }
   }
 
   String _status = 'Choose a circuit size to open the Sandbox.';
   bool? _nonZeroOnly;
+
+  // Measured-circuit execution results. Never persisted; any definition
+  // change, workspace switch or restore clears them.
+  final MeasuredCircuitRunner _runner = MeasuredCircuitRunner();
+  final FinalStateSampler _finalStateSampler = FinalStateSampler();
+  // Null while the typed shot count is invalid; Run shots is then disabled.
+  int? _runShotCount = MeasuredCircuitRunner.defaultShots;
+  bool _running = false;
+  SingleShotOutcome? _singleShot;
+  ShotsOutcome? _shotsResult;
+  String? _runError;
+  int _resultsRevision = 0;
+
+  void _resetResults() {
+    _singleShot = null;
+    _shotsResult = null;
+    _runError = null;
+    _resultsRevision++;
+  }
+
+  /// One Measure experience, two engines. With M operations it executes the
+  /// circuit's ordered program ([MeasuredCircuitRunner]); without them it
+  /// samples the ideal final state in the Z basis ([FinalStateSampler]).
+  /// Both read only immutable data, so the circuit and its saved workspace
+  /// are never touched.
+  Future<void> _runMeasuredCircuit({required bool manyShots}) async {
+    final shots = _runShotCount;
+    if (_running || _circuit == null || (manyShots && shots == null)) return;
+    final circuit = _activeCircuit;
+    final revision = _resultsRevision;
+    setState(() {
+      _running = true;
+      _runError = null;
+    });
+    // Let the disabled controls paint before the synchronous run.
+    await WidgetsBinding.instance.endOfFrame;
+    SingleShotOutcome? single;
+    ShotsOutcome? many;
+    String? error;
+    try {
+      if (!circuit.hasMeasurements) {
+        final simulationError = circuit.lastSimulationError;
+        if (simulationError != null) {
+          error = '${simulationError.userMessage} The circuit was not run.';
+        } else {
+          final state = circuit.currentState.stateVector;
+          final n = circuit.currentLevel.numQubits;
+          if (manyShots) {
+            many = _finalStateSampler.runShots(state, n, shots: shots!);
+          } else {
+            single = _finalStateSampler.runOnce(state, n);
+          }
+        }
+      } else {
+        final program = CircuitProgram.fromCircuit(circuit);
+        if (manyShots) {
+          many = _runner.runShots(program, shots: shots!);
+        } else {
+          single = _runner.runOnce(program);
+        }
+      }
+    } on CircuitExecutionException catch (e) {
+      error = e.message == 'Execution budget exceeded'
+          ? manyShots
+              ? 'This circuit is too large to run ${formatCount(shots!)} '
+                  'shots here. Reduce the shot count and run again. The '
+                  'circuit was not changed.'
+              : 'This circuit is too large to run here. It was not changed.'
+          : 'The circuit could not be run: ${e.message}. It was not changed.';
+    } on InvalidCircuitProgram catch (e) {
+      error = 'The circuit could not be run: ${e.message}. It was not changed.';
+    } on ArgumentError {
+      error = 'This circuit cannot be measured. Check its state and try again.';
+    } catch (e) {
+      error = 'The circuit could not be run ($e). It was not changed.';
+    }
+    if (!mounted) return;
+    final stale = revision != _resultsRevision || !identical(circuit, _circuit);
+    setState(() {
+      _running = false;
+      if (stale) return; // Edited or switched meanwhile: discard.
+      _runError = error;
+      if (error != null) {
+        // A failed run never sits beside older results.
+        _singleShot = null;
+        _shotsResult = null;
+      }
+      if (single != null) _singleShot = single;
+      if (many != null) _shotsResult = many;
+    });
+  }
 
   QuantumCircuit get _activeCircuit => _circuit!;
 
@@ -468,12 +563,12 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
   @override
   void didUpdateWidget(covariant _ComposerWorkspace oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!widget.isActive) _measurementResult = null;
+    if (!widget.isActive) _resetResults();
     if (!identical(oldWidget.example, widget.example)) {
       _circuit?.removeListener(_definitionChanged);
       _circuit?.dispose();
       setState(() {
-        _measurementResult = null;
+        _resetResults();
         _circuit = widget.example == null ? null : _newCircuit();
         _selectedQubitCount = widget.example == null
             ? null
@@ -516,7 +611,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
       _circuit?.dispose();
       installed = true;
       setState(() {
-        _measurementResult = null;
+        _resetResults();
         _circuit = nextCircuit;
         _selectedQubitCount = qubitCount;
         _selectedGateId = null;
@@ -553,7 +648,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
 
   Future<void> _commit(CircuitEditOutcome outcome) async {
     if (outcome.changed) {
-      setState(() => _measurementResult = null);
+      setState(_resetResults);
       if (!_activeCircuit.hasMeasurements) _activeCircuit.runSimulation();
       if (widget.example == null) {
         unawaited(
@@ -605,9 +700,8 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
       );
   }
 
-  static const String _measurementExecutionNote =
-      'Measurements are circuit instructions; their results will appear '
-      'once circuit execution is supported.';
+  static const String _measurementRunNote =
+      'Run it from the Measure tab in the Inspector.';
 
   void _dropMeasurement(CircuitLocation location) {
     final circuit = _activeCircuit;
@@ -626,18 +720,14 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
     setState(() {
       _selectedGateId = measurement.id;
       _status = 'Measurement added: q${measurement.qubit} → '
-          'c${measurement.classicalBit}. $_measurementExecutionNote';
+          'c${measurement.classicalBit}. $_measurementRunNote';
     });
   }
 
   void _selectMeasurement(GateId id) {
     final measurement = _activeCircuit.measurementById(id);
     if (measurement == null) return;
-    setState(() {
-      _selectedGateId = id;
-      _status = 'Selected measurement q${measurement.qubit} → '
-          'c${measurement.classicalBit}.';
-    });
+    setState(() => _selectedGateId = id);
   }
 
   void _moveMeasurement(GateId id, int column) {
@@ -735,35 +825,9 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
         ),
       );
 
-  void _runAndMeasure() {
-    if (widget.example != null) return;
-    final error = _activeCircuit.lastSimulationError;
-    if (error != null) {
-      setState(() {
-        _measurementResult = null;
-        _status = error.userMessage;
-      });
-      return;
-    }
-    if (_activeCircuit.hasMeasurements) return;
-    try {
-      final result = QuantumMeasurementResult.sample(
-        stateVector: _activeCircuit.currentState.stateVector,
-        numQubits: _activeCircuit.currentLevel.numQubits,
-      );
-      setState(() => _measurementResult = result);
-    } on ArgumentError {
-      setState(() {
-        _measurementResult = null;
-        _status =
-            'This circuit cannot be measured. Check its state and try again.';
-      });
-    }
-  }
-
   Future<void> _clearCircuit() async {
     if (!_activeCircuit.isCircuitEmpty()) {
-      setState(() => _measurementResult = null);
+      setState(_resetResults);
     }
     _activeCircuit.clearPlacedGates();
     if (widget.example == null) {
@@ -783,7 +847,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
         _circuit?.removeListener(_definitionChanged);
         _circuit?.dispose();
         _circuit = null;
-        _measurementResult = null;
+        _resetResults();
         _selectedQubitCount = null;
         _selectedGateId = null;
         _status = 'Choose a circuit size to open the Sandbox.';
@@ -880,22 +944,6 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
     if (mounted) setState(() => _selectedGateId = null);
   }
 
-  String _selectedGateSummary() {
-    final selectedId = _selectedGateId;
-    final gate =
-        selectedId == null ? null : _activeCircuit.logicalGateById(selectedId);
-    if (gate == null) return '';
-    if (gate.type == SelectedGateType.ccnot) {
-      return '${gate.gate.label}: controls Q${gate.controlQubit}, '
-          'Q${gate.secondControlQubit} → target Q${gate.targetQubit}';
-    }
-    if (gate.isControlled) {
-      return '${gate.gate.label}: control Q${gate.controlQubit} '
-          '→ target Q${gate.targetQubit}';
-    }
-    return gate.gate.label.replaceAll('\n', ' ');
-  }
-
   Widget _buildQubitChooser() => _WorkspaceCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -941,92 +989,89 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
         ),
       );
 
-  Widget _buildStateViews(bool contentDriven) => _activeCircuit.hasMeasurements
-      ? const UnexecutedMeasuredCircuit()
-      : QuantumStateInspectorContent(
-          currentPanelKey: const ValueKey('web-composer-current-state'),
-          targetPanelKey: const ValueKey('web-composer-target-state'),
-          currentStateVector: _activeCircuit.currentState.stateVector,
-          numQubits: _activeCircuit.currentLevel.numQubits,
-          targetStateVector: _activeCircuit.currentLevel.solutionFinalVector
-              .map((column) => column.first)
-              .toList(),
-          targetStateLabel: _activeCircuit.currentLevel.targetStateLabel,
-          targetStateExpression:
-              _activeCircuit.currentLevel.targetStateExpression,
-          contentDriven: contentDriven,
-          nonZeroOnly: _nonZeroOnly,
-          onNonZeroOnlyChanged: (value) => setState(() => _nonZeroOnly = value),
-        );
+  Widget _stateContent(List<Complex> stateVector, bool contentDriven) =>
+      QuantumStateInspectorContent(
+        currentPanelKey: const ValueKey('web-composer-current-state'),
+        targetPanelKey: const ValueKey('web-composer-target-state'),
+        currentStateVector: stateVector,
+        numQubits: _activeCircuit.currentLevel.numQubits,
+        targetStateVector: _activeCircuit.currentLevel.solutionFinalVector
+            .map((column) => column.first)
+            .toList(),
+        targetStateLabel: _activeCircuit.currentLevel.targetStateLabel,
+        targetStateExpression:
+            _activeCircuit.currentLevel.targetStateExpression,
+        contentDriven: contentDriven,
+        nonZeroOnly: _nonZeroOnly,
+        onNonZeroOnlyChanged: (value) => setState(() => _nonZeroOnly = value),
+      );
 
-  Widget _buildMeasureView(bool contentDriven) {
-    final content = SingleChildScrollView(
-      child: Column(
-        key: const ValueKey('web-sandbox-measure-view'),
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('Measurement',
-              style: TextStyle(fontWeight: FontWeight.w700)),
-          if (_measurementResult == null) ...[
-            const SizedBox(height: 4),
-            const Text('Z basis', style: QubitQuestTypography.supporting),
-          ],
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.icon(
-              key: const ValueKey('web-sandbox-run-measure'),
-              onPressed: _runAndMeasure,
-              icon: const Icon(Icons.play_arrow),
-              label: const Text('Run 100 shots'),
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (_measurementResult case final result?)
-            MeasurementResultsView(
-              key: const ValueKey('web-sandbox-measurement-results'),
-              result: result,
-            )
-          else
-            const Text(
-              'Each shot prepares the circuit again and measures every qubit.',
-              style: QubitQuestTypography.supporting,
-            ),
-        ],
-      ),
-    );
-    return contentDriven
-        ? ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 480), child: content)
-        : content;
-  }
+  static const String _preMeasurementNote =
+      'The state just before measurement, not a sampled outcome. Measuring '
+      'gives random results; use Measure to run the circuit.';
 
-  Widget _buildMeasurementSummary(MeasureZOperation measurement) => Column(
+  /// Unmeasured: the ideal final state. Measured: the state immediately
+  /// before measurement when that is well defined, otherwise why not.
+  Widget _buildStateViews(
+    bool contentDriven,
+    PreMeasurementState? preMeasurement,
+  ) {
+    if (preMeasurement == null) {
+      return _stateContent(
+          _activeCircuit.currentState.stateVector, contentDriven);
+    }
+    final state = preMeasurement.stateVector;
+    if (state == null) {
+      return Row(
+        key: const ValueKey('web-composer-state-unavailable'),
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('SELECTED MEASUREMENT', style: QubitQuestTypography.label),
-          const SizedBox(height: 4),
-          Text(
-            'Measurement Z — q${measurement.qubit} → '
-            'c${measurement.classicalBit}',
-            key: const ValueKey('web-composer-selected-measurement'),
-            style: const TextStyle(
-              color: QubitQuestColors.textPrimary,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 3),
-          const Text(
-            _measurementExecutionNote,
-            key: ValueKey('web-composer-measurement-note'),
-            style: QubitQuestTypography.supporting,
+          const Icon(Icons.info_outline,
+              size: 16, color: QubitQuestColors.textMuted),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(preMeasurement.unavailableReason!,
+                style: QubitQuestTypography.supporting),
           ),
         ],
       );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'Before measurement',
+          key: ValueKey('web-composer-pre-measurement-caption'),
+          style: TextStyle(
+            color: QubitQuestColors.textPrimary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const Text(_preMeasurementNote, style: QubitQuestTypography.supporting),
+        const SizedBox(height: 8),
+        _stateContent(state, contentDriven),
+      ],
+    );
+  }
 
-  Widget _buildMeasurementActions(MeasureZOperation measurement) {
+  /// The single Measure tab for every circuit; the panel picks its wording
+  /// from whether the circuit has M operations.
+  Widget _buildMeasurePanel() => MeasuredCircuitRunPanel(
+        measurements: _activeCircuit.measurements,
+        numQubits: _activeCircuit.currentLevel.numQubits,
+        running: _running,
+        shots: _runShotCount,
+        onShotsChanged: (value) => setState(() => _runShotCount = value),
+        onRunOnce: () => _runMeasuredCircuit(manyShots: false),
+        onRunShots: () => _runMeasuredCircuit(manyShots: true),
+        singleShot: _singleShot,
+        shotsResult: _shotsResult,
+        error: _runError,
+      );
+
+  /// Classical-bit selector for the selected measurement, with its help text.
+  Widget _buildClassicalBitEditor(MeasureZOperation measurement) {
     final width = math.max(
       _activeCircuit.currentLevel.numQubits,
       _activeCircuit.classicalBitCount,
@@ -1036,53 +1081,159 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
       for (final other in _activeCircuit.measurements)
         if (other.id != measurement.id) other.classicalBit: other.qubit,
     };
-    return Wrap(
-      runSpacing: 8,
-      spacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('Classical bit'),
-                const SizedBox(width: 10),
-                DropdownButton<int>(
-                  key: const ValueKey('web-composer-measurement-classical-bit'),
-                  value: measurement.classicalBit,
-                  items: [
-                    for (var bit = 0; bit < width; bit++)
-                      if (usedBits[bit] case final user?
-                          when user != measurement.qubit)
-                        DropdownMenuItem(
-                          value: bit,
-                          enabled: false,
-                          child: Text('c$bit (used by q$user)'),
-                        )
-                      else
-                        DropdownMenuItem(value: bit, child: Text('c$bit')),
-                  ],
-                  onChanged: _updateSelectedClassicalBit,
-                ),
+            const Text('Classical bit'),
+            const SizedBox(width: 10),
+            DropdownButton<int>(
+              key: const ValueKey('web-composer-measurement-classical-bit'),
+              value: measurement.classicalBit,
+              isDense: true,
+              items: [
+                for (var bit = 0; bit < width; bit++)
+                  if (usedBits[bit] case final user?
+                      when user != measurement.qubit)
+                    DropdownMenuItem(
+                      value: bit,
+                      enabled: false,
+                      child: Text('c$bit (used by q$user)'),
+                    )
+                  else
+                    DropdownMenuItem(value: bit, child: Text('c$bit')),
               ],
-            ),
-            const Text(
-              'The measurement outcome (0 or 1) will be stored in this '
-              'classical bit.',
-              key: ValueKey('web-composer-classical-bit-help'),
-              style: QubitQuestTypography.supporting,
+              onChanged: _updateSelectedClassicalBit,
             ),
           ],
         ),
-        OutlinedButton.icon(
-          key: const ValueKey('web-composer-delete-selected-gate'),
-          onPressed: _deleteSelectedGate,
-          icon: const Icon(Icons.delete_outline, size: 18),
-          label: const Text('Delete'),
+        const SizedBox(height: 2),
+        const Text(
+          'The measurement outcome (0 or 1) will be stored in this '
+          'classical bit.',
+          key: ValueKey('web-composer-classical-bit-help'),
+          style: QubitQuestTypography.supporting,
         ),
+      ],
+    );
+  }
+
+  ComposerSelectionAction get _delete => ComposerSelectionAction(
+        key: const ValueKey('web-composer-delete-selected-gate'),
+        icon: Icons.delete_outline,
+        label: 'Delete',
+        onPressed: _deleteSelectedGate,
+        destructive: true,
+      );
+
+  Widget _buildMeasurementSelection(MeasureZOperation measurement) {
+    final route = 'q${measurement.qubit} → c${measurement.classicalBit}';
+    return ComposerSelectionToolbar(
+      tile: MeasurementGlyph(
+        size: ComposerSelectionToolbar.tileSize,
+        classicalBit: measurement.classicalBit,
+      ),
+      title: 'Measurement Z',
+      titleKey: const ValueKey('web-composer-selected-measurement'),
+      position: '$route · column ${measurement.column + 1}',
+      details: [
+        ComposerSelectionToolbar.detail(
+          'Reads q${measurement.qubit} in the Z basis. $_measurementRunNote',
+          key: const ValueKey('web-composer-measurement-note'),
+        ),
+      ],
+      editor: _buildClassicalBitEditor(measurement),
+      actions: [_delete],
+    );
+  }
+
+  /// Location in words; controlled gates name their control and target.
+  String _gateRoleSummary(LogicalGateFootprint gate) {
+    if (gate.type == SelectedGateType.ccnot) {
+      return 'Controls q${gate.controlQubit}, q${gate.secondControlQubit} '
+          '→ target q${gate.targetQubit}';
+    }
+    if (gate.isControlled) {
+      return 'Control q${gate.controlQubit} → target q${gate.targetQubit}';
+    }
+    return 'Single-qubit gate on q${gate.anchor.qubit}';
+  }
+
+  Widget _buildGateSelection(
+    LogicalGateFootprint gate,
+    ComposerSelectedGateCapabilities capabilities,
+  ) {
+    final qubits = gate.occupiedLocations.map((l) => l.qubit).toSet().toList()
+      ..sort();
+    final label = gate.gate.label.replaceAll('\n', ' ');
+    final name = GateEducationalCatalog.forType(gate.type)?.name ?? label;
+    bool can(ComposerSelectedGateAction action) =>
+        capabilities.supports(action);
+    return ComposerSelectionToolbar(
+      tile: Semantics(
+        label: 'Selected component $label',
+        child: ExcludeSemantics(
+          child: QubitQuestGateTile(
+            gate: gate.gate,
+            onPressed: null,
+            size: ComposerSelectionToolbar.tileSize,
+          ),
+        ),
+      ),
+      title: name,
+      titleKey: const ValueKey('web-composer-selected-gate'),
+      position: '${qubits.map((q) => 'q$q').join(', ')} · '
+          'column ${gate.column + 1}',
+      details: [
+        ComposerSelectionToolbar.detail(
+          _gateRoleSummary(gate),
+          key: const ValueKey('web-composer-selected-gate-detail'),
+        ),
+        if (gate.isParameterEditable)
+          ComposerSelectionToolbar.detail(
+            'Angle: ${(gate.gate.angle! / math.pi).toStringAsFixed(3)}π '
+            '(${gate.gate.angle!.toStringAsFixed(6)} rad)',
+            key: const ValueKey('web-composer-selected-rotation-angle'),
+          ),
+        if (can(ComposerSelectedGateAction.move))
+          ComposerSelectionToolbar.detail(
+            'Drag the gate on the circuit to move it.',
+            key: const ValueKey('web-composer-move-hint'),
+            icon: Icons.open_with_rounded,
+          ),
+      ],
+      actions: [
+        ComposerSelectionAction(
+          key: const ValueKey('web-composer-inspect-selected-gate'),
+          icon: Icons.info_outline,
+          label: 'Inspect',
+          onPressed: _inspectSelectedGate,
+        ),
+        if (can(ComposerSelectedGateAction.replace))
+          ComposerSelectionAction(
+            key: const ValueKey('web-composer-replace-selected-gate'),
+            icon: Icons.swap_horiz_rounded,
+            label: 'Replace',
+            onPressed: _replaceSelectedGate,
+          ),
+        if (can(ComposerSelectedGateAction.editAngle))
+          ComposerSelectionAction(
+            key: const ValueKey('web-composer-edit-selected-angle'),
+            icon: Icons.tune_rounded,
+            label: 'Edit angle',
+            onPressed: _editSelectedRotationAngle,
+          ),
+        if (can(ComposerSelectedGateAction.duplicate))
+          ComposerSelectionAction(
+            key: const ValueKey('web-composer-duplicate-selected-gate'),
+            icon: Icons.copy_rounded,
+            label: 'Duplicate',
+            onPressed: _duplicateSelectedGate,
+          ),
+        if (can(ComposerSelectedGateAction.delete)) _delete,
       ],
     );
   }
@@ -1091,121 +1242,19 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
     required LogicalGateFootprint? selectedGate,
     required MeasureZOperation? selectedMeasurement,
     required ComposerSelectedGateCapabilities selectedCapabilities,
-    required bool wide,
   }) {
-    final selectionSummary = selectedMeasurement != null
-        ? _buildMeasurementSummary(selectedMeasurement)
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                selectedGate == null ? 'NO GATE SELECTED' : 'SELECTED GATE',
-                style: QubitQuestTypography.label,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                selectedGate == null
-                    ? 'Select a placed gate to inspect or edit it.'
-                    : _selectedGateSummary(),
-                key: selectedGate == null
-                    ? const ValueKey('web-composer-no-selected-gate')
-                    : const ValueKey('web-composer-selected-gate'),
-                style: TextStyle(
-                  color: selectedGate == null
-                      ? QubitQuestColors.textMuted
-                      : QubitQuestColors.textPrimary,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              if (selectedGate?.isParameterEditable ?? false) ...[
-                const SizedBox(height: 3),
-                Text(
-                  '${selectedGate!.gate.label.replaceAll('\n', ' ')} angle: '
-                  '${(selectedGate.gate.angle! / math.pi).toStringAsFixed(3)}π '
-                  '(${selectedGate.gate.angle!.toStringAsFixed(6)} rad)',
-                  key: const ValueKey('web-composer-selected-rotation-angle'),
-                  style: QubitQuestTypography.supporting,
-                ),
-              ],
-            ],
-          );
-    final actions = selectedMeasurement != null
-        ? _buildMeasurementActions(selectedMeasurement)
-        : selectedGate == null
-            ? null
-            : Wrap(
-                runSpacing: 8,
-                spacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  OutlinedButton.icon(
-                    key: const ValueKey('web-composer-inspect-selected-gate'),
-                    onPressed: _inspectSelectedGate,
-                    icon: const Icon(Icons.info_outline, size: 18),
-                    label: const Text('Inspect'),
-                  ),
-                  if (selectedCapabilities
-                      .supports(ComposerSelectedGateAction.replace))
-                    OutlinedButton.icon(
-                      key: const ValueKey('web-composer-replace-selected-gate'),
-                      onPressed: _replaceSelectedGate,
-                      icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                      label: const Text('Replace'),
-                    ),
-                  if (selectedCapabilities
-                      .supports(ComposerSelectedGateAction.editAngle))
-                    OutlinedButton.icon(
-                      key: const ValueKey('web-composer-edit-selected-angle'),
-                      onPressed: _editSelectedRotationAngle,
-                      icon: const Icon(Icons.tune_rounded, size: 18),
-                      label: const Text('Edit angle'),
-                    ),
-                  if (selectedCapabilities
-                      .supports(ComposerSelectedGateAction.duplicate))
-                    OutlinedButton.icon(
-                      key: const ValueKey(
-                          'web-composer-duplicate-selected-gate'),
-                      onPressed: _duplicateSelectedGate,
-                      icon: const Icon(Icons.copy_rounded, size: 18),
-                      label: const Text('Duplicate'),
-                    ),
-                  if (selectedCapabilities
-                      .supports(ComposerSelectedGateAction.move))
-                    const Chip(
-                      key: ValueKey('web-composer-move-selected-gate'),
-                      avatar: Icon(Icons.open_with_rounded, size: 16),
-                      label: Text('Drag to move'),
-                    ),
-                  if (selectedCapabilities
-                      .supports(ComposerSelectedGateAction.delete))
-                    OutlinedButton.icon(
-                      key: const ValueKey('web-composer-delete-selected-gate'),
-                      onPressed: _deleteSelectedGate,
-                      icon: const Icon(Icons.delete_outline, size: 18),
-                      label: const Text('Delete'),
-                    ),
-                ],
-              );
+    final selection = selectedMeasurement != null
+        ? _buildMeasurementSelection(selectedMeasurement)
+        : selectedGate != null
+            ? _buildGateSelection(selectedGate, selectedCapabilities)
+            : ComposerSelectionToolbar.empty();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (wide && actions != null)
-          Row(
-            children: [
-              Expanded(child: selectionSummary),
-              const SizedBox(width: 20),
-              Expanded(flex: 2, child: actions),
-            ],
-          )
-        else ...[
-          selectionSummary,
-          if (actions != null) ...[
-            const SizedBox(height: 10),
-            SizedBox(width: double.infinity, child: actions),
-          ],
-        ],
+        selection,
+        const SizedBox(height: 12),
+        const Divider(height: 1, color: QubitQuestColors.borderSoft),
         const SizedBox(height: 9),
         if (widget.example == null &&
             _activeCircuit.hasPostMeasurementOperations) ...[
@@ -1257,12 +1306,9 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
                     ? ComposerCircuitSurfaceTreatment.workbench
                     : ComposerCircuitSurfaceTreatment.inset,
                 selectedGateId: _selectedGateId,
-                onGateTap: (gate) => setState(() {
-                  _selectedGateId = gate?.id;
-                  _status = gate == null
-                      ? 'Canvas selection cleared.'
-                      : 'Selected ${gate.gate.label.replaceAll('\n', ' ')}.';
-                }),
+                // Selection is shown by the selection toolbar, never by the
+                // transient status line, so the two cannot disagree.
+                onGateTap: (gate) => setState(() => _selectedGateId = gate?.id),
                 onDropRequested: _handleDrop,
                 onPlacedGateDragStarted: (gate) =>
                     setState(() => _selectedGateId = gate.id),
@@ -1317,6 +1363,14 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
             _activeCircuit,
             _selectedGateId,
           );
+          final measured = _activeCircuit.hasMeasurements;
+          // Measured circuits show the state just before measurement in State
+          // and (one qubit) Bloch, when every measurement is terminal.
+          final preMeasurement = measured
+              ? PreMeasurementState.of(
+                  () => CircuitProgram.fromCircuit(_activeCircuit),
+                )
+              : null;
 
           return ListView(
             key: const ValueKey('web-composer-workspace-scroll'),
@@ -1366,18 +1420,26 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
                   dense: layout.densePalette,
                   embedded: true,
                   onGateTap: (gate) => setState(() => _status =
-                      'Selected ${gate.label.replaceAll('\n', ' ')}.'),
+                      'Drag ${gate.label.replaceAll('\n', ' ')} onto a qubit '
+                          'wire to place it.'),
                   onInspectGate: _inspect,
                 ),
-                stateViewBuilder: (layout) =>
-                    _buildStateViews(layout.contentDrivenInspector),
-                allowBloch: !_activeCircuit.hasMeasurements,
-                measureViewBuilder:
-                    widget.example == null && !_activeCircuit.hasMeasurements
-                        ? (layout) =>
-                            _buildMeasureView(layout.contentDrivenInspector)
-                        : null,
-                currentStateVector: _activeCircuit.currentState.stateVector,
+                stateViewBuilder: (layout) => _buildStateViews(
+                    layout.contentDrivenInspector, preMeasurement),
+                allowBloch: !measured || preMeasurement!.isAvailable,
+                blochCaption: measured ? 'Before measurement' : null,
+                blochNote: measured
+                    ? 'The state just before M, not a sampled outcome. '
+                        'Measuring it gives 0 or 1 at random.'
+                    : null,
+                blochUnavailableMessage: measured && preMeasurement!.isAvailable
+                    ? null
+                    : preMeasurement?.unavailableReason,
+                keepBlochTabSelectable: true,
+                independentCards: true,
+                measureViewBuilder: (_) => _buildMeasurePanel(),
+                currentStateVector: preMeasurement?.stateVector ??
+                    _activeCircuit.currentState.stateVector,
                 numQubits: _activeCircuit.currentLevel.numQubits,
                 targetStateExpression:
                     _activeCircuit.currentLevel.targetStateExpression,
@@ -1385,7 +1447,6 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
                   selectedGate: selectedGate,
                   selectedMeasurement: selectedMeasurement,
                   selectedCapabilities: selectedCapabilities,
-                  wide: layout.inlineActions,
                 ),
                 inspectorContentSpacing: 14,
                 inspectorKey: const ValueKey('web-composer-state-inspection'),

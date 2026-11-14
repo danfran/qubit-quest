@@ -496,7 +496,7 @@ void main() {
     canvas.onGateTap(controlled.toPlacedGateRef());
     await tester.pump();
 
-    expect(find.text('CX: control Q0 → target Q1'), findsOneWidget);
+    expect(find.text('Control q0 → target q1'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('web-composer-inspect-selected-gate')),
       findsOneWidget,
@@ -506,7 +506,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('web-composer-move-selected-gate')),
+      find.byKey(const ValueKey('web-composer-move-hint')),
       findsOneWidget,
     );
     expect(

@@ -47,3 +47,5 @@ app.*.map.json
 /android/app/.cxx
 
 codex_output.txt
+
+/reports

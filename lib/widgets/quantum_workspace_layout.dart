@@ -14,6 +14,7 @@ class QuantumWorkspaceLayout extends StatelessWidget {
     this.contextualActions,
     required this.wide,
     this.wideMainHeight = 448,
+    this.wideMainHeightGrowsWithInspection = false,
   });
 
   static const double wideBreakpoint = 960;
@@ -26,6 +27,12 @@ class QuantumWorkspaceLayout extends StatelessWidget {
   final Widget? contextualActions;
   final bool wide;
   final double wideMainHeight;
+
+  /// When true, [wideMainHeight] is a minimum: the wide main row grows to the
+  /// inspection pane's natural height (which must then size to its content),
+  /// so the Inspector never scrolls inside a fixed box and the contextual
+  /// actions always sit below it. The page scrolls instead.
+  final bool wideMainHeightGrowsWithInspection;
 
   static bool usesWideLayout(double availableWidth) =>
       availableWidth >= wideBreakpoint;
@@ -44,61 +51,117 @@ class QuantumWorkspaceLayout extends StatelessWidget {
         ),
       );
 
+  Widget _primaryPane() => Padding(
+        padding: const EdgeInsets.all(20),
+        child: KeyedSubtree(
+          key: const ValueKey('quantum-workspace-primary-pane'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: circuit),
+              const SizedBox(height: 12),
+              _divider(),
+              Padding(
+                key: const ValueKey('quantum-workspace-toolbar'),
+                padding: const EdgeInsets.only(top: 12),
+                child: toolbar,
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _inspectionPane() => Padding(
+        padding: const EdgeInsets.all(18),
+        child: KeyedSubtree(
+          key: const ValueKey('quantum-workspace-inspection-pane'),
+          child: inspection,
+        ),
+      );
+
+  Widget _inspectionBackground({Widget? child}) => ColoredBox(
+        color: QubitQuestColors.surfaceInset.withValues(alpha: .52),
+        child: child,
+      );
+
+  Widget _inspectionDivider() => Container(
+        key: const ValueKey('quantum-workspace-inspection-divider'),
+        width: 1,
+        color: QubitQuestColors.borderSoft,
+      );
+
+  Widget _fixedMainRow() => SizedBox(
+        height: wideMainHeight,
+        child: Row(
+          key: const ValueKey('quantum-workspace-main-row'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(flex: circuitFlex.toInt(), child: _primaryPane()),
+            _inspectionDivider(),
+            Expanded(
+              flex: inspectionFlex.toInt(),
+              child: _inspectionBackground(child: _inspectionPane()),
+            ),
+          ],
+        ),
+      );
+
+  /// The only non-positioned child (the inspection pane at its natural
+  /// height, beside a [wideMainHeight] strut) sizes the stack; the
+  /// background and primary pane then fill that height.
+  Widget _growingMainRow() => Stack(
+        key: const ValueKey('quantum-workspace-main-row'),
+        children: [
+          Positioned.fill(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Spacer(flex: _circuitFlexInt),
+                _inspectionDivider(),
+                Expanded(
+                  flex: _inspectionFlexInt,
+                  child: _inspectionBackground(),
+                ),
+              ],
+            ),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: _circuitFlexInt,
+                child: SizedBox(height: wideMainHeight),
+              ),
+              const SizedBox(width: 1),
+              Expanded(flex: _inspectionFlexInt, child: _inspectionPane()),
+            ],
+          ),
+          Positioned.fill(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(flex: _circuitFlexInt, child: _primaryPane()),
+                const SizedBox(width: 1),
+                // Transparent to hit tests: the inspection pane stays usable.
+                const Spacer(flex: _inspectionFlexInt),
+              ],
+            ),
+          ),
+        ],
+      );
+
+  static const int _circuitFlexInt = 7;
+  static const int _inspectionFlexInt = 3;
+
   Widget _wideLayout() => Column(
         key: const ValueKey('quantum-workspace-wide-layout'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            height: wideMainHeight,
-            child: Row(
-              key: const ValueKey('quantum-workspace-main-row'),
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: circuitFlex.toInt(),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: KeyedSubtree(
-                      key: const ValueKey('quantum-workspace-primary-pane'),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(child: circuit),
-                          const SizedBox(height: 12),
-                          _divider(),
-                          Padding(
-                            key: const ValueKey('quantum-workspace-toolbar'),
-                            padding: const EdgeInsets.only(top: 12),
-                            child: toolbar,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Container(
-                  key: const ValueKey('quantum-workspace-inspection-divider'),
-                  width: 1,
-                  color: QubitQuestColors.borderSoft,
-                ),
-                Expanded(
-                  flex: inspectionFlex.toInt(),
-                  child: ColoredBox(
-                    color: QubitQuestColors.surfaceInset.withValues(alpha: .52),
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: KeyedSubtree(
-                        key:
-                            const ValueKey('quantum-workspace-inspection-pane'),
-                        child: inspection,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          if (wideMainHeightGrowsWithInspection)
+            _growingMainRow()
+          else
+            _fixedMainRow(),
           if (contextualActions case final actions?) ...[
             _divider(),
             ColoredBox(

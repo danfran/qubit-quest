@@ -74,9 +74,14 @@ void main() {
         .widget<ComposerCircuitCanvas>(find.byType(ComposerCircuitCanvas));
     canvas.circuit.addMeasurement(column: 0, qubit: 0, classicalBit: 2);
     await tester.pumpAndSettle();
-    expect(find.byType(UnexecutedMeasuredCircuit), findsOneWidget);
-    expect(find.byType(StateVectorDisplay), findsNothing);
+    // W4.2: State is labelled as the state before measurement (never a
+    // sampled result); the Measure tab runs the measured circuit.
+    expect(find.byKey(const ValueKey('web-composer-pre-measurement-caption')),
+        findsOneWidget);
     expect(find.text('Run 100 shots'), findsNothing);
+    await tapVisible(tester, find.text('Measure'));
+    expect(find.byKey(const ValueKey('web-sandbox-run-panel')), findsOneWidget);
+    expect(find.byType(StateVectorDisplay), findsNothing);
     store.fail = '_stage_';
     canvas.circuit.addMeasurement(column: 1, qubit: 0, classicalBit: 2);
     await tester.pumpAndSettle();

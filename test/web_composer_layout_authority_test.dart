@@ -12,7 +12,6 @@ import 'package:quantumquiz/storage/app_storage.dart';
 import 'package:quantumquiz/widgets/circuit_geometry.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
-import 'package:quantumquiz/widgets/measurement_results_view.dart';
 import 'package:quantumquiz/widgets/quantum_state_inspector_content.dart';
 import 'package:quantumquiz/widgets/quantum_workspace_layout.dart';
 import 'package:quantumquiz/widgets/quantum_inspector_views.dart';
@@ -97,8 +96,7 @@ void main() {
     await tester.pumpAndSettle();
     await sandbox.tapVisible(tester, find.byType(Checkbox));
     await sandbox.tapVisible(tester, sandbox.run);
-    final result =
-        tester.widget<MeasurementResultsView>(sandbox.results).result;
+    final result = sandbox.shotsResult(tester);
     final runs = circuit.simulationRunCount;
     final state = circuit.currentState;
     // Derive surrounding chrome from measured local width, not assumed viewport offsets.
@@ -109,12 +107,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.getSize(find.byType(WebComposerWorkbench)).width, width);
       final wide = width >= 960;
+      // W4.2: the Composer uses independent cards (no shared layout).
+      expect(find.byType(QuantumWorkspaceLayout), findsNothing);
       expect(
-          tester
-              .widget<QuantumWorkspaceLayout>(
-                  find.byType(QuantumWorkspaceLayout))
-              .wide,
-          wide);
+          find.byKey(ValueKey(wide
+              ? 'quantum-workspace-wide-layout'
+              : 'quantum-workspace-narrow-layout')),
+          findsOneWidget);
       expect(
           tester
               .widget<ComposerGatePalette>(find.byType(ComposerGatePalette))
@@ -135,8 +134,7 @@ void main() {
                   find.byKey(const ValueKey('quantum-inspector-view-selector')))
               .selected,
           {QuantumInspectorView.measure});
-      expect(tester.widget<MeasurementResultsView>(sandbox.results).result,
-          same(result));
+      expect(sandbox.shotsResult(tester), same(result));
       if (find.text('Current State').evaluate().isEmpty)
         await sandbox.tapVisible(tester, find.text('State'));
       expect(
@@ -144,12 +142,12 @@ void main() {
               .widget<QuantumStateInspectorContent>(
                   find.byType(QuantumStateInspectorContent))
               .contentDriven,
-          !wide);
+          isTrue,
+          reason: 'the Inspector card sizes to its content at every width');
       expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
       await sandbox.tapVisible(tester, find.text('Bloch'));
       await sandbox.tapVisible(tester, find.text('Measure'));
-      expect(tester.widget<MeasurementResultsView>(sandbox.results).result,
-          same(result));
+      expect(sandbox.shotsResult(tester), same(result));
       final primary =
           find.byKey(const ValueKey('quantum-workspace-primary-pane'));
       expect(
@@ -159,13 +157,10 @@ void main() {
           findsOneWidget);
       final footer =
           find.byKey(const ValueKey('quantum-workspace-contextual-actions'));
-      for (final action in [
-        'inspect',
-        'replace',
-        'duplicate',
-        'move',
-        'delete'
-      ]) {
+      // W4.3: movement is a hint, not a disabled control.
+      expect(find.byKey(const ValueKey('web-composer-move-selected-gate')),
+          findsNothing);
+      for (final action in ['inspect', 'replace', 'duplicate', 'delete']) {
         final control =
             find.byKey(ValueKey('web-composer-$action-selected-gate'));
         await tester.ensureVisible(control);
