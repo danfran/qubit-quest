@@ -12,7 +12,9 @@ import 'package:quantumquiz/screens/web_app.dart';
 import 'package:quantumquiz/screens/web_learning_workspace.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
-import 'package:quantumquiz/widgets/composer_gate_palette.dart';
+import 'package:quantumquiz/models/composer_policy.dart';
+import 'package:quantumquiz/screens/web_exercise_workspace.dart';
+import 'package:quantumquiz/widgets/composer_workspace/composer_gate_palette_panel.dart';
 import 'package:quantumquiz/widgets/circuit_geometry.dart';
 import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/quantum_inspector_views.dart';
@@ -53,6 +55,18 @@ void main() {
     await tester.pump();
   }
 
+  /// Selects a challenge in the library, then starts it from its details
+  /// (M6a: selection and starting are separate actions).
+  Future<void> openChallenge(WidgetTester tester, String semanticId) async {
+    final row = find.byKey(ValueKey('web-mastery-challenge-$semanticId'));
+    await tester.ensureVisible(row);
+    await tester.pumpAndSettle();
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('web-mastery-start')));
+    await tester.pumpAndSettle();
+  }
+
   CampaignProgressState unlockedState({Set<int> completed = const {}}) =>
       CampaignProgressState(
         maxUnlockedLevel: ProgressionRules.guidedDiscoveryLevelCount + 1,
@@ -76,8 +90,15 @@ void main() {
     expect(find.byKey(const ValueKey('web-mastery-overview')), findsOneWidget);
     expect(find.text('0 / 42 complete'), findsOneWidget);
     expect(find.byKey(const ValueKey('web-mastery-continue')), findsNothing);
+    // The library selects (shows details of) the first incomplete
+    // challenge, but never starts an activity by itself.
     expect(find.byKey(const ValueKey('web-mastery-workspace-header')),
         findsNothing);
+    expect(
+        find.byKey(const ValueKey(
+            'web-mastery-detail-global_phase_equivalence')),
+        findsOneWidget);
+    expect(find.text('Start challenge'), findsOneWidget);
     expect(
         find.byKey(
             const ValueKey('web-mastery-challenge-global_phase_equivalence')),
@@ -88,7 +109,7 @@ void main() {
   });
 
   testWidgets(
-      'browser exposes all cards in order and combines title search with filters',
+      'library lists every challenge in order and combines search with filters',
       (tester) async {
     await setSize(tester, const Size(1100, 900));
     final challenges = mastery2Catalogue.orderedDefinitions;
@@ -108,7 +129,7 @@ void main() {
     ))));
     await tester.pumpAndSettle();
     final seen = <String>{};
-    final overview = find.byKey(const ValueKey('web-mastery-overview'));
+    final overview = find.byKey(const ValueKey('web-mastery-list'));
     for (var i = 0; i < 20 && seen.length < 42; i++) {
       for (final c in challenges) {
         if (find
@@ -132,21 +153,21 @@ void main() {
     final expected = challenges
         .where((c) => c.title.toLowerCase().contains('hidden'))
         .length;
-    expect(find.text('$expected challenges'), findsOneWidget);
+    expect(find.text('$expected of 42 challenges'), findsOneWidget);
     await tester
         .tap(find.byKey(const ValueKey('web-mastery-filter-completed')));
     await tester.pumpAndSettle();
     expect(find.text('No matching challenges.'), findsOneWidget);
     await tester.enterText(search, '');
     await tester.pumpAndSettle();
-    expect(find.text('2 challenges'), findsOneWidget);
+    expect(find.text('2 of 42 challenges'), findsOneWidget);
     await tester
         .tap(find.byKey(const ValueKey('web-mastery-filter-incomplete')));
     await tester.pumpAndSettle();
-    expect(find.text('40 challenges'), findsOneWidget);
+    expect(find.text('40 of 42 challenges'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('web-mastery-filter-all')));
     await tester.pumpAndSettle();
-    expect(find.text('42 challenges'), findsOneWidget);
+    expect(find.text('42 of 42 challenges'), findsOneWidget);
     for (final width in [360.0, 1100.0]) {
       tester.view.physicalSize = Size(width, 900);
       await tester.pumpAndSettle();
@@ -165,10 +186,8 @@ void main() {
           ValueKey('web-mastery-challenge-${challenges.first.semanticId}')));
       final second = tester.getRect(find.byKey(
           ValueKey('web-mastery-challenge-${challenges[1].semanticId}')));
-      if (width == 360)
-        expect(second.top, greaterThan(first.bottom));
-      else
-        expect(second.top, first.top);
+      // A compact list at every width (no grid of large cards).
+      expect(second.top, greaterThan(first.bottom));
       expect(first.right, lessThanOrEqualTo(width));
       expect(tester.takeException(), isNull);
     }
@@ -187,12 +206,10 @@ void main() {
       onOpenNotebook: () {},
     ))));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(
-        const ValueKey('web-mastery-challenge-global_phase_equivalence')));
-    await tester.pumpAndSettle();
+    await openChallenge(tester, 'global_phase_equivalence');
     final previous = find.byKey(const ValueKey('web-mastery-previous'));
     final next = find.byKey(const ValueKey('web-mastery-next'));
-    expect(tester.widget<OutlinedButton>(previous).onPressed, isNull);
+    expect(tester.widget<IconButton>(previous).onPressed, isNull);
     expect(find.text('Challenge 1 of 42'), findsOneWidget);
     await tester.tap(next);
     await tester.pumpAndSettle();
@@ -204,7 +221,7 @@ void main() {
       tester.view.physicalSize = Size(width, 1100);
       await tester.pumpAndSettle();
       expect(find.text('0 / 42 complete'), findsOneWidget);
-      expect(find.text('Back to Mastery'), findsOneWidget);
+      expect(find.byTooltip('Back to Mastery Challenges'), findsOneWidget);
       expect(previous.hitTestable(), findsOneWidget);
       expect(next.hitTestable(), findsOneWidget);
       expect(find.byKey(const ValueKey('web-mastery-active-status')),
@@ -230,7 +247,9 @@ void main() {
     }
     await tester.tap(find.byKey(const ValueKey('web-mastery-back-overview')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('web-mastery-continue')));
+    // The library keeps the open challenge selected and offers to continue.
+    expect(find.text('Continue challenge'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('web-mastery-start')));
     await tester.pumpAndSettle();
     expect(find.text('Challenge 2 of 42'), findsOneWidget);
     expect(
@@ -246,12 +265,10 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('web-mastery-search')),
         'Reflect About a Different State');
     await tester.pumpAndSettle();
-    await tester.tap(
-        find.byKey(const ValueKey('web-mastery-challenge-nonuniform_reference_reflection')));
-    await tester.pumpAndSettle();
+    await openChallenge(tester, 'nonuniform_reference_reflection');
     expect(find.text('Challenge 42 of 42'), findsOneWidget);
-    expect(tester.widget<OutlinedButton>(next).onPressed, isNull);
-    expect(tester.widget<OutlinedButton>(previous).onPressed, isNotNull);
+    expect(tester.widget<IconButton>(next).onPressed, isNull);
+    expect(tester.widget<IconButton>(previous).onPressed, isNotNull);
   });
 
   testWidgets('Challenge 25 shows live Current and authored Target State',
@@ -272,13 +289,7 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('web-mastery-search')),
         'A Hidden Sign Across Three Qubits');
     await tester.pumpAndSettle();
-    final challenge25 = find.byKey(
-      const ValueKey('web-mastery-challenge-ghz_phase_manipulation'),
-    );
-    await tester.ensureVisible(challenge25);
-    await tester.pumpAndSettle();
-    await tester.tap(challenge25);
-    await tester.pumpAndSettle();
+    await openChallenge(tester, 'ghz_phase_manipulation');
 
     expect(find.text('A Hidden Sign Across Three Qubits'), findsWidgets);
     expect(find.byType(ComposerCircuitCanvas), findsOneWidget);
@@ -288,31 +299,24 @@ void main() {
           .surfaceTreatment,
       ComposerCircuitSurfaceTreatment.workbench,
     );
-    final palette = tester.widget<ComposerGatePalette>(
-      find.byType(ComposerGatePalette),
+    final palette = tester.widget<ComposerGatePalettePanel>(
+      find.byType(ComposerGatePalettePanel),
     );
     expect(palette.gates.map((gate) => gate.type), [SelectedGateType.z]);
-    final primaryPane = tester.getRect(
-      find.byKey(const ValueKey('quantum-workspace-primary-pane')),
-    );
-    final inspectorPane = tester.getRect(
-      find.byKey(const ValueKey('quantum-workspace-inspection-pane')),
-    );
-    final toolbar = tester.getRect(
-      find.byKey(const ValueKey('quantum-workspace-toolbar')),
-    );
-    final actions = tester.getRect(
-      find.byKey(const ValueKey('quantum-workspace-contextual-actions')),
-    );
-    expect(toolbar.left, greaterThanOrEqualTo(primaryPane.left));
-    expect(toolbar.right, lessThanOrEqualTo(primaryPane.right));
-    expect(toolbar.right, lessThan(inspectorPane.left));
-    expect(actions.top, greaterThanOrEqualTo(primaryPane.bottom));
+    // The same desktop workspace as the Sandbox and Journey (M6a).
+    final canvasRegion =
+        tester.getRect(find.byKey(const ValueKey('composer-region-canvas')));
+    final resultsRegion =
+        tester.getRect(find.byKey(const ValueKey('composer-region-results')));
+    final actions =
+        tester.getRect(find.byKey(const ValueKey('web-exercise-actions')));
+    expect(canvasRegion.right, lessThan(resultsRegion.left));
+    expect(actions.top, greaterThanOrEqualTo(canvasRegion.bottom));
     final current = tester.widget<StateVectorDisplay>(
-      find.byKey(const ValueKey('web-lesson-current-state')),
+      find.byKey(const ValueKey('web-composer-current-state')),
     );
     final target = tester.widget<StateVectorDisplay>(
-      find.byKey(const ValueKey('web-lesson-target-state')),
+      find.byKey(const ValueKey('web-composer-target-state')),
     );
     final circuit = tester
         .widget<ComposerCircuitCanvas>(
@@ -327,42 +331,47 @@ void main() {
     expect(target.stateVector[0].real, closeTo(0.7071067812, 1e-9));
     expect(target.stateVector[7].real, closeTo(-0.7071067812, 1e-9));
     final filter = find.descendant(
-      of: find.byKey(const ValueKey('web-lesson-current-state')),
-      matching: find.byType(Checkbox),
+      of: find.byKey(const ValueKey('web-composer-current-state'),
+          skipOffstage: false),
+      matching: find.byType(Checkbox, skipOffstage: false),
     );
     expect(tester.widget<Checkbox>(filter).value, isTrue);
     expect(circuit.simulationRunCount, simulationRuns);
     expect(controller.state.completedMasterySemanticIds,
         isNot(contains('ghz_phase_manipulation')));
     expect(find.byType(BlochSpherePanel), findsNothing);
+    // Shared Results convention (M3.1): Bloch stays selectable and explains
+    // that a three-qubit state has no single-qubit Bloch sphere.
+    tester
+        .widget<SegmentedButton<QuantumInspectorView>>(
+            find.byKey(const ValueKey('quantum-inspector-view-selector')))
+        .onSelectionChanged!({QuantumInspectorView.bloch});
+    await tester.pump();
+    expect(find.byType(BlochSpherePanel), findsNothing);
     expect(
-      find.byKey(const ValueKey('quantum-inspector-bloch-unavailable')),
+      find.byKey(const ValueKey('quantum-inspector-bloch-unavailable-reason')),
       findsOneWidget,
     );
-    final selector = tester.widget<SegmentedButton<QuantumInspectorView>>(
-      find.byKey(const ValueKey('quantum-inspector-view-selector')),
-    );
-    expect(
-      selector.segments
-          .singleWhere((segment) => segment.value == QuantumInspectorView.bloch)
-          .enabled,
-      isFalse,
-    );
+    tester
+        .widget<SegmentedButton<QuantumInspectorView>>(
+            find.byKey(const ValueKey('quantum-inspector-view-selector')))
+        .onSelectionChanged!({QuantumInspectorView.state});
+    await tester.pump();
 
     await setSize(tester, const Size(700, 1000));
     await tester.pump();
-    expect(
-      tester
-          .widget<ComposerCircuitCanvas>(find.byType(ComposerCircuitCanvas))
-          .surfaceTreatment,
-      ComposerCircuitSurfaceTreatment.inset,
-    );
     expect(find.byKey(const ValueKey('web-mastery-workspace-header')),
         findsOneWidget);
+    // Medium width: Results is the retained, offstage half of the
+    // Circuit/Results switch.
     expect(
-        find.byKey(const ValueKey('web-lesson-current-state')), findsOneWidget);
+        find.byKey(const ValueKey('web-composer-current-state'),
+            skipOffstage: false),
+        findsOneWidget);
     expect(
-        find.byKey(const ValueKey('web-lesson-target-state')), findsOneWidget);
+        find.byKey(const ValueKey('web-composer-target-state'),
+            skipOffstage: false),
+        findsOneWidget);
     expect(tester.widget<Checkbox>(filter).value, isTrue);
   });
 
@@ -379,11 +388,13 @@ void main() {
         MaterialApp(
           theme: ThemeData.dark(useMaterial3: true),
           home: Scaffold(
-            body: WebComposerLesson(
+            body: WebComposerExercise(
               level: level,
-              enabled: true,
-              onSolved: () async {},
-              desktopWorkspace: true,
+              mode: ComposerMode.masteryChallenge,
+              contextLabel: 'Challenge 28',
+              onCompleted: () async {},
+              onNext: () {},
+              onOpenNotebook: () {},
             ),
           ),
         ),

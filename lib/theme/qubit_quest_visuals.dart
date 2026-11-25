@@ -25,6 +25,12 @@ abstract final class QubitQuestColors {
 
   static const border = Color(0x66344A73);
   static const borderSoft = Color(0x3D344A73);
+
+  /// Hairline dividing the web shell's header, navigation and workspace.
+  static const shellDivider = Color(0x44344A73);
+
+  /// Background of the selected navigation destination.
+  static const navigationSelected = Color(0x2222D3EE);
   static const borderFocus = Color(0xFF56CCF2);
 
   static const textPrimary = Colors.white;

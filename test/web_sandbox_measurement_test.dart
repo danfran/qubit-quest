@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quantumquiz/screens/web_exercise_workspace.dart';
+import 'package:quantumquiz/models/composer_policy.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/mastery_2_catalogue.dart';
 import 'package:quantumquiz/models/qq_level.dart';
@@ -9,7 +11,6 @@ import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/web_app.dart';
-import 'package:quantumquiz/screens/web_learning_workspace.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/circuit_geometry.dart';
@@ -36,6 +37,15 @@ ShotsOutcome shotsResult(WidgetTester tester) => tester
     .shotsResult!;
 
 Future<void> tapVisible(WidgetTester tester, Finder finder) async {
+  // Medium workspaces show Circuit or Results; reveal Results when the
+  // target is not on screen (the hidden view stays mounted offstage).
+  final resultsSegment = find.descendant(
+      of: find.byKey(const ValueKey('composer-workspace-view')),
+      matching: find.text('Results'));
+  if (finder.evaluate().isEmpty && resultsSegment.evaluate().isNotEmpty) {
+    await tester.tap(resultsSegment);
+    await tester.pumpAndSettle();
+  }
   // Run controls live in the Inspector's Measure tab: open it when needed.
   final measureTab = find.descendant(
       of: find.byKey(const ValueKey('quantum-inspector-view-selector')),
@@ -87,7 +97,9 @@ void main() {
         find.byKey(const ValueKey('web-composer-state-inspection'));
     expect(find.descendant(of: inspector, matching: run), findsOneWidget);
     expect(find.descendant(of: inspector, matching: results), findsOneWidget);
-    expect(find.text('RESULTS'), findsNothing);
+    // Run controls and results live together in the Results region.
+    final resultsRegion = find.byKey(const ValueKey('composer-region-results'));
+    expect(find.descendant(of: resultsRegion, matching: run), findsOneWidget);
     expect(result.readout.isFinalState, isTrue);
     expect(result.counts.values.reduce((a, b) => a + b), 1000);
     final canvas = tester
@@ -223,7 +235,8 @@ void main() {
   });
 
   testWidgets(
-      'clears before saving; selection keeps results; leaving discards results',
+      'clears before saving; selection keeps results; leaving keeps them '
+      '(M6a); a fresh app start has none',
       (tester) async {
     final storage = DelayedStorage();
     await openSandbox(tester, storage);
@@ -261,8 +274,9 @@ void main() {
     await tapVisible(tester, run);
     await tapVisible(tester, find.byKey(const ValueKey('web-nav-journey')));
     await tapVisible(tester, find.byKey(const ValueKey('web-nav-composer')));
-    expect(results, findsNothing);
-    await tapVisible(tester, run);
+    // v2.6 M6a: results belong to the retained session, so another
+    // destination does not discard them.
+    expect(results, findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
     await openSandbox(tester, storage);
@@ -300,9 +314,25 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.descendant(of: results, matching: find.text('|00000⟩')),
           findsOneWidget);
+      // M4: exact, observed and count columns (was "1,000 · 100.0%").
       expect(
-          find.descendant(of: results, matching: find.text('1,000 · 100.0%')),
+          find.descendant(
+              of: results,
+              matching: find.byKey(
+                  const ValueKey('web-sandbox-outcome-count-00000'))),
           findsOneWidget);
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('web-sandbox-outcome-count-00000')))
+              .data,
+          '1,000');
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('measure-observed-00000')))
+              .data,
+          '100%');
       expect(tester.takeException(), isNull);
       final canvas = tester
           .widget<ComposerCircuitCanvas>(find.byType(ComposerCircuitCanvas));
@@ -316,7 +346,7 @@ void main() {
         ));
       }
       await tester.pumpAndSettle();
-      final surface = find.byKey(const ValueKey('quantum-workspace-surface'));
+      final surface = find.byKey(const ValueKey('composer-region-canvas'));
       final heightBeforeRun = tester.getSize(surface).height;
       await tapVisible(tester, run);
       final result = shotsResult(tester);
@@ -328,10 +358,14 @@ void main() {
       await tester.pumpAndSettle();
       // The circuit card never resizes for Inspector results.
       expect(tester.getSize(surface).height, heightBeforeRun);
-      final footer =
-          find.byKey(const ValueKey('quantum-workspace-contextual-actions'));
-      expect(find.descendant(of: footer, matching: run), findsNothing);
-      expect(find.text('RESULTS'), findsNothing);
+      for (final region in [
+        'composer-region-canvas',
+        'composer-region-inspector'
+      ]) {
+        expect(find.descendant(of: find.byKey(ValueKey(region)), matching: run),
+            findsNothing,
+            reason: 'Run controls are never duplicated outside Results');
+      }
       expect(tester.takeException(), isNull);
     });
   }
@@ -349,14 +383,20 @@ void main() {
               .levelDefinition as ComposerLevel;
       await tester.pumpWidget(MaterialApp(
           home: Scaffold(
-              body: WebComposerLesson(
+              body: WebComposerExercise(
         level: level,
-        enabled: true,
-        onSolved: () async {},
-        desktopWorkspace: true,
+        mode: activity == 'Journey'
+            ? ComposerMode.journeyExercise
+            : ComposerMode.masteryChallenge,
+        contextLabel: activity,
+        onCompleted: () async {},
+        onNext: () {},
+        onOpenNotebook: () {},
       ))));
       await tester.pumpAndSettle();
       expect(find.text('Check Circuit'), findsOneWidget);
+      // No Measure view and no M in the palette for exercises.
+      expect(find.text('Measure'), findsNothing);
       expect(run, findsNothing);
       expect(results, findsNothing);
     });

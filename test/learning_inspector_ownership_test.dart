@@ -8,6 +8,7 @@ import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/quantum_inspector_views.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
+import 'support/journey_navigation.dart';
 
 void main() {
   testWidgets(
@@ -77,10 +78,13 @@ void main() {
       ));
       await tester.pumpAndSettle();
       if (mastery) {
+        // M6a: select in the library, then start from the details.
         await tester.tap(find.byKey(
             const ValueKey('web-mastery-challenge-phase_state_uncomputation')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('web-mastery-start')));
       } else {
-        await tester.tap(find.text('Chapter 1 — Information'));
+        await openJourneyChapter(tester, 1);
       }
       await tester.pumpAndSettle();
       final circuit = tester
@@ -89,16 +93,25 @@ void main() {
       final state = circuit.currentState;
       final simulations = circuit.simulationRunCount;
       final progressState = progress.state;
-      final selector =
-          find.byKey(const ValueKey('quantum-inspector-view-selector'));
+      final selector = find.byKey(
+          const ValueKey('quantum-inspector-view-selector'),
+          skipOffstage: false);
+      final sphere = find.byType(BlochSpherePanel, skipOffstage: false);
+      // Medium tier: Results is the other half of the Circuit/Results
+      // switch; a learner switches to it before orbiting the sphere.
+      Future<void> showResults() async {
+        final view = find.byKey(const ValueKey('composer-workspace-view'));
+        if (view.evaluate().isEmpty) return;
+        await tester.tap(find.descendant(of: view, matching: find.text('Results')));
+        await tester.pumpAndSettle();
+      }
       await tester.ensureVisible(selector);
       await tester.tap(find.text('Bloch'));
       await tester.pumpAndSettle();
       final boundary = mastery ? 940.0 : 960.0;
       for (final next in [boundary - 1, boundary + 1, 803.0, 805.0, 1000.0]) {
-        final cameraBeforeResize = tester
-            .widget<BlochSpherePanel>(find.byType(BlochSpherePanel))
-            .camera;
+        final cameraBeforeResize =
+            tester.widget<BlochSpherePanel>(sphere).camera;
         width.value = next;
         await tester.pumpAndSettle();
         expect(
@@ -108,15 +121,14 @@ void main() {
             {QuantumInspectorView.bloch});
         expect(
             tester
-                .widget<ComposerCircuitCanvas>(
-                    find.byType(ComposerCircuitCanvas))
+                .widget<ComposerCircuitCanvas>(find.byType(
+                    ComposerCircuitCanvas,
+                    skipOffstage: false))
                 .circuit,
             same(circuit));
-        expect(
-            tester
-                .widget<BlochSpherePanel>(find.byType(BlochSpherePanel))
-                .camera,
+        expect(tester.widget<BlochSpherePanel>(sphere).camera,
             same(cameraBeforeResize));
+        await showResults();
         await tester.ensureVisible(find.byType(BlochSpherePanel));
         await tester.pumpAndSettle();
         final panel =

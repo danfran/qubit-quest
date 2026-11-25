@@ -5,10 +5,9 @@ import 'package:quantumquiz/models/gate_id.dart';
 import 'package:quantumquiz/models/logical_gate_footprint.dart';
 import 'package:quantumquiz/models/placed_quantum_gate.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
+import 'package:quantumquiz/widgets/gate_educational_sections.dart';
 import 'package:quantumquiz/widgets/gate_educational_visual.dart';
 import 'package:quantumquiz/widgets/gate_inspector_theme.dart';
-import 'package:quantumquiz/widgets/latex_text.dart';
-import 'package:quantumquiz/widgets/native_math_text.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 
 @immutable
@@ -114,59 +113,43 @@ class GateInspectorDialog extends StatelessWidget {
             footprint: footprint,
             showCircuitLocation: inspectionContext == null,
           ),
-          _InspectorCard(
+          GateEducationalSummary(
             key: const ValueKey('gate-inspector-summary-card'),
-            children: [
-              if (educational.intuition.isNotEmpty)
-                _Section(title: 'Intuition', body: educational.intuition),
-              if (educational.physicalChange.isNotEmpty)
-                _Section(
-                    title: 'What changes', body: educational.physicalChange),
-              if (educational.commonUse.isNotEmpty)
-                _Section(title: 'Common use', body: educational.commonUse),
-            ],
+            info: educational,
           ),
           if (educational.transformations.isNotEmpty)
-            _MathListSection(
+            GateEducationalMathList(
               title: 'State action',
               values: educational.transformations,
-              level: _InspectorMathLevel.secondary,
+              level: GateEducationalMathLevel.secondary,
               keyPrefix: 'gate-inspector-state-math',
             ),
           if (educational.matrix.isNotEmpty)
             _MatrixSection(matrix: educational.matrix),
           if (educational.properties.isNotEmpty)
-            _ListSection(title: 'Properties', values: educational.properties),
+            GateEducationalListSection(
+                title: 'Properties', values: educational.properties),
           if (educational.identities.isNotEmpty)
-            _MathListSection(
+            GateEducationalMathList(
               title: 'Important identities',
               values: educational.identities,
-              level: _InspectorMathLevel.tertiary,
+              level: GateEducationalMathLevel.tertiary,
               keyPrefix: 'gate-inspector-identity-math',
             ),
           if (educational.relatedConcepts.isNotEmpty)
-            _RelatedConceptsSection(
+            GateRelatedConceptsSection(
               concepts: educational.relatedConcepts,
               onOpen: onOpenRelatedConcept,
             ),
-          if (_isControlled(educational.visual.kind))
-            const _Section(
+          if (isControlledEducationalVisual(educational.visual.kind))
+            const GateEducationalTextSection(
               title: 'Why one Bloch sphere is not enough',
-              body:
-                  'A Bloch sphere describes one isolated qubit. Controlled gates act on joint basis states and can create entanglement, so their full behavior belongs to the multi-qubit state space.',
+              body: controlledGateBlochNote,
             ),
         ],
       ),
     );
   }
-
-  bool _isControlled(GateEducationalVisualKind kind) => switch (kind) {
-        GateEducationalVisualKind.controlledX ||
-        GateEducationalVisualKind.controlledPhase ||
-        GateEducationalVisualKind.multiControlledX =>
-          true,
-        _ => false,
-      };
 }
 
 class _InspectorContextCard extends StatelessWidget {
@@ -248,156 +231,6 @@ class _InspectorHero extends StatelessWidget {
   }
 }
 
-class _InspectorCard extends StatelessWidget {
-  const _InspectorCard({super.key, required this.children});
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 2),
-        decoration: BoxDecoration(
-          color: QubitQuestDialog.cardColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: QubitQuestDialog.borderSoftColor),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: children,
-        ),
-      );
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.body});
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: GateInspectorTheme.sectionTitle),
-          const SizedBox(height: 5),
-          LatexText(
-            math: body,
-            textStyle: GateInspectorTheme.body,
-            inlineMathColor: Colors.white,
-            inlineMathHeight: GateInspectorTheme.mathSecondaryInlineHeight,
-            displayMathHeight: GateInspectorTheme.mathSecondaryDisplayHeight,
-          ),
-        ]),
-      );
-}
-
-class _ListSection extends StatelessWidget {
-  const _ListSection({required this.title, required this.values});
-  final String title;
-  final List<String> values;
-
-  @override
-  Widget build(BuildContext context) => _Section(
-        title: title,
-        body: values.map((value) => '• $value').join('\n'),
-      );
-}
-
-enum _InspectorMathLevel { secondary, tertiary }
-
-class _MathListSection extends StatelessWidget {
-  const _MathListSection({
-    required this.title,
-    required this.values,
-    required this.level,
-    required this.keyPrefix,
-  });
-  final String title;
-  final List<String> values;
-  final _InspectorMathLevel level;
-  final String keyPrefix;
-
-  @override
-  Widget build(BuildContext context) => _InspectorCard(children: [
-        Text(title, style: GateInspectorTheme.sectionTitle),
-        const SizedBox(height: 8),
-        for (final entry in values.asMap().entries)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 7),
-            child: _InspectorMathExpression(
-              key: ValueKey('$keyPrefix-${entry.key}'),
-              math: entry.value,
-              level: level,
-            ),
-          ),
-      ]);
-}
-
-class _InspectorMathExpression extends StatelessWidget {
-  const _InspectorMathExpression({
-    super.key,
-    required this.math,
-    required this.level,
-  });
-
-  final String math;
-  final _InspectorMathLevel level;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = level == _InspectorMathLevel.secondary
-        ? GateInspectorTheme.mathSecondary
-        : GateInspectorTheme.mathTertiary;
-    if (NativeMathText.supports(math)) {
-      return NativeMathText(math: math, style: style);
-    }
-    return LatexText(
-      math: math,
-      textStyle: style,
-      inlineMathColor: Colors.white,
-      inlineMathHeight: level == _InspectorMathLevel.secondary
-          ? GateInspectorTheme.mathSecondaryInlineHeight
-          : GateInspectorTheme.mathTertiaryInlineHeight,
-      displayMathHeight: level == _InspectorMathLevel.secondary
-          ? GateInspectorTheme.mathSecondaryDisplayHeight
-          : GateInspectorTheme.mathTertiaryDisplayHeight,
-    );
-  }
-}
-
-class _RelatedConceptsSection extends StatelessWidget {
-  const _RelatedConceptsSection({required this.concepts, this.onOpen});
-  final List<GateRelatedConcept> concepts;
-  final ValueChanged<String>? onOpen;
-
-  @override
-  Widget build(BuildContext context) => _InspectorCard(children: [
-        const Text('Related concepts', style: GateInspectorTheme.sectionTitle),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 7,
-          runSpacing: 7,
-          children: [
-            for (final concept in concepts)
-              ActionChip(
-                key: ValueKey('gate-concept-${concept.label}'),
-                avatar: concept.notebookDiscoveryTitle == null
-                    ? null
-                    : const Icon(Icons.menu_book_outlined, size: 15),
-                label: Text(concept.label),
-                tooltip: concept.notebookDiscoveryTitle == null
-                    ? concept.label
-                    : 'Open ${concept.label} in Notebook',
-                onPressed:
-                    concept.notebookDiscoveryTitle == null || onOpen == null
-                        ? null
-                        : () => onOpen!(concept.notebookDiscoveryTitle!),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-      ]);
-}
-
 class _MatrixSection extends StatelessWidget {
   const _MatrixSection({required this.matrix});
   final String matrix;
@@ -419,12 +252,9 @@ class _MatrixSection extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-              child: LatexText(
-                key: const ValueKey('gate-inspector-matrix-latex'),
-                math: matrix,
-                textStyle: GateInspectorTheme.mathPrimary,
-                inlineMathHeight: GateInspectorTheme.mathPrimaryInlineHeight,
-                displayMathHeight: GateInspectorTheme.mathPrimaryDisplayHeight,
+              child: GateEducationalMatrix(
+                latexKey: const ValueKey('gate-inspector-matrix-latex'),
+                matrix: matrix,
               ),
             ),
           ],

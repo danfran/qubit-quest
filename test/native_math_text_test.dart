@@ -42,4 +42,16 @@ void main() {
     expect(richText.text.toPlainText(), 'HZH=X');
     expect(richText.textScaler, const TextScaler.linear(2));
   });
+
+  test('M3.1: no raw TeX leaks from the plain-text subset', () {
+    // \mathrm{...} keeps its content (previously a literal "\$1").
+    expect(NativeMathText.plainText(r'\(\mathrm{CCX}^2=I\)'), 'CCX²=I');
+    expect(NativeMathText.supports(r'\(\mathrm{CCX}^2=I\)'), isTrue);
+    // \cdot is translated; unknown commands fall back to LaTeX rendering.
+    expect(
+        NativeMathText.plainText(
+            r'\(|a,b,t\rangle \rightarrow |a,b,t\oplus(a\cdot b)\rangle\)'),
+        '|a,b,t⟩ → |a,b,t⊕(a·b)⟩');
+    expect(NativeMathText.supports(r'\(\alpha|0\rangle\)'), isFalse);
+  });
 }

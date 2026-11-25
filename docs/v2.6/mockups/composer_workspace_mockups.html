@@ -1,0 +1,403 @@
+<meta charset="utf-8">
+<title>Qubit Quest Workspace Mockups</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a review sheet of fixed-size desktop frames (1280 / 1024 px), each scrollable inside its own container.
+   Deliberately single-theme dark: these are mockups of the app's own dark identity (QubitQuestColors). */
+:root {
+  color-scheme: dark;
+  --bg: #00030A;            /* QubitQuestColors.background */
+  --surface: #111827;       /* surface */
+  --raised: #18233A;        /* surfaceRaised */
+  --inset: #030814;         /* surfaceInset */
+  --inset2: #101A2D;        /* surfaceInsetRaised */
+  --border: rgba(52,74,115,.40);
+  --border-soft: rgba(52,74,115,.24);
+  --text: #FFFFFF;
+  --body: #D6E3F8;
+  --muted: #95A4BC;
+  --cyan: #56CCF2;          /* accentInteractive */
+  --purple: #B388FF;        /* accentStrong */
+  --green: #7CFFB2;         /* success / selection */
+  --amber: #FFD54F;
+  --red: #FF7A7A;
+  --wire: #3B8CFF;          /* QuantumCircuitPainter.circuitLineBlue */
+  --proposed: #FFB86B;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--body); font-family: var(--font); font-size: 14px; line-height: 1.45; }
+.page { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 64px; max-width: 1360px; margin: 0 auto; }
+h1 { color: var(--text); font-size: 26px; font-weight: 800; margin: 0 0 6px; text-wrap: balance; }
+.lede { color: var(--muted); max-width: 68ch; margin: 0 0 14px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 12.5px; color: var(--muted); margin-bottom: 18px; }
+.tag { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--proposed); border: 1px dashed var(--proposed); border-radius: 5px; padding: 1px 6px; vertical-align: middle; white-space: nowrap; }
+.tag.exists { color: var(--muted); border-color: var(--border); border-style: solid; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 28px; }
+nav.toc a { color: var(--cyan); text-decoration: none; font-size: 13px; font-weight: 600; border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; }
+nav.toc a:hover, nav.toc a:focus-visible { background: var(--inset2); outline: none; }
+section.mock { margin-bottom: 44px; }
+section.mock > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 8px; }
+section.mock h2 { color: var(--text); font-size: 18px; font-weight: 800; margin: 0; }
+section.mock .note { color: var(--muted); font-size: 13px; max-width: 90ch; margin: 0 0 10px; }
+.frame-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+.frame { width: 1280px; height: 760px; background: var(--bg); display: grid; grid-template-columns: 200px 1fr; font-size: 13px; }
+.frame.medium { width: 1024px; height: 700px; }
+
+/* Shell */
+.shell-nav { background: var(--surface); border-right: 1px solid var(--border-soft); padding: 16px 10px; display: flex; flex-direction: column; gap: 2px; }
+.shell-nav .brand { color: var(--text); font-weight: 800; font-size: 15px; padding: 2px 10px 14px; letter-spacing: .01em; }
+.shell-nav .grp { color: var(--muted); font-size: 10.5px; font-weight: 800; letter-spacing: .12em; padding: 12px 10px 4px; }
+.shell-nav .it { padding: 7px 10px; border-radius: 8px; color: var(--body); font-weight: 600; }
+.shell-nav .it.on { background: rgba(86,204,242,.12); color: var(--cyan); }
+.shell-nav .ver { margin-top: auto; color: var(--muted); font-size: 11px; padding: 0 10px; }
+.shell-nav.rail { width: 56px; align-items: center; padding: 14px 6px; }
+.rail-dot { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: var(--muted); font-size: 11px; font-weight: 800; }
+.rail-dot.on { background: rgba(86,204,242,.12); color: var(--cyan); }
+
+/* Workspace */
+.ws { display: grid; grid-template-rows: 48px 1fr; min-width: 0; }
+.toolbar { display: flex; align-items: center; gap: 6px; padding: 0 14px; border-bottom: 1px solid var(--border-soft); background: var(--bg); }
+.toolbar .title { color: var(--text); font-weight: 800; font-size: 15px; margin-right: 6px; }
+.btn { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--border); color: var(--body); background: transparent; font: 600 12.5px var(--font); white-space: nowrap; }
+.btn.ghost { border-color: transparent; }
+.btn.primary { background: var(--cyan); color: #031520; border-color: var(--cyan); font-weight: 800; }
+.btn.danger { color: var(--red); border-color: rgba(255,122,122,.35); }
+.btn[aria-disabled="true"] { opacity: .4; }
+.sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+.spacer { flex: 1; }
+.saved { color: var(--muted); font-size: 12px; }
+.saved b { color: var(--green); font-weight: 700; }
+.body3 { display: grid; grid-template-columns: var(--pal, 200px) 6px 1fr 6px var(--res, 360px); min-height: 0; }
+.handle { background: var(--bg); position: relative; }
+.handle::after { content: ""; position: absolute; left: 2px; top: 50%; width: 2px; height: 28px; margin-top: -14px; border-radius: 2px; background: var(--border); }
+.col { min-width: 0; min-height: 0; overflow: hidden; }
+
+/* Palette */
+.palette { background: var(--surface); border-right: 1px solid var(--border-soft); padding: 10px 10px; overflow: auto; }
+.palette .cat { margin-bottom: 10px; }
+.palette .cat h4 { margin: 0 0 6px; display: flex; justify-content: space-between; color: var(--muted); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.palette .row { display: flex; align-items: center; gap: 9px; padding: 3px 4px; border-radius: 7px; color: var(--body); font-size: 12.5px; }
+.palette .row:hover { background: var(--inset2); }
+.palette .row small { color: var(--muted); margin-left: auto; font-size: 11px; }
+.tile { width: 30px; height: 30px; flex: 0 0 auto; border-radius: 7px; display: grid; place-items: center; color: #fff; font: 800 13px var(--font); border: 1px solid #31405F; box-shadow: inset 0 1px 0 rgba(255,255,255,.18); }
+.tile.sm { width: 26px; height: 26px; font-size: 11.5px; }
+.tile.lg { width: 44px; height: 44px; font-size: 18px; border-radius: 9px; }
+.g-h { background: linear-gradient(#FF6A63,#E44747 55%,#B92B2B); }
+.g-x { background: linear-gradient(#4A8DFF,#2F6FEA 55%,#1F4FC7); }
+.g-y { background: linear-gradient(#62D8F6,#3FB8DD 55%,#238CB3); }
+.g-z { background: linear-gradient(#386EFF,#244ED2 55%,#162D8F); }
+.g-s { background: linear-gradient(#8AA2FF,#6577E8 55%,#3A47B8); }
+.g-p { background: linear-gradient(#B65CFF,#8E46E8 55%,#6126C9); }
+.g-cz { background: linear-gradient(#4BCBFF,#3193E8 55%,#2356B8); }
+.g-m { background: linear-gradient(#5B6478,#434B5E 55%,#2E3445); }
+.palette.rail { padding: 10px 6px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.palette.rail .div { width: 28px; height: 1px; background: var(--border); margin: 3px 0; }
+
+/* Centre */
+.centre { display: grid; grid-template-rows: 1fr 6px var(--insp, 232px); min-height: 0; }
+.canvas { background: var(--inset); position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.canvas .meta { display: flex; gap: 14px; padding: 8px 14px; color: var(--muted); font-size: 12px; border-bottom: 1px solid var(--border-soft); }
+.canvas .meta b { color: var(--body); font-weight: 700; }
+.canvas .stage { flex: 1; overflow: auto; padding: 14px 10px; display: flex; align-items: flex-start; }
+.canvas .zoom { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 4px; }
+.hhandle { background: var(--bg); position: relative; }
+.hhandle::after { content: ""; position: absolute; top: 2px; left: 50%; width: 28px; height: 2px; margin-left: -14px; border-radius: 2px; background: var(--border); }
+.inspector { background: var(--surface); border-top: 1px solid var(--border-soft); padding: 12px 16px; overflow: auto; }
+.insp-head { display: flex; align-items: center; gap: 12px; }
+.insp-head .name { color: var(--text); font-weight: 800; font-size: 15px; }
+.insp-head .loc { color: var(--muted); font-size: 12px; font-family: var(--mono); }
+.insp-head .acts { margin-left: auto; display: flex; gap: 6px; }
+.insp-grid { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 18px; margin-top: 12px; }
+.lbl { color: var(--muted); font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 5px; display: flex; gap: 8px; align-items: center; }
+.matrix { display: inline-grid; gap: 2px 14px; padding: 6px 12px; border-left: 2px solid var(--muted); border-right: 2px solid var(--muted); border-radius: 4px; font-family: var(--mono); font-size: 12.5px; color: var(--text); }
+.maps { font-family: var(--mono); font-size: 12.5px; color: var(--body); display: grid; gap: 3px; }
+.empty { color: var(--muted); display: flex; align-items: center; gap: 14px; height: 100%; }
+.empty .facts { display: flex; gap: 18px; margin-left: auto; font-size: 12px; }
+.empty .facts b { color: var(--body); font-variant-numeric: tabular-nums; }
+.angle { display: grid; gap: 8px; }
+.angle .field { display: flex; gap: 6px; align-items: center; }
+.angle input[type=text] { width: 92px; height: 30px; background: var(--inset); color: var(--text); border: 1px solid var(--cyan); border-radius: 7px; padding: 0 8px; font: 600 13px var(--mono); }
+.chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.chip { font: 600 12px var(--mono); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--border); color: var(--body); }
+.chip.on { border-color: var(--cyan); color: var(--cyan); }
+.slider { height: 4px; border-radius: 4px; background: linear-gradient(90deg, var(--cyan) 0 var(--v), var(--border) var(--v)); position: relative; }
+.slider::after { content: ""; position: absolute; left: var(--v); top: -5px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--cyan); }
+
+/* Results */
+.results { background: var(--surface); border-left: 1px solid var(--border-soft); display: flex; flex-direction: column; min-height: 0; }
+.tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--border-soft); }
+.tab { padding: 7px 12px; color: var(--muted); font-weight: 700; font-size: 12.5px; border-bottom: 2px solid transparent; }
+.tab.on { color: var(--text); border-color: var(--cyan); }
+.rbody { padding: 12px 14px; overflow: auto; display: grid; gap: 14px; align-content: start; }
+.amps { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 10px; align-items: center; font-variant-numeric: tabular-nums; }
+.amps .k { font-family: var(--mono); color: var(--text); font-size: 12.5px; }
+.amps .v { font-family: var(--mono); color: var(--body); font-size: 12px; text-align: right; }
+.pbar { height: 8px; background: var(--inset); border-radius: 4px; overflow: hidden; }
+.pbar i { display: block; height: 100%; background: var(--purple); border-radius: 4px; }
+.ket { font-family: var(--mono); color: var(--text); font-size: 13px; background: var(--inset); border-radius: 8px; padding: 8px 10px; }
+.caption { color: var(--muted); font-size: 12px; }
+.hist { display: grid; grid-template-columns: 46px 1fr 74px; gap: 7px 10px; align-items: center; font-variant-numeric: tabular-nums; }
+.hist .k { font-family: var(--mono); color: var(--text); }
+.hist .track { position: relative; height: 16px; background: var(--inset); border-radius: 4px; }
+.hist .obs { position: absolute; left: 0; top: 0; bottom: 0; background: var(--cyan); border-radius: 4px; opacity: .85; }
+.hist .exact { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--amber); }
+.hist .n { color: var(--body); font-size: 12px; text-align: right; }
+.key { display: flex; gap: 14px; font-size: 11.5px; color: var(--muted); }
+.key i { display: inline-block; width: 12px; height: 8px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+.runrow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.shots { height: 30px; width: 86px; background: var(--inset); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font: 600 12.5px var(--mono); display: flex; align-items: center; padding: 0 8px; justify-content: space-between; }
+.outcome { display: flex; justify-content: space-between; align-items: center; background: var(--inset); border-radius: 8px; padding: 8px 10px; font-family: var(--mono); }
+.outcome b { color: var(--green); font-size: 15px; }
+.bloch { display: grid; place-items: center; }
+
+/* Journey */
+.journey { display: grid; grid-template-columns: 360px 1fr; min-height: 0; }
+.jlist { border-right: 1px solid var(--border-soft); overflow: auto; padding: 18px 12px; background: var(--bg); }
+.jlist .top { padding: 0 8px 12px; }
+.jlist .top h3 { margin: 0; color: var(--text); font-size: 20px; font-weight: 800; }
+.progress { height: 4px; background: var(--raised); border-radius: 4px; margin: 10px 0 4px; }
+.progress i { display: block; height: 100%; width: var(--p); background: var(--green); border-radius: 4px; }
+.jrow { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: center; padding: 8px 8px; border-radius: 8px; color: var(--body); }
+.jrow .num { color: var(--muted); font-family: var(--mono); font-size: 12px; text-align: right; }
+.jrow.done .st { color: var(--green); }
+.jrow.cur { background: rgba(86,204,242,.10); color: var(--text); }
+.jrow.cur .st { color: var(--cyan); font-family: var(--mono); font-size: 12px; }
+.jrow.lock { color: var(--muted); }
+.jdetail { padding: 28px 36px; overflow: auto; max-width: 820px; }
+.jdetail .eyebrow { color: var(--muted); font-size: 12px; font-weight: 700; }
+.jdetail h3 { color: var(--text); font-size: 26px; margin: 4px 0 8px; font-weight: 800; }
+.jdetail p { margin: 0 0 18px; max-width: 64ch; }
+.obj { display: grid; gap: 6px; margin: 0 0 20px; padding: 0; list-style: none; }
+.obj li::before { content: "→ "; color: var(--purple); }
+.lessons { display: grid; gap: 4px; margin-bottom: 20px; }
+.lesson { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; padding: 9px 12px; background: var(--surface); border-radius: 8px; align-items: center; }
+.lesson .st { color: var(--green); }
+.lesson.cur { outline: 1px solid var(--cyan); }
+.lesson.cur .st { color: var(--cyan); }
+.lesson.lock { color: var(--muted); background: transparent; border: 1px solid var(--border-soft); }
+.builds { border-top: 1px solid var(--border-soft); padding-top: 14px; color: var(--muted); font-size: 13px; }
+.builds a { color: var(--cyan); text-decoration: none; }
+.cta { display: flex; gap: 8px; margin-bottom: 26px; }
+
+.medium .body2 { display: grid; grid-template-columns: 64px 1fr; min-height: 0; }
+.segs { display: flex; gap: 2px; background: var(--inset); padding: 3px; border-radius: 9px; }
+.seg { padding: 4px 12px; border-radius: 7px; color: var(--muted); font-weight: 700; font-size: 12.5px; }
+.seg.on { background: var(--raised); color: var(--text); }
+.drawer-hint { position: absolute; right: 0; top: 0; bottom: 0; width: 14px; background: linear-gradient(90deg, transparent, rgba(86,204,242,.10)); }
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px 22px; margin-top: 12px; }
+.notes div { font-size: 12.5px; color: var(--muted); min-width: 0; }
+.notes b { color: var(--body); }
+a:focus-visible, .btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+@media (max-width: 600px) { h1 { font-size: 21px; } }
+</style>
+
+<div class="page">
+  <h1>Qubit Quest v2.6 workspace mockups</h1>
+  <p class="lede">Static desktop layout proposals for milestone M1. They use the app's real colour tokens, gate colours and gate inventory. Each frame is a fixed 1280 px (or 1024 px) canvas; scroll sideways inside a frame on small screens.</p>
+  <div class="legend">
+    <span><span class="tag">Proposed</span> not implemented today</span>
+    <span><span class="tag exists">Exists</span> behaviour already in the web Sandbox, moved to a new place</span>
+  </div>
+  <nav class="toc" aria-label="Mockups">
+    <a href="#m1">1 · No selection</a><a href="#m2">2 · H selected</a><a href="#m3">3 · Rz selected</a><a href="#m4">4 · Measurement results</a><a href="#m5">5 · Five-qubit circuit</a><a href="#m6">6 · Learning Journey</a><a href="#m7">7 · Tablet landscape</a>
+  </nav>
+
+  <!-- 1 -->
+  <section class="mock" id="m1">
+    <header><h2>1. Composer, nothing selected</h2><span class="tag">Proposed layout</span></header>
+    <p class="note">Bell-pair circuit on 3 qubits. The inspector shows a one-line empty state and circuit facts. Results open on the State tab with exact probabilities beside each amplitude.</p>
+    <div class="frame-scroll"><div class="frame" data-frame="m1"></div></div>
+  </section>
+
+  <!-- 2 -->
+  <section class="mock" id="m2">
+    <header><h2>2. Hadamard selected</h2><span class="tag">Proposed inspector</span></header>
+    <p class="note">The inspector replaces the selection toolbar and the routine use of the modal dialog: identity, intuition, matrix and basis mapping are inline. "More…" still opens the existing GateInspectorDialog for the full lesson.</p>
+    <div class="frame-scroll"><div class="frame" data-frame="m2"></div></div>
+  </section>
+
+  <!-- 3 -->
+  <section class="mock" id="m3">
+    <header><h2>3. Parameterised Rz selected</h2><span class="tag">Proposed angle editor</span></header>
+    <p class="note">θ is edited in units of π with presets and a slider; the matrix updates live and the change commits once (one autosave). Replaces both the lesson slider and the post-placement angle dialog.</p>
+    <div class="frame-scroll"><div class="frame" data-frame="m3"></div></div>
+  </section>
+
+  <!-- 4 -->
+  <section class="mock" id="m4">
+    <header><h2>4. Measurement results</h2><span class="tag exists">Run once / shots exist</span><span class="tag">Exact overlay proposed</span></header>
+    <p class="note">Bell pair measured into c0 and c1, 1,000 shots. Filled bars are observed frequencies; the amber tick is the exact Born-rule probability from the state before measurement. The single outcome sits above the histogram.</p>
+    <div class="frame-scroll"><div class="frame" data-frame="m4"></div></div>
+  </section>
+
+  <!-- 5 -->
+  <section class="mock" id="m5">
+    <header><h2>5. Larger five-qubit circuit</h2><span class="tag">Proposed collapse</span></header>
+    <p class="note">Palette collapsed to a rail and the inspector to its header, giving the canvas most of the window. Results panel widened by dragging. Zoom controls are shown greyed because zoom is a stretch item pending decision D5.</p>
+    <div class="frame-scroll"><div class="frame" data-frame="m5"></div></div>
+  </section>
+
+  <!-- 6 -->
+  <section class="mock" id="m6">
+    <header><h2>6. Learning Journey, active chapter selected</h2><span class="tag">Proposed</span></header>
+    <p class="note">Ordered chapter list with one state glyph per row, and a detail panel with objectives, lessons and one primary action. Concept links become a "Builds on" line. Progression rules are unchanged.</p>
+    <div class="frame-scroll"><div class="frame" data-frame="m6"></div></div>
+  </section>
+
+  <!-- 7 -->
+  <section class="mock" id="m7">
+    <header><h2>7. Tablet landscape (1024 px)</h2><span class="tag">Proposed medium tier</span></header>
+    <p class="note">Sidebar becomes a rail; palette is an icon rail; Circuit and Results switch with a segmented control instead of squeezing three columns. Same functional components as the wide layout.</p>
+    <div class="frame-scroll"><div class="frame medium" data-frame="m7"></div></div>
+  </section>
+
+  <div class="notes">
+    <div><b>Source of truth.</b> Design detail is in <code>docs/v2.6/V26_COMPOSER_WORKSPACE_DESIGN.md</code>; this page is a review aid, not an implementation.</div>
+    <div><b>Gate inventory.</b> H, X, Y, Z, S, T, Rx, Ry, Rz, CNOT, CZ, CCX and M, which is what the app supports today.</div>
+    <div><b>Terminology.</b> Exact probability, observed frequency, outcome, before / after measurement.</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const PITCH = 52, ROW = 46, G = 34, PADL = 46, PADT = 26;
+  const cls = { H: 'g-h', X: 'g-x', Y: 'g-y', Z: 'g-z', S: 'g-s', T: 'g-p', Rx: 'g-x', Ry: 'g-y', Rz: 'g-p', M: 'g-m' };
+  const fill = { H: ['#FF6A63', '#B92B2B'], X: ['#4A8DFF', '#1F4FC7'], Y: ['#62D8F6', '#238CB3'], Z: ['#386EFF', '#162D8F'], S: ['#8AA2FF', '#3A47B8'], T: ['#B65CFF', '#6126C9'], Rx: ['#4A8DFF', '#1F4FC7'], Ry: ['#62D8F6', '#238CB3'], Rz: ['#B65CFF', '#6126C9'], M: ['#5B6478', '#2E3445'] };
+  let gid = 0;
+
+  function circuit(n, cols, ops) {
+    const w = PADL + cols * PITCH + 30, h = PADT + (n - 1) * ROW + 30;
+    const y = q => PADT + q * ROW, x = c => PADL + c * PITCH + PITCH / 2;
+    let s = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="Quantum circuit, ${n} qubits">`;
+    s += '<defs>';
+    for (const k in fill) s += `<linearGradient id="gr${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${fill[k][0]}"/><stop offset="1" stop-color="${fill[k][1]}"/></linearGradient>`;
+    s += '</defs>';
+    for (let q = 0; q < n; q++) {
+      s += `<text x="8" y="${y(q) + 4}" fill="#95A4BC" font-family="JetBrains Mono, monospace" font-size="12" font-weight="700">q${q}</text>`;
+      s += `<line x1="${PADL - 8}" y1="${y(q)}" x2="${w - 8}" y2="${y(q)}" stroke="#3B8CFF" stroke-opacity=".75" stroke-width="1.5"/>`;
+    }
+    for (const o of ops) {
+      const sel = o.sel ? ' stroke="#7CFFB2" stroke-width="2.5"' : ' stroke="#31405F" stroke-width="1"';
+      if (o.k === 'cx' || o.k === 'ccx' || o.k === 'cz') {
+        const qs = o.ctrl.concat([o.t]);
+        const top = Math.min(...qs), bot = Math.max(...qs);
+        s += `<line x1="${x(o.c)}" y1="${y(top)}" x2="${x(o.c)}" y2="${y(bot)}" stroke="#7DE3FF" stroke-width="2"/>`;
+        for (const c of o.ctrl) s += `<circle cx="${x(o.c)}" cy="${y(c)}" r="5" fill="#7DE3FF"/>`;
+        if (o.k === 'cz') s += `<circle cx="${x(o.c)}" cy="${y(o.t)}" r="5" fill="#7DE3FF"/>`;
+        else s += `<circle cx="${x(o.c)}" cy="${y(o.t)}" r="12" fill="#030814" stroke="#7DE3FF" stroke-width="2"/><line x1="${x(o.c) - 12}" y1="${y(o.t)}" x2="${x(o.c) + 12}" y2="${y(o.t)}" stroke="#7DE3FF" stroke-width="2"/><line x1="${x(o.c)}" y1="${y(o.t) - 12}" x2="${x(o.c)}" y2="${y(o.t) + 12}" stroke="#7DE3FF" stroke-width="2"/>`;
+        if (o.sel) s += `<rect x="${x(o.c) - 18}" y="${y(top) - 18}" width="36" height="${y(bot) - y(top) + 36}" rx="9" fill="none" stroke="#7CFFB2" stroke-width="2"/>`;
+        continue;
+      }
+      const gx = x(o.c) - G / 2, gy = y(o.q) - G / 2;
+      s += `<rect x="${gx}" y="${gy}" width="${G}" height="${G}" rx="8" fill="url(#gr${o.k})"${sel}/>`;
+      if (o.k === 'M') {
+        s += `<path d="M${gx + 8} ${gy + 22} A9 9 0 0 1 ${gx + 26} ${gy + 22}" fill="none" stroke="#fff" stroke-width="1.6"/><line x1="${gx + 17}" y1="${gy + 22}" x2="${gx + 23}" y2="${gy + 12}" stroke="#fff" stroke-width="1.6"/>`;
+        s += `<text x="${gx + G / 2}" y="${gy + 31}" text-anchor="middle" fill="#D6E3F8" font-family="JetBrains Mono, monospace" font-size="8" font-weight="700">c${o.bit}</text>`;
+      } else {
+        const lab = o.k.length > 1 ? o.k : o.k;
+        s += `<text x="${gx + G / 2}" y="${gy + (o.p ? 16 : 22)}" text-anchor="middle" fill="#fff" font-family="Inter, sans-serif" font-size="${o.k.length > 1 ? 12 : 15}" font-weight="800">${lab}</text>`;
+        if (o.p) s += `<text x="${gx + G / 2}" y="${gy + 28}" text-anchor="middle" fill="#fff" fill-opacity=".85" font-family="JetBrains Mono, monospace" font-size="8" font-weight="700">${o.p}</text>`;
+      }
+    }
+    if (ops.some(o => o.ghost)) {}
+    return s + '</svg>';
+  }
+
+  const nav = on => `<aside class="shell-nav"><div class="brand">Qubit Quest</div><div class="grp">LEARN</div>
+    <div class="it${on === 'journey' ? ' on' : ''}">Journey</div><div class="it">Notebook</div><div class="it">Mastery Challenges</div>
+    <div class="grp">EXPLORE</div><div class="it${on === 'composer' ? ' on' : ''}">Composer</div><div class="it">Bloch Explorer</div>
+    <div class="ver">Web v2.6.0 · Build 37</div></aside>`;
+
+  const toolbar = (q, opt = {}) => `<div class="toolbar"><span class="title">Sandbox</span>
+    <span class="btn">${q} qubits ▾</span><span class="sep"></span>
+    <span class="btn ghost" title="Undo (Ctrl+Z)">↶ Undo</span><span class="btn ghost"${opt.noRedo ? ' aria-disabled="true"' : ''}>↷ Redo</span>
+    <span class="tag">Proposed</span><span class="sep"></span><span class="btn ghost">Clear</span>
+    <span class="spacer"></span><span class="saved"><b>●</b> Saved in this browser</span><span class="sep"></span>
+    <span class="btn ghost" title="Toggle palette">▤</span><span class="btn ghost" title="Toggle inspector">▭</span><span class="btn ghost" title="Toggle results">▥</span></div>`;
+
+  const palRow = (k, name, extra = '') => `<div class="row"><span class="tile sm ${cls[k] || 'g-x'}">${k === 'M' ? '◠' : k}</span>${name}${extra ? `<small>${extra}</small>` : ''}</div>`;
+  const palette = () => `<div class="palette col">
+    <div class="cat"><h4>Basic <span>▾</span></h4>${palRow('H', 'Hadamard')}${palRow('X', 'Pauli-X')}${palRow('Y', 'Pauli-Y')}${palRow('Z', 'Pauli-Z')}</div>
+    <div class="cat"><h4>Phase <span>▾</span></h4>${palRow('S', 'S', 'π/2')}${palRow('T', 'T', 'π/4')}</div>
+    <div class="cat"><h4>Rotations <span>▾</span></h4>${palRow('Rx', 'Rx', 'θ')}${palRow('Ry', 'Ry', 'θ')}${palRow('Rz', 'Rz', 'θ')}</div>
+    <div class="cat"><h4>Multi-qubit <span>▾</span></h4><div class="row"><span class="tile sm g-x">⊕</span>CNOT<small>2q</small></div><div class="row"><span class="tile sm g-cz">Z</span>CZ<small>2q</small></div><div class="row"><span class="tile sm g-x">⊕⊕</span>Toffoli<small>3q</small></div></div>
+    <div class="cat"><h4>Measurement <span>▾</span></h4>${palRow('M', 'Measure Z')}</div></div>`;
+  const paletteRail = () => `<div class="palette rail col">${['H', 'X', 'Y', 'Z'].map(k => `<span class="tile sm ${cls[k]}">${k}</span>`).join('')}<span class="div"></span>${['S', 'T'].map(k => `<span class="tile sm ${cls[k]}">${k}</span>`).join('')}<span class="div"></span>${['Rx', 'Ry', 'Rz'].map(k => `<span class="tile sm ${cls[k]}" style="font-size:9.5px">${k}</span>`).join('')}<span class="div"></span><span class="tile sm g-x">⊕</span><span class="tile sm g-cz">Z</span><span class="tile sm g-x" style="font-size:9px">⊕⊕</span><span class="div"></span><span class="tile sm g-m">◠</span></div>`;
+
+  const amps = rows => `<div><div class="lbl">Amplitudes · exact probability <span class="tag" style="font-size:9px">bars proposed</span></div><div class="amps">${rows.map(r => `<span class="k">|${r[0]}⟩</span><span class="pbar"><i style="width:${r[2] * 100}%"></i></span><span class="v">${r[1]} · ${(r[2] * 100).toFixed(1)}%</span>`).join('')}</div></div>`;
+  const tabs = on => `<div class="tabs">${['State', 'Measure', 'Bloch'].map(t => `<span class="tab${t === on ? ' on' : ''}">${t}</span>`).join('')}</div>`;
+
+  const bellState = `<div><div class="lbl">State</div><div class="ket">(|000⟩ + |011⟩) / √2</div></div>` + amps([['000', '0.7071', .5], ['011', '0.7071', .5]]) + `<div class="caption">Showing non-zero amplitudes · 2 of 8 <span style="color:var(--cyan)">Show all</span></div>`;
+
+  const layout = (o) => `${nav('composer')}<div class="ws">${toolbar(o.q, o)}<div class="body3" style="--pal:${o.pal || '200px'};--res:${o.res || '360px'}">
+    ${o.rail ? paletteRail() : palette()}<div class="handle"></div>
+    <div class="centre col" style="--insp:${o.insp || '232px'}"><div class="canvas"><div class="meta"><span><b>${o.q}</b> qubits</span><span>depth <b>${o.depth}</b></span><span><b>${o.ops}</b> operations</span>${o.meas ? `<span><b>${o.meas}</b> measurements</span>` : ''}</div><div class="stage">${o.circ}</div>${o.zoom ? `<div class="zoom"><span class="btn" aria-disabled="true">−</span><span class="btn" aria-disabled="true">100%</span><span class="btn" aria-disabled="true">+</span></div>` : ''}</div>
+    <div class="hhandle"></div><div class="inspector">${o.insp_html}</div></div>
+    <div class="handle"></div><div class="results col">${tabs(o.tab)}<div class="rbody">${o.res_html}</div></div></div></div>`;
+
+  const bell3 = (sel) => circuit(3, 10, [{ k: 'H', q: 0, c: 0, sel: sel === 'H' }, { k: 'cx', ctrl: [0], t: 1, c: 1 }]);
+
+  const emptyInsp = `<div class="empty"><span>Select a gate to inspect it, or drag one from the palette.</span><div class="facts"><span>Gates <b>2</b></span><span>Entangling <b>1</b></span><span>Measurements <b>0</b></span></div></div>`;
+
+  const hInsp = `<div class="insp-head"><span class="tile lg g-h">H</span><div><div class="name">Hadamard gate</div><div class="loc">q0 · column 1 · single-qubit</div></div><div class="acts"><span class="btn">Replace</span><span class="btn">Duplicate</span><span class="btn">More…</span><span class="btn danger">Delete</span></div></div>
+    <div class="insp-grid"><div><div class="lbl">Intuition</div><div>Turns a definite 0 or 1 into an equal superposition. Applying it twice returns the original state.</div></div>
+    <div><div class="lbl">Matrix</div><div style="display:flex;align-items:center;gap:8px;font-family:var(--mono);color:var(--text)">1/√2 <span class="matrix" style="grid-template-columns:auto auto"><span>1</span><span>1</span><span>1</span><span>−1</span></span></div></div>
+    <div><div class="lbl">On basis states</div><div class="maps"><span>|0⟩ → |+⟩ = (|0⟩+|1⟩)/√2</span><span>|1⟩ → |−⟩ = (|0⟩−|1⟩)/√2</span></div></div></div>`;
+
+  const rzInsp = `<div class="insp-head"><span class="tile lg g-p" style="font-size:15px">Rz</span><div><div class="name">Rz rotation gate</div><div class="loc">q1 · column 3 · θ = 0.250π</div></div><div class="acts"><span class="btn">Replace</span><span class="btn">Duplicate</span><span class="btn">More…</span><span class="btn danger">Delete</span></div></div>
+    <div class="insp-grid"><div class="angle"><div class="lbl">Angle θ <span class="tag" style="font-size:9px">Proposed</span></div><div class="field"><input type="text" id="theta" value="0.25" aria-label="Angle in multiples of pi"><span style="color:var(--muted)">× π = 0.785398 rad</span></div><div class="slider" style="--v:12.5%"></div><div class="chips"><span class="chip on">π/4</span><span class="chip">π/2</span><span class="chip">π</span><span class="chip">3π/2</span></div></div>
+    <div><div class="lbl">Matrix at θ = π/4</div><span class="matrix" style="grid-template-columns:auto auto"><span>e^(−iπ/8)</span><span>0</span><span>0</span><span>e^(iπ/8)</span></span><div class="caption" style="margin-top:6px">Updates as θ changes; commits on release.</div></div>
+    <div><div class="lbl">Effect</div><div>Rotates the state about the Z axis of the Bloch sphere. Probabilities of 0 and 1 stay the same; only the relative phase changes.</div></div></div>`;
+
+  const frames = {
+    m1: () => layout({ q: 3, depth: 2, ops: 2, circ: bell3(), insp_html: emptyInsp, tab: 'State', res_html: bellState, noRedo: true }),
+    m2: () => layout({ q: 3, depth: 2, ops: 2, circ: bell3('H'), insp_html: hInsp, tab: 'State', res_html: bellState, noRedo: true }),
+    m3: () => layout({ q: 3, depth: 4, ops: 4, noRedo: true,
+      circ: circuit(3, 10, [{ k: 'H', q: 0, c: 0 }, { k: 'H', q: 1, c: 0 }, { k: 'cx', ctrl: [0], t: 2, c: 1 }, { k: 'Rz', q: 1, c: 2, p: 'π/4', sel: true }]),
+      insp_html: rzInsp, tab: 'State',
+      res_html: `<div><div class="lbl">State</div><div class="ket">½ (e^(−iπ/8)|000⟩ + e^(iπ/8)|010⟩ + e^(−iπ/8)|101⟩ + e^(iπ/8)|111⟩)</div></div>` + amps([['000', '0.462−0.191i', .25], ['010', '0.462+0.191i', .25], ['101', '0.462−0.191i', .25], ['111', '0.462+0.191i', .25]]) + `<div class="caption">Rz changed phases only, so every probability is still 25%.</div>` }),
+    m4: () => layout({ q: 2, depth: 3, ops: 4, meas: 2, noRedo: true,
+      circ: circuit(2, 10, [{ k: 'H', q: 0, c: 0 }, { k: 'cx', ctrl: [0], t: 1, c: 1 }, { k: 'M', q: 0, c: 2, bit: 0 }, { k: 'M', q: 1, c: 2, bit: 1 }]),
+      insp_html: emptyInsp.replace('<b>0</b>', '<b>2</b>').replace('Gates <b>2</b>', 'Gates <b>2</b>'), tab: 'Measure',
+      res_html: `<div class="caption">Measures q0 → c0, q1 → c1 · outcome order c1 c0</div>
+        <div class="runrow"><span class="btn">Run once</span><span class="btn primary">Run shots</span><span class="shots">1,000 <span style="color:var(--muted)">▾</span></span><span class="tag exists">Exists</span></div>
+        <div><div class="lbl">Last outcome</div><div class="outcome"><span>c1 c0</span><b>11</b><span style="color:var(--muted);font-size:12px">q0→c0 = 1 · q1→c1 = 1</span></div></div>
+        <div><div class="lbl">1,000 shots</div><div class="key"><span><i style="background:var(--cyan)"></i>Observed frequency</span><span><i style="background:var(--amber);width:3px"></i>Exact probability <span class="tag" style="font-size:9px">Proposed</span></span></div>
+        <div class="hist" style="margin-top:8px">
+          <span class="k">00</span><span class="track"><span class="obs" style="width:49.2%"></span><span class="exact" style="left:50%"></span></span><span class="n">492 · 49.2%</span>
+          <span class="k">01</span><span class="track"><span class="exact" style="left:0"></span></span><span class="n">0 · 0%</span>
+          <span class="k">10</span><span class="track"><span class="exact" style="left:0"></span></span><span class="n">0 · 0%</span>
+          <span class="k">11</span><span class="track"><span class="obs" style="width:50.8%"></span><span class="exact" style="left:50%"></span></span><span class="n">508 · 50.8%</span></div></div>
+        <div class="caption">Exact probabilities come from the state before measurement: (|00⟩ + |11⟩)/√2. Observed frequencies approach them as shots increase.</div>` }),
+    m5: () => layout({ q: 5, depth: 9, ops: 16, rail: true, pal: '56px', res: '400px', insp: '44px', zoom: true,
+      circ: circuit(5, 13, [{ k: 'H', q: 0, c: 0 }, { k: 'cx', ctrl: [0], t: 1, c: 1 }, { k: 'cx', ctrl: [1], t: 2, c: 2 }, { k: 'cx', ctrl: [2], t: 3, c: 3 }, { k: 'cx', ctrl: [3], t: 4, c: 4 }, { k: 'Ry', q: 0, c: 5, p: 'π/3' }, { k: 'Rz', q: 2, c: 5, p: 'π/2' }, { k: 'S', q: 4, c: 5 }, { k: 'cz', ctrl: [0], t: 3, c: 6 }, { k: 'ccx', ctrl: [1, 2], t: 4, c: 7 }, { k: 'T', q: 3, c: 7 }, { k: 'H', q: 1, c: 8 }, { k: 'M', q: 0, c: 9, bit: 0 }, { k: 'M', q: 1, c: 9, bit: 1 }, { k: 'M', q: 2, c: 9, bit: 2 }, { k: 'M', q: 3, c: 9, bit: 3 }]),
+      insp_html: `<div class="insp-head" style="height:20px"><span class="lbl" style="margin:0">Inspector</span><span class="caption">Collapsed · select a gate to expand</span><span class="acts"><span class="btn ghost">▴</span></span></div>`,
+      tab: 'Measure',
+      res_html: `<div class="caption">Measures q0–q3 → c0–c3 · outcome order c3 c2 c1 c0</div><div class="runrow"><span class="btn">Run once</span><span class="btn primary">Run shots</span><span class="shots">1,000 <span style="color:var(--muted)">▾</span></span></div>
+        <div><div class="lbl">1,000 shots · 9 of 16 outcomes observed</div><div class="hist">${[['0000', 118, 12.5], ['0011', 131, 12.5], ['0101', 64, 6.25], ['0110', 58, 6.25], ['1001', 122, 12.5], ['1010', 127, 12.5], ['1100', 66, 6.25], ['1111', 61, 6.25], ['0001', 253, 25]].map(r => `<span class="k">${r[0]}</span><span class="track"><span class="obs" style="width:${r[1] / 10}%"></span><span class="exact" style="left:${r[2]}%"></span></span><span class="n">${r[1]} · ${(r[1] / 10).toFixed(1)}%</span>`).join('')}</div></div>
+        <div class="caption">Illustrative counts only; values are not computed from this circuit.</div>` }),
+    m6: () => `${nav('journey')}<div class="ws" style="grid-template-rows:1fr"><div class="journey">
+      <div class="jlist"><div class="top"><h3>Journey</h3><div class="progress" style="--p:52%"><i></i></div><div class="caption">34 of 66 lessons complete</div></div>
+      ${[['Information', 'done'], ['Hidden Change', 'done'], ['Superposition', 'done'], ['Interference', 'done'], ['Entanglement', 'done'], ['Information Flow', 'done'], ['GHZ States', 'cur', '4/5'], ['Phase Kickback', 'lock'], ['Oracle Thinking', 'lock'], ['Amplitude Amplification', 'lock'], ['Grover Loop Intuition', 'lock'], ['Quantum Algorithm Structure', 'lock'], ['Building and Stopping Quantum Search', 'lock'], ['Mastery Challenges', 'lock', '', 'M']].map((c, i) => `<div class="jrow ${c[1]}"><span class="num">${c[3] || i + 1}</span><span>${c[0]}</span><span class="st">${c[1] === 'done' ? '✓' : c[1] === 'cur' ? c[2] : '<span style="font-size:11px">Locked</span>'}</span></div>`).join('')}</div>
+      <div class="jdetail"><div class="eyebrow">Chapter 7 · 4 of 5 lessons complete</div><h3>GHZ States</h3>
+      <p>Entanglement is not limited to pairs. A single control can spread a superposition across many qubits, so that measuring any one of them fixes all the others.</p>
+      <div class="lbl">You will learn</div><ul class="obj"><li>Build a three-qubit GHZ state with H and a chain of CNOTs</li><li>Predict which outcomes appear when every qubit is measured</li><li>Tell GHZ correlations apart from independent superpositions</li></ul>
+      <div class="cta"><span class="btn primary" style="height:36px;padding:0 16px">Continue lesson 5</span><span class="btn" style="height:36px">Review chapter</span><span class="btn ghost" style="height:36px">Open in Notebook</span></div>
+      <div class="lbl">Lessons</div><div class="lessons">${[['Spread the superposition', 'd'], ['Three-way agreement', 'd'], ['Order of the CNOTs', 'd'], ['Measuring one qubit', 'd'], ['GHZ versus product states', 'c']].map((l, i) => `<div class="lesson ${l[1] === 'c' ? 'cur' : ''}"><span class="st">${l[1] === 'd' ? '✓' : '●'}</span><span>${i + 31}. ${l[0]}</span><span class="caption">${l[1] === 'c' ? 'Current' : ''}</span></div>`).join('')}</div>
+      <div class="builds">Builds on <a href="#m6">Chapter 5 · Entanglement</a>: entanglement scales to GHZ. <span style="float:right"><a href="#m6">Concept map</a> <span class="tag" style="font-size:9px">optional view</span></span></div>
+      <div class="caption" style="margin-top:14px">Lesson titles are placeholders; the real titles come from <code>qq_levels.dart</code>.</div></div></div></div>`,
+    m7: () => `<aside class="shell-nav rail"><span class="rail-dot">QQ</span><span class="rail-dot">J</span><span class="rail-dot">N</span><span class="rail-dot">M</span><span class="rail-dot on">C</span><span class="rail-dot">B</span></aside>
+      <div class="ws"><div class="toolbar"><span class="title">Sandbox</span><span class="btn">3 qubits ▾</span><span class="sep"></span><span class="btn ghost">↶</span><span class="btn ghost" aria-disabled="true">↷</span><span class="btn ghost">Clear</span><span class="spacer"></span><div class="segs"><span class="seg on">Circuit</span><span class="seg">Results</span></div><span class="sep"></span><span class="saved"><b>●</b> Saved</span></div>
+      <div class="body2">${paletteRail()}<div class="centre col" style="--insp:210px"><div class="canvas"><div class="meta"><span><b>3</b> qubits</span><span>depth <b>2</b></span><span><b>2</b> operations</span></div><div class="stage">${bell3('H')}</div><div class="drawer-hint"></div></div><div class="hhandle"></div><div class="inspector">${hInsp.replace('<div class="insp-grid">', '<div class="insp-grid" style="grid-template-columns:1fr 1fr 1fr">')}</div></div></div></div>`
+  };
+  document.querySelectorAll('[data-frame]').forEach(el => {
+    const f = frames[el.dataset.frame];
+    if (f) { el.innerHTML = f(); el.style.gridTemplateColumns = el.dataset.frame === 'm7' ? '56px 1fr' : '200px 1fr'; }
+  });
+})();
+</script>

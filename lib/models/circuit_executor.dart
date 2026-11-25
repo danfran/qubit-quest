@@ -67,17 +67,8 @@ class CircuitExecutor {
           _apply(state, op);
           _normalize(state);
         case MeasureZOperation():
-          final mass = [0.0, 0.0];
-          for (var i = 0; i < state.length; i++) {
-            mass[(i >> op.qubit) & 1] += _weight(state[i]);
-          }
+          final mass = _outcomeMasses(state, op.qubit);
           final total = mass[0] + mass[1];
-          if (!total.isFinite ||
-              total <= 0 ||
-              (total - 1).abs() > normTolerance) {
-            throw const CircuitExecutionException(
-                'Invalid measurement probability');
-          }
           final int outcome;
           if (mass[0] == 0) {
             outcome = 1;
@@ -91,21 +82,97 @@ class CircuitExecutor {
             }
             outcome = u < mass[0] / total ? 0 : 1;
           }
-          final scale = math.sqrt(mass[outcome]);
-          if (scale == 0 || !scale.isFinite) {
-            throw const CircuitExecutionException(
-                'Cannot project zero probability');
-          }
-          for (var i = 0; i < state.length; i++) {
-            state[i] = ((i >> op.qubit) & 1) == outcome
-                ? Complex(state[i].real / scale, state[i].imaginary / scale)
-                : Complex.zero();
-          }
-          _normalize(state);
+          _project(state, op.qubit, outcome, mass[outcome]);
           classical = classical.write(op.classicalBit, outcome);
       }
     }
     return CircuitShotResult(state, classical);
+  }
+
+  /// Largest number of measurement branches [exactDistribution] follows.
+  static const int maxExactBranches = 4096;
+
+  /// The exact probability of every classical register value the program
+  /// can produce, keyed by [ClassicalState.label] (highest bit first, `?`
+  /// for bits no measurement writes).
+  ///
+  /// Follows **both** outcomes of every measurement, weighted by its Born
+  /// probability, using the same gate application and projection as
+  /// [runShot]. It therefore describes exactly the experiment that [runShot]
+  /// and [runShots] sample, including measurements followed by operations on
+  /// other qubits. Outcomes with exactly zero probability are skipped, as
+  /// [runShot] never draws them. Deterministic: no random draws.
+  Map<String, double> exactDistribution(CircuitProgram program) {
+    _budget(program, 1);
+    final initial = program.initialState.toList();
+    CircuitProgram(
+        qubitCount: program.qubitCount,
+        classicalBitCount: program.classicalBitCount,
+        initialState: initial,
+        operations: program.operations);
+    _normalize(initial);
+    final result = <String, double>{};
+    var branches = 1;
+    void follow(int index, List<Complex> state, ClassicalState classical,
+        double probability) {
+      for (var i = index; i < program.operations.length; i++) {
+        final op = program.operations[i];
+        switch (op) {
+          case UnitaryOperation():
+            _apply(state, op);
+            _normalize(state);
+          case MeasureZOperation():
+            final mass = _outcomeMasses(state, op.qubit);
+            final total = mass[0] + mass[1];
+            final outcomes = [
+              for (final b in [0, 1])
+                if (mass[b] > 0) b
+            ];
+            if (outcomes.length == 2 && ++branches > maxExactBranches) {
+              throw const CircuitExecutionException(
+                  'Exact distribution budget exceeded');
+            }
+            for (final b in outcomes) {
+              final next = b == outcomes.last ? state : state.toList();
+              _project(next, op.qubit, b, mass[b]);
+              follow(i + 1, next, classical.write(op.classicalBit, b),
+                  probability * mass[b] / total);
+            }
+            return;
+        }
+      }
+      result[classical.label] = (result[classical.label] ?? 0) + probability;
+    }
+
+    follow(0, initial, ClassicalState(program.classicalBitCount), 1);
+    return {for (final k in result.keys.toList()..sort()) k: result[k]!};
+  }
+
+  /// Born probabilities of measuring 0 and 1 on [qubit].
+  List<double> _outcomeMasses(List<Complex> state, int qubit) {
+    final mass = [0.0, 0.0];
+    for (var i = 0; i < state.length; i++) {
+      mass[(i >> qubit) & 1] += _weight(state[i]);
+    }
+    final total = mass[0] + mass[1];
+    if (!total.isFinite || total <= 0 || (total - 1).abs() > normTolerance) {
+      throw const CircuitExecutionException('Invalid measurement probability');
+    }
+    return mass;
+  }
+
+  /// Projects [state] onto [outcome] of [qubit] and renormalises (P|ψ⟩/√p).
+  void _project(List<Complex> state, int qubit, int outcome, double mass) {
+    final scale = math.sqrt(mass);
+    if (scale == 0 || !scale.isFinite) {
+      throw const CircuitExecutionException('Cannot project zero probability');
+    }
+    for (var i = 0; i < state.length; i++) {
+      state[i] = ((i >> qubit) & 1) == outcome
+          ? Complex(state[i].real / scale, state[i].imaginary / scale)
+          : Complex.zero();
+    }
+    _normalize(state);
   }
 
   CircuitShotsResult runShots(CircuitProgram program, {required int shots}) {

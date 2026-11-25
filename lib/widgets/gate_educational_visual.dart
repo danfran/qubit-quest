@@ -15,7 +15,15 @@ class GateEducationalVisualView extends StatelessWidget {
     super.key,
     required this.visual,
     required this.footprint,
+    this.height = defaultHeight,
   });
+
+  /// The dialog's original height.
+  static const double defaultHeight = 92;
+
+  /// Painted height; the illustration scales within it. Hosts with more room
+  /// (the desktop inspector) pass a bounded larger value.
+  final double height;
 
   final GateEducationalVisual visual;
   final LogicalGateFootprint footprint;
@@ -43,7 +51,7 @@ class GateEducationalVisualView extends StatelessWidget {
       image: true,
       child: SizedBox(
         key: const ValueKey('gate-inspector-static-visual'),
-        height: 92,
+        height: height,
         child: CustomPaint(
           painter: _GateVisualPainter(
             kind: visual.kind,

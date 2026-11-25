@@ -1,6 +1,8 @@
 // Phase W2: Web Sandbox measurement drag/drop, selection, editing and status.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/composer_canvas_geometry.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/sandbox_workspace_persistence.dart';
@@ -13,7 +15,6 @@ import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
 
 import 'web_sandbox_measurement_test.dart' show openSandbox, tapVisible;
 
-final _surface = find.byKey(const ValueKey('circuit-interaction-surface'));
 final _measurementTile = find.byKey(const ValueKey('measurement-palette'));
 final _preview = find.byKey(const ValueKey('measurement-drop-preview'));
 final _rejectedPreview =
@@ -28,7 +29,7 @@ final _bitSelector =
 final _status = find.byKey(const ValueKey('web-storage-status'));
 
 Offset _slot(WidgetTester tester, int qubit, int column) =>
-    tester.getTopLeft(_surface) + Offset(40 + column * 40, 20 + qubit * 40);
+    circuitSlotGlobal(tester, qubit, column);
 
 Finder _paletteGate(SelectedGateType type) => find.byWidgetPredicate((w) =>
     w is Draggable<CircuitDragData> &&
@@ -42,6 +43,9 @@ QuantumCircuit _circuit(WidgetTester tester) => tester
     .circuit;
 
 String _statusText(WidgetTester tester) => tester.widget<Text>(_status).data!;
+String _summaryText(WidgetTester tester) => tester
+    .widget<Text>(find.byKey(const ValueKey('composer-circuit-summary')))
+    .data!;
 
 /// Starts a palette drag grabbed near the tile's top-left corner, so the drag
 /// feedback offset (which the canvas resolves) lands on the target slot.
@@ -251,12 +255,15 @@ void main() {
     await _drop(tester, _paletteGate(SelectedGateType.hadamard), 0, 0);
     final circuit = _circuit(tester);
     expect(circuit.logicalGates.single.type, SelectedGateType.hadamard);
-    expect(_statusText(tester), '1 operation(s) in circuit.');
+    // Counts live in the footer's single circuit summary; a successful edit
+    // adds no redundant status line.
+    expect(_summaryText(tester), '2 qubits · 1 operation');
+    expect(_statusText(tester), isEmpty);
 
     await _drop(tester, _measurementTile, 0, 1);
     await _drop(tester, _paletteGate(SelectedGateType.x), 1, 2);
     expect(circuit.logicalGates, hasLength(2));
-    expect(_statusText(tester), '3 operation(s) in circuit (1 measurement).');
+    expect(_summaryText(tester), '2 qubits · 3 operations · 1 measurement');
 
     // A gate after q0's terminal measurement is rejected with a reason.
     await _drop(tester, _paletteGate(SelectedGateType.x), 0, 2);
@@ -269,8 +276,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('web-composer-selected-gate')),
         findsOneWidget);
-    expect(
-        find.byKey(const ValueKey('web-composer-move-hint')), findsOneWidget);
+    // Moving stays available: the selected gate is draggable on the canvas.
+    final selected = circuit.logicalGates
+        .firstWhere((g) => g.anchor.column == 0 && g.anchor.qubit == 0);
+    expect(find.byKey(ValueKey('placed-gate-drag-${selected.id.value}')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey('web-composer-duplicate-selected-gate')),
         findsOneWidget);
     expect(tester.takeException(), isNull);

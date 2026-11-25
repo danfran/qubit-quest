@@ -51,7 +51,38 @@ class ComposerCircuitCanvas extends StatefulWidget {
     this.onDropRejected,
     this.enableDesktopHorizontalScrolling = false,
     this.surfaceTreatment = ComposerCircuitSurfaceTreatment.inset,
+    this.scale = 1.0,
+    this.pinnedQubitLabels = false,
+    this.wireColor,
+    this.markFixedGates = false,
+    this.onFixedGateDragAttempted,
   });
+
+  /// Display scale of the whole circuit (1.0 = the shared 100% geometry).
+  ///
+  /// The canvas lays out, paints and hit-tests in *logical* 100%
+  /// coordinates ([CircuitLayoutMetrics]) inside a single scale transform,
+  /// so geometry, hit-testing, scroll extents and drop positions remain one
+  /// coordinate space: `globalToLocal` maps pointers through the transform.
+  /// Only feedback drawn in the drag overlay is scaled explicitly.
+  final double scale;
+
+  /// Draws the qubit identifiers and initial states in a pinned gutter
+  /// beside the scrolling circuit, instead of inside the 20 px padding.
+  final bool pinnedQubitLabels;
+
+  /// Wire colour passed to [QuantumCircuitPainter]; null keeps its default.
+  final Color? wireColor;
+
+  /// Lock badges on activity-fixed gates (see [QuantumCircuitPainter]).
+  final bool markFixedGates;
+
+  /// Called when the learner tries to drag a fixed gate (which never
+  /// moves), so the host can explain why. Taps still select the gate.
+  final ValueChanged<PlacedGateRef>? onFixedGateDragAttempted;
+
+  /// Logical width of the pinned label gutter.
+  static const double qubitLabelGutterWidth = 44;
 
   final bool measurementPlacement;
   final VoidCallback? onMeasurementPlaced;
@@ -174,7 +205,8 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
         ? event.scrollDelta.dx
         : event.scrollDelta.dy;
     if (delta == 0) return;
-    final position = (_scrollController.offset + delta).clamp(
+    // Wheel deltas are in screen pixels; the scroll offset is logical.
+    final position = (_scrollController.offset + delta / widget.scale).clamp(
       _scrollController.position.minScrollExtent,
       _scrollController.position.maxScrollExtent,
     );
@@ -214,6 +246,9 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
                     ? _activeDragData!.sourceId
                     : null,
                 highlightedQubit: _draggingDestination?.location.qubit,
+                showQubitLabels: !widget.pinnedQubitLabels,
+                wireColor: widget.wireColor,
+                markFixedGates: widget.markFixedGates,
               ),
             ),
             if (widget.circuit.isCircuitEmpty())
@@ -563,8 +598,9 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
                 ],
               )),
     );
-    if (!mounted || chosen == null || !identical(circuit, widget.circuit))
+    if (!mounted || chosen == null || !identical(circuit, widget.circuit)) {
       return;
+    }
     // Same ordering rules as the Web host (terminal measurement per qubit).
     final outcome = circuit.insertMeasurementWithOutcome(
         qubit: qubit, column: column, classicalBit: chosen);
@@ -670,12 +706,22 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
               key: ValueKey('measurement-drag-${m.id.value}'),
               data: CircuitDragData.measurement(sourceId: m.id),
               dragAnchorStrategy: pointerDragAnchorStrategy,
+              // Overlay feedback is outside the canvas transform, so it is
+              // drawn at the displayed (scaled) size, centred on the pointer.
               feedback: Transform.translate(
-                offset: const Offset(
-                  -CircuitLayoutMetrics.gateSize / 2,
-                  -CircuitLayoutMetrics.gateSize / 2,
+                offset: Offset(
+                  -CircuitLayoutMetrics.gateSize * widget.scale / 2,
+                  -CircuitLayoutMetrics.gateSize * widget.scale / 2,
                 ),
-                child: Opacity(opacity: .85, child: _measurementGlyph(m)),
+                child: Opacity(
+                  opacity: .85,
+                  child: MeasurementGlyph(
+                    key: const ValueKey('measurement-drag-feedback'),
+                    size: CircuitLayoutMetrics.gateSize * widget.scale,
+                    radius: 6 * widget.scale,
+                    classicalBit: m.classicalBit,
+                  ),
+                ),
               ),
               // Taps fall through to the canvas gesture detector (selection);
               // only a drag beyond touch slop starts a move.
@@ -863,100 +909,166 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
               ],
             ),
       clipBehavior: Clip.antiAlias,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // Includes measurement barrier columns, not only gate rows.
-          final maxPosition = widget.circuit.isCircuitEmpty()
-              ? -1
-              : widget.circuit.maxCircuitDepth();
-          final width = math.max(
-            math.max(
-                CircuitGeometry.contentWidth(widget.circuit),
-                (widget.circuit.measurements.fold<int>(
-                            0, (v, m) => math.max(v, m.column + 3))) *
-                        QuantumCircuitPainter.gateSpacing +
-                    QuantumCircuitPainter.padding * 2),
-            constraints.maxWidth,
-          );
-          final drawingHeight =
-              QuantumCircuitPainter.requiredDrawingHeightFor(_numQubits);
-          final viewportHeight = math.max(drawingHeight, constraints.maxHeight);
-          return DragTarget<CircuitDragData>(
-            onAcceptWithDetails: (details) async {
-              final data = details.data;
-              final rejection = _dropRejection;
-              if (data.isMeasurement) {
-                final contentPosition = _gatePositionToContent(details.offset);
-                final destination = _draggingDestination ??
-                    (contentPosition == null
-                        ? null
-                        : CircuitGeometry.dropDestinationForPoint(
-                            circuit: widget.circuit,
-                            contentPoint: contentPosition,
-                          ));
-                if (mounted) setState(_clearDragState);
-                if (destination == null) return;
-                if (rejection != null) {
-                  widget.onDropRejected?.call(rejection);
-                } else if (data.isMeasurementMove) {
-                  widget.onMeasurementMoved
-                      ?.call(data.sourceId!, destination.location.column);
-                } else {
-                  widget.onMeasurementDropped?.call(destination.location);
+      child: _ScaledCircuitViewport(
+        scale: widget.scale,
+        child: _withLabelGutter(LayoutBuilder(
+          builder: (context, constraints) {
+            // Includes measurement barrier columns, not only gate rows.
+            final maxPosition = widget.circuit.isCircuitEmpty()
+                ? -1
+                : widget.circuit.maxCircuitDepth();
+            final width = math.max(
+              math.max(
+                  CircuitGeometry.contentWidth(widget.circuit),
+                  (widget.circuit.measurements.fold<int>(
+                              0, (v, m) => math.max(v, m.column + 3))) *
+                          QuantumCircuitPainter.gateSpacing +
+                      QuantumCircuitPainter.padding * 2),
+              constraints.maxWidth,
+            );
+            final drawingHeight =
+                QuantumCircuitPainter.requiredDrawingHeightFor(_numQubits);
+            final viewportHeight =
+                math.max(drawingHeight, constraints.maxHeight);
+            return DragTarget<CircuitDragData>(
+              onAcceptWithDetails: (details) async {
+                final data = details.data;
+                final rejection = _dropRejection;
+                if (data.isMeasurement) {
+                  final contentPosition =
+                      _gatePositionToContent(details.offset);
+                  final destination = _draggingDestination ??
+                      (contentPosition == null
+                          ? null
+                          : CircuitGeometry.dropDestinationForPoint(
+                              circuit: widget.circuit,
+                              contentPoint: contentPosition,
+                            ));
+                  if (mounted) setState(_clearDragState);
+                  if (destination == null) return;
+                  if (rejection != null) {
+                    widget.onDropRejected?.call(rejection);
+                  } else if (data.isMeasurementMove) {
+                    widget.onMeasurementMoved
+                        ?.call(data.sourceId!, destination.location.column);
+                  } else {
+                    widget.onMeasurementDropped?.call(destination.location);
+                  }
+                  return;
                 }
-                return;
-              }
-              if (rejection != null) {
+                if (rejection != null) {
+                  if (mounted) setState(_clearDragState);
+                  widget.onDropRejected?.call(rejection);
+                  return;
+                }
+                final intent = _dropIntent(details);
+                if (intent != null) await widget.onDropRequested(intent);
                 if (mounted) setState(_clearDragState);
-                widget.onDropRejected?.call(rejection);
-                return;
-              }
-              final intent = _dropIntent(details);
-              if (intent != null) await widget.onDropRequested(intent);
-              if (mounted) setState(_clearDragState);
-            },
-            onLeave: (_) => setState(_clearDragState),
-            onMove: (details) => _onDragEnter(details.offset, details.data),
-            onWillAcceptWithDetails: (details) {
-              if (details.data.isMeasurement &&
-                  !_acceptsMeasurementDrag(details.data)) {
-                return false;
-              }
-              _onDragEnter(details.offset, details.data);
-              return details.data.isMeasurement ||
-                  details.data.gate.type != SelectedGateType.delete;
-            },
-            builder: (context, candidateData, rejectedData) => KeyedSubtree(
-              key: const ValueKey('circuit-interaction-surface'),
-              child: GestureDetector(
-                key: _gestureDetectorKey,
-                onTapDown: _handleTap,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _horizontalCircuitSurface(
-                      width: width,
-                      height: viewportHeight,
-                      maxPosition: maxPosition,
-                    ),
-                    if (_placedDragOutsideCircuit &&
-                        (_activeDragData?.isPlaced ?? false))
-                      const Positioned(
-                        right: 12,
-                        top: 10,
-                        child: _ReleaseToRemovePill(),
+              },
+              onLeave: (_) => setState(_clearDragState),
+              onMove: (details) => _onDragEnter(details.offset, details.data),
+              onWillAcceptWithDetails: (details) {
+                if (details.data.isMeasurement &&
+                    !_acceptsMeasurementDrag(details.data)) {
+                  return false;
+                }
+                _onDragEnter(details.offset, details.data);
+                return details.data.isMeasurement ||
+                    details.data.gate.type != SelectedGateType.delete;
+              },
+              builder: (context, candidateData, rejectedData) => KeyedSubtree(
+                key: const ValueKey('circuit-interaction-surface'),
+                child: GestureDetector(
+                  key: _gestureDetectorKey,
+                  onTapDown: _handleTap,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _horizontalCircuitSurface(
+                        width: width,
+                        height: viewportHeight,
+                        maxPosition: maxPosition,
                       ),
-                  ],
+                      if (_placedDragOutsideCircuit &&
+                          (_activeDragData?.isPlaced ?? false))
+                        const Positioned(
+                          right: 12,
+                          top: 10,
+                          child: _ReleaseToRemovePill(),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        )),
       ),
     );
   }
 
+  /// Pinned qubit labels (identifier above the initial state), aligned with
+  /// each wire's centre in the same logical coordinates as the painter.
+  Widget _withLabelGutter(Widget circuit) {
+    if (!widget.pinnedQubitLabels) return circuit;
+    final states = QuantumCircuitPainter.initialQubitStateLabelsFor(
+      initialQubitsStateStr: widget.circuit.currentLevel.initialQubitsStateStr,
+      numQubits: _numQubits,
+    );
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          key: const ValueKey('circuit-qubit-label-gutter'),
+          width: ComposerCircuitCanvas.qubitLabelGutterWidth,
+          child: Stack(
+            children: [
+              for (var q = 0; q < _numQubits; q++)
+                Positioned(
+                  left: 0,
+                  right: 2,
+                  top: QuantumCircuitPainter.qubitCenterYFor(q) -
+                      QuantumCircuitPainter.hitTolerance,
+                  height: QuantumCircuitPainter.hitTolerance * 2,
+                  child: _QubitLabel(
+                    key: ValueKey('circuit-qubit-label-$q'),
+                    qubit: q,
+                    state: states[q],
+                    shaded: q.isEven,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        Expanded(child: circuit),
+      ],
+    );
+  }
+
   List<Widget> _placedGateDragOverlays() => [
+        if (widget.onFixedGateDragAttempted != null)
+          for (final footprint
+              in widget.circuit.logicalGates.where((gate) => !gate.isDeletable))
+            if (CircuitGeometry.logicalGateBounds(
+              widget.circuit,
+              footprint.id,
+            )
+                case final bounds?)
+              Positioned.fromRect(
+                rect: bounds.inflate(5),
+                child: Semantics(
+                  label: 'Fixed gate ${footprint.gate.label}',
+                  hint: 'Part of the activity. It can be inspected but not '
+                      'moved or removed.',
+                  child: GestureDetector(
+                    key: ValueKey('fixed-gate-${footprint.id.value}'),
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () => widget.onGateTap(footprint.toPlacedGateRef()),
+                    onPanStart: (_) => widget.onFixedGateDragAttempted!(
+                        footprint.toPlacedGateRef()),
+                  ),
+                ),
+              ),
         for (final footprint
             in widget.circuit.logicalGates.where((gate) => gate.isDeletable))
           if (CircuitGeometry.logicalGateBounds(
@@ -1076,12 +1188,17 @@ class _EmptyCircuitPrompt extends StatelessWidget {
                 size: 15,
               ),
               const SizedBox(width: 6),
-              Text(
-                isDragging ? 'Release on a slot' : 'Drag a gate here',
-                style: const TextStyle(
-                  color: Color(0xFFD6E3F8),
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
+              // Flexible: a scaled canvas has a narrower logical width.
+              Flexible(
+                child: Text(
+                  isDragging ? 'Release on a slot' : 'Drag a gate here',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFD6E3F8),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ],
@@ -1196,4 +1313,102 @@ class _CircuitGuidePainter extends CustomPainter {
       oldDelegate.isDragging != isDragging ||
       oldDelegate.destination != destination ||
       oldDelegate.rejectedDestination != rejectedDestination;
+}
+
+/// Lays its child out at `constraints / scale` and paints it scaled, so the
+/// child works entirely in logical circuit coordinates. Hit-testing passes
+/// through the same transform, keeping pointer mapping exact.
+class _ScaledCircuitViewport extends StatelessWidget {
+  const _ScaledCircuitViewport({required this.scale, required this.child});
+
+  final double scale;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (scale == 1.0) return child;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth / scale;
+        final height = constraints.maxHeight / scale;
+        return ClipRect(
+          child: Transform.scale(
+            scale: scale,
+            alignment: Alignment.topLeft,
+            child: OverflowBox(
+              alignment: Alignment.topLeft,
+              minWidth: width,
+              maxWidth: width,
+              minHeight: height,
+              maxHeight: height,
+              child: child,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// One wire's label: muted identifier over the initial-state ket.
+class _QubitLabel extends StatelessWidget {
+  const _QubitLabel({
+    super.key,
+    required this.qubit,
+    required this.state,
+    required this.shaded,
+  });
+
+  final int qubit;
+  final String state;
+  final bool shaded;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        label: 'Qubit $qubit, initial state $state',
+        child: ExcludeSemantics(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: shaded
+                  ? _ComposerCircuitCanvasState._innerColor
+                      .withValues(alpha: 0.28)
+                  : null,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 4, right: 4),
+              // Identifier above its initial state (the painter's own
+              // convention), never wider than the gutter.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'q$qubit',
+                      style: const TextStyle(
+                        color: QubitQuestColors.textMuted,
+                        fontSize: 10.5,
+                        height: 1.05,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    Text(
+                      state,
+                      style: const TextStyle(
+                        color: QubitQuestColors.textPrimary,
+                        fontSize: 14,
+                        height: 1.1,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
 }

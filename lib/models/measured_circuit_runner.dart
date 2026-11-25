@@ -87,8 +87,15 @@ class SingleShotOutcome {
     required this.outcome,
     required this.readings,
     required this.sharedBits,
+    this.conditionalState,
   });
   final ClassicalReadout readout;
+
+  /// The full register state this run left after executing every
+  /// operation (each measurement projects P|ψ⟩/√p for its outcome), from the
+  /// **same** execution that produced [outcome]. Null for final-state
+  /// sampling, which has no explicit measurement to condition on.
+  final List<Complex>? conditionalState;
 
   /// Compact outcome label in [ClassicalReadout] order.
   final String outcome;
@@ -153,7 +160,8 @@ class MeasuredCircuitRunner {
 
   SingleShotOutcome runOnce(CircuitProgram program) {
     final readout = ClassicalReadout.forProgram(program);
-    final state = _executor.runShot(program).classicalState;
+    final shot = _executor.runShot(program);
+    final state = shot.classicalState;
     final measurements = program.operations.whereType<MeasureZOperation>();
     final writers = <int, int>{};
     for (final m in measurements) {
@@ -170,6 +178,7 @@ class MeasuredCircuitRunner {
         for (final e in writers.entries)
           if (e.value > 1) e.key,
       },
+      conditionalState: shot.quantumState,
     );
   }
 

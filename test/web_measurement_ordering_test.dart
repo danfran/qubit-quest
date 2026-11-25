@@ -1,6 +1,8 @@
 // Phase W3: measurement ordering and circuit editing semantics.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/composer_canvas_geometry.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/circuit_executor.dart';
 import 'package:quantumquiz/models/circuit_program.dart';
@@ -183,12 +185,11 @@ void main() {
   });
 
   group('Web editing', () {
-    final surface = find.byKey(const ValueKey('circuit-interaction-surface'));
     final measureTile = find.byKey(const ValueKey('measurement-palette'));
     final status = find.byKey(const ValueKey('web-storage-status'));
 
     Offset slot(WidgetTester tester, int qubit, int column) =>
-        tester.getTopLeft(surface) + Offset(40 + column * 40, 20 + qubit * 40);
+        circuitSlotGlobal(tester, qubit, column);
     QuantumCircuit circuitOf(WidgetTester tester) => tester
         .widget<ComposerCircuitCanvas>(find.byType(ComposerCircuitCanvas))
         .circuit;
@@ -256,7 +257,12 @@ void main() {
       final after = c.measurements.single;
       expect((after.id, after.column, after.classicalBit), (m.id, 2, 0));
       expect(c.logicalGates.map((g) => g.column).toList()..sort(), [0, 1]);
-      expect(statusOf(tester), '3 operation(s) in circuit (1 measurement).');
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('composer-circuit-summary')))
+              .data,
+          '2 qubits · 3 operations · 1 measurement');
       expect(tester.takeException(), isNull);
     });
 

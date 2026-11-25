@@ -7,7 +7,6 @@ import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
-import 'package:quantumquiz/screens/learning_map_screen.dart';
 import 'package:quantumquiz/screens/level_ui_router.dart';
 import 'package:quantumquiz/screens/mcq_screen.dart';
 import 'package:quantumquiz/screens/quantum_composer.dart';
@@ -15,6 +14,8 @@ import 'package:quantumquiz/screens/web_learning_workspace.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
 import 'package:quantumquiz/validation/chapter_release_gate.dart';
 import 'support/mastery_math_test_platform.dart';
+import 'support/journey_navigation.dart';
+import 'package:quantumquiz/screens/web_journey_overview.dart';
 
 ComposerLevel lesson(int id) => getJourneyLessonById(id)! as ComposerLevel;
 
@@ -194,11 +195,7 @@ void main() {
                   onOpenMastery: () {
                     mastery++;
                   }))));
-      final node = find.byKey(const ValueKey('learning-map-chapter-13'));
-      await tester.ensureVisible(node);
-      await tester.pumpAndSettle();
-      await tester.tap(node);
-      await tester.pumpAndSettle();
+      await openJourneyChapter(tester, 13);
       expect(mastery, 0);
       final workspace =
           tester.widget<WebLessonWorkspace>(find.byType(WebLessonWorkspace));
@@ -217,7 +214,7 @@ void main() {
         await tester.pumpAndSettle();
       }
       expect(find.byType(WebLessonWorkspace), findsNothing);
-      expect(find.byType(LearningMapScreen), findsOneWidget);
+      expect(find.byType(WebJourneyOverview), findsOneWidget);
       expect(mastery, 0);
       expect(getJourneyLessonById(67), isNull);
     });

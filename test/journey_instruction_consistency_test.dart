@@ -6,6 +6,7 @@ import 'package:quantumquiz/screens/web_learning_workspace.dart';
 import 'package:quantumquiz/widgets/activity_instruction_presentation.dart';
 import 'package:quantumquiz/widgets/web_learning_text.dart';
 import 'support/mastery_math_test_platform.dart';
+import 'support/journey_navigation.dart';
 
 void main() {
   useMasteryMathTestPlatform();
@@ -30,11 +31,7 @@ void main() {
         onOpenNotebook: () {},
       ))));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text(
-          id == 7 ? 'Chapter 2 — Hidden Change' : 'Chapter 7 — GHZ States'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(
-          id == 7 ? 'Chapter 2 — Hidden Change' : 'Chapter 7 — GHZ States'));
+      await openJourneyChapter(tester, id == 7 ? 2 : 7);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('web-lesson-chooser')));
       await tester.pumpAndSettle();
@@ -42,6 +39,11 @@ void main() {
       await tester.pumpAndSettle();
       final level = getQQLevelById(id)!;
       expect(find.text(level.title!), findsOneWidget);
+      // M6a: longer context (mystery text) is one tap away so the objective
+      // stays compact; once opened it stays open across resizes.
+      expect(find.text(level.mysteryText!), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('web-activity-details-toggle')));
+      await tester.pumpAndSettle();
       final snapshots = <List<Object?>>[];
       for (final width in [1200.0, 959.0, 961.0]) {
         tester.view.physicalSize = Size(width, 1200);

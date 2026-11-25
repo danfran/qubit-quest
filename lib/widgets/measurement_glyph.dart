@@ -26,11 +26,13 @@ class MeasurementGlyph extends StatelessWidget {
   final bool rejected;
   final double radius;
 
-  static const List<Color> _colors = [
+  /// Tile gradient, shared with palette presentations of measurement.
+  static const List<Color> gradient = [
     Color(0xFF5B6478),
     Color(0xFF434B5E),
     Color(0xFF2E3445),
   ];
+  static const List<Color> _colors = gradient;
   static const Color selectionColor = Color(0xFF7CFFB2);
   static const Color rejectedColor = Color(0xFFFF6B6B);
 

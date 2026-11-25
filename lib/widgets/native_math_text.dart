@@ -24,7 +24,10 @@ class NativeMathText extends StatelessWidget {
         !value.contains(r'\begin') &&
         !value.contains(r'\cos') &&
         !value.contains(r'\sin') &&
-        !value.contains(r'e^{');
+        !value.contains(r'e^{') &&
+        // Any command the plain-text subset cannot translate stays on the
+        // LaTeX renderer instead of leaking as raw TeX.
+        !plainText(math).contains(r'\');
   }
 
   static String plainText(String math) {
@@ -38,7 +41,10 @@ class NativeMathText extends StatelessWidget {
         .replaceAll(r'\pi', 'π')
         .replaceAll(r'\theta', 'θ')
         .replaceAll(r'\phi', 'φ')
-        .replaceAll(RegExp(r'\\mathrm\{([^}]*)\}'), r'$1');
+        .replaceAll(RegExp(r'\\cdot\s*'), '·')
+        // replaceAll does not expand group references; map the match.
+        .replaceAllMapped(
+            RegExp(r'\\mathrm\{([^}]*)\}'), (match) => match.group(1)!);
 
     value = value.replaceAllMapped(
       RegExp(r'\^\{?([0-9+\-n†]+)\}?'),

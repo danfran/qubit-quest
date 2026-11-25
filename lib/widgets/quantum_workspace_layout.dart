@@ -14,7 +14,6 @@ class QuantumWorkspaceLayout extends StatelessWidget {
     this.contextualActions,
     required this.wide,
     this.wideMainHeight = 448,
-    this.wideMainHeightGrowsWithInspection = false,
   });
 
   static const double wideBreakpoint = 960;
@@ -27,12 +26,6 @@ class QuantumWorkspaceLayout extends StatelessWidget {
   final Widget? contextualActions;
   final bool wide;
   final double wideMainHeight;
-
-  /// When true, [wideMainHeight] is a minimum: the wide main row grows to the
-  /// inspection pane's natural height (which must then size to its content),
-  /// so the Inspector never scrolls inside a fixed box and the contextual
-  /// actions always sit below it. The page scrolls instead.
-  final bool wideMainHeightGrowsWithInspection;
 
   static bool usesWideLayout(double availableWidth) =>
       availableWidth >= wideBreakpoint;
@@ -106,62 +99,12 @@ class QuantumWorkspaceLayout extends StatelessWidget {
         ),
       );
 
-  /// The only non-positioned child (the inspection pane at its natural
-  /// height, beside a [wideMainHeight] strut) sizes the stack; the
-  /// background and primary pane then fill that height.
-  Widget _growingMainRow() => Stack(
-        key: const ValueKey('quantum-workspace-main-row'),
-        children: [
-          Positioned.fill(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Spacer(flex: _circuitFlexInt),
-                _inspectionDivider(),
-                Expanded(
-                  flex: _inspectionFlexInt,
-                  child: _inspectionBackground(),
-                ),
-              ],
-            ),
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: _circuitFlexInt,
-                child: SizedBox(height: wideMainHeight),
-              ),
-              const SizedBox(width: 1),
-              Expanded(flex: _inspectionFlexInt, child: _inspectionPane()),
-            ],
-          ),
-          Positioned.fill(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(flex: _circuitFlexInt, child: _primaryPane()),
-                const SizedBox(width: 1),
-                // Transparent to hit tests: the inspection pane stays usable.
-                const Spacer(flex: _inspectionFlexInt),
-              ],
-            ),
-          ),
-        ],
-      );
-
-  static const int _circuitFlexInt = 7;
-  static const int _inspectionFlexInt = 3;
-
   Widget _wideLayout() => Column(
         key: const ValueKey('quantum-workspace-wide-layout'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (wideMainHeightGrowsWithInspection)
-            _growingMainRow()
-          else
-            _fixedMainRow(),
+          _fixedMainRow(),
           if (contextualActions case final actions?) ...[
             _divider(),
             ColoredBox(

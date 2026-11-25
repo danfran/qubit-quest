@@ -31,7 +31,7 @@ final _shotField = find.byKey(_k('web-sandbox-shot-count'));
 final _shotError = find.byKey(_k('web-sandbox-shot-count-error'));
 final _single = find.byKey(_k('web-sandbox-single-shot'));
 final _shots = find.byKey(_k('web-sandbox-shots-result'));
-final _footer = find.byKey(_k('quantum-workspace-contextual-actions'));
+final _footer = find.byKey(_k('composer-region-inspector'));
 final _blochSegment = find.descendant(
   of: find.byKey(_k('quantum-inspector-view-selector')),
   matching: find.text('Bloch'),
@@ -85,7 +85,7 @@ double _pageOffset(WidgetTester tester) => tester
     .pixels;
 
 /// The whole section is inside the window and inside the Inspector card
-/// (never clipped by the card or covered by the Circuit card's footer).
+/// (never clipped by the card or covered by the Gate Inspector).
 void _expectFullyVisible(WidgetTester tester, Finder section) {
   final rect = tester.getRect(section);
   final view = tester.view.physicalSize / tester.view.devicePixelRatio;
@@ -96,8 +96,12 @@ void _expectFullyVisible(WidgetTester tester, Finder section) {
   expect(rect.top, greaterThanOrEqualTo(card.top - .5));
   expect(rect.bottom, lessThanOrEqualTo(card.bottom + .5),
       reason: 'inside the Inspector card: $rect vs $card');
-  final footer = tester.getRect(_footer);
-  expect(rect.overlaps(footer), isFalse, reason: 'not behind the footer');
+  // In the medium Results view the inspector is offstage and cannot cover
+  // anything; elsewhere results must never sit behind it.
+  if (_footer.evaluate().isNotEmpty) {
+    final footer = tester.getRect(_footer);
+    expect(rect.overlaps(footer), isFalse, reason: 'not behind the inspector');
+  }
 }
 
 /// Taps without pre-scrolling, so any scrolling seen afterwards is the
@@ -117,20 +121,16 @@ Future<void> _typeShots(WidgetTester tester, String text) async {
 }
 
 int _histogramTotal(WidgetTester tester) {
+  // Sums the comparison rows' observed count cells.
   var total = 0;
   for (final element in find
       .byWidgetPredicate((w) =>
           w.key is ValueKey<String> &&
           (w.key! as ValueKey<String>)
               .value
-              .startsWith('web-sandbox-outcome-') &&
-          (w.key! as ValueKey<String>).value != 'web-sandbox-outcome-order' &&
-          (w.key! as ValueKey<String>).value != 'web-sandbox-outcomes-scroll')
+              .startsWith('web-sandbox-outcome-count-'))
       .evaluate()) {
-    final texts = find.descendant(
-        of: find.byWidget(element.widget), matching: find.byType(Text));
-    final value = (texts.at(1).evaluate().single.widget as Text).data!;
-    total += int.parse(value.split(' · ').first.replaceAll(',', ''));
+    total += int.parse((element.widget as Text).data!.replaceAll(',', ''));
   }
   return total;
 }

@@ -11,7 +11,9 @@ import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/screens/web_app.dart';
 import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
-import 'package:quantumquiz/widgets/web_composer_workbench.dart';
+import 'package:quantumquiz/screens/web_exercise_workspace.dart';
+import 'package:quantumquiz/widgets/composer_workspace/composer_session_workspace.dart';
+import 'support/journey_navigation.dart';
 
 void main() {
   testWidgets(
@@ -33,15 +35,20 @@ void main() {
       ),
     ));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Chapter 1 — Information'));
+    await openJourneyChapter(tester, 1);
     await tester.pumpAndSettle();
     final journey = find.byType(WebJourneyWorkspace);
-    Finder within(Type type) =>
-        find.descendant(of: journey, matching: find.byType(type));
+    // Offstage-aware: at medium widths Results is the retained, hidden half
+    // of the Circuit/Results switch (M6a shared workspace).
+    Finder within(Type type) => find.descendant(
+        of: journey,
+        matching: find.byType(type, skipOffstage: false),
+        skipOffstage: false);
     final selector = find.descendant(
         of: journey,
-        matching:
-            find.byKey(const ValueKey('quantum-inspector-view-selector')));
+        matching: find.byKey(const ValueKey('quantum-inspector-view-selector'),
+            skipOffstage: false),
+        skipOffstage: false);
     await tester.ensureVisible(selector);
     await tester.pumpAndSettle();
     await tester
@@ -67,9 +74,8 @@ void main() {
       for (final type in [
         WebJourneyWorkspace,
         WebLessonWorkspace,
-        WebComposerLesson,
-        WebComposerWorkbench,
-        QuantumInspectorViews
+        WebComposerExercise,
+        ComposerSessionWorkspace,
       ])
         type:
             tester.state(type == WebJourneyWorkspace ? journey : within(type)),
@@ -82,22 +88,6 @@ void main() {
     final progressState = progress.state;
     for (final width in [1198.0, 1200.0, 899.0, 901.0, 803.0, 805.0, 1200.0]) {
       tester.view.physicalSize = Size(width, 1000);
-      await tester.pumpAndSettle();
-      final lessonList = find.descendant(
-          of: journey,
-          matching: find.byKey(const ValueKey('web-lesson-content-1')));
-      final scroll = tester.state<ScrollableState>(find
-          .descendant(of: lessonList, matching: find.byType(Scrollable))
-          .first);
-      scroll.position.jumpTo(0);
-      await tester.pumpAndSettle();
-      if (selector.evaluate().isEmpty) {
-        await tester.scrollUntilVisible(selector, 100,
-            scrollable: find
-                .descendant(of: lessonList, matching: find.byType(Scrollable))
-                .first);
-      }
-      await tester.ensureVisible(selector);
       await tester.pumpAndSettle();
       final selected = tester
           .widget<SegmentedButton<QuantumInspectorView>>(selector)
@@ -132,6 +122,8 @@ void main() {
       expect(circuit.simulationRunCount, simulations);
       expect(progress.state, same(progressState));
     }
+    // Back at full width, both results views stay switchable and the
+    // rotated camera survives.
     for (final label in ['State', 'Bloch', 'State', 'Bloch']) {
       await tester.ensureVisible(selector);
       await tester.pumpAndSettle();

@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quantumquiz/widgets/gate_educational_visual.dart';
+import 'package:quantumquiz/widgets/gate_educational_sections.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/gate_id.dart';
@@ -259,11 +261,14 @@ void main() {
 
     expect(find.byKey(const ValueKey('gate-inspector-identity-math-11')),
         findsOneWidget);
-    final last = tester.widget<NativeMathText>(find.descendant(
+    // Mixed prose and maths (inner \( \) delimiters) is not in the native
+    // subset since M3.1 (it leaked raw delimiters); it renders through
+    // LatexText with the same tertiary role.
+    final last = tester.widget<LatexText>(find.descendant(
       of: find.byKey(const ValueKey('gate-inspector-identity-math-11')),
-      matching: find.byType(NativeMathText),
+      matching: find.byType(LatexText),
     ));
-    expect(last.style, GateInspectorTheme.mathTertiary);
+    expect(last.textStyle, GateInspectorTheme.mathTertiary);
     expect(find.byType(SingleChildScrollView), findsWidgets);
     expect(tester.takeException(), isNull);
   });
@@ -445,5 +450,19 @@ void main() {
     expect(find.byKey(const ValueKey('gate-inspector-unsupported')),
         findsOneWidget);
     expect(find.textContaining('not available'), findsOneWidget);
+  });
+
+  test('M4: definition heading follows the content, never "matrix" for maps',
+      () {
+    String heading(SelectedGateType t) =>
+        mathDefinitionHeading(GateEducationalCatalog.forType(t)!.matrix);
+    expect(heading(SelectedGateType.hadamard), 'MATRIX');
+    expect(heading(SelectedGateType.cz), 'MATRIX', reason: 'diag(...)');
+    expect(heading(SelectedGateType.ccnot), 'STATE TRANSFORMATION');
+    expect(mathDefinitionHeading(r'\(U = e^{-i\theta Z/2}\)'), 'DEFINITION');
+  });
+
+  test('M4: the dialog keeps its 92 px illustration', () {
+    expect(GateEducationalVisualView.defaultHeight, 92);
   });
 }

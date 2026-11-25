@@ -1,4 +1,7 @@
-// Phase W4.3: one selected-component toolbar for gates and measurements.
+// Phase W4.3 selected-component contract, ported in v2.6 M3 to the
+// persistent Gate Inspector below the circuit (the toolbar it replaced), and
+// in M3.1 to the integrated educational inspector: educational inspection
+// and replacement no longer open modal dialogs in the desktop Composer.
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -9,6 +12,7 @@ import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
 import 'package:quantumquiz/screens/gate_replacement_dialog.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/measurement_glyph.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
@@ -16,7 +20,7 @@ import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 import 'web_sandbox_measurement_test.dart' show openSandbox, tapVisible;
 
 ValueKey<String> _k(String key) => ValueKey(key);
-final _toolbar = find.byKey(_k('web-composer-selection-toolbar'));
+final _toolbar = find.byKey(_k('composer-inspector-placed-gate'));
 final _tile = find.byKey(_k('web-composer-selection-tile'));
 final _empty = find.byKey(_k('web-composer-no-selected-gate'));
 final _status = find.byKey(_k('web-storage-status'));
@@ -24,8 +28,8 @@ final _inspect = find.byKey(_k('web-composer-inspect-selected-gate'));
 final _replace = find.byKey(_k('web-composer-replace-selected-gate'));
 final _duplicate = find.byKey(_k('web-composer-duplicate-selected-gate'));
 final _delete = find.byKey(_k('web-composer-delete-selected-gate'));
-final _editAngle = find.byKey(_k('web-composer-edit-selected-angle'));
-final _circuitCard = find.byKey(_k('quantum-workspace-surface'));
+final _angleEditor = find.byKey(_k('composer-angle-field'));
+final _inspectorRegion = find.byKey(_k('composer-region-inspector'));
 final _inspectorCard = find.byKey(_k('web-composer-inspector-card'));
 final _canvasKey = find.byKey(_k('web-composer-canvas'));
 
@@ -59,13 +63,20 @@ Future<void> _place(WidgetTester tester, Gate gate,
   await tester.pumpAndSettle();
 }
 
+/// Structural identity of the circuit (IDs, types, positions, angles).
+List<Object?> _structure(QuantumCircuit c) => [
+      for (final g in c.logicalGates)
+        (g.id, g.type, g.column, g.anchor.qubit, g.gate.angle),
+      for (final m in c.measurements) (m.id, m.qubit, m.column, m.classicalBit),
+    ];
+
 Gate _toolbarGate(WidgetTester tester) => tester
     .widget<QubitQuestGateTile>(
         find.descendant(of: _tile, matching: find.byType(QubitQuestGateTile)))
     .gate;
 
 List<Rect> _actionRects(WidgetTester tester) => [
-      for (final f in [_inspect, _replace, _editAngle, _duplicate, _delete])
+      for (final f in [_replace, _duplicate, _delete])
         if (f.evaluate().isNotEmpty) tester.getRect(f),
     ];
 
@@ -82,21 +93,20 @@ void main() {
         await _place(tester, Gate.fromIdentifier(type), qubit: 1);
         await _select(tester, 0);
         expect(_toolbar, findsOneWidget);
-        expect(find.text('SELECTED COMPONENT'), findsOneWidget);
         expect(_toolbarGate(tester).type, type);
         expect(_text(tester, 'web-composer-selected-gate'), name);
-        expect(
-            _text(tester, 'web-composer-selection-position'), 'q1 · column 1');
-        expect(_text(tester, 'web-composer-selected-gate-detail'),
+        // M3.1: the qubit is named once (relationship line); the detail
+        // carries only the position.
+        expect(_text(tester, 'web-composer-selection-position'),
             'Single-qubit gate on q1');
-        expect(find.byKey(_k('web-composer-move-hint')), findsOneWidget);
+        expect(_text(tester, 'web-composer-selected-gate-detail'), 'Column 1');
+        expect(find.byKey(_k('composer-inspector-matrix')), findsOneWidget);
         expect(find.text('Drag to move'), findsNothing);
-        expect(find.byType(Chip), findsNothing);
         expect(tester.takeException(), isNull);
       });
     }
 
-    testWidgets('parameterised Rx shows its angle and Edit angle',
+    testWidgets('parameterised Rx shows its angle and the angle editor',
         (tester) async {
       await openSandbox(tester, InMemoryAppStorage(), qubits: 1);
       await _place(
@@ -108,7 +118,7 @@ void main() {
       expect(_text(tester, 'web-composer-selected-gate'), 'Rx rotation gate');
       expect(_text(tester, 'web-composer-selected-rotation-angle'),
           'Angle: 0.250π (0.785398 rad)');
-      expect(_editAngle, findsOneWidget);
+      expect(_angleEditor, findsOneWidget);
     });
 
     testWidgets('controlled gate names control and target', (tester) async {
@@ -121,23 +131,38 @@ void main() {
       await _select(tester, 0);
       expect(_text(tester, 'web-composer-selected-gate'),
           'Controlled-X (CX / CNOT)');
-      expect(_text(tester, 'web-composer-selected-gate-detail'),
-          'Control q0 → target q1');
       expect(_text(tester, 'web-composer-selection-position'),
-          'q0, q1 · column 1');
+          'Control q0 → target q1');
+      expect(_text(tester, 'web-composer-selected-gate-detail'), 'Column 1');
     });
   });
 
   group('actions', () {
-    testWidgets('Inspect opens the existing educational dialog',
+    testWidgets(
+        'educational content is integrated in the inspector, never a dialog',
         (tester) async {
       await openSandbox(tester, InMemoryAppStorage(), qubits: 1);
       await _place(tester, Gate.fromIdentifier(SelectedGateType.hadamard));
       await _select(tester, 0);
-      await tapVisible(tester, _inspect);
-      expect(find.byType(GateInspectorDialog), findsOneWidget);
+      final c = _circuit(tester);
+      final before = _structure(c);
+      expect(_inspect, findsNothing, reason: 'no modal More details action');
+
+      await tapVisible(
+          tester, find.byKey(_k('composer-inspector-tab-mathematics')));
+      expect(find.byKey(_k('composer-inspector-mathematics')), findsOneWidget);
+      expect(find.byKey(_k('composer-math-matrix')), findsOneWidget);
+      expect(find.text('State action'), findsOneWidget);
+
+      await tapVisible(tester, find.byKey(_k('composer-inspector-tab-learn')));
+      expect(find.byKey(_k('composer-inspector-learn')), findsOneWidget);
       expect(find.text('Intuition'), findsOneWidget);
-      expect(find.text('Mathematical definition'), findsOneWidget);
+      expect(find.byKey(_k('composer-learn-visual')), findsOneWidget);
+
+      expect(find.byType(GateInspectorDialog), findsNothing);
+      expect(_structure(c), before, reason: 'tabs are presentation only');
+      expect(c.logicalGates.single.type, SelectedGateType.hadamard);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('Replace, Duplicate and Delete keep their behaviour',
@@ -148,9 +173,22 @@ void main() {
       await _select(tester, 0);
       final id = _circuit(tester).logicalGates.single.id;
 
+      // Replacement is an anchored menu of valid types (M3.1), not a dialog;
+      // dismissing it cancels without an edit.
+      final before = _structure(_circuit(tester));
       await tapVisible(tester, _replace);
-      expect(find.byType(GateReplacementDialog), findsOneWidget);
-      await tester.tap(find.byKey(_k('replacement-gate-hadamard')));
+      expect(find.byType(GateReplacementDialog), findsNothing);
+      expect(find.byKey(_k('composer-replace-with-hadamard')), findsOneWidget);
+      expect(find.byKey(_k('composer-replace-with-x')), findsNothing,
+          reason: 'the current type is not offered');
+      // Clicking outside dismisses the menu without an edit.
+      await tester.tap(find.byKey(_k('composer-inspector-heading')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_k('composer-replace-with-hadamard')), findsNothing);
+      expect(_structure(_circuit(tester)), before, reason: 'dismiss cancels');
+
+      await tapVisible(tester, _replace);
+      await tester.tap(find.byKey(_k('composer-replace-with-hadamard')));
       await tester.pumpAndSettle();
       final replaced = _circuit(tester).logicalGates.single;
       expect((replaced.id, replaced.type), (id, SelectedGateType.hadamard));
@@ -178,13 +216,14 @@ void main() {
       await _select(tester, 0);
       final rects = _actionRects(tester);
       expect(rects.last, tester.getRect(_delete));
-      final deleteStyle =
-          tester.widget<OutlinedButton>(_delete).style!.foregroundColor;
-      final inspectStyle =
-          tester.widget<OutlinedButton>(_inspect).style!.foregroundColor;
-      expect(deleteStyle?.resolve({}), isNotNull);
-      expect(inspectStyle?.resolve({}), isNull,
-          reason: 'regular actions use the theme colour');
+      Color? fg(Finder f) => tester
+          .widget<OutlinedButton>(
+              find.descendant(of: f, matching: find.byType(OutlinedButton)))
+          .style!
+          .foregroundColor
+          ?.resolve({});
+      expect(fg(_delete), QubitQuestColors.error);
+      expect(fg(_duplicate), isNot(QubitQuestColors.error));
     });
   });
 
@@ -212,6 +251,8 @@ void main() {
       expect(find.byKey(_k('web-composer-classical-bit-help')), findsOneWidget);
       expect(_delete, findsOneWidget);
       expect(_inspect, findsNothing);
+      expect(find.byKey(_k('composer-inspector-tabs')), findsNothing,
+          reason: 'a measurement has no gate educational sections');
       expect(_replace, findsNothing);
       expect(_duplicate, findsNothing);
 
@@ -229,15 +270,17 @@ void main() {
   });
 
   group('empty and status', () {
-    testWidgets('empty selection is one compact line', (tester) async {
+    testWidgets('empty selection is a compact hint with circuit facts',
+        (tester) async {
       await openSandbox(tester, InMemoryAppStorage(), qubits: 2);
       expect(_empty, findsOneWidget);
-      expect(_text(tester, 'web-composer-no-selected-gate'),
-          'Select a gate or measurement to inspect or edit it.');
-      expect(_toolbar, findsNothing);
+      expect(_text(tester, 'web-composer-selection-empty'),
+          'Select a gate to inspect it, or drag a gate onto the circuit.');
       expect(
-          tester.getSize(find.byKey(_k('web-composer-selection-empty'))).height,
-          lessThan(30));
+          find.byKey(_k('composer-inspector-circuit-summary')), findsOneWidget);
+      expect(_toolbar, findsNothing);
+      expect(tester.getSize(_inspectorRegion).height, lessThan(130),
+          reason: 'the idle inspector does not reserve its full height');
     });
 
     testWidgets('the status line never describes a past selection',
@@ -253,17 +296,17 @@ void main() {
       expect(status, isNot(contains('Selected')));
       expect(status, isNot(contains('Rx')));
 
-      // Tapping a palette gate gives placement guidance, not a selection.
-      final paletteRx = find.byWidgetPredicate((w) =>
-          w is QubitQuestGateTile &&
-          w.onPressed != null &&
-          w.gate.type == SelectedGateType.rx);
-      await tapVisible(tester, paletteRx.first);
-      expect(tester.widget<Text>(_status).data, startsWith('Drag Rx'));
-      expect(_text(tester, 'web-composer-selected-gate'), 'Pauli-X gate');
+      // Clicking a palette gate previews the type; it never edits or
+      // pretends to be a selection.
+      await tapVisible(tester, find.byKey(_k('composer-palette-gate-rx')));
+      expect(find.byKey(_k('composer-inspector-preview')), findsOneWidget);
+      expect(_toolbar, findsNothing);
+      expect(tester.widget<Text>(_status).data, status);
+      expect(_circuit(tester).logicalGates, hasLength(2));
 
       await _clearSelection(tester);
-      expect(_empty, findsOneWidget);
+      expect(find.byKey(_k('composer-inspector-preview')), findsOneWidget,
+          reason: 'clearing a selection keeps the preview');
     });
   });
 
@@ -274,56 +317,50 @@ void main() {
       ('phone', const Size(380, 900)),
     ]) {
       for (final scale in [1.0, 1.5]) {
-        testWidgets('$name ×$scale: actions fit, no lone Delete',
+        testWidgets('$name ×$scale: actions fit inside the inspector',
             (tester) async {
           await openSandbox(tester, InMemoryAppStorage(),
               qubits: 1, size: size, scale: scale);
-          // Opening at 380 px ×1.5 overflows outside this toolbar (before
-          // any selection exists); only the toolbar is judged here.
-          tester.takeException();
           await _place(tester,
               Gate.fromIdentifier(SelectedGateType.rx, angle: math.pi / 3));
           await _select(tester, 0);
           expect(tester.takeException(), isNull);
-          final card = tester.getRect(_circuitCard);
+          await tester.ensureVisible(_delete);
+          await tester.pumpAndSettle();
+          final region = tester.getRect(_inspectorRegion);
           final rects = _actionRects(tester);
-          expect(rects, hasLength(5));
+          // Replace, Duplicate, Delete (More details became inline tabs).
+          expect(rects, hasLength(3));
           for (final r in rects) {
-            expect(r.left, greaterThanOrEqualTo(card.left - .5));
-            expect(r.right, lessThanOrEqualTo(card.right + .5));
+            expect(r.left, greaterThanOrEqualTo(region.left - .5));
+            expect(r.right, lessThanOrEqualTo(region.right + .5));
             expect(r.height, greaterThanOrEqualTo(40));
           }
-          final rows = <double, int>{};
-          for (final r in rects) {
-            rows.update(r.top, (n) => n + 1, ifAbsent: () => 1);
-          }
-          expect(rows[rects.last.top], greaterThan(1),
-              reason: 'Delete never sits alone on its row');
-          if (name == 'desktop' && scale == 1) {
-            expect(rows, hasLength(1), reason: 'one row at desktop width');
-            expect(tester.getRect(_tile).top, lessThan(rects.first.bottom),
-                reason: 'tile, identity and actions share the row');
-          }
+          expect(rects.last, tester.getRect(_delete),
+              reason: 'Delete stays last');
+          // Whether the four actions share one row depends on real font
+          // metrics; it is checked in the browser screenshots, not with the
+          // wide test font.
         });
       }
     }
 
-    testWidgets('selection changes leave canvas and Inspector in place',
+    testWidgets('selection never moves the circuit or the results',
         (tester) async {
       await openSandbox(tester, InMemoryAppStorage(), qubits: 2);
       await _place(tester, Gate.fromIdentifier(SelectedGateType.x));
-      final canvas = tester.getRect(_canvasKey);
-      final inspector = tester.getRect(_inspectorCard);
+      final canvasTop = tester.getTopLeft(_canvasKey);
+      final results = tester.getRect(_inspectorCard);
       await _select(tester, 0);
-      expect(tester.getRect(_canvasKey), canvas);
-      expect(tester.getRect(_inspectorCard), inspector);
-      expect(find.descendant(of: _circuitCard, matching: _toolbar),
+      expect(tester.getTopLeft(_canvasKey), canvasTop);
+      expect(tester.getRect(_inspectorCard), results);
+      expect(find.descendant(of: _inspectorRegion, matching: _toolbar),
           findsOneWidget);
       expect(find.descendant(of: _inspectorCard, matching: _toolbar),
           findsNothing);
       await _clearSelection(tester);
-      expect(tester.getRect(_canvasKey), canvas);
-      expect(tester.getRect(_inspectorCard), inspector);
+      expect(tester.getTopLeft(_canvasKey), canvasTop);
+      expect(tester.getRect(_inspectorCard), results);
     });
 
     testWidgets('measurement results survive selection changes',

@@ -1,12 +1,13 @@
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quantumquiz/models/composer_policy.dart';
+import 'package:quantumquiz/screens/web_exercise_workspace.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/mastery_2_catalogue.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
-import 'package:quantumquiz/screens/web_learning_workspace.dart';
 import 'package:quantumquiz/widgets/circuit_geometry.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/quantum_state_inspector_content.dart';
@@ -121,11 +122,15 @@ void main() {
           : getQQLevelById(2)! as ComposerLevel;
       await tester.pumpWidget(MaterialApp(
           home: Scaffold(
-              body: WebComposerLesson(
+              body: WebComposerExercise(
         level: level,
-        enabled: true,
-        desktopWorkspace: true,
-        onSolved: () async {},
+        mode: mastery
+            ? ComposerMode.masteryChallenge
+            : ComposerMode.journeyExercise,
+        contextLabel: 'Exercise',
+        onCompleted: () async {},
+        onNext: () {},
+        onOpenNotebook: () {},
       ))));
       await tester.pumpAndSettle();
       final shared = find.byType(QuantumStateInspectorContent);

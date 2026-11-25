@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:quantumquiz/utils/probability_format.dart';
 import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
@@ -47,6 +49,15 @@ class StateVectorDisplay extends StatefulWidget {
   final bool contentDriven;
   final bool lightweightTypography;
 
+  /// Opt-in desktop presentation: the state expression wraps between whole
+  /// terms (collapsing beyond [collapsedTermCount] terms, with an explicit
+  /// "more terms" indicator and a copy action for the complete expression),
+  /// a non-zero count, and an amplitude column in the basis rows. Off by
+  /// default so existing hosts keep their single-line expression.
+  final bool structuredLayout;
+
+  static const int collapsedTermCount = 8;
+
   const StateVectorDisplay({
     super.key,
     required this.stateVector,
@@ -68,7 +79,12 @@ class StateVectorDisplay extends StatefulWidget {
     this.visibilityControlOverride,
     this.contentDriven = false,
     this.lightweightTypography = false,
+    this.structuredLayout = false,
+    this.stateLabel = '|ψ⟩',
   });
+
+  /// Symbol for the state in the structured expression and its copy text.
+  final String stateLabel;
 
   @override
   State<StateVectorDisplay> createState() => _StateVectorDisplayState();
@@ -222,11 +238,28 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
                           ),
                           SizedBox(height: widget.dense ? 2 : 3),
                         ],
-                        _StateExpressionLine(
-                          currentTerms: currentTerms,
-                          authoredExpression: authoredExpression,
-                          dense: widget.dense,
-                        ),
+                        if (widget.structuredLayout && currentTerms != null)
+                          _WrappedStateExpression(
+                            terms: currentTerms,
+                            fullExpression: formatQuantumStateExpression(
+                              widget.stateVector
+                                  .take(vectorSize)
+                                  .toList(growable: false),
+                              numQubits: widget.numQubits,
+                              stateLabel: widget.stateLabel,
+                            ),
+                            stateLabel: widget.stateLabel,
+                            vectorSize: vectorSize,
+                            totalProbability: widget.stateVector
+                                .take(vectorSize)
+                                .fold<double>(0, (s, a) => s + _probability(a)),
+                          )
+                        else
+                          _StateExpressionLine(
+                            currentTerms: currentTerms,
+                            authoredExpression: authoredExpression,
+                            dense: widget.dense,
+                          ),
                       ],
                     ),
                   ),
@@ -336,6 +369,7 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
       lightweightTypography: widget.lightweightTypography,
       decorated: false,
       showChips: false,
+      flexibleToggle: widget.structuredLayout,
       toggle: widget.visibilityControlOverride ??
           (widget.showVisibilityControl
               ? _buildStateVisibilityControl()
@@ -355,9 +389,11 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
         ? _ResultPalette.qqPurple
         : _ResultPalette.qqCyan;
 
+    final structured = widget.structuredLayout;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (structured) const _BasisTableHeader(),
         ...visibleIndexes.map((index) {
           final Complex current = widget.stateVector[index];
           final Complex? target =
@@ -372,11 +408,16 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
             probability: currentProbability,
             targetProbability: hasTarget ? targetProbability : null,
             matched: matched,
-            percentLabel: _formatPercent(currentProbability),
+            // Structured layout: the M4 adaptive policy (3.125%, 42.68%,
+            // never 0% or 100% by rounding); other hosts keep theirs.
+            percentLabel: structured
+                ? formatProbability(currentProbability)
+                : _formatPercent(currentProbability),
             targetPercentLabel:
                 hasTarget ? _formatPercent(targetProbability) : null,
             color: probabilityColor,
             lightweightTypography: widget.lightweightTypography,
+            amplitudeLabel: structured ? formatQuantumAmplitude(current) : null,
           );
         }),
       ],
@@ -393,6 +434,19 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
       _resetStateScroll();
     }
 
+    final label = Text(
+      'Non-zero only',
+      maxLines: 2,
+      style: TextStyle(
+        color: Colors.white70,
+        fontSize: widget.structuredLayout
+            ? 11.5
+            : widget.dense
+                ? 8.6
+                : 10,
+        fontWeight: FontWeight.w700,
+      ),
+    );
     return InkWell(
       onTap: () => update(!nonZeroOnly),
       borderRadius: BorderRadius.circular(6),
@@ -400,7 +454,11 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Transform.scale(
-            scale: widget.dense ? 0.58 : 0.70,
+            scale: widget.structuredLayout
+                ? 0.8
+                : widget.dense
+                    ? 0.58
+                    : 0.70,
             child: Checkbox(
               value: nonZeroOnly,
               onChanged: (v) => update(v ?? false),
@@ -411,14 +469,9 @@ class _StateVectorDisplayState extends State<StateVectorDisplay> {
               visualDensity: VisualDensity.compact,
             ),
           ),
-          Text(
-            'Non-zero only',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: widget.dense ? 8.6 : 10,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          // Only the structured summary row bounds this control's width
+          // (other hosts place it in an unbounded Row).
+          if (widget.structuredLayout) Flexible(child: label) else label,
         ],
       ),
     );
@@ -540,6 +593,9 @@ class _StateSummarySection extends StatelessWidget {
   final List<Widget> chips;
   final bool dense;
   final Widget? toggle;
+
+  /// Lets the toggle shrink (its label wraps) instead of overflowing.
+  final bool flexibleToggle;
   final bool decorated;
   final bool showChips;
   final bool lightweightTypography;
@@ -552,6 +608,7 @@ class _StateSummarySection extends StatelessWidget {
     required this.chips,
     this.dense = false,
     this.toggle,
+    this.flexibleToggle = false,
     this.decorated = true,
     this.showChips = true,
     this.lightweightTypography = false,
@@ -621,7 +678,9 @@ class _StateSummarySection extends StatelessWidget {
               ),
               if (toggle != null) ...[
                 SizedBox(width: dense ? 2 : 6),
-                toggle!,
+                // Structured layout: shares the row with the title under
+                // large text sizes; other hosts keep its intrinsic width.
+                if (flexibleToggle) Flexible(child: toggle!) else toggle!,
               ],
             ],
           ),
@@ -658,7 +717,12 @@ class _ProbabilityRow extends StatelessWidget {
     required this.targetPercentLabel,
     required this.color,
     this.lightweightTypography = false,
+    this.amplitudeLabel,
   });
+
+  /// Complex amplitude shown between the ket and the probability bar
+  /// (structured layout only).
+  final String? amplitudeLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -666,7 +730,7 @@ class _ProbabilityRow extends StatelessWidget {
     final double? clampedTargetProbability =
         targetProbability?.clamp(0, 1).toDouble();
     final double ketWidth = math.max(44, math.min(76, ket.length * 7.2 + 8));
-    const double percentWidth = 46;
+    final double percentWidth = amplitudeLabel == null ? 46 : 60;
     const double matchIconWidth = 17;
 
     return Padding(
@@ -674,63 +738,100 @@ class _ProbabilityRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              SizedBox(
-                width: ketWidth,
-                child: Text(
-                  ket,
-                  maxLines: 1,
-                  softWrap: false,
-                  overflow: TextOverflow.visible,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: lightweightTypography
-                        ? FontWeight.w500
-                        : FontWeight.w700,
+          LayoutBuilder(builder: (context, constraints) {
+            // Structured rows: the amplitude column takes what is left after
+            // the fixed columns and a 36 px bar, between 60 and 118 px.
+            final amplitudeWidth = (constraints.maxWidth -
+                    ketWidth -
+                    percentWidth -
+                    matchIconWidth -
+                    8 -
+                    36)
+                .clamp(60.0, _BasisTableHeader.amplitudeWidth);
+            return Row(
+              children: [
+                SizedBox(
+                  width: ketWidth,
+                  child: Text(
+                    ket,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.visible,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: amplitudeLabel == null ? 12 : 13,
+                      fontWeight: lightweightTypography
+                          ? FontWeight.w500
+                          : FontWeight.w700,
+                    ),
                   ),
                 ),
-              ),
-              Expanded(
-                child: _ProbabilityBar(
-                  value: clampedProbability,
-                  minHeight: 5,
-                  color: color,
-                ),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: percentWidth,
-                child: Text(
-                  percentLabel,
-                  textAlign: TextAlign.right,
-                  maxLines: 1,
-                  softWrap: false,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: lightweightTypography
-                        ? FontWeight.w500
-                        : FontWeight.w700,
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: matchIconWidth,
-                child: matched
-                    ? const Align(
-                        alignment: Alignment.centerRight,
-                        child: Icon(
-                          Icons.check_circle,
-                          color: _ResultPalette.qqGreen,
-                          size: 13,
+                if (amplitudeLabel case final amplitude?)
+                  SizedBox(
+                    width: amplitudeWidth,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        amplitude,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontFeatures: [FontFeature.tabularFigures()],
                         ),
-                      )
-                    : null,
-              ),
-            ],
-          ),
+                      ),
+                    ),
+                  ),
+                Expanded(
+                  // In a narrow structured row the amplitude column takes the
+                  // space; a bar thinner than ~36 px conveys nothing, so only
+                  // the percentage remains.
+                  child: LayoutBuilder(
+                    builder: (context, constraints) =>
+                        amplitudeLabel != null && constraints.maxWidth < 36
+                            ? const SizedBox.shrink()
+                            : _ProbabilityBar(
+                                value: clampedProbability,
+                                minHeight: amplitudeLabel == null ? 5 : 7,
+                                color: color,
+                              ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: percentWidth,
+                  child: Text(
+                    percentLabel,
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: lightweightTypography
+                          ? FontWeight.w500
+                          : FontWeight.w700,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: matchIconWidth,
+                  child: matched
+                      ? const Align(
+                          alignment: Alignment.centerRight,
+                          child: Icon(
+                            Icons.check_circle,
+                            color: _ResultPalette.qqGreen,
+                            size: 13,
+                          ),
+                        )
+                      : null,
+                ),
+              ],
+            );
+          }),
           if (clampedTargetProbability != null &&
               targetPercentLabel != null) ...[
             const SizedBox(height: 2),
@@ -817,6 +918,172 @@ class _ProbabilityBar extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Column titles for the structured basis rows.
+class _BasisTableHeader extends StatelessWidget {
+  const _BasisTableHeader();
+
+  static const double amplitudeWidth = 118;
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+        key: ValueKey('state-basis-table-header'),
+        padding: EdgeInsets.only(bottom: 4),
+        child: DefaultTextStyle(
+          style: TextStyle(
+            color: Colors.white54,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: .4,
+          ),
+          child: Row(
+            children: [
+              SizedBox(width: 60, child: Text('Basis')),
+              SizedBox(width: amplitudeWidth, child: Text('Amplitude')),
+              Expanded(child: Text('Probability')),
+            ],
+          ),
+        ),
+      );
+}
+
+/// The complete state expression, wrapped only between whole terms: each
+/// `± (amplitude)|ket⟩` is one unbreakable unit, so a ket or coefficient is
+/// never split. Long states collapse to the first terms with an explicit
+/// count of the omitted ones; Copy always copies the complete expression.
+class _WrappedStateExpression extends StatefulWidget {
+  const _WrappedStateExpression({
+    required this.terms,
+    required this.fullExpression,
+    required this.vectorSize,
+    required this.stateLabel,
+    required this.totalProbability,
+  });
+
+  /// Σ|αₓ|² of the unrounded state (1 for a valid state).
+  final double totalProbability;
+
+  final String stateLabel;
+  final List<QuantumStateTerm> terms;
+  final String fullExpression;
+  final int vectorSize;
+
+  @override
+  State<_WrappedStateExpression> createState() =>
+      _WrappedStateExpressionState();
+}
+
+class _WrappedStateExpressionState extends State<_WrappedStateExpression> {
+  bool _expanded = false;
+  bool _copied = false;
+
+  static const _style = TextStyle(
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    height: 1.35,
+  );
+
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: widget.fullExpression));
+    if (!mounted) return;
+    setState(() => _copied = true);
+    await Future<void>.delayed(const Duration(milliseconds: 1400));
+    if (mounted) setState(() => _copied = false);
+  }
+
+  Widget _term(QuantumStateTerm term, {required bool first}) => Text.rich(
+        TextSpan(children: [
+          if (!first) const TextSpan(text: '+ '),
+          if (!term.coefficientIsUnit)
+            TextSpan(text: '(${term.formattedCoefficient})'),
+          TextSpan(
+            text: term.basisKet,
+            style: const TextStyle(color: _ResultPalette.qqGreen),
+          ),
+        ]),
+        softWrap: false,
+        style: _style,
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final terms = widget.terms;
+    final limit = StateVectorDisplay.collapsedTermCount;
+    final collapsible = terms.length > limit;
+    final shown = collapsible && !_expanded ? terms.take(limit) : terms;
+    final hidden = terms.length - shown.length;
+    return Column(
+      key: const ValueKey('state-expression-wrapped'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '${terms.length} of ${widget.vectorSize} amplitudes non-zero · '
+                'total probability '
+                '${formatProbability(widget.totalProbability)}',
+                key: const ValueKey('state-nonzero-count'),
+                style: const TextStyle(color: Colors.white60, fontSize: 11.5),
+              ),
+            ),
+            Tooltip(
+              message: _copied ? 'Copied' : 'Copy the complete state',
+              child: IconButton(
+                key: const ValueKey('state-expression-copy'),
+                onPressed: _copy,
+                icon: Icon(_copied ? Icons.check_rounded : Icons.copy_rounded,
+                    size: 16),
+                color: Colors.white70,
+                visualDensity: VisualDensity.compact,
+                constraints:
+                    const BoxConstraints.tightFor(width: 30, height: 30),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ],
+        ),
+        if ((widget.totalProbability - 1).abs() > 1e-6)
+          Text(
+            'This state is not normalised (total probability '
+            '${widget.totalProbability.toStringAsFixed(6)}); values are shown '
+            'as calculated.',
+            key: const ValueKey('state-not-normalised'),
+            style: const TextStyle(color: Color(0xFFFFB86B), fontSize: 11.5),
+          ),
+        Wrap(
+          spacing: 6,
+          runSpacing: 2,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text('${widget.stateLabel} =', style: _style),
+            if (terms.isEmpty) const Text('0', style: _style),
+            for (final (i, term) in shown.indexed) _term(term, first: i == 0),
+            if (hidden > 0)
+              Text(
+                '+ … $hidden more term${hidden == 1 ? '' : 's'}',
+                key: const ValueKey('state-expression-abbreviated'),
+                style: _style.copyWith(color: Colors.white60),
+              ),
+          ],
+        ),
+        if (collapsible)
+          TextButton(
+            key: const ValueKey('state-expression-expand'),
+            onPressed: () => setState(() => _expanded = !_expanded),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+            ),
+            child: Text(_expanded
+                ? 'Show fewer terms'
+                : 'Show all ${terms.length} terms'),
+          ),
+      ],
     );
   }
 }

@@ -14,6 +14,13 @@ enum QuantumInspectorView { state, bloch, measure }
 class QuantumInspectorSelection {
   QuantumInspectorView selected = QuantumInspectorView.state;
 
+  /// The learner's Bloch camera (rotation and zoom). Kept here, beside the
+  /// selected view, so a responsive relayout that rebuilds the inspector
+  /// never resets an orbit the learner made (v2.6 M6a).
+  BlochCamera camera = defaultCamera;
+
+  static const BlochCamera defaultCamera = BlochCamera(zoom: 1.15);
+
   void reconcile({required bool supportsBloch, required bool supportsMeasure}) {
     if ((selected == QuantumInspectorView.bloch && !supportsBloch) ||
         (selected == QuantumInspectorView.measure && !supportsMeasure)) {
@@ -32,12 +39,22 @@ class QuantumInspectorViews extends StatefulWidget {
     this.blochCaption,
     this.blochNote,
     this.blochUnavailableMessage,
+    this.blochHeader,
     this.keepBlochTabSelectable = false,
     required this.contentDriven,
     this.targetStateExpression,
     this.measureView,
     this.selection,
+    this.compactTabs = false,
+    this.fitTabsToWidth = false,
   });
+
+  /// Scales the tab selector down (never up) when it is wider than the
+  /// panel, for example at large text sizes in a narrow results column.
+  final bool fitTabsToWidth;
+
+  /// Omits the tab icons so the three labels fit narrow panels.
+  final bool compactTabs;
 
   final QuantumInspectorSelection? selection;
   final Widget stateView;
@@ -54,6 +71,10 @@ class QuantumInspectorViews extends StatefulWidget {
   /// Explains why Bloch is unavailable; shown inside the Bloch tab when
   /// [keepBlochTabSelectable] is true.
   final String? blochUnavailableMessage;
+
+  /// Optional control above the Bloch sphere (the desktop Composer's
+  /// Before measurement / After single run selector). Null: unchanged.
+  final Widget? blochHeader;
 
   /// Keeps the Bloch tab selectable even when the Bloch view is unsupported,
   /// so navigation never changes; the tab then explains why instead.
@@ -73,7 +94,13 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
   QuantumInspectorSelection get _selection =>
       widget.selection ?? _localSelection;
   QuantumInspectorView get _view => _selection.selected;
-  BlochCamera _camera = const BlochCamera(zoom: 1.15);
+  BlochCamera _localCamera = QuantumInspectorSelection.defaultCamera;
+
+  BlochCamera get _camera => widget.selection?.camera ?? _localCamera;
+  set _camera(BlochCamera camera) {
+    _localCamera = camera;
+    widget.selection?.camera = camera;
+  }
 
   @override
   void initState() {
@@ -110,35 +137,42 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
       children: [
         Align(
           alignment: Alignment.centerLeft,
-          child: SegmentedButton<QuantumInspectorView>(
-            key: const ValueKey('quantum-inspector-view-selector'),
-            segments: [
-              const ButtonSegment(
-                value: QuantumInspectorView.state,
-                label: Text('State'),
-                icon: Icon(Icons.data_array_outlined, size: 15),
-              ),
-              ButtonSegment(
-                value: QuantumInspectorView.bloch,
-                label: const Text('Bloch'),
-                icon: const Icon(Icons.language_outlined, size: 15),
-                enabled: widget.supportsBloch || widget.keepBlochTabSelectable,
-              ),
-              if (widget.measureView != null)
-                const ButtonSegment(
-                  value: QuantumInspectorView.measure,
-                  label: Text('Measure'),
+          child: _fitTabs(
+            SegmentedButton<QuantumInspectorView>(
+              key: const ValueKey('quantum-inspector-view-selector'),
+              segments: [
+                ButtonSegment(
+                  value: QuantumInspectorView.state,
+                  label: const Text('State'),
+                  icon: widget.compactTabs
+                      ? null
+                      : const Icon(Icons.data_array_outlined, size: 15),
                 ),
-            ],
-            selected: {_view},
-            showSelectedIcon: false,
-            style: const ButtonStyle(
-              visualDensity: VisualDensity(horizontal: -2, vertical: -3),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ButtonSegment(
+                  value: QuantumInspectorView.bloch,
+                  label: const Text('Bloch'),
+                  icon: widget.compactTabs
+                      ? null
+                      : const Icon(Icons.language_outlined, size: 15),
+                  enabled:
+                      widget.supportsBloch || widget.keepBlochTabSelectable,
+                ),
+                if (widget.measureView != null)
+                  const ButtonSegment(
+                    value: QuantumInspectorView.measure,
+                    label: Text('Measure'),
+                  ),
+              ],
+              selected: {_view},
+              showSelectedIcon: false,
+              style: const ButtonStyle(
+                visualDensity: VisualDensity(horizontal: -2, vertical: -3),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onSelectionChanged: (selection) {
+                setState(() => _selection.selected = selection.single);
+              },
             ),
-            onSelectionChanged: (selection) {
-              setState(() => _selection.selected = selection.single);
-            },
           ),
         ),
         if (widget.allowBloch &&
@@ -160,6 +194,14 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
       ],
     );
   }
+
+  Widget _fitTabs(Widget tabs) => widget.fitTabsToWidth
+      ? FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: tabs,
+        )
+      : tabs;
 
   Widget _blochUnavailable() => Padding(
         key: const ValueKey('quantum-inspector-bloch-unavailable-panel'),
@@ -206,6 +248,10 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
           mainAxisSize:
               widget.contentDriven ? MainAxisSize.min : MainAxisSize.max,
           children: [
+            if (widget.blochHeader case final header?) ...[
+              header,
+              const SizedBox(height: 8),
+            ],
             if (widget.blochCaption case final caption?) ...[
               Text(
                 caption,

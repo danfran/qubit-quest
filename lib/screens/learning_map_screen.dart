@@ -476,12 +476,10 @@ class _LearningMapPath extends StatelessWidget {
   }
 
   _ChapterMapStatus _statusFor(QQLevelsCategory category) {
-    if (category.isMasteryPhase) {
-      return journeyLessons.indexed.every((entry) =>
-              progressState.completedLessonIds.contains(entry.$1 + 1))
-          ? _ChapterMapStatus.current
-          : _ChapterMapStatus.locked;
-    }
+    // Mastery Challenges are open from a fresh install
+    // (ProgressionRules.masteryChallengesUnlocked); the node never shows a
+    // lock that the real access rule does not have (v2.6 M5, D10).
+    if (category.isMasteryPhase) return _ChapterMapStatus.current;
     final firstLevel = category.from + 1;
     final lastLevel = category.to + 1;
     final snapshot = CampaignProgressPolicy.chapterProgress(

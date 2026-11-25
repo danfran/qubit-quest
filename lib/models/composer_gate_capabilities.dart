@@ -21,6 +21,15 @@ class ComposerSelectedGateCapabilities {
 
   bool supports(ComposerSelectedGateAction action) => actions.contains(action);
 
+  /// The same capabilities minus [action], for mode policies that narrow
+  /// what the model allows.
+  ComposerSelectedGateCapabilities without(ComposerSelectedGateAction action) =>
+      actions.contains(action)
+          ? ComposerSelectedGateCapabilities._(
+              Set.unmodifiable(actions.difference({action})),
+            )
+          : this;
+
   static ComposerSelectedGateCapabilities forSelection(
     QuantumCircuit circuit,
     GateId? selectedGateId,

@@ -6,6 +6,7 @@ import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/web_app.dart';
+import 'package:quantumquiz/widgets/composer_workspace/desktop_composer_workspace.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
@@ -13,7 +14,6 @@ import 'package:quantumquiz/widgets/circuit_geometry.dart';
 import 'package:quantumquiz/widgets/quantum_workspace_layout.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/widgets/quantum_state_inspector_content.dart';
-import 'package:quantumquiz/widgets/web_composer_workbench.dart';
 
 void main() {
   Future<void> setSize(WidgetTester tester, Size size) async {
@@ -76,23 +76,22 @@ void main() {
     );
   });
 
+  Finder region(String name) => find.byKey(ValueKey('composer-region-$name'));
+
   testWidgets('Sandbox chrome and selected controls stay inside workspace',
       (tester) async {
     await pumpApp(tester, const Size(1440, 1000));
     expect(find.text('Level 1'), findsNothing);
     await openComposer(tester, 1);
     expect(find.text('Level 1'), findsNothing);
-    final primary =
-        find.byKey(const ValueKey('quantum-workspace-primary-pane'));
-    final actions =
-        find.byKey(const ValueKey('web-composer-workspace-actions'));
+    final toolbar = find.byKey(const ValueKey('composer-workspace-toolbar'));
     final change = find.byKey(const ValueKey('web-composer-change-qubits'));
     final clear = find.byKey(const ValueKey('web-clear-circuit'));
-    expect(find.descendant(of: primary, matching: actions), findsOneWidget);
-    expect(find.descendant(of: actions, matching: change), findsOneWidget);
-    expect(find.descendant(of: actions, matching: clear), findsOneWidget);
-    expect(find.descendant(of: actions, matching: find.text('1 qubits')),
-        findsOneWidget);
+    final count = find.byKey(const ValueKey('web-composer-qubit-count'));
+    for (final control in [change, clear, count]) {
+      expect(find.descendant(of: toolbar, matching: control), findsOneWidget);
+    }
+    expect(tester.widget<Text>(count).data, startsWith('1 qubit'));
     expect(find.text('State'), findsOneWidget);
     expect(find.text('Bloch'), findsOneWidget);
     expect(find.text('Measure'), findsOneWidget);
@@ -117,45 +116,43 @@ void main() {
       tester.platformDispatcher.textScaleFactorTestValue = scenario.$2;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await tester.pumpAndSettle();
-      final primaryRect = tester.getRect(primary);
+      final bar = tester.getRect(toolbar);
       for (final control in [change, clear]) {
         final rect = tester.getRect(control);
-        expect(rect.left, greaterThanOrEqualTo(primaryRect.left));
-        expect(rect.right, lessThanOrEqualTo(primaryRect.right));
+        expect(rect.left, greaterThanOrEqualTo(bar.left - .5));
+        expect(rect.right, lessThanOrEqualTo(bar.right + .5));
       }
-      final footer = tester.getRect(
-          find.byKey(const ValueKey('quantum-workspace-contextual-actions')));
-      final inspector = tester.getRect(
-          find.byKey(const ValueKey('quantum-workspace-inspection-pane')));
-      // W4.3: movement is a hint, not a disabled control.
-      expect(find.byKey(const ValueKey('web-composer-move-selected-gate')),
-          findsNothing);
-      for (final name in ['inspect', 'replace', 'duplicate', 'delete']) {
+      final inspector = tester.getRect(region('inspector'));
+      // M3.1: More details became the inspector's inline tabs.
+      for (final name in ['replace', 'duplicate', 'delete']) {
         final control =
             find.byKey(ValueKey('web-composer-$name-selected-gate'));
         await tester.ensureVisible(control);
         await tester.pumpAndSettle();
-        // Compare horizontal bounds independently of page scrolling.
         final rect = tester.getRect(control);
-        expect(rect.left, greaterThanOrEqualTo(footer.left));
-        expect(rect.right, lessThanOrEqualTo(footer.right));
+        expect(rect.left, greaterThanOrEqualTo(inspector.left - .5));
+        expect(rect.right, lessThanOrEqualTo(inspector.right + .5));
         expect(rect.width, greaterThan(0));
       }
-      expect(footer.overlaps(inspector), isFalse);
+      expect(
+          tester
+              .getRect(region('inspector'))
+              .overlaps(tester.getRect(region('results'))),
+          isFalse);
       expect(tester.takeException(), isNull);
     }
-    // Centre it: a minimal scroll can leave it under the pinned top bar.
-    await Scrollable.ensureVisible(tester.element(clear), alignment: .5);
+    await tester.ensureVisible(clear);
     await tester.pumpAndSettle();
     await tester.tap(clear);
     await tester.pumpAndSettle();
     expect(canvas.circuit.logicalGates, isEmpty);
+    await tester.ensureVisible(change);
+    await tester.pumpAndSettle();
     await tester.tap(change);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-2')));
     await tester.pumpAndSettle();
-    expect(find.descendant(of: actions, matching: find.text('2 qubits')),
-        findsOneWidget);
+    expect(tester.widget<Text>(count).data, startsWith('2 qubits'));
     expect(tester.takeException(), isNull);
   });
 
@@ -164,65 +161,26 @@ void main() {
     await pumpApp(tester, const Size(1440, 1000));
     await openComposer(tester, 3);
 
-    expect(find.byType(WebComposerWorkbench), findsOneWidget);
+    expect(find.byType(DesktopComposerWorkspace), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('composer-workspace-wide')), findsOneWidget);
     expect(find.byType(QuantumStateInspectorContent), findsOneWidget);
     expect(find.text('Current State'), findsOneWidget);
     expect(find.text('Target State'), findsNothing);
-    expect(
-      find.byKey(const ValueKey('quantum-workspace-wide-layout')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('quantum-workspace-primary-pane')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('quantum-workspace-inspection-pane')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('quantum-workspace-main-row')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('quantum-workspace-toolbar')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('quantum-workspace-contextual-actions')),
-      findsOneWidget,
-    );
     expect(find.byKey(const ValueKey('web-composer-canvas')), findsOneWidget);
     expect(currentStateDisplay(), findsOneWidget);
 
-    final primary = tester.getRect(
-      find.byKey(const ValueKey('quantum-workspace-primary-pane')),
-    );
-    final inspection = tester.getRect(
-      find.byKey(const ValueKey('quantum-workspace-inspection-pane')),
-    );
-    expect(primary.right, lessThan(inspection.left));
-    expect(primary.width, greaterThan(inspection.width));
-    final mainRow = tester.getRect(
-      find.byKey(const ValueKey('quantum-workspace-main-row')),
-    );
-    final toolbar = tester.getRect(
-      find.byKey(const ValueKey('quantum-workspace-toolbar')),
-    );
-    final contextual = tester.getRect(
-      find.byKey(const ValueKey('quantum-workspace-contextual-actions')),
-    );
-    expect(toolbar.left, greaterThanOrEqualTo(primary.left));
-    expect(toolbar.right, lessThanOrEqualTo(primary.right));
-    expect(toolbar.bottom, lessThanOrEqualTo(primary.bottom));
-    expect(toolbar.right, lessThan(inspection.left));
-    // W4.2: independent cards. Selection/editing controls belong to the
-    // Circuit Workspace card; no footer spans both cards.
-    expect(contextual.top, greaterThanOrEqualTo(toolbar.bottom));
-    expect(contextual.left, greaterThanOrEqualTo(primary.left));
-    expect(contextual.right, lessThan(inspection.left));
-    expect(contextual.bottom, lessThanOrEqualTo(mainRow.bottom));
-    expect(find.text('INSPECTOR'), findsOneWidget);
+    final palette = tester.getRect(region('palette'));
+    final canvas = tester.getRect(region('canvas'));
+    final inspector = tester.getRect(region('inspector'));
+    final results = tester.getRect(region('results'));
+    expect(palette.right, lessThan(canvas.left));
+    expect(canvas.right, lessThan(results.left));
+    expect(canvas.width, greaterThan(results.width));
+    expect(inspector.top, greaterThanOrEqualTo(canvas.bottom));
+    expect(inspector.right, lessThan(results.left));
+    expect(results.top, closeTo(canvas.top, .5));
+    expect(find.text('RESULTS'), findsOneWidget);
     expect(find.text('State'), findsOneWidget);
     expect(find.text('Bloch'), findsOneWidget);
     expect(find.text('LIVE INSPECTOR'), findsNothing);
@@ -234,7 +192,7 @@ void main() {
       find.byKey(const ValueKey('web-composer-live-indicator')),
       findsNothing,
     );
-    // The Inspector card sizes to its content (it scrolls inside its card).
+    // The results column sizes the state to its content and scrolls itself.
     expect(
       tester.widget<StateVectorDisplay>(currentStateDisplay()).contentDriven,
       isTrue,
@@ -242,33 +200,18 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('narrow Web Sandbox reflows and uses page-driven state height',
+  testWidgets('narrow Web Sandbox stacks its regions in one page',
       (tester) async {
     await pumpApp(tester, const Size(600, 900));
     await openComposer(tester, 2);
 
-    expect(
-      find.byKey(const ValueKey('quantum-workspace-narrow-layout')),
-      findsOneWidget,
-    );
-    final primary = tester.getRect(
-      find.byKey(const ValueKey('quantum-workspace-primary-pane')),
-    );
-    final inspection = tester.getRect(
-      find.byKey(const ValueKey('quantum-workspace-inspection-pane')),
-    );
-    final toolbar = tester.getRect(
-      find.byKey(const ValueKey('quantum-workspace-toolbar')),
-    );
-    final contextual = tester.getRect(
-      find.byKey(const ValueKey('quantum-workspace-contextual-actions')),
-    );
-    // W4.2: the Circuit Workspace card (canvas, palette, editing controls)
-    // stacks above the Inspector card.
-    expect(toolbar.top, greaterThanOrEqualTo(primary.top));
-    expect(toolbar.bottom, lessThanOrEqualTo(contextual.top));
-    expect(contextual.bottom, lessThanOrEqualTo(primary.bottom));
-    expect(primary.bottom, lessThanOrEqualTo(inspection.top));
+    expect(find.byKey(const ValueKey('composer-workspace-narrow')),
+        findsOneWidget);
+    final canvas = tester.getRect(region('canvas'));
+    final inspector = tester.getRect(region('inspector'));
+    final results = tester.getRect(region('results'));
+    expect(canvas.bottom, lessThanOrEqualTo(inspector.top));
+    expect(inspector.bottom, lessThanOrEqualTo(results.top));
     expect(
       tester.widget<StateVectorDisplay>(currentStateDisplay()).contentDriven,
       isTrue,
@@ -277,7 +220,7 @@ void main() {
       tester
           .widget<ComposerCircuitCanvas>(find.byType(ComposerCircuitCanvas))
           .surfaceTreatment,
-      ComposerCircuitSurfaceTreatment.inset,
+      ComposerCircuitSurfaceTreatment.workbench,
     );
     expect(
       find.descendant(
@@ -285,13 +228,6 @@ void main() {
         matching: find.byType(Scrollbar),
       ),
       findsNothing,
-    );
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('web-composer-workspace-scroll')),
-        matching: find.byType(Scrollable),
-      ),
-      findsWidgets,
     );
     expect(tester.takeException(), isNull);
   });
@@ -341,15 +277,13 @@ void main() {
     expect(bloch.state.z, closeTo(0, 1e-9));
   });
 
-  testWidgets('intermediate Web Sandbox tightens into the vertical workspace',
-      (tester) async {
+  testWidgets('1200 px Web Sandbox keeps three columns', (tester) async {
     await pumpApp(tester, const Size(1200, 900));
     await openComposer(tester, 3);
 
-    expect(
-      find.byKey(const ValueKey('quantum-workspace-narrow-layout')),
-      findsOneWidget,
-    );
+    // 1200 − 239 px navigation = 961 px workspace: still three columns.
+    expect(find.byKey(const ValueKey('composer-workspace-compact')),
+        findsOneWidget);
     expect(find.byKey(const ValueKey('web-composer-canvas')), findsOneWidget);
     expect(currentStateDisplay(), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -412,7 +346,7 @@ void main() {
     expect(canvas.circuit.logicalGates, hasLength(1));
     expect(tester.widget<Checkbox>(currentStateCheckbox()).value, isFalse);
     expect(
-      find.byKey(const ValueKey('quantum-workspace-narrow-layout')),
+      find.byKey(const ValueKey('composer-workspace-narrow')),
       findsOneWidget,
     );
 

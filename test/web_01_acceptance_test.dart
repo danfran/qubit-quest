@@ -6,7 +6,6 @@ import 'package:quantumquiz/models/progression_rules.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
-import 'package:quantumquiz/screens/learning_map_screen.dart';
 import 'package:quantumquiz/screens/web_app.dart';
 import 'package:quantumquiz/screens/web_learning_workspace.dart';
 import 'package:quantumquiz/screens/web_notebook_workspace.dart';
@@ -15,6 +14,8 @@ import 'package:quantumquiz/widgets/bloch_explorer_panels.dart';
 import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
+import 'package:quantumquiz/widgets/composer_workspace/composer_gate_palette_panel.dart';
+import 'package:quantumquiz/screens/web_journey_overview.dart';
 
 void main() {
   Future<CampaignProgressController> loadedController(
@@ -113,7 +114,7 @@ void main() {
     final controller = await loadedController(masteryUnlockedState());
     await pumpShell(tester, controller);
 
-    expect(find.byType(LearningMapScreen), findsOneWidget);
+    expect(find.byType(WebJourneyOverview), findsOneWidget);
     expect(
         find.byKey(const ValueKey('web-navigation-sidebar')), findsOneWidget);
     expect(
@@ -135,8 +136,16 @@ void main() {
         find.byKey(
             const ValueKey('web-mastery-activity-global_phase_equivalence')),
         findsNothing);
+    // M6a: a library row selects; the details' Start opens the challenge.
     await tester.tap(find.byKey(
         const ValueKey('web-mastery-challenge-global_phase_equivalence')));
+    await tester.pumpAndSettle();
+    expect(
+        find.byKey(
+            const ValueKey('web-mastery-activity-global_phase_equivalence')),
+        findsNothing);
+    await tester.ensureVisible(find.byKey(const ValueKey('web-mastery-start')));
+    await tester.tap(find.byKey(const ValueKey('web-mastery-start')));
     await tester.pumpAndSettle();
     expect(
         find.byKey(
@@ -149,7 +158,11 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-3')));
     await tester.pump();
-    expect(find.byType(ComposerGatePalette), findsOneWidget);
+    // Desktop tiers use the categorised panel; stacked layouts the strip.
+    expect(
+        find.byWidgetPredicate(
+            (w) => w is ComposerGatePalettePanel || w is ComposerGatePalette),
+        findsOneWidget);
     expect(find.byType(ComposerCircuitCanvas), findsOneWidget);
     expect(tester.takeException(), isNull);
 

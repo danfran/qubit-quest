@@ -45,6 +45,19 @@ class QuantumCircuitPainter extends CustomPainter {
   final int? highlightedQubit;
   final bool showInitialStateValues;
 
+  /// False when the host draws qubit labels itself (the desktop Composer
+  /// pins a readable label gutter beside the scrolling circuit).
+  final bool showQubitLabels;
+
+  /// Wire colour; null keeps [gridLinesColor].
+  final Color? wireColor;
+
+  /// Draws a small lock on gates the activity fixed in place
+  /// (`isDeletable == false`), so learners can tell authored operations
+  /// from their own (v2.6 M6a). Identity stays fully visible: the badge sits
+  /// on the tile's corner. Presentation only; the model enforces the lock.
+  final bool markFixedGates;
+
   QuantumCircuitPainter(
     this.circuit, {
     this.previewGates,
@@ -52,6 +65,9 @@ class QuantumCircuitPainter extends CustomPainter {
     this.ghostedGateId,
     this.highlightedQubit,
     this.showInitialStateValues = true,
+    this.showQubitLabels = true,
+    this.wireColor,
+    this.markFixedGates = false,
   });
 
   GateGradientStyle _visualForGate(Gate gate) =>
@@ -211,7 +227,8 @@ class QuantumCircuitPainter extends CustomPainter {
     }
   }
 
-  @visibleForTesting
+  /// Per-wire initial-state kets (q0 first), shared by the painter and the
+  /// desktop Composer's pinned label gutter.
   static List<String> initialQubitStateLabelsFor({
     required String initialQubitsStateStr,
     required int numQubits,
@@ -266,7 +283,7 @@ class QuantumCircuitPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     debugPrint("Painting circuit. Canvas size: $size"); // Debug canvas size
     final linePaint = Paint()
-      ..color = gridLinesColor // Use the static constant for lines
+      ..color = wireColor ?? gridLinesColor
       ..strokeWidth = 1.0; // Ensure consistent stroke width
 
     // Paint for drawing debug hit areas
@@ -331,6 +348,7 @@ class QuantumCircuitPainter extends CustomPainter {
           qubitHitRect, debugPaint); // Draw the transparent hit rectangle
       // ***********************************************
 
+      if (!showQubitLabels) continue;
       // Draw the qubit label (q0, q1, etc.)
       final textPainter = TextPainter(
         text: TextSpan(
@@ -483,6 +501,12 @@ class QuantumCircuitPainter extends CustomPainter {
               canvas.drawCircle(Offset(gateColumnCenterX, targetY),
                   controlDotRadius, targetPaint);
             }
+            if (markFixedGates && !placedGate.isDeletable) {
+              _drawFixedBadge(
+                  canvas,
+                  Offset(gateColumnCenterX + targetRadius * .8,
+                      targetY - targetRadius * .8));
+            }
           }
         } else if (placedGate.gate.type == SelectedGateType.ccnot) {
           // Drawing logic for CCNOT not target
@@ -565,6 +589,12 @@ class QuantumCircuitPainter extends CustomPainter {
                 canvas,
                 Offset(gateColumnCenterX - plusPainter.width / 2,
                     targetY - plusPainter.height / 2));
+            if (markFixedGates && !placedGate.isDeletable) {
+              _drawFixedBadge(
+                  canvas,
+                  Offset(gateColumnCenterX + targetRadius * .8,
+                      targetY - targetRadius * .8));
+            }
           }
         } else {
           // Use the helper for the vertical center of the primary qubit line
@@ -597,6 +627,9 @@ class QuantumCircuitPainter extends CustomPainter {
               canvas.drawRRect(highlightRect, highlightBorderPaint);
             } else {
               _drawCircuitGateTile(canvas, gateRect, placedGate.gate);
+              if (markFixedGates && !placedGate.isDeletable) {
+                _drawFixedBadge(canvas, gateRect.topRight + const Offset(-2, 2));
+              }
               if (placedGate.id == selectedGateId) {
                 final selectionPaint = Paint()
                   ..color = const Color(0xFF7CFFB2)
@@ -627,6 +660,36 @@ class QuantumCircuitPainter extends CustomPainter {
       }
     }
     _drawSourceGhost(canvas);
+  }
+
+  static const double fixedBadgeRadius = 7;
+
+  /// Lock badge centred on [corner] (the top-right corner of a gate).
+  void _drawFixedBadge(Canvas canvas, Offset corner) {
+    canvas.drawCircle(
+        corner, fixedBadgeRadius, Paint()..color = const Color(0xFF0B1220));
+    canvas.drawCircle(
+        corner,
+        fixedBadgeRadius,
+        Paint()
+          ..color = const Color(0xFF9FB0CC)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1);
+    final icon = Icons.lock;
+    final painter = TextPainter(
+      text: TextSpan(
+        text: String.fromCharCode(icon.codePoint),
+        style: TextStyle(
+          fontFamily: icon.fontFamily,
+          package: icon.fontPackage,
+          fontSize: 9,
+          color: const Color(0xFFDCE6F5),
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    painter.paint(canvas,
+        corner - Offset(painter.width / 2, painter.height / 2));
   }
 
   void gateTextPainter(String gateText, double gateTextSize, Canvas canvas,

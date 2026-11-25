@@ -40,13 +40,13 @@ String _encode(QuantumCircuit c) => SandboxProgramSnapshot.capture(c).encode();
 String _text(WidgetTester tester, Finder finder) =>
     tester.widget<Text>(finder).data!;
 
-/// Observed count for [outcome], read from the rendered histogram row.
+/// Observed count for [outcome], read from the rendered comparison row's
+/// count cell; null when the outcome is not listed (impossible and
+/// unobserved).
 int? _count(WidgetTester tester, String outcome) {
-  final row = find.byKey(ValueKey('web-sandbox-outcome-$outcome'));
-  if (row.evaluate().isEmpty) return null;
-  final texts = find.descendant(of: row, matching: find.byType(Text));
-  final value = tester.widget<Text>(texts.at(1)).data!;
-  return int.parse(value.split(' · ').first.replaceAll(',', ''));
+  final cell = find.byKey(ValueKey('web-sandbox-outcome-count-$outcome'));
+  if (cell.evaluate().isEmpty) return null;
+  return int.parse(tester.widget<Text>(cell).data!.replaceAll(',', ''));
 }
 
 Future<void> _chooseShots(WidgetTester tester, int preset) async {
@@ -116,7 +116,10 @@ void main() {
     final zeros = _count(tester, '0')!, ones = _count(tester, '1')!;
     expect(zeros + ones, 1000);
     expect(zeros, inInclusiveRange(400, 600));
-    expect(find.textContaining('approximate the circuit'), findsOneWidget);
+    // Observed frequencies are explained as estimates of the exact
+    // probabilities shown beside them (M4 wording).
+    expect(find.textContaining('fluctuate around the exact probabilities'),
+        findsOneWidget);
 
     await _chooseShots(tester, 100);
     await tapVisible(tester, _runShots);

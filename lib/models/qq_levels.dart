@@ -1361,8 +1361,8 @@ final List<QQLevel> _authoredQQLevels = [
     conceptIntro:
         'All four Bell states can be prepared from |00⟩ by adjusting what you do '
         'before or after the standard entangling circuit. '
-        'Ψ⁺ = (|01⟩+|10⟩)/√2 is anti-correlated: the two qubits are always opposite when measured. '
-        'Compare this to Φ⁺ from level 22, where both qubits always agree. '
+        'Ψ⁺ = (|01⟩+|10⟩)/√2 is anti-correlated: measured in the Z basis, the two qubits are always opposite. '
+        'Compare this to Φ⁺ from level 22, where both Z-basis results always agree. '
         'Think about what initial or final adjustment produces anti-correlation instead of correlation.',
     hints: [
       'To reach Ψ⁺=(|01⟩+|10⟩)/√2 from |00⟩, you need one qubit to be |1⟩ before the '
@@ -4105,7 +4105,8 @@ final List<QQLevel> _authoredQQLevels = [
     discoveryTitle: 'Correlation',
     discoveryText:
         'Q0 changed only because Q1 was set to 1. CNOT made Q1 control whether Q0 flipped.',
-    keyInsight: 'The state of one qubit can influence another.',
+    keyInsight:
+        'A controlled gate lets one qubit\'s value decide what happens to another.',
     whyItMatters: 'Correlation is the first step toward entanglement.',
     nextMystery: 'Is correlation the same as entanglement?',
     hints: [
@@ -4259,7 +4260,8 @@ final List<QQLevel> _authoredQQLevels = [
     discoveryTitle: 'Control',
     discoveryText:
         'The target changed only because the control was active. The operation was not just on one wire; it depended on information in another qubit.',
-    keyInsight: 'One qubit can conditionally influence another.',
+    keyInsight:
+        'A controlled gate applies its operation only when its control qubit is 1.',
     whyItMatters: 'Quantum algorithms rely heavily on controlled operations.',
     nextMystery: 'Can information travel between qubits?',
     hints: [
@@ -4730,7 +4732,8 @@ final List<QQLevel> _authoredQQLevels = [
     discoveryTitle: 'One System, Three Qubits',
     discoveryText:
         'The three qubits form one global constraint system. GHZ is not a circuit pattern by itself: it is a restriction on the entire state space of the register.',
-    keyInsight: 'GHZ is a restriction on allowed full-register outcomes.',
+    keyInsight:
+        'GHZ is a coherent superposition of the whole register; in the Z basis it allows only 000 or 111.',
     whyItMatters:
         'Large-scale quantum computation relies on thinking about whole systems rather than isolated qubits or pairs.',
     nextMystery: 'Can a full-register constraint carry hidden information?',
@@ -5170,7 +5173,7 @@ final List<QQLevelsCategory> journeyChapters = [
     from: 10,
     to: 14,
     categoryIntro:
-        'A qubit is not limited to ordinary 0-or-1 behavior. This chapter lets players discover states that hold multiple possibilities at once.',
+        'A qubit is not limited to ordinary 0-or-1 behavior. This chapter lets learners discover states that hold multiple possibilities at once.',
   ),
   QQLevelsCategory(
     groupName: 'Chapter 4 - Interference',
@@ -5191,14 +5194,14 @@ final List<QQLevelsCategory> journeyChapters = [
     from: 25,
     to: 29,
     categoryIntro:
-        'Controlled operations let information influence, transfer, and route through a quantum system. This chapter prepares players for larger shared states.',
+        'Controlled operations let information influence, transfer, and route through a quantum system. This chapter prepares learners for larger shared states.',
   ),
   QQLevelsCategory(
     groupName: 'Chapter 7 - GHZ States',
     from: 30,
     to: 34,
     categoryIntro:
-        'Entanglement is not limited to pairs. This chapter widens the player\'s view from two-qubit connections to a shared three-qubit quantum system.',
+        'Entanglement is not limited to pairs. This chapter widens the learner\'s view from two-qubit connections to a shared three-qubit quantum system.',
   ),
   QQLevelsCategory(
     groupName: 'Chapter 8 - Phase Kickback',

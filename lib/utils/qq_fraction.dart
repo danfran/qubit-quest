@@ -29,6 +29,9 @@ class QQFraction {
     1 / sqrt(3): '\\frac{1}{\\sqrt{3}}',
     sqrt(5): '\\sqrt{5}',
     1 / sqrt(5): '\\frac{1}{\\sqrt{5}}',
+    // Amplitudes of uniform 3- and 5-qubit states (v2.6 M4).
+    1 / sqrt(8): '\\frac{1}{\\sqrt{8}}',
+    1 / sqrt(32): '\\frac{1}{\\sqrt{32}}',
     pi: '\\pi',
   };
 
@@ -39,6 +42,8 @@ class QQFraction {
     1 / sqrt(3): '1/√3',
     sqrt(5): '√5',
     1 / sqrt(5): '1/√5',
+    1 / sqrt(8): '1/√8',
+    1 / sqrt(32): '1/√32',
     pi: 'π',
   };
 

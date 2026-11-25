@@ -1,4 +1,3 @@
-import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
@@ -7,77 +6,19 @@ import 'package:quantumquiz/models/mastery_2_catalogue.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
-import 'package:quantumquiz/screens/web_learning_workspace.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
 import 'package:quantumquiz/widgets/circuit_geometry.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
-import 'package:quantumquiz/widgets/composer_gate_palette.dart';
-import 'package:quantumquiz/widgets/quantum_state_inspector_content.dart';
-import 'package:quantumquiz/widgets/quantum_workspace_layout.dart';
 import 'package:quantumquiz/widgets/quantum_inspector_views.dart';
-import 'package:quantumquiz/widgets/web_composer_workbench.dart';
+import 'package:quantumquiz/models/composer_policy.dart';
+import 'package:quantumquiz/screens/web_exercise_workspace.dart';
+import 'package:quantumquiz/widgets/composer_workspace/desktop_composer_workspace.dart';
+import 'package:quantumquiz/widgets/composer_workspace/workspace_layout_state.dart';
 import 'web_sandbox_measurement_test.dart' as sandbox;
 import 'support/mastery_math_test_platform.dart';
 
 void main() {
   useMasteryMathTestPlatform();
-  for (final breakpoint in [960.0, 760.0]) {
-    testWidgets('one local layout at $breakpoint, including text scale',
-        (tester) async {
-      tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = const Size(1500, 1000);
-      addTearDown(tester.view.reset);
-      for (final width in [breakpoint - 1, breakpoint, breakpoint + 1]) {
-        for (final scale in [1.0, 1.5]) {
-          final seen = <WebComposerLayoutInfo>[];
-          Widget region(WebComposerLayoutInfo layout) {
-            seen.add(layout);
-            return const SizedBox(height: 30);
-          }
-
-          await tester.pumpWidget(MaterialApp(
-              home: MediaQuery(
-            data: MediaQueryData(textScaler: TextScaler.linear(scale)),
-            child: Scaffold(
-                body: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(
-                  width: width,
-                  child: WebComposerWorkbench(
-                    wideLayoutBreakpoint: breakpoint,
-                    wideMainHeight: 400,
-                    circuitBuilder: region,
-                    gatesBuilder: region,
-                    stateViewBuilder: region,
-                    measureViewBuilder: region,
-                    actionsBuilder: region,
-                    currentStateVector: [Complex.one(), Complex.zero()],
-                    numQubits: 1,
-                  )),
-            )),
-          )));
-          await tester.pumpAndSettle();
-          expect(seen, hasLength(5));
-          expect(seen.every((layout) => identical(layout, seen.first)), isTrue);
-          final layout = seen.first;
-          expect(layout.availableWidth, width);
-          expect(layout.wide, width >= breakpoint);
-          expect(layout.densePalette, layout.wide);
-          expect(layout.contentDrivenInspector,
-              !layout.wide || scale > 1 || width < 960);
-          expect(layout.inlineActions, layout.wide && scale == 1);
-          expect(
-              tester
-                  .widget<QuantumWorkspaceLayout>(
-                      find.byType(QuantumWorkspaceLayout))
-                  .wide,
-              layout.wide);
-          expect(tester.takeException(), isNull);
-        }
-      }
-    });
-  }
-
   testWidgets(
       'Sandbox transitions retain circuit, filter, measurement and contained controls',
       (tester) async {
@@ -99,35 +40,42 @@ void main() {
     final result = sandbox.shotsResult(tester);
     final runs = circuit.simulationRunCount;
     final state = circuit.currentState;
-    // Derive surrounding chrome from measured local width, not assumed viewport offsets.
-    final chrome = tester.view.physicalSize.width -
-        tester.getSize(find.byType(WebComposerWorkbench)).width;
-    for (final width in [959.0, 961.0, 960.0, 959.0, 961.0]) {
-      tester.view.physicalSize = Size(width + chrome, 1000);
+    // M3: cross every workspace tier boundary (compact/medium at 908 px,
+    // medium/narrow at 640 px), judged by the workspace's own width.
+    final workspace = find.byType(DesktopComposerWorkspace);
+    final view = find.byKey(const ValueKey('composer-workspace-view'));
+    Future<void> showView(String name) async {
+      final segment = find.descendant(of: view, matching: find.text(name));
+      if (segment.evaluate().isNotEmpty) {
+        await tester.tap(segment);
+        await tester.pumpAndSettle();
+      }
+    }
+
+    for (final viewport in [
+      1147.0,
+      1149.0,
+      1148.0,
+      1440.0,
+      900.0,
+      641.0,
+      639.0,
+      1440.0
+    ]) {
+      tester.view.physicalSize = Size(viewport, 1000);
       await tester.pumpAndSettle();
-      expect(tester.getSize(find.byType(WebComposerWorkbench)).width, width);
-      final wide = width >= 960;
-      // W4.2: the Composer uses independent cards (no shared layout).
-      expect(find.byType(QuantumWorkspaceLayout), findsNothing);
-      expect(
-          find.byKey(ValueKey(wide
-              ? 'quantum-workspace-wide-layout'
-              : 'quantum-workspace-narrow-layout')),
-          findsOneWidget);
-      expect(
-          tester
-              .widget<ComposerGatePalette>(find.byType(ComposerGatePalette))
-              .dense,
-          wide);
+      final width = tester.getSize(workspace).width;
+      final tier = ComposerWorkspaceGeometry.resolve(
+              width, WorkspaceLayoutPreferences.defaults)
+          .tier;
+      expect(find.byKey(ValueKey('composer-workspace-${tier.name}')),
+          findsOneWidget,
+          reason: 'viewport $viewport → workspace $width');
       canvas = tester
           .widget<ComposerCircuitCanvas>(find.byType(ComposerCircuitCanvas));
-      expect(
-          canvas.surfaceTreatment,
-          wide
-              ? ComposerCircuitSurfaceTreatment.workbench
-              : ComposerCircuitSurfaceTreatment.inset);
       expect(canvas.circuit, same(circuit));
       expect(circuit.currentState, same(state));
+      await showView('Results');
       expect(
           tester
               .widget<SegmentedButton<QuantumInspectorView>>(
@@ -135,44 +83,35 @@ void main() {
               .selected,
           {QuantumInspectorView.measure});
       expect(sandbox.shotsResult(tester), same(result));
-      if (find.text('Current State').evaluate().isEmpty)
-        await sandbox.tapVisible(tester, find.text('State'));
-      expect(
-          tester
-              .widget<QuantumStateInspectorContent>(
-                  find.byType(QuantumStateInspectorContent))
-              .contentDriven,
-          isTrue,
-          reason: 'the Inspector card sizes to its content at every width');
+      await sandbox.tapVisible(tester, find.text('State'));
       expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
       await sandbox.tapVisible(tester, find.text('Bloch'));
       await sandbox.tapVisible(tester, find.text('Measure'));
       expect(sandbox.shotsResult(tester), same(result));
-      final primary =
-          find.byKey(const ValueKey('quantum-workspace-primary-pane'));
-      expect(
-          find.descendant(
-              of: primary,
-              matching: find.byKey(const ValueKey('web-clear-circuit'))),
-          findsOneWidget);
-      final footer =
-          find.byKey(const ValueKey('quantum-workspace-contextual-actions'));
-      // W4.3: movement is a hint, not a disabled control.
-      expect(find.byKey(const ValueKey('web-composer-move-selected-gate')),
-          findsNothing);
-      for (final action in ['inspect', 'replace', 'duplicate', 'delete']) {
+      await showView('Circuit');
+      final inspector = find.byKey(const ValueKey('composer-region-inspector'));
+      // M3.1: More details became the inspector's inline tabs.
+      for (final action in ['replace', 'duplicate', 'delete']) {
         final control =
             find.byKey(ValueKey('web-composer-$action-selected-gate'));
         await tester.ensureVisible(control);
         await tester.pumpAndSettle();
-        final bounds = tester.getRect(footer);
+        final bounds = tester.getRect(inspector);
         final rect = tester.getRect(control);
-        expect(rect.left, greaterThanOrEqualTo(bounds.left));
-        expect(rect.right, lessThanOrEqualTo(bounds.right));
+        expect(rect.left, greaterThanOrEqualTo(bounds.left - .5));
+        expect(rect.right, lessThanOrEqualTo(bounds.right + .5));
       }
-      expect(circuit.simulationRunCount, runs);
+      final tabs = find.byKey(const ValueKey('composer-inspector-tabs'));
+      final tabRect = tester.getRect(tabs);
+      final inspectorRect = tester.getRect(inspector);
+      expect(tabRect.left, greaterThanOrEqualTo(inspectorRect.left - .5));
+      expect(tabRect.right, lessThanOrEqualTo(inspectorRect.right + .5));
+      expect(find.byKey(const ValueKey('web-clear-circuit')), findsOneWidget);
+      expect(circuit.simulationRunCount, runs,
+          reason: 'layout changes never re-simulate');
       expect(tester.takeException(), isNull);
     }
+    await showView('Results');
     await sandbox.tapVisible(tester, find.text('State'));
     await sandbox.tapVisible(tester, find.byType(Checkbox));
     expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
@@ -193,8 +132,8 @@ void main() {
 
   for (final mastery in [false, true]) {
     testWidgets(
-        '${mastery ? 'Mastery' : 'Journey'} local 760 transitions retain circuit/filter',
-        (tester) async {
+        '${mastery ? 'Mastery' : 'Journey'} exercise tier transitions retain '
+        'circuit/filter', (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(1400, 1000);
       addTearDown(tester.view.reset);
@@ -203,7 +142,7 @@ void main() {
               .requireBySemanticId('inverse_phase_synthesis')
               .levelDefinition as ComposerLevel
           : getQQLevelById(2)! as ComposerLevel;
-      final width = ValueNotifier<double>(761);
+      final width = ValueNotifier<double>(1200);
       addTearDown(width.dispose);
       await tester.pumpWidget(MaterialApp(
           theme: QubitQuestTheme.web(),
@@ -212,13 +151,17 @@ void main() {
             alignment: Alignment.topLeft,
             child: ValueListenableBuilder<double>(
                 valueListenable: width,
-                builder: (_, value, child) => SizedBox(
-                    width: value, child: SingleChildScrollView(child: child)),
-                child: WebComposerLesson(
+                builder: (_, value, child) =>
+                    SizedBox(width: value, height: 1000, child: child),
+                child: WebComposerExercise(
                     level: level,
-                    enabled: true,
-                    desktopWorkspace: true,
-                    onSolved: () async {})),
+                    mode: mastery
+                        ? ComposerMode.masteryChallenge
+                        : ComposerMode.journeyExercise,
+                    contextLabel: 'Exercise',
+                    onCompleted: () async {},
+                    onNext: () {},
+                    onOpenNotebook: () {})),
           ))));
       await tester.pumpAndSettle();
       final circuit = tester
@@ -226,43 +169,31 @@ void main() {
           .circuit;
       final state = circuit.currentState;
       final runs = circuit.simulationRunCount;
-      await tester.tap(find.byType(Checkbox));
+      final checkbox = find.byType(Checkbox, skipOffstage: false);
+      final before = tester.widget<Checkbox>(checkbox).value;
+      await tester.tap(checkbox);
       await tester.pumpAndSettle();
-      for (final value in [759.0, 760.0, 761.0, 759.0]) {
+      // Shared tier boundaries: compact/medium at 908, medium/narrow at 640.
+      for (final value in [909.0, 907.0, 641.0, 639.0, 1200.0]) {
         width.value = value;
         await tester.pumpAndSettle();
-        final wide = value >= 760;
-        expect(
-            tester
-                .widget<WebComposerWorkbench>(find.byType(WebComposerWorkbench))
-                .wideLayoutBreakpoint,
-            760);
-        expect(
-            tester
-                .widget<QuantumWorkspaceLayout>(
-                    find.byType(QuantumWorkspaceLayout))
-                .wide,
-            wide);
-        expect(
-            tester
-                .widget<ComposerGatePalette>(find.byType(ComposerGatePalette))
-                .dense,
-            wide);
-        expect(
-            tester
-                .widget<QuantumStateInspectorContent>(
-                    find.byType(QuantumStateInspectorContent))
-                .contentDriven,
-            isTrue);
+        final tier = ComposerWorkspaceGeometry.resolve(
+                value, WorkspaceLayoutPreferences.defaults)
+            .tier;
+        expect(find.byKey(ValueKey('composer-workspace-${tier.name}')),
+            findsOneWidget,
+            reason: 'width $value');
         expect(
             tester
                 .widget<ComposerCircuitCanvas>(
                     find.byType(ComposerCircuitCanvas))
                 .circuit,
             same(circuit));
-        expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
+        expect(tester.widget<Checkbox>(checkbox).value, isNot(before));
         expect(circuit.currentState, same(state));
         expect(circuit.simulationRunCount, runs);
+        // Check stays reachable at every tier.
+        expect(find.byKey(const ValueKey('web-lesson-check')), findsOneWidget);
         expect(tester.takeException(), isNull);
       }
     });

@@ -84,6 +84,14 @@ List<QuantumStateTerm> formatQuantumStateTerms(
   return List.unmodifiable(terms);
 }
 
+/// The display text of one amplitude, exactly as it appears inside a state
+/// term (`1`, `1/√2`, `−0.5i`, `0.4001 − 0.0957i`); `0` below the display
+/// threshold. Presentation only: values and tolerances are unchanged.
+String formatQuantumAmplitude(Complex coefficient) =>
+    coefficient.magnitude <= _stateAmplitudeThreshold
+        ? '0'
+        : _formatStateTerm(coefficient, '').formattedCoefficient;
+
 /// Formats a state vector without changing its ordering or numeric values.
 ///
 /// Every non-unit coefficient is grouped before its ket so the visual scope of

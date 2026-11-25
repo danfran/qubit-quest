@@ -37,7 +37,8 @@ final _runShots = find.byKey(_k('web-sandbox-run-shots'));
 final _shotField = find.byKey(_k('web-sandbox-shot-count'));
 final _single = find.byKey(_k('web-sandbox-single-shot'));
 final _shots = find.byKey(_k('web-sandbox-shots-result'));
-final _circuitCard = find.byKey(_k('quantum-workspace-surface'));
+final _circuitCard = find.byKey(_k('composer-region-canvas'));
+final _inspectorRegion = find.byKey(_k('composer-region-inspector'));
 final _inspectorCard = find.byKey(_k('web-composer-inspector-card'));
 final _canvas = find.byKey(_k('web-composer-canvas'));
 
@@ -57,20 +58,6 @@ void _expectThreeTabs(WidgetTester tester) {
       ['State', 'Bloch', 'Measure']);
   expect(selector.segments.every((s) => s.enabled), isTrue);
 }
-
-double _pageOffset(WidgetTester tester) => tester
-    .state<ScrollableState>(find
-        .descendant(
-          of: find.byKey(_k('web-composer-workspace-scroll')),
-          matching: find.byType(Scrollable),
-        )
-        .first)
-    .position
-    .pixels;
-
-/// Page-space rect: independent of how far the page has scrolled.
-Rect _inPage(WidgetTester tester, Finder finder) =>
-    tester.getRect(finder).translate(0, _pageOffset(tester));
 
 void main() {
   group('tabs', () {
@@ -128,8 +115,10 @@ void main() {
           startsWith('Outcome order: q1 q0'));
       expect(find.descendant(of: _shots, matching: find.text('|01⟩')),
           findsOneWidget);
-      expect(find.descendant(of: _shots, matching: find.text('1,000 · 100.0%')),
-          findsOneWidget);
+      // M4: exact, observed and count columns (was "1,000 · 100.0%").
+      expect(_text(tester, 'web-sandbox-outcome-count-01'), '1,000');
+      expect(_text(tester, 'measure-observed-01'), '100%');
+      expect(_text(tester, 'measure-exact-01'), '100%');
     });
 
     testWidgets('without M: custom count of 876 samples exactly 876 shots',
@@ -254,64 +243,90 @@ void main() {
       return c;
     }
 
-    testWidgets('wide: cards side by side; results never move the circuit',
+    testWidgets('wide: separate columns; results never move the circuit',
         (tester) async {
       await manyOutcomes(tester, const Size(1440, 900));
       final card = tester.getRect(_circuitCard);
       final inspector = tester.getRect(_inspectorCard);
       expect(inspector.left, greaterThan(card.right),
-          reason: 'separate cards, side by side');
+          reason: 'results are an independent column');
       expect(inspector.top, closeTo(card.top, .5), reason: 'top-aligned');
       final canvas = tester.getRect(_canvas);
       final cardSize = tester.getSize(_circuitCard);
-      final page = _pageOffset(tester);
+      final resultsSize = tester.getSize(_inspectorCard);
 
       for (final tab in ['Bloch', 'Measure']) {
         await tapVisible(tester, _tab(tab));
         expect(tester.getRect(_canvas), canvas, reason: tab);
       }
-      final inspectorBefore = tester.getSize(_inspectorCard).height;
       await tester.tap(_runOnce);
       await tester.pumpAndSettle();
       await tester.tap(_runShots);
       await tester.pumpAndSettle();
       expect(_shots, findsOneWidget);
-      expect(
-          tester.getSize(_inspectorCard).height, greaterThan(inspectorBefore),
-          reason: 'the Inspector card grew with its results');
+      expect(tester.getSize(_inspectorCard), resultsSize,
+          reason: 'the results column scrolls inside itself');
       expect(tester.getRect(_canvas), canvas, reason: 'canvas did not move');
       expect(tester.getSize(_circuitCard), cardSize,
           reason: 'workspace height unchanged');
-      expect(_pageOffset(tester), page, reason: 'the page did not scroll');
       final shots = tester.getRect(_shots);
       expect(shots.bottom, lessThanOrEqualTo(900));
       expect(shots.top, greaterThanOrEqualTo(0));
       expect(tester.takeException(), isNull);
     });
 
-    for (final size in const [Size(900, 900), Size(600, 900)]) {
-      testWidgets(
-          'narrow ${size.width.toInt()}px: stacked; circuit geometry '
-          'fixed while results expand', (tester) async {
-        await manyOutcomes(tester, size);
-        final card = tester.getRect(_circuitCard);
-        final inspector = tester.getRect(_inspectorCard);
-        expect(inspector.top, greaterThan(card.bottom), reason: 'stacked');
-        final canvas = _inPage(tester, _canvas);
-        final cardSize = tester.getSize(_circuitCard);
-        await tapVisible(tester, _tab('Measure'));
-        await tapVisible(tester, _runShots);
-        expect(_inPage(tester, _canvas), canvas);
-        expect(tester.getSize(_circuitCard), cardSize);
-        final shots = tester.getRect(_shots);
-        expect(shots.top, greaterThanOrEqualTo(0));
-        expect(shots.bottom, lessThanOrEqualTo(size.height),
-            reason: 'results scrolled into view');
-        expect(tester.takeException(), isNull);
-      });
-    }
+    testWidgets(
+        'medium 900px: Circuit and Results views; running never changes '
+        'the circuit', (tester) async {
+      await manyOutcomes(tester, const Size(900, 900));
+      final view = find.byKey(_k('composer-workspace-view'));
+      expect(view, findsOneWidget);
+      final canvas = tester.getRect(_canvas);
+      final cardSize = tester.getSize(_circuitCard);
+      await tapVisible(tester, _tab('Measure'));
+      await tapVisible(tester, _runShots);
+      final shots = tester.getRect(_shots);
+      expect(shots.top, greaterThanOrEqualTo(0));
+      expect(shots.bottom, lessThanOrEqualTo(900),
+          reason: 'results scrolled into view');
+      await tester
+          .tap(find.descendant(of: view, matching: find.text('Circuit')));
+      await tester.pumpAndSettle();
+      expect(tester.getRect(_canvas), canvas);
+      expect(tester.getSize(_circuitCard), cardSize);
+      expect(_shots.hitTestable(), findsNothing,
+          reason: 'results stay mounted offstage, not on top of the circuit');
+      expect(tester.takeException(), isNull);
+    });
 
-    testWidgets('editing controls live in the Circuit Workspace card',
+    testWidgets(
+        'narrow 600px: stacked; circuit geometry fixed while results expand',
+        (tester) async {
+      await manyOutcomes(tester, const Size(600, 900));
+      final card = tester.getRect(_circuitCard);
+      final inspector = tester.getRect(_inspectorCard);
+      expect(inspector.top, greaterThan(card.bottom), reason: 'stacked');
+      final page = find.byKey(_k('composer-workspace-narrow'));
+      double offset() => tester
+          .state<ScrollableState>(find
+              .descendant(of: page, matching: find.byType(Scrollable))
+              .first)
+          .position
+          .pixels;
+      final canvas = tester.getRect(_canvas).translate(0, offset());
+      final cardSize = tester.getSize(_circuitCard);
+      await tapVisible(tester, _tab('Measure'));
+      await tapVisible(tester, _runShots);
+      expect(tester.getRect(_canvas).translate(0, offset()), canvas);
+      expect(tester.getSize(_circuitCard), cardSize);
+      final shots = tester.getRect(_shots);
+      expect(shots.top, greaterThanOrEqualTo(0));
+      expect(shots.bottom, lessThanOrEqualTo(900),
+          reason: 'results scrolled into view');
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('editing controls live below the circuit, never in Results',
         (tester) async {
       await openSandbox(tester, InMemoryAppStorage(), qubits: 2);
       final c = _circuit(tester);
@@ -321,12 +336,13 @@ void main() {
           .widget<ComposerCircuitCanvas>(find.byType(ComposerCircuitCanvas));
       canvas.onGateTap(c.logicalGates.single.toPlacedGateRef());
       await tester.pumpAndSettle();
-      for (final key in [
-        'web-composer-delete-selected-gate',
-        'web-composer-inspect-selected-gate',
-        'web-storage-status',
+      for (final (key, region) in [
+        ('web-composer-delete-selected-gate', _inspectorRegion),
+        // M3.1: educational sections are tabs in the inspector.
+        ('composer-inspector-tabs', _inspectorRegion),
+        ('web-storage-status', _circuitCard),
       ]) {
-        expect(find.descendant(of: _circuitCard, matching: find.byKey(_k(key))),
+        expect(find.descendant(of: region, matching: find.byKey(_k(key))),
             findsOneWidget,
             reason: key);
         expect(

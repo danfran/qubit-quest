@@ -18,13 +18,18 @@ void main() {
   StartupDiagnostics.instance.event('flutter.start');
   WidgetsFlutterBinding.ensureInitialized();
   StartupDiagnostics.instance.installErrorHandlers();
+  // The web address (`#/composer`, `#/journey/chapter-3`), read before the
+  // startup splash's Navigator replaces it with `/`.
+  final startupRoute =
+      WidgetsBinding.instance.platformDispatcher.defaultRouteName;
   runApp(StartupGate(
     createCoordinator: () => StartupCoordinator(
       initialize: initializeMathService,
       configureOrientation: kIsWeb ? null : configureAppOrientation,
     ),
     theme: kIsWeb ? QubitQuestTheme.web() : QubitQuestTheme.mobile(),
-    readyBuilder: (_) => kIsWeb ? QubitQuestWebApp() : MyApp(),
+    readyBuilder: (_) =>
+        kIsWeb ? QubitQuestWebApp(startupRoute: startupRoute) : MyApp(),
   ));
 }
 

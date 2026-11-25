@@ -110,7 +110,12 @@ void main() {
       await _chooseQubits(tester, n);
       expect(_canvas, findsOneWidget, reason: '$n-qubit selector');
       expect(_openCircuit(tester).currentLevel.numQubits, n);
-      expect(find.text('$n qubits'), findsOneWidget);
+      expect(
+          tester
+              .widget<Text>(
+                  find.byKey(const ValueKey('web-composer-qubit-count')))
+              .data,
+          startsWith('$n qubit'));
       await _changeQubits(tester);
     }
     expect(tester.takeException(), isNull);

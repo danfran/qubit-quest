@@ -16,6 +16,8 @@ class QuantumStateInspectorContent extends StatelessWidget {
     this.targetStateExpression,
     this.currentPanelKey,
     this.targetPanelKey,
+    this.structuredLayout = false,
+    this.stateLabel = '|ψ⟩',
   });
 
   final List<Complex> currentStateVector;
@@ -30,6 +32,12 @@ class QuantumStateInspectorContent extends StatelessWidget {
   final ValueChanged<bool> onNonZeroOnlyChanged;
   final Key? currentPanelKey;
   final Key? targetPanelKey;
+
+  /// Passes [StateVectorDisplay.structuredLayout] to the current state.
+  final bool structuredLayout;
+
+  /// Symbol for the current state in the structured expression and copy.
+  final String stateLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +55,8 @@ class QuantumStateInspectorContent extends StatelessWidget {
       lightweightTypography: true,
       nonZeroOnlyOverride: nonZeroOnly,
       onNonZeroOnlyChanged: onNonZeroOnlyChanged,
+      structuredLayout: structuredLayout,
+      stateLabel: stateLabel,
     );
     final targetVector = targetStateVector;
     if (targetVector == null || targetVector.isEmpty) return current;

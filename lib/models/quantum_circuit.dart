@@ -364,6 +364,45 @@ class QuantumCircuit extends ChangeNotifier {
 
   bool removeMeasurement(GateId id) => removeMeasurementWithOutcome(id).changed;
 
+  // ── Edit snapshots (session-local undo/redo) ─────────────────────────────
+
+  /// Lossless in-memory capture of the editable definition: the grid with
+  /// gate identities, fixed-gate flags, rotation parameters, control/target
+  /// roles and measurement destinations, plus the classical width and the
+  /// ID allocator. The level (qubit count, initial state, available gates)
+  /// is not captured because it never changes for one circuit. Never
+  /// persisted and independent of the schema-2 Sandbox format.
+  CircuitEditSnapshot captureEditSnapshot() => CircuitEditSnapshot._(
+        rows: List<List<PlacedQuantumGate>>.unmodifiable([
+          for (final row in placedGates)
+            List<PlacedQuantumGate>.unmodifiable(row),
+        ]),
+        nextGateId: _nextGateId,
+        reservedClassicalBits: _reservedClassicalBits,
+        numQubits: currentLevel.numQubits,
+      );
+
+  /// Replaces the definition with [snapshot] exactly (same cell identities)
+  /// and notifies once. Never applies editing rules: the snapshot was
+  /// captured from a valid committed state of this circuit. The ID allocator
+  /// only moves forward, so IDs of gates removed by a restore are never
+  /// reused. The caller re-runs simulation where applicable.
+  void restoreEditSnapshot(CircuitEditSnapshot snapshot) {
+    if (snapshot.numQubits != currentLevel.numQubits) {
+      throw ArgumentError.value(
+        snapshot.numQubits,
+        'snapshot.numQubits',
+        'does not match this circuit (${currentLevel.numQubits} qubits)',
+      );
+    }
+    placedGates = [
+      for (final row in snapshot.rows) List<PlacedQuantumGate>.from(row),
+    ];
+    _nextGateId = max(_nextGateId, snapshot.nextGateId);
+    _reservedClassicalBits = snapshot.reservedClassicalBits;
+    notifyListeners();
+  }
+
   // List to store the placed gate instances that define the circuit structure
   List<List<PlacedQuantumGate>> placedGates;
 
@@ -2254,4 +2293,62 @@ class QuantumCircuit extends ChangeNotifier {
     }
     return result;
   }
+}
+
+/// Immutable, in-memory definition of a [QuantumCircuit] for undo/redo.
+/// See [QuantumCircuit.captureEditSnapshot].
+@immutable
+class CircuitEditSnapshot {
+  const CircuitEditSnapshot._({
+    required this.rows,
+    required this.nextGateId,
+    required this.reservedClassicalBits,
+    required this.numQubits,
+  });
+
+  final List<List<PlacedQuantumGate>> rows;
+  final int nextGateId;
+  final int reservedClassicalBits;
+  final int numQubits;
+
+  /// Whether both snapshots describe the same circuit definition: identical
+  /// gate identities, types, parameters, roles, protection and measurement
+  /// destinations in every cell. Allocator state is ignored.
+  bool sameDefinitionAs(CircuitEditSnapshot other) {
+    if (numQubits != other.numQubits ||
+        reservedClassicalBits != other.reservedClassicalBits) {
+      return false;
+    }
+    for (var q = 0; q < numQubits; q++) {
+      final a = _trimmed(rows[q]);
+      final b = _trimmed(other.rows[q]);
+      if (a.length != b.length) return false;
+      for (var c = 0; c < a.length; c++) {
+        if (!_sameCell(a[c], b[c])) return false;
+      }
+    }
+    return true;
+  }
+
+  static List<PlacedQuantumGate> _trimmed(List<PlacedQuantumGate> row) {
+    var end = row.length;
+    while (end > 0 && row[end - 1].gate.type == SelectedGateType.none) {
+      end--;
+    }
+    return row.sublist(0, end);
+  }
+
+  static bool _sameCell(PlacedQuantumGate a, PlacedQuantumGate b) =>
+      a.id == b.id &&
+      a.gate.type == b.gate.type &&
+      a.gate.angle == b.gate.angle &&
+      a.controlQubitIndex == b.controlQubitIndex &&
+      a.control2QubitIndex == b.control2QubitIndex &&
+      a.targetQubitIndex == b.targetQubitIndex &&
+      a.isControl == b.isControl &&
+      a.isControl2 == b.isControl2 &&
+      a.isTarget == b.isTarget &&
+      a.isLink == b.isLink &&
+      a.isDeletable == b.isDeletable &&
+      a.classicalBit == b.classicalBit;
 }
