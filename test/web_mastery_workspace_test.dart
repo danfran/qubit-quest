@@ -21,6 +21,10 @@ import 'package:quantumquiz/widgets/quantum_inspector_views.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 
 void main() {
+  // These tests verify the classic three-column exercise layout, kept as a
+  // test seam after M11D moved lessons and challenges to the learning layout.
+  setUpAll(() => debugClassicExerciseLayout = true);
+  tearDownAll(() => debugClassicExerciseLayout = false);
   Future<CampaignProgressController> controllerWith(
     CampaignProgressState state,
   ) async {

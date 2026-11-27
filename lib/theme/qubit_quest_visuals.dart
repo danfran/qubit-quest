@@ -49,6 +49,72 @@ abstract final class QubitQuestColors {
   static const disabled = Color(0xFF243047);
 }
 
+/// Surface ladder (v2.6 M11B §2, implemented in M11C). Layers are told
+/// apart by tone rather than by more bordered cards: charcoal carries the
+/// application chrome, navy carries content, wells sit *darker* than their
+/// surroundings and the contextual inspector sits *lighter*.
+abstract final class QubitQuestSurfaces {
+  /// Behind everything (a slightly lifted [QubitQuestColors.background]).
+  static const app = Color(0xFF05070C);
+
+  /// Global navigation (neutral charcoal).
+  static const nav = Color(0xFF0A0D14);
+
+  /// Section navigation (deep navy).
+  static const section = Color(0xFF0B1220);
+
+  /// Page header band, workspace header and sticky action bars.
+  static const page = Color(0xFF0D1526);
+
+  /// Primary workspace panels.
+  static const work = Color(0xFF101A2C);
+
+  /// Secondary workspace strips (palette, reading backdrop).
+  static const work2 = Color(0xFF0E1728);
+
+  /// Wells: circuit, mathematics, figures, charts.
+  static const inset = Color(0xFF070B14);
+
+  /// Contextual inspector.
+  static const inspector = Color(0xFF131D31);
+
+  /// Selected segment and raised controls ([QubitQuestColors.surfaceRaised]).
+  static const raised = QubitQuestColors.surfaceRaised;
+
+  /// Soft rule used only where two equal tones meet.
+  static const rule = Color(0x38344A73);
+}
+
+/// One set of responsive tiers for the web application (M11B §6). The shell
+/// resolves it from the viewport; workspaces resolve it from their *host*
+/// width, because the same workspace is embedded in different hosts.
+enum QubitQuestTier {
+  phone,
+  small,
+  tablet,
+  compact,
+  standard,
+  wide,
+  ultrawide;
+
+  static QubitQuestTier of(double width) => width >= 2000
+      ? ultrawide
+      : width >= 1440
+          ? wide
+          : width >= 1280
+              ? standard
+              : width >= 1024
+                  ? compact
+                  : width >= 900
+                      ? tablet
+                      : width >= 600
+                          ? small
+                          : phone;
+
+  bool operator >=(QubitQuestTier other) => index >= other.index;
+  bool operator <(QubitQuestTier other) => index < other.index;
+}
+
 abstract final class QubitQuestTypography {
   static const display = TextStyle(
     color: QubitQuestColors.textPrimary,
@@ -118,6 +184,199 @@ abstract final class QubitQuestTypography {
     height: 1.3,
     fontWeight: FontWeight.w700,
   );
+}
+
+/// Web scientific typography (v2.6 M11C.1). One scale for the browser
+/// workspaces, set in Inter (bundled, see pubspec) with the maths-symbol
+/// fallback for ⟨ ⟩. Regular and medium weights carry ordinary content;
+/// semibold is reserved for headings and the values that matter most.
+/// Numbers that line up in columns use [tabular]. The native app keeps
+/// [QubitQuestTypography].
+abstract final class QqType {
+  /// Families selected by the web theme only.
+  static const family = 'Inter';
+  static const fallback = <String>['QQ Math Symbols'];
+
+  static const tabular = <FontFeature>[FontFeature.tabularFigures()];
+
+  /// Page title (a section's own heading).
+  static const pageTitle = TextStyle(
+    color: QubitQuestColors.textPrimary,
+    fontSize: 28,
+    height: 1.2,
+    fontWeight: FontWeight.w600,
+    letterSpacing: -0.3,
+  );
+
+  /// Title of a section within a page.
+  static const sectionTitle = TextStyle(
+    color: QubitQuestColors.textPrimary,
+    fontSize: 20,
+    height: 1.3,
+    fontWeight: FontWeight.w600,
+  );
+
+  /// Name of the thing a panel is about (a gate, an experiment).
+  static const subjectTitle = TextStyle(
+    color: QubitQuestColors.textPrimary,
+    fontSize: 17,
+    height: 1.3,
+    fontWeight: FontWeight.w600,
+  );
+
+  /// Scientific panel heading ("CURRENT STATE"); shown uppercase.
+  static const panelHeading = TextStyle(
+    color: QubitQuestColors.accentInteractive,
+    fontSize: 12.5,
+    height: 1.3,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.9,
+  );
+
+  /// Heading inside a panel ("What it does", "Outcomes").
+  static const subheading = TextStyle(
+    color: QubitQuestColors.textPrimary,
+    fontSize: 14,
+    height: 1.4,
+    fontWeight: FontWeight.w600,
+  );
+
+  static const body = TextStyle(
+    color: QubitQuestColors.textBody,
+    fontSize: 15,
+    height: 1.5,
+    fontWeight: FontWeight.w400,
+  );
+
+  /// Body text that must be read first (a recognised state, an outcome).
+  static const bodyStrong = TextStyle(
+    color: QubitQuestColors.textPrimary,
+    fontSize: 15,
+    height: 1.5,
+    fontWeight: FontWeight.w500,
+  );
+
+  /// Scientific table cell.
+  static const table = TextStyle(
+    color: QubitQuestColors.textPrimary,
+    fontSize: 14.5,
+    height: 1.4,
+    fontWeight: FontWeight.w400,
+    fontFeatures: tabular,
+  );
+
+  /// Scientific table column heading.
+  static const tableHeader = TextStyle(
+    color: QubitQuestColors.textMuted,
+    fontSize: 12.5,
+    height: 1.3,
+    fontWeight: FontWeight.w500,
+  );
+
+  /// Supporting metadata and captions.
+  static const meta = TextStyle(
+    color: QubitQuestColors.textMuted,
+    fontSize: 13,
+    height: 1.45,
+    fontWeight: FontWeight.w400,
+  );
+
+  /// Button and control labels.
+  static const control = TextStyle(
+    fontSize: 14,
+    height: 1.2,
+    fontWeight: FontWeight.w500,
+  );
+
+  /// The primary state expression.
+  static const stateExpression = TextStyle(
+    color: QubitQuestColors.textPrimary,
+    fontSize: 22,
+    height: 1.45,
+    fontWeight: FontWeight.w400,
+    fontFeatures: tabular,
+  );
+
+  /// Basis kets inside expressions and tables.
+  static const ketColor = QubitQuestColors.success;
+
+  // ── Learning surfaces (v2.6 M11D) ──────────────────────────────────────
+
+  /// Breadcrumb and location trail ("Journey / Ch 7 GHZ States / 7.3").
+  static const breadcrumb = TextStyle(
+    color: QubitQuestColors.accentInteractive,
+    fontSize: 13,
+    height: 1.4,
+    fontWeight: FontWeight.w400,
+  );
+
+  /// Lesson or challenge title (the page's own heading).
+  static const activityTitle = TextStyle(
+    color: QubitQuestColors.textPrimary,
+    fontSize: 24,
+    height: 1.25,
+    fontWeight: FontWeight.w600,
+    letterSpacing: -0.2,
+  );
+
+  /// The conceptual question a lesson asks.
+  static const question = TextStyle(
+    color: QubitQuestColors.textPrimary,
+    fontSize: 17,
+    height: 1.45,
+    fontWeight: FontWeight.w500,
+  );
+
+  /// Instruction text inside the task callout.
+  static const task = TextStyle(
+    color: QubitQuestColors.textBody,
+    fontSize: 15.5,
+    height: 1.5,
+    fontWeight: FontWeight.w400,
+  );
+
+  /// Section navigation rows (curriculum, challenge list).
+  static const navLabel = TextStyle(
+    color: QubitQuestColors.textPrimary,
+    fontSize: 14,
+    height: 1.35,
+    fontWeight: FontWeight.w500,
+  );
+
+  /// Secondary line or count in navigation rows.
+  static const navMeta = TextStyle(
+    color: QubitQuestColors.textMuted,
+    fontSize: 12.5,
+    height: 1.35,
+    fontWeight: FontWeight.w400,
+    fontFeatures: tabular,
+  );
+
+  /// Numbers that are data (counts, percentages, positions).
+  static const numeric = TextStyle(
+    color: QubitQuestColors.textPrimary,
+    fontSize: 14.5,
+    height: 1.4,
+    fontWeight: FontWeight.w500,
+    fontFeatures: tabular,
+  );
+
+  /// Inline mathematical notation outside TeX (kets, short expressions).
+  static const math = TextStyle(
+    color: QubitQuestColors.textPrimary,
+    fontSize: 19,
+    height: 1.45,
+    fontWeight: FontWeight.w400,
+    fontFeatures: tabular,
+  );
+}
+
+/// Padding and gaps of the web scientific panels (v2.6 M11C.1).
+abstract final class QqSpace {
+  static const panel = EdgeInsets.fromLTRB(20, 16, 20, 20);
+  static const panelCompact = EdgeInsets.fromLTRB(16, 14, 16, 16);
+  static const gap = 16.0;
+  static const blockGap = 20.0;
 }
 
 abstract final class QubitQuestSpacing {
@@ -221,6 +480,10 @@ abstract final class QubitQuestTheme {
   static ThemeData web() => ThemeData(
         brightness: Brightness.dark,
         useMaterial3: true,
+        // v2.6 M11C.1: bundled Inter for the browser; the maths-symbol
+        // subset supplies the angle brackets Inter does not contain.
+        fontFamily: QqType.family,
+        fontFamilyFallback: QqType.fallback,
         scaffoldBackgroundColor: QubitQuestColors.background,
         disabledColor: QubitQuestColors.disabled,
         focusColor: QubitQuestColors.accentInteractive,

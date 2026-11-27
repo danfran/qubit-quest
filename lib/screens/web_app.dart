@@ -25,7 +25,6 @@ import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/widgets/composer_workspace/composer_session_workspace.dart';
 import 'package:quantumquiz/widgets/composer_workspace/workspace_layout_state.dart';
 
-const _background = QubitQuestColors.background;
 const _surface = QubitQuestColors.surface;
 const _cyan = QubitQuestColors.accentInteractive;
 const _purple = QubitQuestColors.accentStrong;
@@ -105,6 +104,13 @@ class QubitQuestWebApp extends StatelessWidget {
         ),
       );
 }
+
+/// Test seam (v2.6 M11C): true hosts the Sandbox in the classic
+/// three-column Composer layout, which Journey lessons, Mastery challenges
+/// and Notebook examples still use until M11D. Existing layout tests set it
+/// so they keep covering that layout; production never changes it.
+@visibleForTesting
+bool debugClassicSandboxLayout = false;
 
 class QubitQuestWebShell extends StatefulWidget {
   const QubitQuestWebShell({
@@ -415,16 +421,21 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
               },
             ),
           );
+          // Shell v2 (v2.6 M11C): on wide layouts the brand sits at the top
+          // of the global navigation, so the workspace starts at the top of
+          // the window and its own header is the page header. Narrow
+          // layouts keep the top bar with the menu button.
           return Scaffold(
             key: const ValueKey('web-shell'),
             bottomNavigationBar:
                 ProgressSaveStatusView(controller: widget.progressController),
-            backgroundColor: _background,
-            appBar: AppBar(
-              toolbarHeight: 52,
-              leading: wide
-                  ? null
-                  : Builder(
+            backgroundColor: QubitQuestSurfaces.app,
+            appBar: wide
+                ? null
+                : AppBar(
+                    toolbarHeight: 52,
+                    backgroundColor: QubitQuestSurfaces.nav,
+                    leading: Builder(
                       builder: (context) => IconButton(
                         key: const ValueKey('web-navigation-menu'),
                         tooltip: 'Open navigation',
@@ -432,27 +443,28 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
                         icon: const Icon(Icons.menu),
                       ),
                     ),
-              automaticallyImplyLeading: !wide,
-              title: const _QubitQuestWordmark(),
-              bottom: const PreferredSize(
-                preferredSize: Size.fromHeight(1),
-                child: Divider(height: 1, color: QubitQuestColors.shellDivider),
-              ),
-            ),
+                    title: const _QubitQuestWordmark(),
+                    bottom: const PreferredSize(
+                      preferredSize: Size.fromHeight(1),
+                      child: Divider(
+                          height: 1, color: QubitQuestColors.shellDivider),
+                    ),
+                  ),
             drawer: wide
                 ? null
                 : Drawer(
                     key: const ValueKey('web-navigation-drawer'),
-                    backgroundColor: _surface,
+                    backgroundColor: QubitQuestSurfaces.nav,
                     child: SafeArea(child: navigation),
                   ),
             body: Row(
               children: [
                 if (wide) ...[
-                  SizedBox(
+                  Container(
                     key: const ValueKey('web-navigation-sidebar'),
                     width: rail ? _railWidth : _sidebarWidth,
-                    child: navigation,
+                    color: QubitQuestSurfaces.nav,
+                    child: SafeArea(right: false, child: navigation),
                   ),
                   const VerticalDivider(
                     width: 1,
@@ -484,6 +496,41 @@ class _QubitQuestWordmark extends StatelessWidget {
           colorFilter: const ColorFilter.mode(
             Colors.white,
             BlendMode.srcIn,
+          ),
+        ),
+      );
+}
+
+/// Compact brand for the navigation rail: the wordmark's ϕ, with the full
+/// name for assistive technology and in a tooltip.
+class _QubitQuestMark extends StatelessWidget {
+  const _QubitQuestMark();
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: 'Qubit Quest',
+        child: Semantics(
+          label: 'Qubit Quest',
+          image: true,
+          child: Container(
+            key: const ValueKey('web-qubit-quest-wordmark'),
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: QubitQuestRadii.card,
+              border: Border.all(color: QubitQuestColors.border),
+            ),
+            child: const ExcludeSemantics(
+              child: Text(
+                '⟨ϕ|',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ),
         ),
       );
@@ -538,9 +585,18 @@ class _WebNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) => collapsed ? _rail() : _expanded();
 
+  /// The brand heads the navigation on wide layouts (the drawer's top bar
+  /// already shows it on narrow ones).
+  bool get _showsBrand => onToggleCollapsed != null;
+
   Widget _rail() => Column(
         key: const ValueKey('web-navigation-rail'),
         children: [
+          if (_showsBrand)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(8, 16, 8, 10),
+              child: _QubitQuestMark(),
+            ),
           const SizedBox(height: 14),
           for (final (destination, icon, label) in _destinations) ...[
             if (destination == WebDestination.composer)
@@ -583,6 +639,14 @@ class _WebNavigation extends StatelessWidget {
       );
 
   Widget _expanded() => Column(children: [
+        if (_showsBrand)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(26, 22, 20, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _QubitQuestWordmark(),
+            ),
+          ),
         Expanded(
             child: ListView(
           padding: const EdgeInsets.fromLTRB(14, 22, 14, 18),
@@ -713,6 +777,45 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
 
   void _disposeSlot(ComposerWorkspaceSlot? slot) => slot?.session.dispose();
 
+  /// Register size opened on entry (v2.6 M11C): the size used last in this
+  /// visit, else one qubit. The header's qubit selector changes it.
+  int _entryQubits = ComposerPolicy.sandboxQubitCounts.first;
+
+  /// The automatic open happens once per visit; after a cancelled or failed
+  /// open the size choices are shown instead of retrying.
+  bool _entryHandled = false;
+  bool _autoOpenPending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _openOnEntry();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ComposerWorkspace oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) _openOnEntry();
+  }
+
+  /// The Composer opens straight into the Sandbox (M11B F14) the first
+  /// time it becomes visible; storage is not read before that. A failed
+  /// open is not retried automatically: the error and the size choices
+  /// stay on screen instead.
+  void _openOnEntry() {
+    if (!widget.isActive || _entryHandled || _sandbox != null || _opening) {
+      return;
+    }
+    _entryHandled = true;
+    _autoOpenPending = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted && widget.isActive && _sandbox == null) {
+        await _openSandbox(_entryQubits);
+      }
+      if (mounted) setState(() => _autoOpenPending = false);
+    });
+  }
+
   @override
   void dispose() {
     _disposeSlot(_sandbox);
@@ -722,6 +825,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
   Future<void> _openSandbox(int qubitCount) async {
     if (_opening) return;
     _opening = true;
+    _entryQubits = qubitCount;
     if (_openError != null) setState(() => _openError = null);
     QuantumCircuit? nextCircuit;
     var installed = false;
@@ -831,6 +935,15 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
   @override
   Widget build(BuildContext context) {
     final slot = _sandbox;
+    if (slot == null && _autoOpenPending) {
+      // Opening on entry: a quiet placeholder for the moment storage is
+      // read (the size choices appear only if opening fails).
+      return const Center(
+        key: ValueKey('web-composer-opening'),
+        child: Text('Opening the Sandbox…',
+            style: QubitQuestTypography.supporting),
+      );
+    }
     if (slot == null) {
       return LayoutBuilder(builder: (context, constraints) {
         final compact = constraints.maxWidth < 700;
@@ -860,6 +973,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
       layout: widget.layout,
       shortcutsEnabled: widget.isActive,
       contextLabel: 'Sandbox',
+      laboratory: !debugClassicSandboxLayout,
       onSelectQubits: _openSandbox,
       clearedStatus: 'Circuit cleared.',
       onOpenNotebookEntry: widget.onOpenNotebookEntry,

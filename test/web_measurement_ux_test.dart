@@ -14,6 +14,7 @@ import 'package:quantumquiz/models/sandbox_program_snapshot.dart';
 import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
 
 import 'web_sandbox_measurement_test.dart' show openSandbox, tapVisible;
+import 'package:quantumquiz/screens/web_app.dart' show debugClassicSandboxLayout;
 
 final _measurementTile = find.byKey(const ValueKey('measurement-palette'));
 final _preview = find.byKey(const ValueKey('measurement-drop-preview'));
@@ -72,6 +73,10 @@ Future<void> _drop(
 }
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   group('model and drag data', () {
     QuantumCircuit circuit() {
       final c = QuantumCircuit(currentLevel: createSandboxComposerLevel(3));

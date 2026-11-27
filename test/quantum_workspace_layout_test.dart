@@ -14,8 +14,13 @@ import 'package:quantumquiz/widgets/circuit_geometry.dart';
 import 'package:quantumquiz/widgets/quantum_workspace_layout.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/widgets/quantum_state_inspector_content.dart';
+import 'support/laboratory_composer_finders.dart';
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   Future<void> setSize(WidgetTester tester, Size size) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = size;
@@ -39,6 +44,8 @@ void main() {
     }
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
     await tester.pumpAndSettle();
+    await pumpUntilSandboxOpen(tester);
+    await pumpUntilSandboxOpen(tester);
     await tester.tap(find.byKey(ValueKey('web-composer-qubits-$qubits')));
     await tester.pump();
   }
@@ -85,13 +92,14 @@ void main() {
     await openComposer(tester, 1);
     expect(find.text('Level 1'), findsNothing);
     final toolbar = find.byKey(const ValueKey('composer-workspace-toolbar'));
-    final change = find.byKey(const ValueKey('web-composer-change-qubits'));
+    // M11C: the qubit choices are one visible selector in the header.
+    final change = find.byKey(const ValueKey('web-composer-qubit-selector'));
     final clear = find.byKey(const ValueKey('web-clear-circuit'));
     final count = find.byKey(const ValueKey('web-composer-qubit-count'));
     for (final control in [change, clear, count]) {
       expect(find.descendant(of: toolbar, matching: control), findsOneWidget);
     }
-    expect(tester.widget<Text>(count).data, startsWith('1 qubit'));
+    expect(tester.widget<Text>(count).semanticsLabel, '1 qubit');
     expect(find.text('State'), findsOneWidget);
     expect(find.text('Bloch'), findsOneWidget);
     expect(find.text('Measure'), findsOneWidget);
@@ -150,9 +158,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(change);
     await tester.pumpAndSettle();
+    await pumpUntilSandboxOpen(tester);
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-2')));
     await tester.pumpAndSettle();
-    expect(tester.widget<Text>(count).data, startsWith('2 qubits'));
+    expect(tester.widget<Text>(count).semanticsLabel, '2 qubits');
     expect(tester.takeException(), isNull);
   });
 

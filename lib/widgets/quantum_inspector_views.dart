@@ -47,7 +47,13 @@ class QuantumInspectorViews extends StatefulWidget {
     this.selection,
     this.compactTabs = false,
     this.fitTabsToWidth = false,
+    this.showViewSelector = true,
   });
+
+  /// False shows only the selected view, without the State / Bloch /
+  /// Measure selector: the laboratory Composer (v2.6 M11C) places the Bloch
+  /// sphere as a panel of its own beside the state.
+  final bool showViewSelector;
 
   /// Scales the tab selector down (never up) when it is wider than the
   /// panel, for example at large text sizes in a narrow results column.
@@ -135,47 +141,51 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: widget.contentDriven ? MainAxisSize.min : MainAxisSize.max,
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: _fitTabs(
-            SegmentedButton<QuantumInspectorView>(
-              key: const ValueKey('quantum-inspector-view-selector'),
-              segments: [
-                ButtonSegment(
-                  value: QuantumInspectorView.state,
-                  label: const Text('State'),
-                  icon: widget.compactTabs
-                      ? null
-                      : const Icon(Icons.data_array_outlined, size: 15),
-                ),
-                ButtonSegment(
-                  value: QuantumInspectorView.bloch,
-                  label: const Text('Bloch'),
-                  icon: widget.compactTabs
-                      ? null
-                      : const Icon(Icons.language_outlined, size: 15),
-                  enabled:
-                      widget.supportsBloch || widget.keepBlochTabSelectable,
-                ),
-                if (widget.measureView != null)
-                  const ButtonSegment(
-                    value: QuantumInspectorView.measure,
-                    label: Text('Measure'),
+        if (!widget.showViewSelector)
+          const SizedBox.shrink()
+        else
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _fitTabs(
+              SegmentedButton<QuantumInspectorView>(
+                key: const ValueKey('quantum-inspector-view-selector'),
+                segments: [
+                  ButtonSegment(
+                    value: QuantumInspectorView.state,
+                    label: const Text('State'),
+                    icon: widget.compactTabs
+                        ? null
+                        : const Icon(Icons.data_array_outlined, size: 15),
                   ),
-              ],
-              selected: {_view},
-              showSelectedIcon: false,
-              style: const ButtonStyle(
-                visualDensity: VisualDensity(horizontal: -2, vertical: -3),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ButtonSegment(
+                    value: QuantumInspectorView.bloch,
+                    label: const Text('Bloch'),
+                    icon: widget.compactTabs
+                        ? null
+                        : const Icon(Icons.language_outlined, size: 15),
+                    enabled:
+                        widget.supportsBloch || widget.keepBlochTabSelectable,
+                  ),
+                  if (widget.measureView != null)
+                    const ButtonSegment(
+                      value: QuantumInspectorView.measure,
+                      label: Text('Measure'),
+                    ),
+                ],
+                selected: {_view},
+                showSelectedIcon: false,
+                style: const ButtonStyle(
+                  visualDensity: VisualDensity(horizontal: -2, vertical: -3),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                onSelectionChanged: (selection) {
+                  setState(() => _selection.selected = selection.single);
+                },
               ),
-              onSelectionChanged: (selection) {
-                setState(() => _selection.selected = selection.single);
-              },
             ),
           ),
-        ),
-        if (widget.allowBloch &&
+        if (widget.showViewSelector &&
+            widget.allowBloch &&
             !widget.supportsBloch &&
             !widget.keepBlochTabSelectable &&
             _view != QuantumInspectorView.measure) ...[
@@ -189,7 +199,7 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
             ),
           ),
         ],
-        const SizedBox(height: 10),
+        if (widget.showViewSelector) const SizedBox(height: 10),
         if (widget.contentDriven) content else Expanded(child: content),
       ],
     );

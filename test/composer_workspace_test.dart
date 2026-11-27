@@ -16,6 +16,7 @@ import 'package:quantumquiz/widgets/circuit_geometry.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_workspace/gate_inspector_panel.dart';
 import 'package:quantumquiz/widgets/composer_workspace/workspace_layout_state.dart';
+import 'support/laboratory_composer_finders.dart';
 
 ValueKey<String> _k(String key) => ValueKey(key);
 
@@ -46,6 +47,8 @@ Future<void> _open(
   }
   await tester.tap(find.byKey(_k('web-nav-composer')));
   await tester.pumpAndSettle();
+  await pumpUntilSandboxOpen(tester);
+  await pumpUntilSandboxOpen(tester);
   await tester.tap(find.byKey(ValueKey('web-composer-qubits-$qubits')));
   await tester.pumpAndSettle();
 }
@@ -87,6 +90,10 @@ Future<void> _shortcut(WidgetTester tester, LogicalKeyboardKey key,
 }
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   testWidgets('wide workspace shows palette, canvas, inspector and results',
       (tester) async {
     await _open(tester);

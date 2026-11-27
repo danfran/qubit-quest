@@ -16,9 +16,17 @@ import 'package:quantumquiz/widgets/composer_workspace/composer_session_workspac
 import 'support/journey_navigation.dart';
 
 void main() {
+  // These tests verify the classic three-column exercise layout, kept as a
+  // test seam after M11D moved lessons and challenges to the learning layout.
+  setUpAll(() => debugClassicExerciseLayout = true);
+  tearDownAll(() => debugClassicExerciseLayout = false);
   testWidgets(
       'Journey shell resize preserves Inspector mode and rotated camera',
-      (tester) async {
+      // M11D: lessons no longer use the classic results column in the shell,
+      // and its tier boundaries no longer match window widths now that the
+      // curriculum sits beside the lesson. Resize retention of the lesson
+      // is covered by the M11D tests (GlobalKey reparenting).
+      skip: true, (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1200, 1000);
     addTearDown(tester.view.reset);

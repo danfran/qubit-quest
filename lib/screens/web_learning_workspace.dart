@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:advance_math/advance_math.dart';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/mastery_2_catalogue.dart';
@@ -18,6 +19,7 @@ import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/models/journey_curriculum.dart';
 import 'package:quantumquiz/screens/web_journey_overview.dart';
+import 'package:quantumquiz/screens/journey_navigation.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/web_learning_text.dart';
 import 'package:quantumquiz/widgets/web_activity_instruction_content.dart';
@@ -27,9 +29,8 @@ import 'package:quantumquiz/widgets/composer_workspace/workspace_layout_state.da
 import 'package:quantumquiz/screens/web_exercise_workspace.dart';
 import 'package:quantumquiz/screens/web_mastery_browser.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
+import 'package:quantumquiz/widgets/qubit_quest_workspace_primitives.dart';
 
-const _background = QubitQuestColors.background;
-const _panel = QubitQuestColors.surface;
 const _border = QubitQuestColors.border;
 const _cyan = QubitQuestColors.accentInteractive;
 const _purple = QubitQuestColors.accentStrong;
@@ -91,6 +92,14 @@ class _WebJourneyWorkspaceState extends State<WebJourneyWorkspace> {
 
   /// Narrow layout: the overview shows the chapter detail, not the list.
   late bool _narrowDetail = widget.initialChapterIndex != null;
+
+  /// The learner's choice to collapse the curriculum beside a lesson; null
+  /// follows the width.
+  bool? _navCollapsed;
+
+  /// Keeps the open lesson (session, circuit, hints, header state) alive
+  /// when a resize moves it between the navigation and strip layouts.
+  final GlobalKey _lessonKey = GlobalKey(debugLabel: 'journey-lesson');
 
   @override
   void initState() {
@@ -159,10 +168,27 @@ class _WebJourneyWorkspaceState extends State<WebJourneyWorkspace> {
     });
   }
 
+  /// A chapter chosen in the curriculum beside a lesson: its overview.
+  void _selectChapterFromLesson(int index) {
+    setState(() {
+      _view = _JourneyView.map;
+      _chapter = null;
+      _selectedLevelId = null;
+      _overviewChapter = index;
+      _narrowDetail = true;
+    });
+    widget.onChapterShown?.call(index);
+  }
+
   void _selectLevel(int levelId) {
     if (!_isUnlocked(levelId, widget.progressController.state)) return;
     setState(() => _selectedLevelId = levelId);
   }
+
+  int get _masteryCompleted => mastery2Catalogue.orderedDefinitions
+      .where((c) => widget.progressController.state.completedMasterySemanticIds
+          .contains(c.semanticId))
+      .length;
 
   bool _isUnlocked(int levelId, CampaignProgressState state) =>
       ProgressionRules.isJourneyLessonUnlocked(
@@ -209,6 +235,8 @@ class _WebJourneyWorkspaceState extends State<WebJourneyWorkspace> {
             final curriculum =
                 JourneyCurriculum.of(widget.progressController.state);
             return WebJourneyOverview(
+              masteryCompleted: _masteryCompleted,
+              masteryTotal: mastery2Catalogue.orderedDefinitions.length,
               curriculum: curriculum,
               selectedIndex: curriculum.validSelection(_overviewChapter),
               onSelectChapter: _selectChapter,
@@ -218,7 +246,17 @@ class _WebJourneyWorkspaceState extends State<WebJourneyWorkspace> {
               onNarrowBack: () => setState(() => _narrowDetail = false),
             );
           }
+          final curriculum =
+              JourneyCurriculum.of(widget.progressController.state);
           return _ChapterWorkspace(
+            lessonKey: _lessonKey,
+            curriculum: curriculum,
+            navCollapsed: _navCollapsed,
+            onNavCollapsed: (v) => setState(() => _navCollapsed = v),
+            onSelectChapter: _selectChapterFromLesson,
+            onOpenLesson: _openLesson,
+            onOpenMastery: widget.onOpenMastery,
+            masteryCompleted: _masteryCompleted,
             category: _chapter!,
             progressState: widget.progressController.state,
             selectedLevelId: _selectedLevelId!,
@@ -288,6 +326,15 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
   bool _showOverview = true;
   bool _narrowDetail = false;
   MasteryLibraryQuery _query = const MasteryLibraryQuery();
+
+  /// The learner's choice to show the full list beside an open challenge;
+  /// null: the rail for circuit challenges, the list for questions (when
+  /// there is room).
+  bool? _paneExpanded;
+
+  /// Keeps the open activity (its session, circuit and hints) alive when a
+  /// resize moves it between the narrow and the wide arrangement.
+  final GlobalKey _activityKey = GlobalKey(debugLabel: 'mastery-activity');
   final TextEditingController _search = TextEditingController();
   final ScrollController _listScroll = ScrollController();
 
@@ -329,11 +376,39 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
         _narrowDetail = true;
       });
 
-  void _open(String id) => setState(() {
-        _selectedSemanticId = id;
-        _openSemanticId = id;
-        _showOverview = false;
-      });
+  void _open(String id) {
+    setState(() {
+      _selectedSemanticId = id;
+      _openSemanticId = id;
+      _showOverview = false;
+    });
+    _revealInList(id);
+  }
+
+  /// Keeps the open challenge's row in view in the persistent list.
+  void _revealInList(String id) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_listScroll.hasClients) return;
+      final completed =
+          widget.progressController.state.completedMasterySemanticIds;
+      final visible = _challenges
+          .where((c) => _query.matches(c, completed))
+          .map((c) => c.semanticId)
+          .toList();
+      final index = visible.indexOf(id);
+      if (index < 0) return;
+      final position = _listScroll.position;
+      final top = WebMasteryBrowser.listTopPadding +
+          index * WebMasteryBrowser.rowExtent;
+      final bottom = top + WebMasteryBrowser.rowExtent;
+      if (top >= position.pixels &&
+          bottom <= position.pixels + position.viewportDimension) {
+        return;
+      }
+      _listScroll.jumpTo((top - position.viewportDimension * .3)
+          .clamp(0.0, position.maxScrollExtent));
+    });
+  }
 
   void _backToLibrary() => setState(() => _showOverview = true);
 
@@ -361,7 +436,8 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
           orElse: () => _challenges.first);
 
   Widget _activity(
-      MasteryChallengeDefinition active, CampaignProgressState state) {
+      MasteryChallengeDefinition active, CampaignProgressState state,
+      {bool compact = false}) {
     final index =
         _challenges.indexWhere((c) => c.semanticId == active.semanticId);
     final completedCount = _challenges
@@ -394,16 +470,45 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
           ],
         ),
         Text('$completedCount / ${_challenges.length} complete',
-            key: const ValueKey('web-mastery-progress'),
-            style: const TextStyle(color: Colors.white60, fontSize: 12)),
+            key: const ValueKey('web-mastery-progress'), style: QqType.navMeta),
         Text(done ? 'Completed' : 'Incomplete',
             key: const ValueKey('web-mastery-active-status'),
-            style: const TextStyle(color: Colors.white60, fontSize: 12)),
+            style: QqType.navMeta),
       ],
     );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    // Narrow (M11D.1): one row with back, previous/next and the position;
+    // the counts follow on the same line. The header scrolls with the work.
+    final compactNavigation = Wrap(
+      key: const ValueKey('web-mastery-workspace-header'),
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 2,
       children: [
+        IconButton(
+          key: const ValueKey('web-mastery-previous'),
+          tooltip: 'Previous challenge',
+          visualDensity: VisualDensity.compact,
+          onPressed: index > 0 ? () => _move(-1) : null,
+          icon: const Icon(Icons.chevron_left),
+        ),
+        Text('Challenge ${index + 1} of ${_challenges.length}',
+            key: const ValueKey('web-mastery-position'),
+            style: QqType.navLabel),
+        IconButton(
+          key: const ValueKey('web-mastery-next'),
+          tooltip: 'Next challenge',
+          visualDensity: VisualDensity.compact,
+          onPressed: index + 1 < _challenges.length ? () => _move(1) : null,
+          icon: const Icon(Icons.chevron_right),
+        ),
+        Text('$completedCount / ${_challenges.length} complete',
+            key: const ValueKey('web-mastery-progress'), style: QqType.navMeta),
+        const Text(' · ', style: QqType.navMeta),
+        Text(done ? 'Completed' : 'Incomplete',
+            key: const ValueKey('web-mastery-active-status'),
+            style: QqType.navMeta),
+      ],
+    );
+    WebActivityContextHeader header({required bool compact}) =>
         WebActivityContextHeader(
           key: ValueKey('web-mastery-header-${active.semanticId}'),
           backKey: const ValueKey('web-mastery-back-overview'),
@@ -413,13 +518,21 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
           level: active.levelDefinition,
           presentation: requireMasteryPresentation(active.semanticId),
           // Question challenges present their full task and evidence in
-          // the page body; circuit challenges keep it above the workspace.
+          // the page body; circuit challenges keep it with the workspace.
           showInstruction: isCircuit,
           objectiveKey: const ValueKey('mastery-task-instruction'),
           status: done ? 'Completed · review' : null,
-          trailing: trailing,
-        ),
-        const Divider(height: 1, color: _border),
+          compact: compact,
+          compactNavigation: compact ? compactNavigation : null,
+          trailing: compact ? null : trailing,
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (!compact) ...[
+          header(compact: false),
+          const Divider(height: 1, color: _border),
+        ],
         Expanded(
           key: const ValueKey('web-mastery-activity'),
           child: WebLessonWorkspace(
@@ -438,6 +551,7 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
             layout: widget.layout,
             shortcutsEnabled: widget.isActive && !_showOverview,
             contextLabel: 'Challenge ${active.displayOrder}',
+            scrollingHeader: compact ? header(compact: true) : null,
           ),
         ),
       ],
@@ -457,43 +571,204 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
               mastery2Catalogue.bySemanticId(_selectedSemanticId ?? '') ??
                   _defaultSelection(completed);
           final active = mastery2Catalogue.bySemanticId(_openSemanticId ?? '');
+          final activity = !_showOverview && active != null;
+          WebMasteryBrowser browser(MasteryBrowserPart part,
+                  {VoidCallback? onCollapse}) =>
+              WebMasteryBrowser(
+                key: part == MasteryBrowserPart.pane
+                    ? const ValueKey('web-mastery-browser-pane')
+                    : null,
+                part: part,
+                challenges: _challenges,
+                completedIds: completed,
+                selected: selected,
+                openSemanticId: _openSemanticId,
+                query: _query,
+                searchController: _search,
+                listController: _listScroll,
+                onQuery: (q) => setState(() => _query = q),
+                // Beside an open challenge the list is navigation: a row
+                // opens that challenge, like previous and next.
+                onSelect: activity ? _open : _selectInLibrary,
+                onStart: _open,
+                onOpenNotebookArticle: widget.onOpenNotebookArticle,
+                onBackToJourney: widget.onBackToJourney,
+                narrowShowsDetail: _narrowDetail,
+                onNarrowBack: () => setState(() => _narrowDetail = false),
+                onCollapsePane: onCollapse,
+              );
           return Material(
-            color: _background,
-            // The open activity stays alive while browsing or resizing; only
-            // starting a different challenge starts a new activity session.
-            child: IndexedStack(
-              index: _showOverview || active == null ? 0 : 1,
-              sizing: StackFit.expand,
-              children: [
-                WebMasteryBrowser(
-                  challenges: _challenges,
-                  completedIds: completed,
-                  selected: selected,
-                  openSemanticId: _openSemanticId,
-                  query: _query,
-                  searchController: _search,
-                  listController: _listScroll,
-                  onQuery: (q) => setState(() => _query = q),
-                  onSelect: _selectInLibrary,
-                  onStart: _open,
-                  onOpenNotebookArticle: widget.onOpenNotebookArticle,
-                  onBackToJourney: widget.onBackToJourney,
-                  narrowShowsDetail: _narrowDetail,
-                  onNarrowBack: () => setState(() => _narrowDetail = false),
-                ),
-                if (active == null)
-                  const SizedBox.shrink()
-                else
-                  _activity(active, state),
-              ],
-            ),
+            color: QubitQuestSurfaces.page,
+            child: LayoutBuilder(builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              if (width < WebMasteryBrowser.masterDetailWidth) {
+                // Narrow: the library and the open activity alternate; the
+                // activity stays alive while browsing.
+                return IndexedStack(
+                  index: activity ? 1 : 0,
+                  sizing: StackFit.expand,
+                  children: [
+                    browser(MasteryBrowserPart.full),
+                    if (active == null)
+                      const SizedBox.shrink()
+                    else
+                      KeyedSubtree(
+                          key: _activityKey,
+                          child: _activity(active, state, compact: true)),
+                  ],
+                );
+              }
+              // Wide (M11B prototypes 9 and 10): one list pane stays mounted
+              // beside the details or the open challenge, so its search,
+              // filters and scroll position survive starting a challenge. A
+              // circuit challenge collapses it to a numbered rail by default
+              // so the circuit gets the width.
+              final circuit = active?.levelDefinition is ComposerLevel;
+              final roomForPane = width >= (circuit ? 1180 : 1100);
+              final rail =
+                  activity && !(_paneExpanded ?? (!circuit && roomForPane));
+              final paneWidth = width >= 1400 ? 360.0 : 320.0;
+              return Row(
+                key: const ValueKey('web-mastery-master-detail'),
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (rail)
+                    _MasteryRail(
+                      challenges: _challenges
+                          .where((c) => _query.matches(c, completed))
+                          .toList(),
+                      completed: completed,
+                      openId: _openSemanticId,
+                      onOpen: _open,
+                      onExpand: () => setState(() => _paneExpanded = true),
+                    ),
+                  Offstage(
+                    offstage: rail,
+                    child: SizedBox(
+                      width: paneWidth,
+                      child: browser(MasteryBrowserPart.pane,
+                          onCollapse: activity
+                              ? () => setState(() => _paneExpanded = false)
+                              : null),
+                    ),
+                  ),
+                  const VerticalDivider(width: 1, color: _border),
+                  Expanded(
+                    child: IndexedStack(
+                      index: activity ? 1 : 0,
+                      sizing: StackFit.expand,
+                      children: [
+                        browser(MasteryBrowserPart.detail),
+                        if (active == null)
+                          const SizedBox.shrink()
+                        else
+                          KeyedSubtree(
+                              key: _activityKey,
+                              child: _activity(active, state)),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }),
           );
         },
       );
 }
 
+/// A circuit challenge's compact challenge navigation (M11B prototype 10):
+/// the numbers of the challenges in the current results, their status and
+/// the open one, with a control to bring the full list back.
+class _MasteryRail extends StatelessWidget {
+  const _MasteryRail({
+    required this.challenges,
+    required this.completed,
+    required this.openId,
+    required this.onOpen,
+    required this.onExpand,
+  });
+
+  final List<MasteryChallengeDefinition> challenges;
+  final Set<String> completed;
+  final String? openId;
+  final ValueChanged<String> onOpen;
+  final VoidCallback onExpand;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        key: const ValueKey('web-mastery-rail'),
+        width: 64,
+        color: QubitQuestSurfaces.section,
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            IconButton(
+              key: const ValueKey('web-mastery-rail-expand'),
+              tooltip: 'Show the challenge list',
+              onPressed: onExpand,
+              icon: const Icon(Icons.menu_rounded, size: 20),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                itemCount: challenges.length,
+                itemExtent: 40,
+                itemBuilder: (context, i) {
+                  final c = challenges[i];
+                  final open = c.semanticId == openId;
+                  final done = completed.contains(c.semanticId);
+                  return Tooltip(
+                    message: '${c.displayOrder}. ${c.title}'
+                        '${done ? ' · completed' : ''}',
+                    child: InkWell(
+                      key: ValueKey('web-mastery-rail-${c.semanticId}'),
+                      borderRadius: QubitQuestRadii.control,
+                      onTap: () => onOpen(c.semanticId),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          borderRadius: QubitQuestRadii.control,
+                          color: open
+                              ? QubitQuestColors.accentInteractive
+                                  .withValues(alpha: .16)
+                              : null,
+                        ),
+                        child: Text(
+                          '${c.displayOrder}',
+                          style: QqType.navMeta.copyWith(
+                            fontSize: 13.5,
+                            fontWeight:
+                                open ? FontWeight.w600 : FontWeight.w500,
+                            color: open
+                                ? QubitQuestColors.accentInteractive
+                                : done
+                                    ? QubitQuestColors.success
+                                    : QubitQuestColors.textBody,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
 class _ChapterWorkspace extends StatelessWidget {
   const _ChapterWorkspace({
+    required this.lessonKey,
+    required this.curriculum,
+    required this.navCollapsed,
+    required this.onNavCollapsed,
+    required this.onSelectChapter,
+    required this.onOpenLesson,
+    this.onOpenMastery,
+    this.masteryCompleted,
     required this.category,
     required this.progressState,
     required this.selectedLevelId,
@@ -508,6 +783,21 @@ class _ChapterWorkspace extends StatelessWidget {
     this.layout,
     this.isActive = true,
   });
+
+  final GlobalKey lessonKey;
+  final JourneyCurriculum curriculum;
+  final bool? navCollapsed;
+  final ValueChanged<bool> onNavCollapsed;
+  final ValueChanged<int> onSelectChapter;
+  final ValueChanged<int> onOpenLesson;
+  final VoidCallback? onOpenMastery;
+  final int? masteryCompleted;
+
+  /// Host widths: the curriculum sits beside the lesson from [_navFrom];
+  /// it starts as a rail below [_navAutoCollapseBelow] unless the learner
+  /// chose otherwise. Narrower hosts get the chapter strip.
+  static const double _navFrom = 900;
+  static const double _navAutoCollapseBelow = 1200;
 
   final QQLevelsCategory category;
   final CampaignProgressState progressState;
@@ -536,65 +826,226 @@ class _ChapterWorkspace extends StatelessWidget {
     final completedHere =
         _levelIds.where((id) => isCompleted(id, progressState)).length;
     final reviewing = isCompleted(selectedLevelId, progressState);
-    final header = WebActivityContextHeader(
-      key: ValueKey('web-lesson-header-$selectedLevelId'),
-      backKey: const ValueKey('web-journey-back-map'),
-      backTooltip: 'Back to the chapter in the Journey',
-      onBack: onBackToMap,
-      breadcrumb: 'Journey  /  '
-          '${category.groupName.replaceFirst(' - ', ' — ')}  /  '
-          'Lesson $lessonNumber',
-      breadcrumbInfo: category.categoryIntro,
-      level: level,
-      status: reviewing ? 'Completed · review' : null,
-      trailing: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _LessonChooser(
-            levelIds: _levelIds,
-            selectedLevelId: selectedLevelId,
-            progressState: progressState,
-            isUnlocked: isUnlocked,
-            isCompleted: isCompleted,
-            onSelected: onSelectLevel,
-          ),
-          const SizedBox(height: 5),
-          Text(
-            '$completedHere / ${_levelIds.length} complete',
-            key: const ValueKey('web-chapter-progress'),
-            style: const TextStyle(color: Colors.white60, fontSize: 12),
-          ),
-        ],
-      ),
+    final chooser = _LessonChooser(
+      levelIds: _levelIds,
+      selectedLevelId: selectedLevelId,
+      progressState: progressState,
+      isUnlocked: isUnlocked,
+      isCompleted: isCompleted,
+      onSelected: onSelectLevel,
     );
-    final lesson = WebLessonWorkspace(
-      key: ValueKey('web-lesson-$selectedLevelId'),
-      levelId: selectedLevelId,
-      level: level,
-      alreadyCompleted: reviewing,
-      onCompleted: () => onCompleted(selectedLevelId),
-      onNextLesson: onNextLesson,
-      onBackToChapter: onBackToMap,
-      backLabel: 'Back to chapter',
-      onOpenNotebook: onOpenNotebook,
-      onOpenNotebookEntry: onOpenNotebookEntry,
-      compactJourneyHeader: true,
-      journeyActivity: true,
-      layout: layout,
-      shortcutsEnabled: isActive,
-      contextLabel: 'Lesson $lessonNumber',
-    );
+    WebActivityContextHeader header({required bool compact}) =>
+        WebActivityContextHeader(
+          key: ValueKey('web-lesson-header-$selectedLevelId'),
+          backKey: const ValueKey('web-journey-back-map'),
+          backTooltip: 'Back to the chapter in the Journey',
+          onBack: onBackToMap,
+          breadcrumb: 'Journey  /  Ch $chapterNumber '
+              '${journeyChapterTitle(category)}  /  $lessonNumber',
+          breadcrumbInfo: category.categoryIntro,
+          level: level,
+          status: reviewing ? 'Completed · review' : null,
+          compact: compact,
+          // Narrow: the chapter strip carries chapter, progress and the
+          // lesson chooser, so the header names only the lesson.
+          compactNavigation: compact
+              ? Text('Lesson $lessonNumber',
+                  key: const ValueKey('web-activity-breadcrumb'),
+                  style: QqType.breadcrumb)
+              : null,
+          trailing: compact
+              ? null
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    chooser,
+                    const SizedBox(height: 5),
+                    Text(
+                      '$completedHere / ${_levelIds.length} complete',
+                      key: const ValueKey('web-chapter-progress'),
+                      style: QqType.navMeta,
+                    ),
+                  ],
+                ),
+        );
+    WebLessonWorkspace lesson({Widget? scrollingHeader}) => WebLessonWorkspace(
+          key: ValueKey('web-lesson-$selectedLevelId'),
+          levelId: selectedLevelId,
+          level: level,
+          alreadyCompleted: reviewing,
+          onCompleted: () => onCompleted(selectedLevelId),
+          onNextLesson: onNextLesson,
+          onBackToChapter: onBackToMap,
+          backLabel: 'Back to chapter',
+          onOpenNotebook: onOpenNotebook,
+          onOpenNotebookEntry: onOpenNotebookEntry,
+          compactJourneyHeader: true,
+          journeyActivity: true,
+          layout: layout,
+          shortcutsEnabled: isActive,
+          contextLabel: 'Lesson $lessonNumber',
+          scrollingHeader: scrollingHeader,
+        );
+    final chapterIndex = journeyChapters.indexOf(category);
+    // One keyed subtree in both arrangements: wide hosts fix the header
+    // above the work, narrow hosts scroll it with the work so the task and
+    // circuit come first (M11D.1).
+    Widget body({required bool compact}) => KeyedSubtree(
+          key: lessonKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (!compact) ...[
+                header(compact: false),
+                const Divider(height: 1, color: _border),
+              ],
+              Expanded(
+                key: const ValueKey('web-chapter-activity'),
+                child: compact
+                    ? lesson(scrollingHeader: header(compact: true))
+                    : lesson(),
+              ),
+            ],
+          ),
+        );
+    Widget main({Widget? strip}) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (strip != null) strip,
+            Expanded(child: body(compact: strip != null)),
+          ],
+        );
     return ColoredBox(
-      color: _background,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      color: QubitQuestSurfaces.page,
+      child: LayoutBuilder(builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        if (width < _navFrom) {
+          return main(
+            strip: _ChapterStrip(
+              chapterNumber: chapterNumber,
+              chapterTitle: curriculum.chapters[chapterIndex].title,
+              levelIds: _levelIds,
+              selectedLevelId: selectedLevelId,
+              isCompleted: (id) => isCompleted(id, progressState),
+              onChapters: onBackToMap,
+              chooser: chooser,
+              completedHere: completedHere,
+            ),
+          );
+        }
+        final collapsed = navCollapsed ?? width < _navAutoCollapseBelow;
+        return Row(
+          key: const ValueKey('journey-lesson-with-nav'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: collapsed
+                  ? JourneyCurriculumNav.railWidth
+                  : JourneyCurriculumNav.width,
+              color: QubitQuestSurfaces.section,
+              child: JourneyCurriculumNav(
+                curriculum: curriculum,
+                selectedIndex: chapterIndex,
+                expandedIndex: chapterIndex,
+                currentLessonId: selectedLevelId,
+                onSelectChapter: onSelectChapter,
+                onOpenLesson: onOpenLesson,
+                collapsed: collapsed,
+                onToggleCollapsed: () => onNavCollapsed(!collapsed),
+                masteryCompleted: masteryCompleted,
+                masteryTotal: mastery2Catalogue.orderedDefinitions.length,
+                onOpenMastery: onOpenMastery,
+              ),
+            ),
+            const VerticalDivider(width: 1, color: _border),
+            Expanded(child: main()),
+          ],
+        );
+      }),
+    );
+  }
+}
+
+/// Narrow hosts: where the learner is in the chapter, compactly (M11B
+/// prototype 6, "Ch 14 · ▮▮▮▯▯ · Viewing 14.1 of 5"), with a way back to
+/// the chapters. The lesson chooser in the header switches lessons.
+class _ChapterStrip extends StatelessWidget {
+  const _ChapterStrip({
+    required this.chapterNumber,
+    required this.chapterTitle,
+    required this.levelIds,
+    required this.selectedLevelId,
+    required this.isCompleted,
+    required this.onChapters,
+    required this.chooser,
+    required this.completedHere,
+  });
+
+  final Widget chooser;
+  final int completedHere;
+  final int chapterNumber;
+  final String chapterTitle;
+  final List<int> levelIds;
+  final int selectedLevelId;
+  final bool Function(int) isCompleted;
+  final VoidCallback onChapters;
+
+  @override
+  Widget build(BuildContext context) {
+    final position = levelIds.indexOf(selectedLevelId) + 1;
+    return Container(
+      key: const ValueKey('journey-chapter-strip'),
+      color: QubitQuestSurfaces.section,
+      padding: const EdgeInsets.fromLTRB(8, 6, 16, 6),
+      child: Row(
         children: [
-          header,
-          const Divider(height: 1, color: _border),
+          TextButton.icon(
+            key: const ValueKey('journey-strip-chapters'),
+            onPressed: onChapters,
+            icon: const Icon(Icons.list_rounded, size: 18),
+            label: const Text('Chapters'),
+          ),
+          const SizedBox(width: 6),
           Expanded(
-            key: const ValueKey('web-chapter-activity'),
-            child: lesson,
+            child: Text(
+              'Ch $chapterNumber $chapterTitle',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: QqType.navLabel,
+            ),
+          ),
+          const SizedBox(width: 10),
+          if (MediaQuery.sizeOf(context).width >= 460)
+            Semantics(
+              label: 'Lesson $position of ${levelIds.length}',
+              excludeSemantics: true,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final id in levelIds)
+                    Container(
+                      width: 14,
+                      height: 6,
+                      margin: const EdgeInsets.only(left: 3),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(3),
+                        color: id == selectedLevelId
+                            ? QubitQuestColors.accentInteractive
+                            : isCompleted(id)
+                                ? QubitQuestColors.success.withValues(alpha: .7)
+                                : QubitQuestColors.surfaceRaised,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Tooltip(
+              message: '$completedHere of ${levelIds.length} complete',
+              child: chooser,
+            ),
           ),
         ],
       ),
@@ -671,9 +1122,15 @@ class _LessonChooser extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Lesson $selectedIndex of ${levelIds.length}',
-              style: const TextStyle(fontWeight: FontWeight.w500),
+            Flexible(
+              child: Text(
+                MediaQuery.sizeOf(context).width < 480
+                    ? '$selectedIndex of ${levelIds.length}'
+                    : 'Lesson $selectedIndex of ${levelIds.length}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: QqType.control.copyWith(fontSize: 13.5),
+              ),
             ),
             const SizedBox(width: 4),
             const Icon(Icons.expand_more, size: 18),
@@ -703,7 +1160,11 @@ class WebLessonWorkspace extends StatefulWidget {
     this.shortcutsEnabled = true,
     this.contextLabel,
     this.backLabel,
+    this.scrollingHeader,
   });
+
+  /// The activity header placed inside the page's scroll (narrow hosts).
+  final Widget? scrollingHeader;
 
   final NumericActivityDomain activityDomain;
   final int levelId;
@@ -740,6 +1201,17 @@ class WebLessonWorkspace extends StatefulWidget {
 
 class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
   bool _solved = false;
+  final _choiceKey = GlobalKey<_WebChoiceLessonState>();
+
+  /// Whether the sticky Check Answer may run (an answer is selected).
+  final _canCheck = ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    _canCheck.dispose();
+    super.dispose();
+  }
+
   bool _saving = false;
 
   bool get _isMastery =>
@@ -788,6 +1260,7 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
         onOpenNotebook: widget.onOpenNotebook,
         onOpenNotebookEntry: widget.onOpenNotebookEntry,
         header: widget.compactJourneyHeader ? null : _standaloneHeader(),
+        scrollingHeader: widget.scrollingHeader,
       );
 
   /// Identity and objective when no host header provides them.
@@ -840,8 +1313,10 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
     final level = widget.level;
     if (level is ComposerLevel) return _circuitExercise(level);
     // Non-circuit activities (concept checks, questions): a reading-width
-    // page; no Composer is created for them.
-    return Align(
+    // page; no Composer is created for them. Questions get the same sticky
+    // action bar as circuit activities (M11D.1), so Check is always in one
+    // place: bottom right.
+    final page = Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 860),
@@ -854,6 +1329,10 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
             22,
           ),
           children: [
+            if (widget.scrollingHeader case final h?) ...[
+              h,
+              const SizedBox(height: 8),
+            ],
             if (!widget.compactJourneyHeader) ...[
               Text(
                 _identity,
@@ -906,23 +1385,33 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
               ),
             ],
             if (widget.level.hints?.isNotEmpty ?? false) ...[
-              const SizedBox(height: 14),
-              _ContentCard(
-                title: 'Hints',
-                icon: Icons.lightbulb_outline,
-                child: ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  title: const Text('Reveal authored hints'),
+              const SizedBox(height: 8),
+              // A compact disclosure, like More context and the Composer's
+              // precision note; it reveals every authored hint at once.
+              QqDisclosure(
+                key: const ValueKey('web-lesson-hints'),
+                title: 'Hints (${widget.level.hints!.length})',
+                summary: 'Reveal authored hints',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     for (final (index, hint) in widget.level.hints!.indexed)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: CircleAvatar(
-                          radius: 13,
-                          child: Text('${index + 1}'),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 22,
+                              child:
+                                  Text('${index + 1}.', style: QqType.navMeta),
+                            ),
+                            Expanded(
+                              child: WebLearningText(hint,
+                                  role: WebLearningTextRole.hint),
+                            ),
+                          ],
                         ),
-                        title: WebLearningText(hint,
-                            role: WebLearningTextRole.hint),
                       ),
                   ],
                 ),
@@ -950,6 +1439,17 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
         ),
       ),
     );
+    if (level is! McqLevel) return page;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(child: page),
+        _AnswerActionBar(
+          canCheck: _canCheck,
+          onCheck: () => _choiceKey.currentState?.confirm(),
+        ),
+      ],
+    );
   }
 
   Widget _lessonInteraction(QQLevel level) => switch (level) {
@@ -970,6 +1470,8 @@ class _WebLessonWorkspaceState extends State<WebLessonWorkspace> {
             onSolved: _complete,
           ),
         McqLevel mcq => _WebChoiceLesson(
+            key: _choiceKey,
+            canCheck: _canCheck,
             options: mcq.options,
             correctOptionIndex: mcq.correctOptionIndex,
             enabled: !_solved,
@@ -989,34 +1491,9 @@ class _ContentCard extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => DecoratedBox(
-        decoration: BoxDecoration(
-          color: _panel,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _border),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, color: _cyan, size: 19),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              child,
-            ],
-          ),
-        ),
+  Widget build(BuildContext context) => QqWorkspacePanel(
+        label: title,
+        child: child,
       );
 }
 
@@ -1032,11 +1509,17 @@ ComposerValidationResult validateWebComposerLesson(
 
 class _WebChoiceLesson extends StatefulWidget {
   const _WebChoiceLesson({
+    super.key,
+    this.canCheck,
     required this.options,
     required this.correctOptionIndex,
     required this.enabled,
     required this.onSolved,
   });
+
+  /// Drives an external Check Answer (the sticky bar); null renders the
+  /// action inline under the answers (circuit-reading lessons).
+  final ValueNotifier<bool>? canCheck;
   final List<String> options;
   final int correctOptionIndex;
   final bool enabled;
@@ -1050,7 +1533,20 @@ class _WebChoiceLessonState extends State<_WebChoiceLesson> {
   int? _selected;
   String? _feedback;
 
-  Future<void> _confirm() async {
+  void _syncCanCheck() =>
+      widget.canCheck?.value = widget.enabled && _selected != null;
+
+  @override
+  void didUpdateWidget(covariant _WebChoiceLesson oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncCanCheck();
+    });
+  }
+
+  /// The explicit Check Answer (from the sticky action bar).
+  Future<void> confirm() async {
+    if (!widget.enabled || _selected == null) return;
     if (_selected == widget.correctOptionIndex) {
       setState(() => _feedback = 'Correct.');
       await widget.onSolved();
@@ -1061,56 +1557,172 @@ class _WebChoiceLessonState extends State<_WebChoiceLesson> {
   }
 
   @override
-  Widget build(BuildContext context) => _ContentCard(
-        title: 'Choose an answer',
-        icon: Icons.quiz_outlined,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            RadioGroup<int>(
-              groupValue: _selected,
-              onChanged: widget.enabled
-                  ? (value) => setState(() {
-                        _selected = value;
-                        _feedback = null;
-                      })
-                  : (_) {},
-              child: Column(
+  Widget build(BuildContext context) {
+    final correct = _feedback == 'Correct.';
+    return Column(
+      key: const ValueKey('web-choice-answers'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Choose an answer',
+            style: QqType.panelHeading
+                .copyWith(color: QubitQuestColors.textMuted)),
+        const SizedBox(height: 10),
+        // Lettered answer cards (M11B prototype 9). Selection is shown by
+        // the card's outline and letter only; correctness appears solely
+        // after the explicit Check, below the answers.
+        for (final (index, option) in widget.options.indexed)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _AnswerCard(
+              key: ValueKey('web-lesson-option-$index'),
+              letter: String.fromCharCode(65 + index),
+              option: option,
+              selected: _selected == index,
+              enabled: widget.enabled,
+              onTap: () {
+                setState(() {
+                  _selected = index;
+                  _feedback = null;
+                });
+                _syncCanCheck();
+              },
+            ),
+          ),
+        if (_feedback != null)
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            decoration: BoxDecoration(
+              borderRadius: QubitQuestRadii.control,
+              border: Border.all(
+                  color: (correct
+                          ? QubitQuestColors.success
+                          : QubitQuestColors.warning)
+                      .withValues(alpha: .5)),
+            ),
+            child: Row(
+              children: [
+                Icon(correct ? Icons.check_circle : Icons.info_outline,
+                    size: 18,
+                    color: correct
+                        ? QubitQuestColors.success
+                        : QubitQuestColors.warning),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _feedback!,
+                    key: const ValueKey('web-lesson-feedback'),
+                    style: QqType.body.copyWith(
+                        color: correct
+                            ? QubitQuestColors.success
+                            : QubitQuestColors.warning),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (widget.canCheck == null) ...[
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.icon(
+              key: const ValueKey('web-lesson-confirm'),
+              onPressed: widget.enabled && _selected != null ? confirm : null,
+              icon: const Icon(Icons.check, size: 18),
+              label: const Text('Check Answer'),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _AnswerCard extends StatelessWidget {
+  const _AnswerCard({
+    super.key,
+    required this.letter,
+    required this.option,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String letter;
+  final String option;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        inMutuallyExclusiveGroup: true,
+        checked: selected,
+        button: true,
+        enabled: enabled,
+        label: 'Answer $letter',
+        child: Material(
+          color: selected
+              ? QubitQuestColors.accentInteractive.withValues(alpha: .08)
+              : QubitQuestSurfaces.work,
+          borderRadius: QubitQuestRadii.card,
+          child: InkWell(
+            borderRadius: QubitQuestRadii.card,
+            onTap: enabled ? onTap : null,
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 52),
+              padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
+              decoration: BoxDecoration(
+                borderRadius: QubitQuestRadii.card,
+                border: Border.all(
+                  color: selected
+                      ? QubitQuestColors.accentInteractive
+                      : QubitQuestSurfaces.rule,
+                  width: selected ? 1.5 : 1,
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final (index, option) in widget.options.indexed)
-                    RadioListTile<int>(
-                      key: ValueKey('web-lesson-option-$index'),
-                      value: index,
-                      enabled: widget.enabled,
-                      title: LatexText(
+                  Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color:
+                          selected ? QubitQuestColors.accentInteractive : null,
+                      border: Border.all(
+                          color: selected
+                              ? QubitQuestColors.accentInteractive
+                              : QubitQuestColors.textMuted),
+                    ),
+                    child: Text(letter,
+                        style: QqType.control.copyWith(
+                            fontSize: 13,
+                            color: selected
+                                ? QubitQuestColors.background
+                                : QubitQuestColors.textBody)),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: LatexText(
                         math: option,
-                        textStyle: const TextStyle(color: Colors.white),
+                        // Answers that are mostly mathematics stay as
+                        // legible as prose answers (M11D.1).
+                        mathFontSize: 18,
+                        inlineMathHeight: 18,
+                        textStyle: QqType.body
+                            .copyWith(color: QubitQuestColors.textPrimary),
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
-            if (_feedback != null)
-              Text(
-                _feedback!,
-                key: const ValueKey('web-lesson-feedback'),
-                style: TextStyle(
-                  color: _feedback == 'Correct.'
-                      ? Colors.greenAccent
-                      : Colors.orangeAccent,
-                ),
-              ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton(
-                key: const ValueKey('web-lesson-confirm'),
-                onPressed:
-                    widget.enabled && _selected != null ? _confirm : null,
-                child: const Text('Confirm Answer'),
-              ),
-            ),
-          ],
+          ),
         ),
       );
 }
@@ -1355,4 +1967,69 @@ class _WebMeasurementLessonState extends State<_WebMeasurementLesson> {
       ),
     );
   }
+}
+
+/// The question's sticky action bar: the same place, style and reminder as
+/// the circuit activities' bar, with Check Answer.
+class _AnswerActionBar extends StatelessWidget {
+  const _AnswerActionBar({required this.canCheck, required this.onCheck});
+  final ValueListenable<bool> canCheck;
+  final VoidCallback onCheck;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        key: const ValueKey('web-answer-actions'),
+        decoration: const BoxDecoration(
+          color: QubitQuestSurfaces.nav,
+          border: Border(top: BorderSide(color: QubitQuestColors.border)),
+        ),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            // The reading column's width (M11D.1): Check Answer sits at the
+            // right edge of the answers, not in a far corner.
+            constraints: const BoxConstraints(maxWidth: 860),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 10, 22, 12),
+              child: LayoutBuilder(
+                builder: (context, constraints) => Row(
+                  children: [
+                    Expanded(
+                      child: constraints.maxWidth >= 480
+                          ? const Align(
+                              alignment: Alignment.centerRight,
+                              child: Text('Nothing is checked until you ask',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: QqType.meta),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    const SizedBox(width: 16),
+                    ConstrainedBox(
+                      constraints:
+                          BoxConstraints(maxWidth: constraints.maxWidth * .6),
+                      child: ValueListenableBuilder<bool>(
+                        valueListenable: canCheck,
+                        builder: (context, enabled, _) => FilledButton.icon(
+                          key: const ValueKey('web-lesson-confirm'),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 44),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            textStyle: QqType.control.copyWith(fontSize: 15),
+                          ),
+                          onPressed: enabled ? onCheck : null,
+                          icon: const Icon(Icons.check, size: 18),
+                          label: const Text('Check Answer',
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
 }

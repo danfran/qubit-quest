@@ -1,0 +1,775 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qubit Quest M11B Prototypes</title>
+<!--
+  v2.6 M11B design prototypes. Static, isolated, dependency-free.
+  Not part of lib/, the web build or any route. Open with ?s=<screen-id>,
+  or with no query for the index. Content is real v2.6 content; every
+  amplitude shown was computed for the circuit drawn.
+-->
+<style>
+:root{
+  /* Surfaces: proposed navy/charcoal ladder (see M11B_VISUAL_DESIGN.md §2) */
+  --app:#05070C;          /* behind everything (was #00030A) */
+  --nav:#0A0D14;          /* global navigation: charcoal */
+  --section:#0B1220;      /* section navigation: deep navy */
+  --page:#0D1526;         /* page header band */
+  --work:#101A2C;         /* primary workspace */
+  --work2:#0E1728;        /* secondary workspace */
+  --inset:#070B14;        /* wells: circuit, maths, charts */
+  --inspector:#131D31;    /* contextual inspector */
+  --raised:#18233A;       /* raised controls (existing surfaceRaised) */
+  --line:rgba(52,74,115,.40);
+  --line-soft:rgba(52,74,115,.22);
+  --text:#D6E3F8; --muted:#95A4BC; --faint:#6B7A93;
+  --cyan:#56CCF2; --violet:#B388FF; --ok:#7CFFB2; --warn:#FFD54F; --err:#FF7A7A;
+  --sel:rgba(34,211,238,.13);
+  --r-ctl:10px; --r-card:12px; --r-panel:18px;
+  --f:Roboto,"Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Roboto Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --math:"Cambria Math","STIX Two Math","Latin Modern Math",Georgia,serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--app);color:var(--text);font:14px/1.5 var(--f)}
+a{color:var(--cyan);text-decoration:none}
+button{font:inherit;color:inherit}
+.math{font-family:var(--math);font-size:1.07em;letter-spacing:.01em}
+.num{font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:.92em}
+.label{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;}
+.nocase{text-transform:none!important;letter-spacing:.02em!important}
+.label{color:var(--muted);font-weight:600}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+.hidden{display:none!important}
+
+/* ---------- application shell ---------- */
+.app{display:grid;grid-template-columns:var(--navw,232px) 1fr;height:100vh;overflow:hidden}
+.gnav{background:var(--nav);border-right:1px solid var(--line-soft);display:flex;flex-direction:column;padding:18px 12px;gap:4px;min-width:0}
+.logo{font-family:var(--math);font-size:21px;color:#fff;padding:2px 10px 18px;white-space:nowrap}
+.logo small{display:none}
+.gnav .grp{font-size:11px;letter-spacing:.1em;color:var(--violet);font-weight:700;margin:14px 10px 6px}
+.gnav a.item{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:10px;color:var(--text);font-weight:500;white-space:nowrap}
+.gnav a.item.on{background:var(--sel);color:var(--cyan)}
+.gnav a.item i{width:22px;height:22px;flex:none;display:grid;place-items:center;font-style:normal;font-size:15px;border:1.5px solid currentColor;border-radius:6px;opacity:.85}
+.gnav .foot{margin-top:auto;font-size:11.5px;color:var(--faint);padding:8px 10px}
+.main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--app)}
+.topbar{display:none}
+
+/* page header band */
+.phead{background:var(--page);border-bottom:1px solid var(--line-soft);padding:14px 28px 14px;display:flex;align-items:center;gap:18px;min-width:0}
+.phead .crumb{font-size:12.5px;color:var(--muted)} .phead .crumb b{color:var(--cyan);font-weight:500}
+.phead h1{font-size:21px;margin:2px 0 0;font-weight:600;line-height:1.25}
+.phead .grow{flex:1;min-width:0}
+.phead.compact{padding:8px 20px}
+.phead.compact h1{font-size:16px;margin:0}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:transparent;border-radius:999px;padding:7px 16px;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn.primary{background:var(--cyan);color:#041320;border-color:var(--cyan);font-weight:600}
+.btn.quiet{border-color:transparent;color:var(--cyan);padding:7px 10px}
+.btn.sm{padding:4px 12px;font-size:12.5px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--muted);white-space:nowrap}
+.chip.ok{color:var(--ok);border-color:rgba(124,255,178,.35)}
+.chip.cur{color:var(--cyan);border-color:rgba(86,204,242,.45)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg span{padding:5px 14px;font-size:13px;color:var(--muted);white-space:nowrap}
+.seg span.on{background:var(--raised);color:var(--text);font-weight:500}
+
+.body{flex:1;min-height:0;display:flex;min-width:0}
+.scroll{overflow:auto;min-height:0}
+
+/* section navigation column (curriculum / index / challenge list) */
+.secnav{width:var(--secw,300px);flex:none;background:var(--section);border-right:1px solid var(--line-soft);overflow:auto;padding:16px 12px}
+.secnav h3{margin:4px 8px 10px;font-size:12px}
+.secnav .row{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:9px;font-size:13.5px;min-width:0}
+.secnav .row .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.secnav .row.on{background:var(--sel);color:var(--cyan)}
+.secnav .row .n{color:var(--faint);font-size:12px;width:20px;text-align:right;flex:none}
+.dot{width:16px;height:16px;border-radius:50%;flex:none;border:1.5px solid var(--faint)}
+.dot.ok{background:var(--ok);border-color:var(--ok);box-shadow:inset 0 0 0 3px var(--section)}
+.dot.cur{border-color:var(--cyan);background:radial-gradient(var(--cyan) 38%,transparent 42%)}
+.secnav .sub{margin:2px 0 8px 30px;border-left:1px solid var(--line);padding-left:10px}
+.secnav .sub .row{font-size:13px;padding:5px 8px}
+
+/* ---------- Composer ---------- */
+.composer{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
+.cbar{display:flex;align-items:center;gap:10px;padding:8px 18px;background:var(--page);border-bottom:1px solid var(--line-soft);min-width:0;flex-wrap:wrap}
+.cbar .title{font-weight:600;font-size:15px}
+.cbar .sep{width:1px;height:20px;background:var(--line)}
+.iconbtn{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--muted);font-size:15px}
+.palette{display:flex;gap:18px;align-items:flex-end;padding:10px 18px;background:var(--work2);border-bottom:1px solid var(--line-soft);overflow-x:auto;min-width:0}
+.palette .cat{display:flex;flex-direction:column;gap:6px;flex:none}
+.palette .cat .label{font-size:10.5px}
+.palette .tiles{display:flex;gap:6px}
+.gt{min-width:40px;height:36px;padding:0 9px;border-radius:9px;display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff;border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+.gt.dim{opacity:.38}
+.g-X,.g-CX,.g-CCX,.g-MCX,.g-Rx{background:linear-gradient(#4A8DFF,#2F6FEA 55%,#2152B8)}
+.g-Y,.g-CY,.g-Ry{background:linear-gradient(#62D8F6,#3FB8DD 55%,#2A8AB0)}
+.g-H{background:linear-gradient(#FF6A63,#E44747 55%,#B53030)}
+.g-X{background:linear-gradient(#4A8DFF,#2F6FEA 55%,#2152B8)}
+.g-Y{background:linear-gradient(#62D8F6,#3FB8DD 55%,#2A8AB0)}
+.g-Z{background:linear-gradient(#386EFF,#244ED2 55%,#1A3AA0)}
+.g-S{background:linear-gradient(#8AA2FF,#6577E8 55%,#4C5BC0)}
+.g-T,.g-Rz{background:linear-gradient(#B65CFF,#8E46E8 55%,#6C30BD)}
+.g-CZ{background:linear-gradient(#4BCBFF,#3193E8 55%,#2356B8)}
+.g-M{background:linear-gradient(#3A4660,#262F44);font-weight:600}
+.cmain{flex:1;display:flex;min-height:0;min-width:0}
+.ccol{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:auto}
+.circuitwell{background:var(--inset);border-bottom:1px solid var(--line-soft);padding:14px 18px 10px;flex:none;overflow-x:auto}
+.circuitwell .meta{display:flex;gap:14px;align-items:center;font-size:12px;color:var(--muted);margin-top:4px;flex-wrap:wrap}
+.analysis{padding:16px 18px 22px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.atabs{display:flex;gap:4px;align-items:center;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+.atabs span{padding:8px 14px;font-size:13.5px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.atabs span.on{color:var(--text);border-color:var(--cyan);font-weight:500}
+.atabs .grow{flex:1}
+.agrid{display:grid;grid-template-columns:repeat(var(--acols,3),minmax(0,1fr));gap:14px}
+.panel{background:var(--work);border:1px solid var(--line-soft);border-radius:var(--r-card);padding:14px 16px;min-width:0}
+.panel h4{margin:0 0 10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
+.panel h4 .grow{flex:1}
+.state{font-family:var(--math);font-size:19px;line-height:1.6;word-break:break-word}
+.state b{color:var(--ok);font-weight:400}
+table.amp{width:100%;border-collapse:collapse;font-size:13px}
+table.amp td,table.amp th{padding:4px 6px;text-align:left;border-bottom:1px solid var(--line-soft)}
+table.amp th{font-weight:500;color:var(--muted);font-size:11.5px}
+.bar{height:8px;border-radius:4px;background:rgba(86,204,242,.12);position:relative;overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--cyan);border-radius:4px}
+.empty-note{font-size:12.5px;color:var(--faint)}
+
+/* inspector */
+.insp{width:var(--inspw,340px);flex:none;background:var(--inspector);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;overflow:auto}
+.insp-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line-soft)}
+.insp-sec{padding:12px 16px;border-bottom:1px solid var(--line-soft)}
+.insp-sec .label{margin-bottom:6px;display:block}
+.disc{display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:1px solid var(--line-soft);font-weight:500;font-size:13.5px}
+.disc::after{content:"▸";margin-left:auto;color:var(--muted)}
+.disc.open::after{content:"▾"}
+.insp-rail{width:44px;flex:none;background:var(--inspector);border-left:1px solid var(--line-soft);display:flex;flex-direction:column;align-items:center;padding-top:12px;gap:10px}
+.insp-rail .vt{writing-mode:vertical-rl;transform:rotate(180deg);font-size:11.5px;letter-spacing:.08em;color:var(--faint);text-transform:uppercase}
+.mathwell{background:var(--inset);border-left:3px solid var(--violet);border-radius:8px;padding:10px 14px;font-family:var(--math);font-size:16px;overflow-x:auto}
+
+/* lesson / challenge chrome */
+.lesson{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:auto}
+.lhead{padding:18px 28px 14px;background:var(--page);border-bottom:1px solid var(--line-soft)}
+.lhead .q{font-size:22px;font-weight:600;line-height:1.3;margin:4px 0 8px;max-width:70ch}
+.task{display:flex;gap:12px;align-items:flex-start;background:var(--work);border:1px solid var(--line-soft);border-left:3px solid var(--cyan);border-radius:10px;padding:10px 14px;max-width:110ch}
+.task .label{color:var(--cyan);flex:none;padding-top:2px}
+.ctx{margin-top:8px;font-size:13px;color:var(--cyan)}
+.lesson>*{flex-shrink:0}
+.lwork{flex:1 0 auto;display:flex;flex-direction:column}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.actionbar{position:sticky;bottom:0;margin-top:auto;display:flex;align-items:center;gap:12px;padding:10px 20px;background:rgba(13,21,38,.96);border-top:1px solid var(--line);backdrop-filter:blur(6px);flex-wrap:wrap}
+.actionbar .grow{flex:1}
+.feedback{display:flex;gap:10px;align-items:center;font-size:13.5px}
+.feedback .stripe{width:4px;align-self:stretch;border-radius:2px;background:var(--warn)}
+
+/* reading surfaces */
+.reading{flex:1;overflow:auto;min-width:0;background:var(--work2)}
+.readwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,760px) minmax(0,1fr);gap:0 40px;padding:36px 40px 60px}
+@media (min-width:1600px){.readwrap{grid-template-columns:minmax(0,1fr) minmax(0,760px) 250px minmax(0,1fr)}}
+.article{grid-column:2;min-width:0}
+.margin{grid-column:3;min-width:0;position:sticky;top:24px;align-self:start;font-size:13px;display:none}
+@media (min-width:1600px){.margin{display:block}}
+.article .eyebrow{color:var(--cyan);font-size:13px;font-weight:500}
+.article h1{font-size:30px;margin:6px 0 6px;line-height:1.2}
+.article .lede{font-size:17px;color:#E7EEFB;margin:0 0 24px;line-height:1.55}
+.article h2{font-size:18px;margin:28px 0 8px;font-weight:600}
+.article p{margin:0 0 12px;max-width:68ch;line-height:1.7;font-size:15px}
+.figure{background:var(--work);border:1px solid var(--line-soft);border-radius:var(--r-card);padding:14px 16px;margin:14px 0}
+.margin .label{display:block;margin:0 0 8px}
+.margin ul{list-style:none;padding:0;margin:0 0 22px}
+.margin li{padding:4px 0 4px 10px;border-left:2px solid var(--line);color:var(--muted)}
+.margin li.on{border-color:var(--cyan);color:var(--text)}
+/* two-page spread */
+.spreadwrap{padding:28px 36px 48px;display:flex;justify-content:center}
+.book{display:grid;grid-template-columns:1fr 1fr;max-width:1480px;width:100%;background:#0F1829;border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.page{padding:36px 44px 40px;min-width:0}
+.page+.page{border-left:1px solid var(--line);background:linear-gradient(90deg,rgba(0,0,0,.22),transparent 28px)}
+.page .folio{font-size:11.5px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
+
+/* option cards */
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;gap:14px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:12px 16px;background:var(--work);line-height:1.55}
+.opt .k{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--muted);display:grid;place-items:center;font-size:12px;flex:none;color:var(--muted)}
+.opt.sel{border-color:var(--cyan);background:rgba(86,204,242,.07)}
+.opt.sel .k{background:var(--cyan);border-color:var(--cyan);color:#041320;font-weight:700}
+.workbook{max-width:860px;margin:0 auto;padding:26px 28px 90px}
+
+/* Bloch */
+.bloch{flex:1;display:grid;grid-template-columns:300px minmax(0,1fr) 340px;grid-template-rows:minmax(0,1fr) auto;min-height:0;min-width:0}
+.bloch .act{grid-row:1/3;background:var(--work2);border-right:1px solid var(--line-soft);overflow:auto;padding:16px}
+.bloch .stage{background:radial-gradient(ellipse at 50% 45%,#0F1C33,var(--inset) 70%);display:grid;place-items:center;position:relative;min-height:0;overflow:hidden}
+.bloch .stage svg{max-height:calc(100% - 36px);width:auto;height:auto;max-width:100%}
+.bloch .read{grid-row:1/3;grid-column:3;background:var(--inspector);border-left:1px solid var(--line-soft);overflow:auto}
+.bloch .timeline{grid-column:2;background:var(--work);border-top:1px solid var(--line);padding:12px 18px}
+.steps{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.step{border:1px solid var(--line);border-radius:10px;padding:5px 10px;font-size:13px;background:var(--work2);white-space:nowrap}
+.step.on{border-color:var(--cyan);color:var(--cyan)}
+.step.preview{border-style:dashed;border-color:var(--violet);color:var(--violet)}
+.arrow{color:var(--faint)}
+.transport{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.tbtn{height:32px;min-width:32px;padding:0 10px;border-radius:8px;border:1px solid var(--line);display:inline-flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap}
+.tbtn.play{background:var(--cyan);color:#041320;border-color:var(--cyan);font-weight:600}
+
+/* index page */
+.index{max-width:1100px;margin:0 auto;padding:40px 24px}
+.index h1{font-size:28px;margin:0 0 6px}
+.index ol{columns:2;column-gap:40px;padding-left:20px}
+.index li{margin:6px 0;break-inside:avoid}
+
+/* ---------- responsive tiers (M11B_VISUAL_DESIGN.md §6) ---------- */
+@media (min-width:1600px){ .agrid{--acols:3} }
+@media (min-width:2000px){ .analysis{max-width:1760px} }
+@media (max-width:1439px){
+  .app{--navw:76px}
+  .gnav{padding:14px 8px;align-items:center}
+  .gnav .grp,.gnav a.item span,.gnav .foot{display:none}
+  .gnav a.item{padding:10px;justify-content:center}
+  .logo{font-size:0;padding:0 0 14px}.logo small{display:block;font-size:20px}
+  .secnav{--secw:264px}
+  .bloch{grid-template-columns:270px minmax(0,1fr) 310px}
+}
+@media (max-width:1279px){
+  .agrid{--acols:2}
+  .insp{position:absolute;right:0;top:0;bottom:0;box-shadow:-18px 0 40px rgba(0,0,0,.45);z-index:5}
+  .cmain{position:relative}
+  .book{grid-template-columns:1fr}.page+.page{border-left:0;border-top:1px solid var(--line);background:none}
+  .bloch{grid-template-columns:250px minmax(0,1fr);grid-template-rows:minmax(380px,1fr) auto auto}
+  .bloch .read{grid-row:3;grid-column:1/3;border-left:0;border-top:1px solid var(--line-soft)}
+  .bloch .act{grid-row:1/3}
+  .secnav.collapsible{--secw:228px}
+}
+@media (max-width:1023px){
+  .secnav.collapsible{display:none}
+  .ctxstrip{display:flex!important}
+  .compare{grid-template-columns:1fr}
+  .phead,.lhead{padding-left:20px;padding-right:20px}
+}
+@media (max-width:899px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .gnav{display:none}
+  .topbar{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--nav);border-bottom:1px solid var(--line-soft)}
+  .topbar .logo{font-size:19px;padding:0}.topbar .logo small{display:none}
+  .secnav{display:none}
+  .agrid{--acols:1}
+  .readwrap{display:block;padding:22px 18px 50px}
+  .bloch{display:flex;flex-direction:column;overflow:auto}
+  .bloch>*{flex-shrink:0}
+  .bloch .stage{min-height:340px;order:1}
+  .bloch .act{order:2}
+  .bloch .timeline{order:3}
+  .bloch .read{order:4}
+  .bloch .act,.bloch .read{border:0}
+  .main .body{overflow:auto}
+}
+@media (max-width:599px){
+  .palette{gap:12px;padding:8px 12px}
+  .gt{min-width:36px;height:34px}
+  .lhead .q{font-size:19px}
+  .phead h1{font-size:18px}
+  .hide-sm{display:none!important}
+  .article h1{font-size:24px}
+  .workbook{padding:18px 16px 90px}
+  .cbar{padding:8px 12px}
+  .analysis{padding:12px}
+  .insp-rail{display:none}
+  .insp{position:fixed;left:0;right:0;top:auto;bottom:0;width:auto;max-height:62vh;border-left:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;box-shadow:0 -18px 40px rgba(0,0,0,.5)}
+}
+.ctxstrip{display:none;align-items:center;gap:10px;padding:8px 20px;background:var(--section);border-bottom:1px solid var(--line-soft);font-size:13px;overflow-x:auto;white-space:nowrap}
+.ctxstrip .pip{width:22px;height:6px;border-radius:3px;background:var(--line)}
+.ctxstrip .pip.ok{background:var(--ok)} .ctxstrip .pip.cur{background:var(--cyan)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+/* ======================= helpers ======================= */
+const $=(h)=>h;
+const S2='√2';
+function gateTile(g,dim){return `<span class="gt g-${g.replace(/[^A-Za-z]/g,'')||'X'} ${dim?'dim':''}">${g}</span>`}
+
+/* Circuit SVG. spec:{n, init:[...], cols:[[op...]], sel:{col,idx}, cell, fixed:Set "c:q"} */
+function circuit(spec){
+  const n=spec.n, cw=spec.cell||54, rh=spec.row||46, left=58, top=10;
+  const cols=spec.cols.length, W=left+Math.max(cols+(spec.pad??2),4)*cw+10, H=top*2+n*rh;
+  const y=q=>top+q*rh+rh/2, x=c=>left+c*cw+cw/2;
+  let s=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="circuit" style="display:block">`;
+  s+=`<defs>
+   <linearGradient id="gH" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF6A63"/><stop offset=".55" stop-color="#E44747"/><stop offset="1" stop-color="#B53030"/></linearGradient>
+   <linearGradient id="gX" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4A8DFF"/><stop offset=".55" stop-color="#2F6FEA"/><stop offset="1" stop-color="#2152B8"/></linearGradient>
+   <linearGradient id="gY" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#62D8F6"/><stop offset=".55" stop-color="#3FB8DD"/><stop offset="1" stop-color="#2A8AB0"/></linearGradient>
+   <linearGradient id="gS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8AA2FF"/><stop offset=".55" stop-color="#6577E8"/><stop offset="1" stop-color="#4C5BC0"/></linearGradient>
+   <linearGradient id="gM" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3A4660"/><stop offset="1" stop-color="#262F44"/></linearGradient>
+  </defs>`;
+  for(let q=0;q<n;q++){
+    s+=`<text x="6" y="${y(q)-6}" fill="#95A4BC" font-size="11" font-family="Roboto">q${q}</text>`;
+    s+=`<text x="6" y="${y(q)+12}" fill="#D6E3F8" font-size="15" font-family="Cambria Math,Georgia,serif">|${(spec.init||[])[q]??0}⟩</text>`;
+    s+=`<line x1="${left-6}" x2="${W-8}" y1="${y(q)}" y2="${y(q)}" stroke="#3A4A66" stroke-width="1.4"/>`;
+  }
+  spec.cols.forEach((ops,c)=>ops.forEach((op,i)=>{
+    const sel=spec.sel&&spec.sel.col===c&&spec.sel.idx===i;
+    const fixed=op.fixed;
+    if(op.c){ // controlled
+      const qs=[...op.c,op.t], a=Math.min(...qs), b=Math.max(...qs);
+      if(sel) s+=`<rect x="${x(c)-21}" y="${y(a)-22}" width="42" height="${y(b)-y(a)+44}" rx="12" fill="rgba(124,255,178,.06)" stroke="#7CFFB2" stroke-width="2"/>`;
+      s+=`<line x1="${x(c)}" x2="${x(c)}" y1="${y(a)}" y2="${y(b)}" stroke="#4A8DFF" stroke-width="2.4"/>`;
+      op.c.forEach(q=>s+=`<circle cx="${x(c)}" cy="${y(q)}" r="5.5" fill="#4A8DFF"/>`);
+      if(op.g==='CY') s+=box(x(c),y(op.t),'Y','gY',sel,fixed);
+      else s+=`<circle cx="${x(c)}" cy="${y(op.t)}" r="13" fill="url(#gX)"/><path d="M${x(c)-7} ${y(op.t)}h14M${x(c)} ${y(op.t)-7}v14" stroke="#fff" stroke-width="2.4"/>`+(fixed?lock(x(c)+12,y(op.t)-13):'');
+      if(fixed&&op.g!=='CY') {}
+    } else {
+      const grad=op.g==='H'?'gH':op.g==='Y'?'gY':op.g==='S'?'gS':op.g==='M'?'gM':'gX';
+      s+=box(x(c),y(op.q),op.g==='M'?'M':op.g,grad,sel,fixed);
+    }
+  }));
+  if(spec.ghost!=null){const c=spec.cols.length;s+=`<rect x="${x(c)-19}" y="${top+6}" width="38" height="${n*rh-12}" rx="10" fill="none" stroke="#56CCF2" stroke-dasharray="4 4" opacity=".55"/><text x="${x(c)}" y="${H-2}" fill="#56CCF2" font-size="10" text-anchor="middle" opacity=".8">drop</text>`}
+  return s+'</svg>';
+  function box(cx,cy,t,grad,sel,fixed){
+    return `${sel?`<rect x="${cx-22}" y="${cy-22}" width="44" height="44" rx="12" fill="none" stroke="#7CFFB2" stroke-width="2"/>`:''}<rect x="${cx-17}" y="${cy-17}" width="34" height="34" rx="9" fill="url(#${grad})" stroke="rgba(255,255,255,.14)"/><text x="${cx}" y="${cy+6}" fill="#fff" font-size="${t.length>1?13:17}" font-weight="700" text-anchor="middle" font-family="Roboto">${t}</text>${fixed?lock(cx+13,cy-15):''}`;
+  }
+  function lock(cx,cy){return `<circle cx="${cx}" cy="${cy}" r="6.5" fill="#0D1526" stroke="#95A4BC"/><rect x="${cx-2.6}" y="${cy-1}" width="5.2" height="4" fill="#D6E3F8"/><path d="M${cx-1.8} ${cy-1}v-1.6a1.8 1.8 0 0 1 3.6 0v1.6" stroke="#D6E3F8" fill="none" stroke-width="1"/>`}
+}
+
+/* probability bars: rows [{k,p,obs?}], showing exact outline vs observed fill */
+function fmtPct(p){const v=p*100;return (Number.isInteger(v)?v.toFixed(0):String(+v.toFixed(3)))+'%'}
+function probChart(rows,{obs=false,target=null}={}){
+  return `<div style="display:flex;flex-direction:column;gap:7px">${rows.map(r=>`
+   <div style="display:grid;grid-template-columns:62px 1fr 64px;gap:10px;align-items:center">
+     <span class="math">|${r.k}⟩</span>
+     <div style="position:relative;height:16px;background:rgba(86,204,242,.07);border-radius:4px">
+       ${target!=null?`<i style="position:absolute;left:0;top:0;bottom:0;width:${(target[r.k]||0)*100}%;border:1.5px dashed #B388FF;border-radius:4px"></i>`:''}
+       ${obs?`<i style="position:absolute;left:0;top:2px;bottom:2px;width:${r.obs*100}%;background:#56CCF2;border-radius:3px"></i>
+              <i style="position:absolute;left:0;top:0;bottom:0;width:${r.p*100}%;border:1.5px solid #D6E3F8;border-radius:4px"></i>`
+           :`<i style="position:absolute;left:0;top:2px;bottom:2px;width:${r.p*100}%;background:#56CCF2;border-radius:3px"></i>`}
+     </div>
+     <span class="num" style="text-align:right">${obs?(r.obs*100).toFixed(1)+'%':fmtPct(r.p)}</span>
+   </div>`).join('')}</div>`;
+}
+
+/* Bloch sphere SVG: vec [x,y,z]; preview vec optional (dashed); arc optional */
+function sphere(size,v,{preview=null,trail=[],label=''}={}){
+  const R=size*0.38, cx=size/2, cy=size/2;
+  // oblique projection: x toward viewer-left-down, y to the right, z up
+  const P=([x,y,z])=>[cx + y*R - x*R*0.38, cy - z*R + x*R*0.30];
+  const pt=(a)=>P(a).map(n=>n.toFixed(1)).join(',');
+  let s=`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="max-width:100%;height:auto">`;
+  s+=`<defs><radialGradient id="sph" cx=".38" cy=".33" r=".75"><stop offset="0" stop-color="#1D3557" stop-opacity=".9"/><stop offset="1" stop-color="#07101F" stop-opacity=".3"/></radialGradient></defs>`;
+  s+=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#sph)" stroke="#56CCF2" stroke-opacity=".55"/>`;
+  s+=`<ellipse cx="${cx}" cy="${cy}" rx="${R}" ry="${R*0.33}" fill="none" stroke="#56CCF2" stroke-opacity=".35"/>`;
+  s+=`<ellipse cx="${cx}" cy="${cy}" rx="${R*0.36}" ry="${R}" fill="none" stroke="#56CCF2" stroke-opacity=".18"/>`;
+  [[[0,0,1.15],'z','|0⟩'],[[0,0,-1.15],'','|1⟩'],[[0,1.18,0],'y','|+i⟩'],[[1.45,0,0],'x','|+⟩'],[[-1.2,0,0],'','|−⟩'],[[0,-1.18,0],'','|−i⟩']].forEach(([a,ax,l])=>{
+    s+=`<line x1="${cx}" y1="${cy}" x2="${P(a)[0]}" y2="${P(a)[1]}" stroke="#56CCF2" stroke-opacity=".28"/>`;
+    s+=`<text x="${P(a)[0]+4}" y="${P(a)[1]-4}" fill="#95A4BC" font-size="${size>300?13:10}" font-family="Cambria Math,Georgia,serif">${l}</text>`;
+  });
+  if(trail.length>1){s+=`<polyline points="${trail.map(pt).join(' ')}" fill="none" stroke="#B388FF" stroke-opacity=".45" stroke-width="1.6"/>`}
+  if(preview){
+    // arc from v to preview (great-circle approximation)
+    const arc=[];for(let t=0;t<=1.0001;t+=.05){const m=v.map((a,i)=>a*(1-t)+preview[i]*t),L=Math.hypot(...m)||1;arc.push(m.map(a=>a/L))}
+    s+=`<polyline points="${arc.map(pt).join(' ')}" fill="none" stroke="#B388FF" stroke-width="2.4" stroke-dasharray="6 5"/>`;
+    const [px,py]=P(preview);
+    s+=`<line x1="${cx}" y1="${cy}" x2="${px}" y2="${py}" stroke="#B388FF" stroke-width="2" stroke-dasharray="5 4"/><circle cx="${px}" cy="${py}" r="${size>300?9:6}" fill="none" stroke="#B388FF" stroke-width="2.4"/>`;
+  }
+  const [vx,vy]=P(v);
+  s+=`<line x1="${cx}" y1="${cy}" x2="${vx}" y2="${vy}" stroke="#D6E3F8" stroke-width="${size>300?3:2}"/><circle cx="${vx}" cy="${vy}" r="${size>300?10:6}" fill="#fff" stroke="#B388FF" stroke-width="3"/>`;
+  if(label) s+=`<text x="${cx}" y="${size-6}" text-anchor="middle" fill="#95A4BC" font-size="12">${label}</text>`;
+  return s+'</svg>';
+}
+
+/* ======================= shell ======================= */
+function shell(active,content){
+  const items=[['Learn',[['journey','Journey','⟿'],['notebook','Notebook','▤'],['mastery','Mastery','★']]],['Explore',[['composer','Composer','⊞'],['bloch','Bloch Explorer','◍']]]];
+  return `<div class="app">
+   <nav class="gnav" aria-label="Global">
+     <div class="logo">⟨ϕubit|ϕuest⟩<small>⟨ϕ|</small></div>
+     ${items.map(([g,its])=>`<div class="grp">${g}</div>`+its.map(([id,l,ic])=>`<a class="item ${active===id?'on':''}" href="#"><i>${ic}</i><span>${l}</span></a>`).join('')).join('')}
+     <div class="foot">Web v2.5.1 · Build 36</div>
+   </nav>
+   <div class="main">
+     <div class="topbar"><span style="font-size:20px">☰</span><span class="logo">⟨ϕubit|ϕuest⟩</span><span class="grow" style="flex:1"></span><span class="chip">${({journey:'Journey',notebook:'Notebook',mastery:'Mastery',composer:'Composer',bloch:'Bloch Explorer'})[active]}</span></div>
+     ${content}
+   </div></div>`;
+}
+
+/* ======================= Composer screens ======================= */
+function composerBar(ctx,qubits,extra=''){
+  return `<div class="cbar">
+   <span class="title">Composer</span><span class="chip">${ctx}</span>
+   <span class="chip cur">${qubits} ${qubits==1?'qubit':'qubits'} ▾</span>
+   <span class="sep hide-sm"></span>
+   <span class="iconbtn" title="Undo">↶</span><span class="iconbtn" title="Redo">↷</span>
+   <span class="btn quiet sm hide-sm">⟲ Clear</span>
+   <span class="muted hide-sm" style="font-size:12px">Saved</span>
+   <span style="flex:1"></span>${extra}
+   <span class="seg hide-sm"><span class="on">Analysis</span><span>Focus circuit</span></span>
+  </div>`;
+}
+function palette(sets){
+  const all=sets||[['Basic',['H','X','Y','Z']],['Phase',['S','T']],['Rotations',['Rx','Ry','Rz']],['Multi-qubit',['CX','CY','CZ','CCX','MCX']],['Measure',['M']]];
+  return `<div class="palette" aria-label="Gate palette">${all.map(([c,gs])=>`<div class="cat"><span class="label">${c}</span><div class="tiles">${gs.map(g=>{const d=typeof g==='object';const n=d?g.g:g;return gateTile(n,d&&g.dim)}).join('')}</div></div>`).join('')}</div>`;
+}
+const PAL1=[['Basic',['H','X','Y','Z']],['Phase',['S','T']],['Rotations',['Rx','Ry','Rz']],['Multi-qubit',[{g:'CX',dim:1},{g:'CY',dim:1},{g:'CZ',dim:1},{g:'CCX',dim:1},{g:'MCX',dim:1}]],['Measure',['M']]];
+
+function inspRail(){return `<div class="insp-rail" title="Inspector: select a gate"><span class="iconbtn">◧</span><span class="vt">Inspector · select a gate</span></div>`}
+
+function scrComposerSimple(){
+  return shell('composer',`${composerBar('Sandbox',1)}
+  ${palette(PAL1)}
+  <div class="cmain"><div class="ccol">
+    <div class="circuitwell">${circuit({n:1,cols:[[{g:'H',q:0}]],pad:6})}
+      <div class="meta"><span>1 qubit · 1 operation · depth 1</span><span class="faint">Multi-qubit gates need 2+ qubits</span></div></div>
+    <div class="analysis">
+      <div class="atabs"><span class="on">State</span><span>Measure</span><span class="grow"></span><span class="muted" style="font-size:12px">Bloch shown because this is one qubit</span></div>
+      <div class="agrid">
+        <section class="panel"><h4>Current state</h4>
+          <div class="state">|ψ⟩ = (1/${S2})<b>|0⟩</b> + (1/${S2})<b>|1⟩</b></div>
+          <p class="muted" style="margin:8px 0 0;font-size:13px">Equal amplitudes: the Hadamard turned |0⟩ into |+⟩.</p>
+          <table class="amp" style="margin-top:12px"><tr><th>Basis</th><th>Amplitude</th><th>Decimal</th></tr>
+           <tr><td class="math">|0⟩</td><td class="math">1/${S2}</td><td class="num">0.7071</td></tr>
+           <tr><td class="math">|1⟩</td><td class="math">1/${S2}</td><td class="num">0.7071</td></tr></table></section>
+        <section class="panel"><h4>Probabilities <span class="grow"></span><span class="chip">Z basis</span></h4>
+          ${probChart([{k:'0',p:.5},{k:'1',p:.5}])}
+          <p class="muted" style="font-size:13px;margin:12px 0 0">Measuring q0 gives 0 or 1, each with probability 1/2. Run the experiment in <a href="#">Measure</a> to see finite-shot frequencies.</p></section>
+        <section class="panel" style="display:flex;flex-direction:column;align-items:center"><h4 style="align-self:stretch">Bloch sphere <span class="grow"></span><a href="#" style="font-size:12px;text-transform:none;letter-spacing:0">Open in Bloch Explorer ↗</a></h4>
+          ${sphere(230,[1,0,0])}
+          <div class="muted" style="font-size:12.5px">Vector on +x: θ = π/2, φ = 0</div></section>
+      </div>
+    </div>
+  </div>${inspRail()}</div>`);
+}
+
+function scrComposerComplex(){
+  // Lesson 14.5 canonical oracle, opened in the Sandbox.
+  const cols=[[{g:'H',q:0},{g:'H',q:1},{g:'H',q:2},{g:'H',q:3},{g:'X',q:4}],[{g:'H',q:4}],[{g:'X',q:0},{g:'X',q:2}],[{g:'MCX',c:[0,1,2,3],t:4}],[{g:'X',q:0},{g:'X',q:2}]];
+  // amplitude map: rows q4 (0/1), cols x=0..15; sign: q4=0:+, q4=1:-, flipped on x=10 (1010)
+  let grid='';
+  for(const q4 of [0,1]){grid+=`<div class="faint" style="font-size:11.5px;padding-top:6px">q4 = ${q4}</div>`;
+    for(let x=0;x<16;x++){let s=(q4?-1:1)*(x===10?-1:1);const lab=q4.toString()+x.toString(2).padStart(4,'0');
+      grid+=`<div title="|${lab}⟩" style="border-radius:6px;padding:4px 0;text-align:center;font-size:11px;background:${s>0?'rgba(86,204,242,.16)':'rgba(255,122,122,.18)'};border:1px solid ${x===10?'#FFD54F':'transparent'}"><div class="num" style="color:var(--muted);font-size:10px">${x.toString(2).padStart(4,'0')}</div><div class="math">${s>0?'+':'−'}</div></div>`}}
+  return shell('composer',`${composerBar('Sandbox',5)}
+  ${palette()}
+  <div class="cmain"><div class="ccol">
+    <div class="circuitwell">${circuit({n:5,cols,pad:4,row:44})}
+      <div class="meta"><span>5 qubits · 9 operations · depth 5</span><span>Circuit height follows the register: 5 × 44 px</span></div></div>
+    <div class="analysis">
+      <div class="atabs"><span class="on">State</span><span>Measure</span><span class="grow"></span><span class="muted" style="font-size:12px">Bloch: not shown for multi-qubit states</span></div>
+      <div class="agrid" style="--acols:2">
+        <section class="panel"><h4>Current state <span class="grow"></span><span class="chip">32 of 32 non-zero</span></h4>
+          <div class="state" style="font-size:17px">|ψ⟩ = |−⟩ ⊗ (1/4)(|0000⟩ + … + |1001⟩ <b style="color:#FF7A7A">−</b> |1010⟩ + |1011⟩ + … + |1111⟩)</div>
+          <p class="muted" style="font-size:13px;margin:8px 0 12px">Every amplitude has magnitude 1/√32. Labels are |q4 q3 q2 q1 q0⟩.</p>
+          <div class="label" style="margin-bottom:6px">Amplitude sign map <span class="nocase">(x = q3 q2 q1 q0)</span></div>
+          <div style="display:grid;grid-template-columns:44px repeat(16,minmax(0,1fr));gap:3px;align-items:center">${grid}</div>
+          <p style="font-size:13px;margin:10px 0 0"><span style="color:var(--warn)">▢</span> x = 1010 has the opposite sign to every other input in both halves: the oracle's mark. The uniform minus on q4 = 1 is the auxiliary |−⟩.</p>
+          <div class="disc" style="padding:10px 0 0;border:0">All 32 amplitudes (table)</div></section>
+        <section class="panel"><h4>Probabilities <span class="grow"></span><span class="chip">Z basis</span></h4>
+          <div style="display:flex;align-items:flex-end;gap:2px;height:120px;border-bottom:1px solid var(--line);padding-bottom:2px">${Array.from({length:32},()=>`<i style="flex:1;height:30%;background:#56CCF2;border-radius:2px 2px 0 0"></i>`).join('')}</div>
+          <div class="faint num" style="display:flex;justify-content:space-between;font-size:10.5px;margin-top:4px"><span>00000</span><span>11111</span></div>
+          <p style="font-size:13.5px;margin:12px 0 0">All 32 outcomes are equally likely: <span class="num">3.125%</span> each.</p>
+          <p class="muted" style="font-size:13px;margin:6px 0 0">The phase mark changes no probability. It becomes observable only after interference, as in amplitude amplification (Chapter 13).</p></section>
+      </div>
+    </div>
+  </div>${inspRail()}</div>`);
+}
+
+function scrComposerMeasure(){
+  const cols=[[{g:'H',q:0}],[{g:'CX',c:[0],t:1}],[{g:'M',q:0},{g:'M',q:1}]];
+  return shell('composer',`${composerBar('Sandbox',2)}
+  ${palette()}
+  <div class="cmain"><div class="ccol">
+    <div class="circuitwell">${circuit({n:2,cols,pad:5})}
+      <div class="meta"><span>2 qubits · 4 operations · 2 measurements</span></div></div>
+    <div class="analysis">
+      <div class="atabs"><span>State</span><span class="on">Measure</span><span class="grow"></span></div>
+      <div class="agrid" style="grid-template-columns:minmax(260px,330px) minmax(0,1fr)">
+        <section class="panel"><h4>Experiment</h4>
+          <div class="label">What is measured</div>
+          <p style="margin:4px 0 12px">The M gates on q0 and q1, in the Z basis, after the H and CX.</p>
+          <div class="label">Shots</div>
+          <div style="display:flex;gap:8px;align-items:center;margin:6px 0 14px"><span class="seg"><span>100</span><span class="on">1000</span><span>10000</span></span></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="btn primary">▶ Run 1000 shots</span><span class="btn">Run once</span></div>
+          <p class="muted" style="font-size:12.5px;margin:14px 0 0">Each shot prepares the circuit afresh and records one outcome. Runs differ: outcomes are random.</p>
+          <div class="disc" style="padding:12px 0 0;border:0">More about this experiment</div></section>
+        <section class="panel"><h4>Outcomes <span class="grow"></span><span class="chip">1000 shots · run 1</span></h4>
+          <div style="display:flex;gap:18px;font-size:12.5px;margin-bottom:10px;flex-wrap:wrap"><span><i style="display:inline-block;width:14px;height:10px;border:1.5px solid #D6E3F8;border-radius:2px;vertical-align:middle"></i> Exact probability</span><span><i style="display:inline-block;width:14px;height:10px;background:#56CCF2;border-radius:2px;vertical-align:middle"></i> Observed frequency</span><span class="muted">Order: q1 q0 (highest qubit on the left)</span></div>
+          ${probChart([{k:'00',p:.5,obs:.507},{k:'01',p:0,obs:0},{k:'10',p:0,obs:0},{k:'11',p:.5,obs:.493}],{obs:true})}
+          <table class="amp" style="margin-top:14px"><tr><th>Outcome</th><th>Count</th><th>Observed</th><th>Exact</th></tr>
+            <tr><td class="math">00</td><td class="num">507</td><td class="num">50.7%</td><td class="num">50%</td></tr>
+            <tr><td class="math">11</td><td class="num">493</td><td class="num">49.3%</td><td class="num">50%</td></tr>
+            <tr><td class="math">01, 10</td><td class="num">0</td><td class="num">0%</td><td class="num">0%</td></tr></table>
+          <p style="font-size:13.5px;margin:12px 0 0">Measured in the Z basis, q0 and q1 agreed in every shot. The small gap from 50% is finite-shot noise.</p>
+          <p class="muted" style="font-size:13px;margin:6px 0 0">Z-basis agreement alone does not prove entanglement: a classical correlated source could produce the same counts.</p></section>
+      </div>
+    </div>
+  </div>${inspRail()}</div>`);
+}
+
+function scrComposerSelected(){
+  const cols=[[{g:'H',q:0},{g:'H',q:1},{g:'H',q:2}],[{g:'MCX',c:[0,1,2],t:3}]];
+  const labels=['0000','0001','0010','0011','0100','0101','0110','1111'];
+  return shell('composer',`${composerBar('Sandbox',4)}
+  ${palette()}
+  <div class="cmain"><div class="ccol">
+    <div class="circuitwell">${circuit({n:4,cols,sel:{col:1,idx:0},pad:5})}
+      <div class="meta"><span>4 qubits · 4 operations</span><span style="color:var(--ok)">MCX selected</span></div></div>
+    <div class="analysis">
+      <div class="atabs"><span class="on">State</span><span>Measure</span></div>
+      <div class="agrid" style="--acols:2">
+        <section class="panel"><h4>Current state <span class="grow"></span><span class="chip">8 of 16 non-zero</span></h4>
+          <div class="state" style="font-size:17px">|ψ⟩ = (1/√8)(|0000⟩ + |0001⟩ + … + |0110⟩ + |1111⟩)</div>
+          <p class="muted" style="font-size:13px;margin:8px 0 0">q3 is 1 only alongside q2 q1 q0 = 111. Labels are |q3 q2 q1 q0⟩.</p></section>
+        <section class="panel"><h4>Probabilities <span class="grow"></span><span class="chip">Z basis</span></h4>
+          ${probChart(labels.map(k=>({k,p:.125})))}</section>
+      </div>
+    </div>
+  </div>
+  <aside class="insp" aria-label="Gate inspector">
+    <div class="insp-head"><span class="gt g-X" style="min-width:44px">MCX</span><div style="flex:1;min-width:0"><div style="font-weight:600">Multi-controlled X</div><div class="muted" style="font-size:12.5px">Controls q0, q1, q2 → target q3 · column 2</div></div><span class="iconbtn" title="Close inspector">✕</span></div>
+    <div class="insp-sec" style="display:flex;gap:8px;flex-wrap:wrap"><span class="btn sm">Edit controls</span><span class="btn sm">Duplicate</span><span class="btn sm" style="color:var(--err);border-color:rgba(255,122,122,.4)">Delete</span></div>
+    <div class="insp-sec"><span class="label">What it does</span>Flips the target in exactly the basis components where every control is |1⟩. Controls are never changed.</div>
+    <div class="insp-sec"><span class="label">Rule</span><div class="mathwell">t ↦ t ⊕ (c₁ c₂ c₃)</div>
+      <div class="muted" style="font-size:12.5px;margin-top:8px">Here: |0111⟩ ↦ |1111⟩ and |1111⟩ ↦ |0111⟩; every other label is unchanged.</div></div>
+    <div class="insp-sec"><span class="label">In this circuit</span>The controls are in superposition, so the MCX acts on all eight components at once: one joint state, not a decision.</div>
+    <div class="disc">Mathematics <span class="faint" style="font-weight:400;font-size:12px;margin-left:6px">16 × 16 permutation</span></div>
+    <div class="disc">Learn more</div>
+    <div class="insp-sec" style="border:0"><span class="label">Related</span><a href="#">Notebook · Multi-controlled X</a><br><a href="#">Notebook · Coherent Conditions</a><br><a href="#">Lesson 14.3 · Conditions in Superposition</a></div>
+  </aside></div>`);
+}
+
+/* ======================= Journey ======================= */
+const CHAPTERS=['Information','Hidden Change','Superposition','Interference','Entanglement','Information Flow','GHZ States','Phase Kickback','Oracle Thinking','Amplitude Amplification','Grover Loop Intuition','Quantum Algorithm Structure','Building and Stopping Quantum Search','Conditional Quantum Logic'];
+const L14=[['14.1','More Than a Controlled Flip','ok'],['14.2','When Every Condition Holds','ok'],['14.3','Conditions in Superposition','cur'],['14.4','From Conditions to Phase',''],['14.5','Building a Reusable Oracle','']];
+function curriculum(sel,{lessons=false,activeLesson=null}={}){
+  return `<nav class="secnav collapsible" aria-label="Curriculum"><h3 class="label">Curriculum · 68 of 71</h3>
+   ${CHAPTERS.map((c,i)=>{const n=i+1;const st=n<14?'ok':'cur';return `<div class="row ${n===sel?'on':''}"><span class="dot ${st}"></span><span class="n">${n}</span><span class="t">${c}</span></div>`+(lessons&&n===14?`<div class="sub">${L14.map(([k,t,s])=>`<div class="row ${activeLesson===k?'on':''}"><span class="dot ${s}"></span><span class="t">${k} ${t}</span></div>`).join('')}</div>`:'')}).join('')}
+   <div class="row" style="margin-top:8px;color:var(--violet)"><span>★</span><span class="t">Mastery Challenges · 0 / 48</span></div></nav>`;
+}
+function ctxStrip(text){return `<div class="ctxstrip">${text}</div>`}
+
+function scrJourneyChapter(){
+  return shell('journey',`<header class="phead"><div class="grow"><div class="crumb">Journey · 13 of 14 chapters · 68 of 71 lessons</div><h1>Learning Journey</h1></div><div style="width:260px;max-width:30vw" class="hide-sm"><div class="bar"><i style="width:94%"></i></div></div><span class="btn hide-sm">★ Mastery Challenges</span></header>
+  <div class="body">${curriculum(14)}
+   <div class="reading" style="background:var(--work2)"><div style="max-width:880px;margin:0 auto;padding:30px 32px 60px">
+     <div class="crumb" style="color:var(--cyan);font-size:13px">Chapter 14 · In progress · Your current chapter</div>
+     <h1 style="font-size:30px;margin:6px 0 10px">Conditional Quantum Logic</h1>
+     <p style="font-size:17px;line-height:1.6;margin:0 0 22px;color:#E7EEFB">How can a circuit evaluate a condition without measuring the information it acts on? Controlled phases, multi-controlled X and phase kickback become a reusable oracle.</p>
+     <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:28px"><span class="btn primary">▶ Continue · 14.3 Conditions in Superposition</span><span class="muted">2 of 5 lessons completed</span></div>
+     <section class="panel" style="padding:4px 0;margin-bottom:24px">
+      ${L14.map(([k,t,s])=>`<div style="display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line-soft);${s==='cur'?'background:var(--sel)':''}"><span class="dot ${s}"></span><span class="num faint">${k}</span><span style="flex:1;font-weight:${s==='cur'?600:500}">${t}</span><span class="muted hide-sm" style="font-size:12.5px">Circuit</span><span style="width:84px;text-align:right;font-size:13px;color:${s==='ok'?'var(--cyan)':s==='cur'?'var(--cyan)':'var(--faint)'}">${s==='ok'?'Review':s==='cur'?'Continue':'🔒 Locked'}</span></div>`).join('')}
+     </section>
+     <div class="label" style="margin-bottom:8px">What you will learn</div>
+     <ul style="margin:0 0 22px;padding-left:20px;line-height:1.9">
+      <li>A conditional operation can change a phase, and a phase can be made observable.</li>
+      <li>Every control matters: one 0 among the controls blocks the flip.</li>
+      <li>A condition evaluated in superposition creates correlation, not a measurement.</li>
+      <li>Phase kickback turns "the condition holds" into a relative sign.</li>
+      <li>Compute the condition, write it as a phase, then uncompute everything temporary.</li></ul>
+     <div class="label" style="margin-bottom:8px">Builds on</div>
+     <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="chip">Ch 8 Phase Kickback</span><span class="chip">Ch 9 Oracle Thinking</span><span class="chip">Notebook · Controlled-Y</span></div>
+   </div></div></div>`);
+}
+
+function scrJourneyLesson(){
+  const cols=[[{g:'H',q:0,fixed:1}],[{g:'CY',c:[0],t:1,fixed:1}],[{g:'CX',c:[0],t:1}]];
+  return shell('journey',`<div class="body">
+   ${curriculum(14,{lessons:true,activeLesson:'14.1'})}
+   <div class="lesson">
+    ${ctxStrip(`<b>Ch 14</b><span class="muted">Conditional Quantum Logic</span><span class="pip ok" style="outline:2px solid #56CCF2;outline-offset:2px"></span><span class="pip ok"></span><span class="pip cur"></span><span class="pip"></span><span class="pip"></span><span>Viewing 14.1 of 5</span>`)}
+    <header class="lhead">
+      <div class="crumb muted" style="font-size:12.5px"><a href="#">Journey</a> / <a href="#">Ch 14 Conditional Quantum Logic</a> / 14.1 <span class="chip ok" style="margin-left:8px">Completed · review</span></div>
+      <div class="q">Can two states with the same odds behave differently?</div>
+      <div class="task"><span class="label">Task</span><div>The fixed H and CY have prepared <span class="math">(|00⟩ + i|11⟩)/√2</span>. Add gates so that a Z-basis measurement gives <span class="math">|01⟩</span> with certainty. The same gates applied to the CX state <span class="math">(|00⟩ + |11⟩)/√2</span> would give 50/50.</div></div>
+      <div class="ctx">▸ More context · concept and notation</div>
+    </header>
+    <div class="lwork">
+      ${palette([['Available in this lesson',['H','S','CX']]])}
+      <div class="circuitwell">${circuit({n:2,cols,pad:4,ghost:1})}<div class="meta"><span>🔒 Fixed gates prepare the starting state</span><span>Labels are |q1 q0⟩</span></div></div>
+      <div class="analysis">
+       <div class="compare">
+        <section class="panel"><h4>Your circuit now</h4>
+          <div class="state" style="font-size:17px">(1/√2)<b>|00⟩</b> + (i/√2)<b>|01⟩</b></div>
+          <div style="margin-top:10px">${probChart([{k:'00',p:.5},{k:'01',p:.5},{k:'10',p:0},{k:'11',p:0}],{target:{'01':1}})}</div>
+          <p class="muted" style="font-size:12.5px;margin:10px 0 0"><span style="color:var(--violet)">┄</span> dashed outline = target</p></section>
+        <section class="panel"><h4>Target</h4>
+          <div class="state" style="font-size:17px"><b>|01⟩</b></div>
+          <p style="font-size:13.5px;margin:10px 0 4px">Measured in the Z basis: <span class="math">|01⟩</span> every time.</p>
+          <p class="muted" style="font-size:13px;margin:0">Checked up to a global phase: the whole circuit's effect on this input, not just probabilities.</p></section>
+       </div>
+      </div>
+    </div>
+    <div class="actionbar"><span class="btn">💡 Hint 1 of 2</span><span class="grow"></span><span class="muted hide-sm" style="font-size:12.5px">Nothing is checked until you ask</span><span class="btn primary">✓ Check circuit</span></div>
+   </div></div>`);
+}
+
+/* ======================= Notebook ======================= */
+function nbIndex(){
+  const groups=[['Notation & Terms',['Notation & Terms']],['Gate reference · 14',['Pauli-X','Hadamard','Controlled-Y (CY)','Multi-controlled X (MCX)']],['Chapter 14 · Conditional Quantum Logic',['Conditional Phase','Multi-Controlled Logic','Coherent Conditions','Condition Becomes Phase','Reusable Phase Oracle']]];
+  return `<nav class="secnav collapsible" aria-label="Notebook index"><div style="border:1px solid var(--line);border-radius:999px;padding:7px 14px;color:var(--muted);margin:0 4px 14px;font-size:13px">⌕ Search concepts, gates, notation</div>
+   ${groups.map(([g,its],gi)=>`<h3 class="label" style="color:${gi===2?'var(--cyan)':'var(--muted)'}">${g}</h3>${its.map(t=>`<div class="row ${t==='Reusable Phase Oracle'?'on':''}"><span class="t">${t}</span></div>`).join('')}${gi===1?'<div class="row faint"><span class="t">… 10 more</span></div>':''}`).join('')}
+   <h3 class="label" style="margin-top:14px">Chapters 1–13</h3><div class="row faint"><span class="t">66 discoveries</span></div></nav>`;
+}
+const ORACLE_CIRC=()=>circuit({n:5,init:[0,1,0,1,0],cols:[[{g:'X',q:4},{g:'X',q:0},{g:'X',q:2}],[{g:'H',q:4}],[{g:'MCX',c:[0,1,2,3],t:4}],[{g:'X',q:0},{g:'X',q:2}]],pad:1,row:40,cell:50});
+function articleText(){
+  return {
+   intu:`MCX recognises all-ones. To recognise a pattern with zeros, flip those inputs with X, apply the MCX onto an auxiliary in |−⟩, then flip them back.`,
+   chg:`For the pattern q3 q2 q1 q0 = 1010: X on q0 and q2, MCX(q0–q3 → q4), X on q0 and q2. Only the 1010 component gains −1; every label and the |−⟩ auxiliary are restored.`,
+   qv:`Preparing inputs, computing the condition, writing it as a phase and uncomputing the temporary changes are separate steps. Leaving out the uncomputation still produces the sign but relabels the inputs, so the operation is no longer a reusable oracle. Matching probabilities cannot validate an oracle: a phase mark changes none.`};
+}
+function scrNotebookCentred(){
+  const a=articleText();
+  return shell('notebook',`<header class="phead compact"><div class="grow"><div class="crumb">Notebook / Chapter 14 · Conditional Quantum Logic</div></div><span class="seg hide-sm"><span class="on">Article</span><span>Spread</span></span></header>
+  <div class="body">${nbIndex()}
+   <div class="reading"><div class="readwrap">
+    <article class="article">
+      <div class="eyebrow">Chapter 14 · Discovery 5 of 5 · from Lesson 14.5</div>
+      <h1>Building a Reusable Oracle</h1>
+      <p class="lede">Temporary X gates, an MCX onto |−⟩, and uncomputation mark any bit pattern with a phase.</p>
+      <h2 id="i">Intuition</h2><p>${a.intu}</p>
+      <h2>What changed?</h2><p>${a.chg}</p>
+      <div class="mathwell" style="margin:6px 0 14px">|−⟩ ⊗ Σₓ |x⟩ ↦ |−⟩ ⊗ Σₓ (−1)<sup>f(x)</sup> |x⟩,  f(x) = 1 only for x = 1010</div>
+      <h2>Quantum view</h2><p>${a.qv}</p>
+      <h2>Experiment</h2>
+      <div class="figure"><div style="font-weight:600;margin-bottom:4px">A phase oracle for 1010</div><p class="muted" style="font-size:13.5px;margin:0 0 10px">The input 1010 is prepared directly, with the auxiliary q4 in |−⟩. The state gains a factor −1: on a single basis input that sign is a global phase; on a superposition it is a relative mark.</p>
+       <div style="overflow-x:auto">${ORACLE_CIRC()}</div>
+       <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:8px"><span class="state" style="font-size:16px">|ψ⟩ = −(1/√2)|01010⟩ + (1/√2)|11010⟩</span><span style="flex:1"></span><span class="btn primary sm">⚗ Run in Composer</span></div></div>
+      <h2>Related</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><span class="chip">Condition Becomes Phase</span><span class="chip">Hidden Structure Effect</span><span class="chip">Gate · MCX</span><span class="chip">Gate · Pauli-X</span></div>
+    </article>
+    <aside class="margin"><span class="label">On this page</span><ul><li class="on">Intuition</li><li>What changed?</li><li>Quantum view</li><li>Experiment</li><li>Related</li></ul>
+      <span class="label">Where it is used</span><ul><li>Lesson 14.5 · Completed</li><li>Mastery 48 · The Oracle That Left a Trace</li></ul>
+      <span class="label">Notation</span><p class="muted" style="margin:0">Kets are |q4 q3 q2 q1 q0⟩; the auxiliary is written first. <a href="#">Notation guide</a></p></aside>
+   </div></div></div>`);
+}
+function scrNotebookSpread(){
+  const a=articleText();
+  return shell('notebook',`<header class="phead compact"><div class="grow"><div class="crumb">Notebook / Chapter 14 · Conditional Quantum Logic</div></div><span class="seg hide-sm"><span>Article</span><span class="on">Spread</span></span></header>
+  <div class="body">${nbIndex()}
+   <div class="reading" style="background:var(--app)"><div class="spreadwrap"><div class="book">
+    <section class="page"><div class="folio">Explanation</div>
+      <div class="eyebrow" style="color:var(--cyan);font-size:13px">Chapter 14 · Discovery 5 of 5</div>
+      <h1 style="font-size:28px;margin:6px 0 8px">Building a Reusable Oracle</h1>
+      <p class="lede" style="font-size:16.5px;color:#E7EEFB;line-height:1.6">Temporary X gates, an MCX onto |−⟩, and uncomputation mark any bit pattern with a phase.</p>
+      <h2 style="font-size:17px;margin:22px 0 6px">Intuition</h2><p style="line-height:1.7">${a.intu}</p>
+      <h2 style="font-size:17px;margin:22px 0 6px">Quantum view</h2><p style="line-height:1.7">${a.qv}</p>
+      <div style="margin-top:22px"><span class="label">Related</span><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><span class="chip">Condition Becomes Phase</span><span class="chip">Gate · MCX</span><span class="chip">Lesson 14.5</span></div></div>
+    </section>
+    <section class="page"><div class="folio">Mathematics and experiment</div>
+      <h2 style="font-size:17px;margin:0 0 6px">What changed?</h2><p style="line-height:1.7">${a.chg}</p>
+      <div class="mathwell" style="margin:10px 0 18px">|−⟩ ⊗ Σₓ |x⟩ ↦ |−⟩ ⊗ Σₓ (−1)<sup>f(x)</sup> |x⟩</div>
+      <div class="figure" style="background:var(--inset)"><div style="font-weight:600;margin-bottom:6px">A phase oracle for 1010</div><div style="overflow-x:auto">${ORACLE_CIRC()}</div>
+        <div class="state" style="font-size:16px;margin-top:6px">|ψ⟩ = −(1/√2)|01010⟩ + (1/√2)|11010⟩</div>
+        <div style="margin-top:10px"><span class="btn primary sm">⚗ Run in Composer</span></div></div>
+    </section>
+   </div></div></div></div>`);
+}
+
+/* ======================= Mastery ======================= */
+const MLIST=[[43,'Same Odds, Different Phase','Evidence · Application'],[44,'Undo the Complex Control','Uncomputation · Integration'],[45,'Every Control Matters','Circuit construction · Integration'],[46,'A Condition Without a Decision','Prediction · Integration'],[47,'Mark the Condition','Evidence · Advanced'],[48,'The Oracle That Left a Trace','Debugging · Advanced']];
+function mlist(sel){
+  return `<nav class="secnav collapsible" aria-label="Challenges" style="--secw:320px"><div style="border:1px solid var(--line);border-radius:999px;padding:7px 14px;color:var(--muted);margin:0 4px 10px;font-size:13px">⌕ Search challenges</div>
+   <div style="display:flex;gap:6px;margin:0 4px 12px;flex-wrap:wrap"><span class="chip cur">All</span><span class="chip">Incomplete</span><span class="chip">Concept: Oracle ▾</span></div>
+   <h3 class="label">1 / 48 complete · showing 6</h3>
+   ${MLIST.map(([n,t,m])=>`<div class="row ${n===sel?'on':''}" style="align-items:flex-start"><span class="dot ${n===48&&sel!==48?'ok':''}" style="margin-top:3px"></span><span class="n" style="padding-top:1px">${n}</span><span class="t" style="white-space:normal"><span style="display:block;font-weight:500">${t}</span><span class="faint" style="font-size:12px">${m}</span></span></div>`).join('')}</nav>`;
+}
+function scrMasteryQuestion(){
+  return shell('mastery',`<div class="body">${mlist(46)}
+   <div class="lesson" style="background:var(--work2)">
+    ${ctxStrip(`<b>Mastery</b><span class="muted">Challenge 46 of 48</span><span class="muted">· ← List</span>`)}
+    <div class="workbook">
+      <div class="crumb muted" style="font-size:12.5px"><a href="#">Mastery</a> / Challenge 46 <span class="chip" style="margin-left:6px">Prediction</span> <span class="chip">Integration</span><span style="float:right" class="hide-sm">‹ 45 · 47 ›</span></div>
+      <h1 style="font-size:26px;margin:8px 0 14px">A Condition Without a Decision</h1>
+      <div class="task" style="margin-bottom:16px"><span class="label">Setup</span><div>q0, q1 and q2 are each prepared in |+⟩ with H; the target q3 starts in |0⟩. Then MCX(q0,q1,q2 → q3) is applied.</div></div>
+      <div class="figure" style="background:var(--inset);display:flex;justify-content:center">${circuit({n:4,cols:[[{g:'H',q:0},{g:'H',q:1},{g:'H',q:2}],[{g:'MCX',c:[0,1,2],t:3}]],pad:1,row:38,cell:48})}</div>
+      <div style="font-size:19px;font-weight:600;margin:18px 0 12px">Which description of the result is correct?</div>
+      <div class="opts">
+       <div class="opt sel"><span class="k">A</span><div>One joint state, <span class="math">(1/√8)(|0 000⟩ + |0 001⟩ + … + |0 110⟩ + |1 111⟩)</span>: q3 is 1 only alongside 111, and measuring q3 gives 1 with probability 1/8.</div></div>
+       <div class="opt"><span class="k">B</span><div>The MCX first checks the controls; with probability 1/8 it finds 111 and flips q3, otherwise it does nothing.</div></div>
+       <div class="opt"><span class="k">C</span><div>q3 ends in its own state <span class="math">√(7/8)|0⟩ + √(1/8)|1⟩</span>, independent of the controls.</div></div>
+       <div class="opt"><span class="k">D</span><div>The controls collapse to 111 because a controlled gate needs definite control values.</div></div>
+      </div>
+      <div class="disc" style="border:0;padding:14px 0 0">Hints (2)</div>
+    </div>
+    <div class="actionbar"><span class="muted" style="font-size:13px">Labels are |q3 q2 q1 q0⟩; q0 is the top wire.</span><span class="grow"></span><span class="btn primary">Check answer</span></div>
+   </div></div>`);
+}
+function scrMasteryCircuit(){
+  const cols=[[{g:'X',q:0,fixed:1},{g:'X',q:3,fixed:1}],[{g:'MCX',c:[0,1,2,3],t:4,fixed:1}],[{g:'X',q:0,fixed:1}]];
+  return shell('mastery',`<div class="body">
+   <nav class="secnav" style="--secw:64px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:10px" aria-label="Challenge list (collapsed)"><span class="iconbtn" title="Show challenge list">☰</span>${MLIST.map(([n])=>`<span class="num" style="width:36px;height:30px;border-radius:8px;display:grid;place-items:center;${n===48?'background:var(--sel);color:var(--cyan)':'color:var(--faint)'}">${n}</span>`).join('')}</nav>
+   <div class="lesson">
+    <header class="lhead">
+      <div class="crumb muted" style="font-size:12.5px"><a href="#">Mastery</a> / Challenge 48 of 48 <span class="chip" style="margin-left:6px">Debugging</span> <span class="chip">Advanced</span></div>
+      <div class="q">The Oracle That Left a Trace</div>
+      <div class="task"><span class="label">Task</span><div>Repair the fixed oracle: it must leave x = q3 q2 q1 q0 unchanged and replace the auxiliary y = q4 by y ⊕ f(x), with f(x) = 1 only for x = 0110.</div></div>
+      <div class="ctx">▸ More context</div>
+    </header>
+    ${palette([['Available',['X','MCX']]])}
+    <div class="circuitwell">${circuit({n:5,init:[0,1,1,0,0],cols,pad:4,row:42,ghost:1})}<div class="meta"><span>🔒 The buggy oracle is fixed; add gates after it</span><span>Labels are |q4 q3 q2 q1 q0⟩</span></div></div>
+    <div class="analysis"><div class="compare">
+      <section class="panel"><h4>Your circuit now</h4><div class="state"><b>|11110⟩</b></div><p class="muted" style="font-size:13px;margin:8px 0 0">The auxiliary flipped correctly, but q3 is still 1: the input was relabelled.</p></section>
+      <section class="panel"><h4>Target for this input</h4><div class="state"><b>|10110⟩</b></div><p class="muted" style="font-size:13px;margin:8px 0 0">Check tests the whole operator on all 32 inputs, not only this one.</p></section>
+    </div></div>
+    <div class="actionbar"><span class="btn">💡 Hint</span><span class="grow"></span><span class="btn primary">✓ Check circuit</span></div>
+   </div></div>`);
+}
+
+/* ======================= Bloch ======================= */
+function scrBloch(){
+  const plus=[1,0,0], plusi=[0,1,0], zero=[0,0,1];
+  const trail=[];for(let t=0;t<=1.0001;t+=.1){const a=t*Math.PI/2;trail.push([Math.cos(a),Math.sin(a),0])}
+  return shell('bloch',`<header class="phead compact"><div class="grow"><h1>Bloch Explorer</h1><div class="crumb">How and why a single-qubit state changes</div></div><span class="chip hide-sm">Single-qubit pure states</span></header>
+  <div class="bloch">
+   <aside class="act" aria-label="Act">
+     <span class="seg" style="margin-bottom:14px"><span>Prepare</span><span class="on">Gates</span></span>
+     <div class="label" style="margin:6px 0 8px">Choose a gate to preview</div>
+     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">${['X','Y','Z','H','S','T','Rx','Ry','Rz'].map(g=>`<span class="gt g-${g} ${g==='Rx'?'':'dim'}" style="${g==='Rx'?'outline:2px solid #B388FF;outline-offset:2px':''}">${g}</span>`).join('')}</div>
+     <section class="panel" style="margin-top:16px;border-color:rgba(179,136,255,.45)">
+       <h4 class="nocase" style="color:var(--violet);font-size:13px">Previewing Rx(θ)</h4>
+       <div class="label nocase">Angle θ</div>
+       <div style="display:flex;gap:6px;margin:6px 0 10px;flex-wrap:wrap"><span class="chip">π/4</span><span class="chip cur">π/2</span><span class="chip">π</span><span class="chip">custom…</span></div>
+       <p style="font-size:13px;margin:0 0 6px">Rotates the vector by π/2 about the x axis.</p>
+       <p class="muted" style="font-size:13px;margin:0 0 12px">Result: <span class="math">|0⟩</span> (dashed on the sphere).</p>
+       <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="btn primary sm">Apply Rx(π/2)</span><span class="btn sm">Cancel</span></div>
+     </section>
+     <div class="disc" style="padding:12px 0;border:0">About the Rx gate</div>
+   </aside>
+   <div class="stage">${sphere(520,plusi,{preview:zero,trail})}
+     <div style="position:absolute;left:16px;top:12px;display:flex;gap:10px;font-size:12px;flex-wrap:wrap"><span><b style="color:#fff">●</b> Current state</span><span style="color:var(--violet)">◌ Preview: not applied yet</span><span class="muted">— Path so far</span></div>
+     <div style="position:absolute;right:14px;top:10px;display:flex;gap:6px" class="hide-sm"><span class="btn sm">Drag vector</span><span class="btn sm">⤾ Reset view</span></div>
+   </div>
+   <div class="timeline" aria-label="State evolution">
+     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap"><span class="label">State evolution</span><span class="muted" style="font-size:12.5px">2 steps applied · showing the current state</span></div>
+     <div class="steps"><span class="step">Start |0⟩</span><span class="arrow">→</span><span class="step">H · |+⟩</span><span class="arrow">→</span><span class="step on">S · |+i⟩</span><span class="arrow">⇢</span><span class="step preview">Rx(π/2) · preview</span></div>
+     <div class="transport"><span class="tbtn" title="First step">⏮</span><span class="tbtn" title="Previous step">◀ Step</span><span class="tbtn play">▶ Play steps</span><span class="tbtn" title="Next step">Step ▶</span><span class="tbtn">Speed 1×</span><span style="flex:1"></span><span class="tbtn">↶ Undo</span><span class="tbtn">⟲ Reset to |0⟩</span><label class="tbtn"><input type="checkbox" checked style="margin:0"> Animate when applying</label></div>
+   </div>
+   <aside class="read" aria-label="Read">
+     <div class="insp-sec"><span class="label">Current state</span><div class="state">|ψ⟩ = (1/√2)|0⟩ + (i/√2)|1⟩ = |+i⟩</div></div>
+     <div class="insp-sec"><span class="label">Z-basis probabilities</span>${probChart([{k:'0',p:.5},{k:'1',p:.5}])}</div>
+     <div class="disc open">Amplitudes</div>
+     <div class="insp-sec"><table class="amp"><tr><td class="math">α</td><td class="math">1/√2</td><td class="num">0.7071</td></tr><tr><td class="math">β</td><td class="math">i/√2</td><td class="num">0.7071i</td></tr></table></div>
+     <div class="disc">Bloch coordinates <span class="faint" style="font-weight:400;font-size:12px;margin-left:6px">x 0 · y 1 · z 0</span></div>
+     <div class="disc">Angles <span class="faint" style="font-weight:400;font-size:12px;margin-left:6px">θ π/2 · φ π/2</span></div>
+     <div class="disc">Phase <span class="faint" style="font-weight:400;font-size:12px;margin-left:6px">relative π/2</span></div>
+     <div class="disc">Measure in a basis</div>
+     <div class="insp-sec" style="border:0"><p class="faint" style="font-size:12px;margin:0">Single-qubit laboratory. A qubit entangled with others has no state vector of its own: its reduced state lies inside the sphere, and reduced states are not shown here.</p></div>
+   </aside>
+  </div>`);
+}
+
+/* ======================= registry ======================= */
+const SCREENS={
+ 'composer-simple':['1 · Composer, one-qubit circuit',scrComposerSimple],
+ 'composer-complex':['2 · Composer, five-qubit circuit',scrComposerComplex],
+ 'composer-measure':['3 · Composer measurement experiment',scrComposerMeasure],
+ 'composer-selected':['4 · Composer, selected MCX with inspector',scrComposerSelected],
+ 'journey-chapter':['5 · Journey chapter overview',scrJourneyChapter],
+ 'journey-lesson':['6 · Journey active circuit lesson',scrJourneyLesson],
+ 'notebook-centred':['7 · Notebook, centred reading',scrNotebookCentred],
+ 'notebook-spread':['8 · Notebook, two-page spread',scrNotebookSpread],
+ 'mastery-question':['9 · Mastery question challenge',scrMasteryQuestion],
+ 'mastery-circuit':['10 · Mastery circuit challenge',scrMasteryCircuit],
+ 'bloch':['11 · Bloch Explorer, preview and evolution',scrBloch],
+};
+const id=new URLSearchParams(location.search).get('s');
+const root=document.getElementById('root');
+if(id&&SCREENS[id]){document.title=SCREENS[id][0];root.innerHTML=SCREENS[id][1]()}
+else{root.innerHTML=`<div class="index"><h1>Qubit Quest v2.6 · M11B prototypes</h1><p class="muted">Static design prototypes. Isolated from the application: no routes, state or build. Each screen is responsive; resize the window to see the tiers.</p><ol>${Object.entries(SCREENS).map(([k,[t]])=>`<li><a href="?s=${k}">${t}</a></li>`).join('')}</ol></div>`}
+</script>
+</body>
+</html>

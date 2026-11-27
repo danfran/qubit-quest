@@ -15,6 +15,10 @@ import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'support/mastery_math_test_platform.dart';
 
 void main() {
+  // These tests verify the classic three-column exercise layout, kept as a
+  // test seam after M11D moved lessons and challenges to the learning layout.
+  setUpAll(() => debugClassicExerciseLayout = true);
+  tearDownAll(() => debugClassicExerciseLayout = false);
   useMasteryMathTestPlatform();
   List<Complex> basis(int qubits, int index) => List.generate(
       1 << qubits, (i) => i == index ? Complex.one() : Complex.zero());

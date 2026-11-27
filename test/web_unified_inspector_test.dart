@@ -14,6 +14,7 @@ import 'package:quantumquiz/widgets/measured_circuit_run_panel.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 
 import 'web_sandbox_measurement_test.dart' show openSandbox, tapVisible;
+import 'package:quantumquiz/screens/web_app.dart' show debugClassicSandboxLayout;
 
 class _CountingStorage extends InMemoryAppStorage {
   int writes = 0;
@@ -60,6 +61,10 @@ void _expectThreeTabs(WidgetTester tester) {
 }
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   group('tabs', () {
     for (final qubits in [1, 2]) {
       testWidgets(
@@ -133,7 +138,7 @@ void main() {
       final result = _panel(tester).shotsResult!;
       expect(result.shots, 876);
       expect(result.counts.values.reduce((a, b) => a + b), 876);
-      expect(find.text('876 SHOTS'), findsOneWidget);
+      expect(find.text('876 shots'), findsOneWidget);
     });
 
     testWidgets('with M: executes measurement operations into classical bits',
@@ -287,8 +292,20 @@ void main() {
       await tapVisible(tester, _runShots);
       final shots = tester.getRect(_shots);
       expect(shots.top, greaterThanOrEqualTo(0));
-      expect(shots.bottom, lessThanOrEqualTo(900),
-          reason: 'results scrolled into view');
+      // The reveal contract: the bottom when the result fits its scroll
+      // viewport, otherwise its top (heading and first rows) in view.
+      final viewport = Scrollable.of(tester.element(_shots)).position;
+      if (shots.height <= viewport.viewportDimension) {
+        expect(shots.bottom, lessThanOrEqualTo(900),
+            reason: 'results scrolled into view');
+      } else {
+        expect(
+            tester
+                .getRect(find.byKey(_k('measure-observed-shots')))
+                .bottom,
+            lessThanOrEqualTo(900),
+            reason: 'the result heading is in view');
+      }
       await tester
           .tap(find.descendant(of: view, matching: find.text('Circuit')));
       await tester.pumpAndSettle();
@@ -321,8 +338,18 @@ void main() {
       expect(tester.getSize(_circuitCard), cardSize);
       final shots = tester.getRect(_shots);
       expect(shots.top, greaterThanOrEqualTo(0));
-      expect(shots.bottom, lessThanOrEqualTo(900),
-          reason: 'results scrolled into view');
+      // The reveal contract: the bottom when the result fits its scroll
+      // viewport, otherwise its top (heading and first rows) in view.
+      final viewport = Scrollable.of(tester.element(_shots)).position;
+      if (shots.height <= viewport.viewportDimension) {
+        expect(shots.bottom, lessThanOrEqualTo(900),
+            reason: 'results scrolled into view');
+      } else {
+        expect(
+            tester.getRect(find.byKey(_k('measure-observed-shots'))).bottom,
+            lessThanOrEqualTo(900),
+            reason: 'the result heading is in view');
+      }
       expect(tester.takeException(), isNull);
     });
 

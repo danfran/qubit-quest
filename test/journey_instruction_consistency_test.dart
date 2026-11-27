@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/screens/web_learning_workspace.dart';
-import 'package:quantumquiz/widgets/activity_instruction_presentation.dart';
 import 'package:quantumquiz/widgets/web_learning_text.dart';
 import 'support/mastery_math_test_platform.dart';
 import 'support/journey_navigation.dart';
@@ -48,23 +47,18 @@ void main() {
       for (final width in [1200.0, 959.0, 961.0]) {
         tester.view.physicalSize = Size(width, 1200);
         await tester.pumpAndSettle();
-        final semantic = tester.widget<ActivityInstructionPresentation>(
-            find.byType(ActivityInstructionPresentation));
-        expect(semantic.compact, isFalse);
-        expect(semantic.showLabels, isFalse);
+        // M11D: the header presents the question and a labelled Task
+        // callout itself; both keep their authored text at every width.
         expect(find.text('QUESTION'), findsNothing);
-        expect(find.text('TASK'), findsNothing);
+        expect(find.text('TASK'), findsOneWidget);
         expect(find.text(level.mysteryText!), findsOneWidget);
-        final texts = tester
-            .widgetList<WebLearningText>(find.descendant(
-                of: find.byType(ActivityInstructionPresentation),
-                matching: find.byType(WebLearningText)))
-            .toList();
-        snapshots.add([
-          semantic.task,
-          semantic.question,
-          for (final text in texts) ...[text.text, text.role]
-        ]);
+        final texts = [
+          for (final key in const ['web-compact-question', 'web-compact-task'])
+            if (find.byKey(ValueKey(key)).evaluate().isNotEmpty)
+              tester.widget<WebLearningText>(find.byKey(ValueKey(key))).text,
+        ];
+        expect(texts, isNotEmpty);
+        snapshots.add(texts);
         expect(snapshots.last, snapshots.first);
         expect(tester.takeException(), isNull);
       }

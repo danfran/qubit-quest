@@ -6,6 +6,10 @@ import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/widgets/web_learning_text.dart';
 
+/// Which part of the library a [WebMasteryBrowser] renders (v2.6 M11D):
+/// the whole page (narrow hosts), the persistent list pane, or the detail.
+enum MasteryBrowserPart { full, pane, detail }
+
 /// Completion filter of the Mastery library.
 enum MasteryCompletionFilter { all, incomplete, completed }
 
@@ -139,7 +143,14 @@ class WebMasteryBrowser extends StatelessWidget {
     required this.narrowShowsDetail,
     required this.onNarrowBack,
     this.listController,
+    this.part = MasteryBrowserPart.full,
+    this.onCollapsePane,
   });
+
+  final MasteryBrowserPart part;
+
+  /// Pane only: collapse the pane to the numbered rail (circuit work).
+  final VoidCallback? onCollapsePane;
 
   final List<MasteryChallengeDefinition> challenges;
   final Set<String> completedIds;
@@ -162,6 +173,10 @@ class WebMasteryBrowser extends StatelessWidget {
 
   static const double masterDetailWidth = 760;
 
+  /// List row height: two-line titles fit (M11D.1).
+  static const double rowExtent = 70;
+  static const double listTopPadding = 10;
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
         builder: (context, constraints) {
@@ -169,8 +184,22 @@ class WebMasteryBrowser extends StatelessWidget {
               challenges.where((c) => query.matches(c, completedIds)).toList();
           final wide = constraints.maxWidth >= masterDetailWidth;
           final listWidth = constraints.maxWidth >= 1200 ? 400.0 : 340.0;
-          final header = _header(context, visible.length, wide);
           final list = _list(visible);
+          if (part == MasteryBrowserPart.pane) {
+            return ColoredBox(
+              key: const ValueKey('web-mastery-pane'),
+              color: QubitQuestSurfaces.section,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _paneHeader(context, visible.length),
+                  const Divider(height: 1, color: QubitQuestSurfaces.rule),
+                  Expanded(child: list),
+                ],
+              ),
+            );
+          }
+          final header = _header(context, visible.length, wide);
           final detail = selected == null
               ? const Center(
                   child: Text('Select a challenge to see its details.',
@@ -185,6 +214,12 @@ class WebMasteryBrowser extends StatelessWidget {
                   onOpenNotebookArticle: onOpenNotebookArticle,
                   onNarrowBack: wide ? null : onNarrowBack,
                 );
+          if (part == MasteryBrowserPart.detail) {
+            return ColoredBox(
+                key: const ValueKey('web-mastery-overview'),
+                color: QubitQuestSurfaces.page,
+                child: detail);
+          }
           return ColoredBox(
             key: const ValueKey('web-mastery-overview'),
             color: QubitQuestColors.background,
@@ -413,6 +448,209 @@ class WebMasteryBrowser extends StatelessWidget {
     );
   }
 
+  Widget _dropdown<T>({
+    required Key key,
+    required String label,
+    required T? value,
+    required List<T> values,
+    required String Function(T) name,
+    required ValueChanged<T?> onChanged,
+    double? width,
+  }) =>
+      DropdownButtonHideUnderline(
+        child: Container(
+          width: width,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            border: Border.all(
+                color: value == null
+                    ? QubitQuestColors.border
+                    : QubitQuestColors.accentInteractive),
+            borderRadius: QubitQuestRadii.control,
+          ),
+          child: DropdownButton<T?>(
+            key: key,
+            value: value,
+            isDense: true,
+            isExpanded: true,
+            style: QqType.navLabel.copyWith(fontSize: 13.5),
+            hint: Text('Any $label',
+                overflow: TextOverflow.ellipsis, style: QqType.meta),
+            items: [
+              DropdownMenuItem<T?>(
+                  value: null,
+                  child: Text('Any $label', overflow: TextOverflow.ellipsis)),
+              for (final v in values)
+                DropdownMenuItem<T?>(
+                    value: v,
+                    child: Text(name(v), overflow: TextOverflow.ellipsis)),
+            ],
+            onChanged: onChanged,
+          ),
+        ),
+      );
+
+  /// The list pane's own compact header (M11B prototype 9): search, the
+  /// completion chips, the three filters and the counts. The same query and
+  /// controllers as the full page, so nothing resets between views.
+  Widget _paneHeader(BuildContext context, int visibleCount) {
+    final total = challenges.length;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text('Mastery Challenges',
+                    key: ValueKey('web-mastery-title'),
+                    style: QqType.subjectTitle),
+              ),
+              if (onCollapsePane != null)
+                IconButton(
+                  key: const ValueKey('web-mastery-pane-collapse'),
+                  tooltip: 'Collapse the challenge list',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onCollapsePane,
+                  icon: const Icon(Icons.keyboard_double_arrow_left_rounded,
+                      size: 18),
+                )
+              else
+                IconButton(
+                  key: const ValueKey('web-mastery-back-journey'),
+                  tooltip: 'Learning Journey',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onBackToJourney,
+                  icon: const Icon(Icons.route_outlined, size: 18),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            key: const ValueKey('web-mastery-search'),
+            controller: searchController,
+            onChanged: (text) => onQuery(query.copyWith(text: text)),
+            style: QqType.navLabel,
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: 'Search challenges',
+              prefixIcon: const Icon(Icons.search, size: 18),
+              border: const OutlineInputBorder(),
+              suffixIcon: searchController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      key: const ValueKey('web-mastery-search-clear'),
+                      tooltip: 'Clear search',
+                      icon: const Icon(Icons.close, size: 18),
+                      onPressed: () {
+                        searchController.clear();
+                        onQuery(query.copyWith(text: ''));
+                      },
+                    ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final value in MasteryCompletionFilter.values)
+                ChoiceChip(
+                  key: ValueKey('web-mastery-filter-${value.name}'),
+                  visualDensity: VisualDensity.compact,
+                  showCheckmark: false,
+                  labelStyle: QqType.control.copyWith(fontSize: 13),
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  label: Text(switch (value) {
+                    MasteryCompletionFilter.all => 'All',
+                    MasteryCompletionFilter.incomplete => 'Incomplete',
+                    MasteryCompletionFilter.completed => 'Completed',
+                  }),
+                  selected: query.completion == value,
+                  onSelected: (_) => onQuery(query.copyWith(completion: value)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LayoutBuilder(builder: (context, c) {
+            final w = (c.maxWidth - 8) / 2;
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _dropdown<MasteryInteractionType>(
+                  key: const ValueKey('web-mastery-filter-type'),
+                  label: 'type',
+                  width: w,
+                  value: query.type,
+                  values: MasteryInteractionType.values
+                      .where(
+                          (t) => challenges.any((c) => c.interactionType == t))
+                      .toList(),
+                  name: masteryInteractionLabel,
+                  onChanged: (v) => onQuery(query.copyWith(type: () => v)),
+                ),
+                _dropdown<MasteryDifficulty>(
+                  key: const ValueKey('web-mastery-filter-difficulty'),
+                  label: 'level',
+                  width: w,
+                  value: query.difficulty,
+                  values: MasteryDifficulty.values,
+                  name: masteryDifficultyLabel,
+                  onChanged: (v) =>
+                      onQuery(query.copyWith(difficulty: () => v)),
+                ),
+                _dropdown<MasteryConceptTag>(
+                  key: const ValueKey('web-mastery-filter-concept'),
+                  label: 'concept',
+                  width: c.maxWidth,
+                  value: query.concept,
+                  values: MasteryConceptTag.values
+                      .where((t) =>
+                          challenges.any((c) => c.conceptTags.contains(t)))
+                      .toList(),
+                  name: masteryConceptLabel,
+                  onChanged: (v) => onQuery(query.copyWith(concept: () => v)),
+                ),
+              ],
+            );
+          }),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Flexible(
+                child: Text('$_completedCount / $total complete',
+                    key: const ValueKey('web-mastery-progress'),
+                    overflow: TextOverflow.ellipsis,
+                    style: QqType.navMeta),
+              ),
+              const Text('  ·  ', style: QqType.navMeta),
+              Expanded(
+                child: Text('$visibleCount of $total challenges',
+                    key: const ValueKey('web-mastery-result-count'),
+                    overflow: TextOverflow.ellipsis,
+                    style: QqType.navMeta),
+              ),
+              if (!query.isDefault)
+                TextButton(
+                  key: const ValueKey('web-mastery-clear-filters'),
+                  style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact),
+                  onPressed: () {
+                    searchController.clear();
+                    onQuery(const MasteryLibraryQuery());
+                  },
+                  child: const Text('Clear'),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _list(List<MasteryChallengeDefinition> visible) {
     if (visible.isEmpty) {
       return Padding(
@@ -443,7 +681,7 @@ class WebMasteryBrowser extends StatelessWidget {
       controller: listController,
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 16),
       itemCount: visible.length,
-      itemExtent: 58,
+      itemExtent: WebMasteryBrowser.rowExtent,
       itemBuilder: (context, index) {
         final c = visible[index];
         return _ChallengeRow(
@@ -473,82 +711,93 @@ class _ChallengeRow extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Material(
-          color: selected
-              ? QubitQuestColors.navigationSelected
-              : Colors.transparent,
-          borderRadius: QubitQuestRadii.control,
-          child: InkWell(
-            key: ValueKey('web-mastery-challenge-${challenge.semanticId}'),
+  Widget build(BuildContext context) => Tooltip(
+        message: '${challenge.displayOrder}. ${challenge.title}',
+        waitDuration: const Duration(milliseconds: 700),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Material(
+            color: selected
+                ? QubitQuestColors.navigationSelected
+                : Colors.transparent,
             borderRadius: QubitQuestRadii.control,
-            onTap: onTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(
-                borderRadius: QubitQuestRadii.control,
-                border: Border(
-                  left: BorderSide(
-                    width: 3,
-                    color: selected
-                        ? QubitQuestColors.accentInteractive
-                        : Colors.transparent,
+            child: InkWell(
+              key: ValueKey('web-mastery-challenge-${challenge.semanticId}'),
+              borderRadius: QubitQuestRadii.control,
+              onTap: onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  borderRadius: QubitQuestRadii.control,
+                  border: Border(
+                    left: BorderSide(
+                      width: 3,
+                      color: selected
+                          ? QubitQuestColors.accentInteractive
+                          : Colors.transparent,
+                    ),
                   ),
                 ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    completed
-                        ? Icons.check_circle
-                        : open
-                            ? Icons.play_circle
-                            : Icons.radio_button_unchecked,
-                    key: ValueKey(
-                        'web-mastery-status-${challenge.semanticId}-${completed ? 'completed' : open ? 'open' : 'incomplete'}'),
-                    size: 18,
-                    color: completed
-                        ? QubitQuestColors.success
-                        : open
-                            ? QubitQuestColors.accentInteractive
-                            : QubitQuestColors.textMuted,
-                  ),
-                  const SizedBox(width: 10),
-                  SizedBox(
-                    width: 24,
-                    child: Text(
-                      challenge.displayOrder.toString().padLeft(2, '0'),
-                      style: QubitQuestTypography.supporting,
+                child: Row(
+                  children: [
+                    Icon(
+                      completed
+                          ? Icons.check_circle
+                          : open
+                              ? Icons.play_circle
+                              : Icons.radio_button_unchecked,
+                      key: ValueKey(
+                          'web-mastery-status-${challenge.semanticId}-${completed ? 'completed' : open ? 'open' : 'incomplete'}'),
+                      size: 18,
+                      color: completed
+                          ? QubitQuestColors.success
+                          : open
+                              ? QubitQuestColors.accentInteractive
+                              : QubitQuestColors.textMuted,
                     ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          challenge.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: QubitQuestColors.textPrimary,
-                            fontWeight:
-                                selected ? FontWeight.w800 : FontWeight.w600,
+                    const SizedBox(width: 10),
+                    SizedBox(
+                      width: 24,
+                      child: Text(
+                        challenge.displayOrder.toString().padLeft(2, '0'),
+                        style: QubitQuestTypography.supporting,
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // The title takes what the fixed row height
+                          // leaves (large text: one line, ellipsised).
+                          Flexible(
+                            child: Text(
+                              challenge.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: QqType.navLabel.copyWith(
+                                color: selected
+                                    ? QubitQuestColors.accentInteractive
+                                    : QubitQuestColors.textPrimary,
+                                fontWeight: selected
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                              ),
+                            ),
                           ),
-                        ),
-                        Text(
-                          '${masteryInteractionLabel(challenge.interactionType)}'
-                          ' · ${masteryDifficultyLabel(challenge.difficulty)}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: QubitQuestTypography.supporting
-                              .copyWith(fontSize: 11.5),
-                        ),
-                      ],
+                          Text(
+                            '${masteryInteractionLabel(challenge.interactionType)}'
+                            ' · ${masteryDifficultyLabel(challenge.difficulty)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: QqType.navMeta.copyWith(fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -599,11 +848,11 @@ class _ChallengeDetail extends StatelessWidget {
             : 'Start challenge';
     return SingleChildScrollView(
       key: const ValueKey('web-mastery-detail-scroll'),
-      padding: const EdgeInsets.fromLTRB(28, 20, 28, 28),
+      padding: const EdgeInsets.fromLTRB(36, 28, 36, 32),
       child: Align(
-        alignment: Alignment.topLeft,
+        alignment: Alignment.topCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
+          constraints: const BoxConstraints(maxWidth: 820),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -627,12 +876,13 @@ class _ChallengeDetail extends StatelessWidget {
               Text(
                 'CHALLENGE ${challenge.displayOrder.toString().padLeft(2, '0')} · $status',
                 key: const ValueKey('web-mastery-detail-status'),
-                style: QubitQuestTypography.label,
+                style: QqType.panelHeading
+                    .copyWith(color: QubitQuestColors.textMuted),
               ),
               const SizedBox(height: 6),
               Text(challenge.title,
                   key: const ValueKey('web-mastery-detail-title'),
-                  style: QubitQuestTypography.title),
+                  style: QqType.activityTitle.copyWith(fontSize: 28)),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
@@ -667,14 +917,18 @@ class _ChallengeDetail extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               if (task.isNotEmpty) ...[
-                const Text('TASK', style: QubitQuestTypography.label),
+                Text('TASK',
+                    style: QqType.panelHeading
+                        .copyWith(color: QubitQuestColors.textMuted)),
                 const SizedBox(height: 4),
                 WebLearningText(task,
                     key: const ValueKey('web-mastery-detail-task'),
                     role: WebLearningTextRole.task),
                 const SizedBox(height: 16),
               ],
-              const Text('CONCEPTS', style: QubitQuestTypography.label),
+              Text('CONCEPTS',
+                  style: QqType.panelHeading
+                      .copyWith(color: QubitQuestColors.textMuted)),
               const SizedBox(height: 6),
               Wrap(
                 spacing: 6,
@@ -691,7 +945,9 @@ class _ChallengeDetail extends StatelessWidget {
               if (onOpenNotebookArticle != null &&
                   challenge.levelDefinition is ComposerLevel) ...[
                 const SizedBox(height: 16),
-                const Text('GATE REFERENCE', style: QubitQuestTypography.label),
+                Text('GATE REFERENCE',
+                    style: QqType.panelHeading
+                        .copyWith(color: QubitQuestColors.textMuted)),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 6,
@@ -734,7 +990,6 @@ class _Meta extends StatelessWidget {
           border: Border.all(color: QubitQuestColors.border),
           borderRadius: QubitQuestRadii.control,
         ),
-        child: Text(text,
-            style: QubitQuestTypography.supporting.copyWith(fontSize: 12)),
+        child: Text(text, style: QqType.meta.copyWith(fontSize: 12.5)),
       );
 }

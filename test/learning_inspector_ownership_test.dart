@@ -1,3 +1,4 @@
+import 'package:quantumquiz/screens/web_exercise_workspace.dart' show debugClassicExerciseLayout;
 import 'dart:ui' show PointerDeviceKind;
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,10 @@ import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'support/journey_navigation.dart';
 
 void main() {
+  // These tests verify the classic three-column exercise layout, kept as a
+  // test seam after M11D moved lessons and challenges to the learning layout.
+  setUpAll(() => debugClassicExerciseLayout = true);
+  tearDownAll(() => debugClassicExerciseLayout = false);
   testWidgets(
       'mode owner outlives Inspector element and reconciles availability',
       (tester) async {

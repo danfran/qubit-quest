@@ -94,11 +94,11 @@ void main() {
     await _pump(tester, controller);
     expect(_text(tester, 'journey-detail-title'), 'Superposition');
     expect(_text(tester, 'journey-detail-status'),
-        'CHAPTER 03 · IN PROGRESS · YOUR CURRENT CHAPTER');
+        'Chapter 3 · In progress · Your current chapter');
     expect(find.text('Continue · Lesson 3.3'), findsOneWidget);
     expect(
         _text(tester, 'journey-chapter-progress'), '2 of 5 lessons completed');
-    expect(_text(tester, 'journey-lesson-action-13'), 'Next');
+    expect(_text(tester, 'journey-lesson-action-13'), 'Continue');
 
     // A completed chapter is reviewable; the current one stays one tap away.
     await _select(tester, 1);
@@ -142,7 +142,7 @@ void main() {
     expect(_text(tester, 'journey-detail-title'), 'Superposition');
     expect(
         _text(tester, 'journey-chapter-progress'), '3 of 5 lessons completed');
-    expect(_text(tester, 'journey-lesson-action-14'), 'Next');
+    expect(_text(tester, 'journey-lesson-action-14'), 'Continue');
     expect(controller.state.completedLessonIds, contains(13));
   });
 

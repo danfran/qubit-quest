@@ -9,6 +9,8 @@ import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/sandbox_load_recovery.dart';
 
 import 'web_sandbox_measurement_test.dart' show openSandbox, tapVisible;
+import 'support/laboratory_composer_finders.dart';
+import 'package:quantumquiz/screens/web_app.dart' show debugClassicSandboxLayout;
 
 class _CountingStorage extends InMemoryAppStorage {
   int writes = 0;
@@ -56,9 +58,7 @@ Future<void> _chooseShots(WidgetTester tester, int preset) async {
   await tester.pumpAndSettle();
 }
 
-final _measureTab = find.descendant(
-    of: find.byKey(const ValueKey('quantum-inspector-view-selector')),
-    matching: find.text('Measure'));
+final _measureTab = anyMeasureTab;
 
 /// W4.2: results live in the Inspector's Measure tab.
 Future<void> _openMeasure(WidgetTester tester) =>
@@ -80,6 +80,10 @@ Future<QuantumCircuit> _measuredSandbox(
 }
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   testWidgets('panel replaces the placeholder; H → M runs once and in shots',
       (tester) async {
     final storage = _CountingStorage();
@@ -109,7 +113,7 @@ void main() {
         find.textContaining('Measurement outcomes are random'), findsOneWidget);
 
     await tapVisible(tester, _runShots);
-    expect(find.text('1,000 SHOTS'), findsOneWidget);
+    expect(find.text('1,000 shots'), findsOneWidget);
     expect(
         _text(tester, find.byKey(const ValueKey('web-sandbox-outcome-order'))),
         startsWith('Outcome order: c0 (highest classical bit on the left)'));
@@ -123,7 +127,7 @@ void main() {
 
     await _chooseShots(tester, 100);
     await tapVisible(tester, _runShots);
-    expect(find.text('100 SHOTS'), findsOneWidget);
+    expect(find.text('100 shots'), findsOneWidget);
     expect((_count(tester, '0') ?? 0) + (_count(tester, '1') ?? 0), 100);
     expect(_single, findsOneWidget, reason: 'latest single run is kept');
 
@@ -188,8 +192,10 @@ void main() {
     await tapVisible(tester, _runOnce);
     expect(_text(tester, _register), 'Register: c1=1');
 
+    // M11C: the qubit choices are always visible in the header; the open
+    // size is not re-chosen, so reopen it from storage via another size.
     await tapVisible(
-        tester, find.byKey(const ValueKey('web-composer-change-qubits')));
+        tester, find.byKey(const ValueKey('web-composer-qubits-1')));
     await tapVisible(
         tester, find.byKey(const ValueKey('web-composer-qubits-2')));
     await _openMeasure(tester);

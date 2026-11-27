@@ -8,9 +8,16 @@ import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/widgets/activity_instruction_presentation.dart';
 import 'package:quantumquiz/widgets/composer_workspace/composer_session_workspace.dart';
+import 'package:quantumquiz/widgets/composer_workspace/laboratory_composer_workspace.dart'
+    show LaboratoryComposerWorkspace;
 import 'package:quantumquiz/widgets/composer_workspace/workspace_layout_state.dart';
 import 'package:quantumquiz/widgets/mastery_evidence_view.dart';
 import 'package:quantumquiz/widgets/web_learning_text.dart';
+
+/// Test seam (v2.6 M11D): exercises use the learning layout; tests that
+/// verify the classic three-column exercise layout switch it back.
+@visibleForTesting
+bool debugClassicExerciseLayout = false;
 
 // ── Check feedback ──────────────────────────────────────────────────────────
 
@@ -76,7 +83,16 @@ class WebActivityContextHeader extends StatefulWidget {
     this.status,
     this.breadcrumbInfo,
     this.objectiveKey = const ValueKey('web-compact-task'),
+    this.compact = false,
+    this.compactNavigation,
   });
+
+  /// Narrow hosts (v2.6 M11D.1): one row for back navigation and position
+  /// ([compactNavigation] replaces the breadcrumb and [trailing]); the
+  /// title with a status icon; the question; the task with its label above
+  /// it so the text keeps the full width. Shown in the page's scroll.
+  final bool compact;
+  final Widget? compactNavigation;
 
   final Key backKey;
   final String backTooltip;
@@ -109,8 +125,11 @@ class _WebActivityContextHeaderState extends State<WebActivityContextHeader> {
 
   MasteryChallengePresentation? get _p => widget.presentation;
 
-  /// Mastery evidence can be part of the task itself; it starts open.
-  bool get _evidenceIsEssential => (_p?.evidence.isNotEmpty ?? false);
+  /// Mastery evidence can be part of the task itself; it starts open,
+  /// except beside a circuit workspace, where the circuit already shows the
+  /// fixed operations and the evidence stays one tap away (v2.6 M11D).
+  bool get _evidenceIsEssential =>
+      (_p?.evidence.isNotEmpty ?? false) && widget.level is! ComposerLevel;
 
   bool get _hasDetails {
     final p = _p;
@@ -137,8 +156,10 @@ class _WebActivityContextHeaderState extends State<WebActivityContextHeader> {
     final hasEvidence = p != null &&
         (p.evidence.isNotEmpty || p.intro != null || p.helperText != null);
     return ConstrainedBox(
-      constraints:
-          BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .32),
+      constraints: BoxConstraints(
+          maxHeight: widget.compact
+              ? double.infinity
+              : MediaQuery.sizeOf(context).height * .32),
       child: SingleChildScrollView(
         key: const ValueKey('web-activity-details'),
         padding: const EdgeInsets.only(top: 8, right: 8),
@@ -175,16 +196,141 @@ class _WebActivityContextHeaderState extends State<WebActivityContextHeader> {
     );
   }
 
+  Widget _compact(BuildContext context) {
+    final p = _p;
+    final instructions = normalizeActivityInstructions(
+      task: p?.instruction ?? widget.level.taskDescription,
+      question: p?.question ?? widget.level.mysteryTitle,
+    );
+    return Padding(
+      key: const ValueKey('web-compact-activity-header'),
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+      child: Column(
+        key: const ValueKey('web-compact-activity-context'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                key: widget.backKey,
+                tooltip: widget.backTooltip,
+                onPressed: widget.onBack,
+                icon: const Icon(Icons.arrow_back),
+              ),
+              Expanded(
+                child: widget.compactNavigation ??
+                    Text(widget.breadcrumb,
+                        key: const ValueKey('web-activity-breadcrumb'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: QqType.breadcrumb),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.level.title ?? 'Quantum Challenge',
+                        key: const ValueKey('web-lesson-title'),
+                        style: QqType.activityTitle.copyWith(fontSize: 20),
+                      ),
+                    ),
+                    if (widget.status != null)
+                      Tooltip(
+                        message: widget.status!,
+                        child: Padding(
+                          key: const ValueKey('web-activity-status'),
+                          padding: const EdgeInsets.only(left: 8, top: 4),
+                          child: Semantics(
+                            label: widget.status,
+                            child: const Icon(Icons.check_circle_rounded,
+                                size: 18, color: QubitQuestColors.success),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                if (widget.showInstruction) ...[
+                  if (instructions.question.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    WebLearningText(instructions.question,
+                        key: const ValueKey('web-compact-question'),
+                        style: QqType.question.copyWith(fontSize: 16)),
+                  ],
+                  if (instructions.task.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _TaskCallout(
+                      label: 'Task',
+                      stacked: true,
+                      child: WebLearningText(instructions.task,
+                          key: widget.objectiveKey, style: QqType.task),
+                    ),
+                  ],
+                  if (_hasDetails) ...[
+                    TextButton.icon(
+                      key: const ValueKey('web-activity-details-toggle'),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      ),
+                      onPressed: () => setState(() => _expanded = !_expanded),
+                      icon: Icon(
+                          _expanded
+                              ? Icons.expand_less
+                              : Icons.chevron_right_rounded,
+                          size: 18),
+                      label: Text(_expanded
+                          ? 'Hide context'
+                          : p != null && p.evidence.isNotEmpty
+                              ? 'Show evidence and context'
+                              : 'More context'),
+                    ),
+                    if (_expanded) _details(context),
+                  ],
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (widget.compact) return _compact(context);
     final p = _p;
+    final instructions = normalizeActivityInstructions(
+      task: p?.instruction ?? widget.level.taskDescription,
+      question: p?.question ?? widget.level.mysteryTitle,
+    );
     final title = Text(
       widget.level.title ?? 'Quantum Challenge',
       key: const ValueKey('web-lesson-title'),
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
+      style: QqType.activityTitle,
     );
+    final status = widget.status == null
+        ? null
+        : Container(
+            key: const ValueKey('web-activity-status'),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+            decoration: BoxDecoration(
+              borderRadius: QubitQuestRadii.pill,
+              border: Border.all(
+                  color: QubitQuestColors.success.withValues(alpha: .6)),
+            ),
+            child: Text(widget.status!,
+                style: QqType.meta
+                    .copyWith(color: QubitQuestColors.success, fontSize: 12.5)),
+          );
     // Never more than half the viewport: the workspace and its Check action
     // keep their room; longer context scrolls inside the header.
     return ConstrainedBox(
@@ -194,7 +340,7 @@ class _WebActivityContextHeaderState extends State<WebActivityContextHeader> {
         key: const ValueKey('web-activity-header-scroll'),
         child: Padding(
           key: const ValueKey('web-compact-activity-header'),
-          padding: const EdgeInsets.fromLTRB(12, 8, 16, 10),
+          padding: const EdgeInsets.fromLTRB(12, 12, 20, 14),
           child: LayoutBuilder(builder: (context, constraints) {
             // Narrow: position/progress move below the title instead of beside it.
             final stacked = constraints.maxWidth < 640;
@@ -209,101 +355,106 @@ class _WebActivityContextHeaderState extends State<WebActivityContextHeader> {
                 ),
                 const SizedBox(width: 4),
                 Expanded(
-                  child: Column(
-                    key: const ValueKey('web-compact-activity-context'),
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: ConstrainedBox(
+                      // A reading width for the question and the task.
+                      constraints: const BoxConstraints(maxWidth: 980),
+                      child: Column(
+                        key: const ValueKey('web-compact-activity-context'),
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Flexible(
-                            child: Text(
-                              widget.breadcrumb,
-                              key: const ValueKey('web-activity-breadcrumb'),
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: QubitQuestColors.accentInteractive,
-                                  fontSize: 12.5),
-                            ),
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 10,
+                            runSpacing: 4,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      widget.breadcrumb,
+                                      key: const ValueKey(
+                                          'web-activity-breadcrumb'),
+                                      overflow: TextOverflow.ellipsis,
+                                      style: QqType.breadcrumb,
+                                    ),
+                                  ),
+                                  if ((widget.breadcrumbInfo ?? '')
+                                      .trim()
+                                      .isNotEmpty)
+                                    Tooltip(
+                                      key: const ValueKey(
+                                          'web-chapter-description'),
+                                      message: widget.breadcrumbInfo!,
+                                      child: const Padding(
+                                        padding: EdgeInsets.only(left: 6),
+                                        child: Icon(Icons.info_outline,
+                                            size: 16,
+                                            color: QubitQuestColors.textMuted),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              if (status != null) status,
+                            ],
                           ),
-                          if ((widget.breadcrumbInfo ?? '').trim().isNotEmpty)
-                            Tooltip(
-                              key: const ValueKey('web-chapter-description'),
-                              message: widget.breadcrumbInfo!,
-                              child: const Padding(
-                                padding: EdgeInsets.only(left: 6),
-                                child: Icon(Icons.info_outline,
-                                    size: 16, color: Colors.white54),
+                          if (stacked && widget.trailing != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: widget.trailing,
                               ),
                             ),
-                          if (widget.status != null) ...[
-                            const SizedBox(width: 10),
-                            Container(
-                              key: const ValueKey('web-activity-status'),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                borderRadius: QubitQuestRadii.control,
-                                border: Border.all(
-                                    color: QubitQuestColors.success
-                                        .withValues(alpha: .6)),
+                          const SizedBox(height: 4),
+                          title,
+                          if (widget.showInstruction) ...[
+                            if (instructions.question.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              WebLearningText(instructions.question,
+                                  key: const ValueKey('web-compact-question'),
+                                  style: QqType.question),
+                            ],
+                            if (instructions.task.isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              _TaskCallout(
+                                label: p == null ? 'Task' : 'Task',
+                                child: WebLearningText(instructions.task,
+                                    key: widget.objectiveKey,
+                                    style: QqType.task),
                               ),
-                              child: Text(widget.status!,
-                                  style: QubitQuestTypography.supporting
-                                      .copyWith(
-                                          color: QubitQuestColors.success,
-                                          fontSize: 11.5)),
-                            ),
+                            ],
+                            if (_hasDetails) ...[
+                              const SizedBox(height: 4),
+                              TextButton.icon(
+                                key: const ValueKey(
+                                    'web-activity-details-toggle'),
+                                style: TextButton.styleFrom(
+                                  visualDensity: VisualDensity.compact,
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 4),
+                                ),
+                                onPressed: () =>
+                                    setState(() => _expanded = !_expanded),
+                                icon: Icon(
+                                    _expanded
+                                        ? Icons.expand_less
+                                        : Icons.chevron_right_rounded,
+                                    size: 18),
+                                label: Text(_expanded
+                                    ? 'Hide context'
+                                    : p != null && p.evidence.isNotEmpty
+                                        ? 'Show evidence and context'
+                                        : 'More context · concept and notation'),
+                              ),
+                              if (_expanded) _details(context),
+                            ],
                           ],
                         ],
                       ),
-                      if (stacked && widget.trailing != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: widget.trailing,
-                          ),
-                        ),
-                      const SizedBox(height: 2),
-                      title,
-                      if (widget.showInstruction) ...[
-                        const SizedBox(height: 3),
-                        ActivityInstructionPresentation(
-                          webLearning: true,
-                          task: p?.instruction ?? widget.level.taskDescription,
-                          question: p?.question ?? widget.level.mysteryTitle,
-                          taskKey: widget.objectiveKey,
-                          questionKey: const ValueKey('web-compact-question'),
-                        ),
-                        if (_hasDetails) ...[
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextButton.icon(
-                              key:
-                                  const ValueKey('web-activity-details-toggle'),
-                              style: TextButton.styleFrom(
-                                visualDensity: VisualDensity.compact,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 4),
-                              ),
-                              onPressed: () =>
-                                  setState(() => _expanded = !_expanded),
-                              icon: Icon(
-                                  _expanded
-                                      ? Icons.expand_less
-                                      : Icons.expand_more,
-                                  size: 18),
-                              label: Text(_expanded
-                                  ? 'Hide context'
-                                  : p != null && p.evidence.isNotEmpty
-                                      ? 'Show evidence and context'
-                                      : 'More context'),
-                            ),
-                          ),
-                          if (_expanded) _details(context),
-                        ],
-                      ],
-                    ],
+                    ),
                   ),
                 ),
                 if (!stacked && widget.trailing != null)
@@ -318,6 +469,54 @@ class _WebActivityContextHeaderState extends State<WebActivityContextHeader> {
       ),
     );
   }
+}
+
+/// The task, visibly distinct from explanation: a labelled block with an
+/// accent rule (M11B prototype 6).
+class _TaskCallout extends StatelessWidget {
+  const _TaskCallout(
+      {required this.label, required this.child, this.stacked = false});
+  final String label;
+  final Widget child;
+
+  /// The label above the text (narrow widths) instead of beside it.
+  final bool stacked;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        key: const ValueKey('web-task-callout'),
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 11),
+        decoration: const BoxDecoration(
+          color: QubitQuestSurfaces.work,
+          borderRadius: BorderRadius.horizontal(right: Radius.circular(10)),
+          border: Border(
+            left:
+                BorderSide(color: QubitQuestColors.accentInteractive, width: 3),
+          ),
+        ),
+        child: stacked
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(label.toUpperCase(),
+                      style: QqType.panelHeading.copyWith(fontSize: 11.5)),
+                  const SizedBox(height: 4),
+                  child,
+                ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, right: 14),
+                    child: Text(label.toUpperCase(),
+                        style: QqType.panelHeading.copyWith(fontSize: 11.5)),
+                  ),
+                  Expanded(child: child),
+                ],
+              ),
+      );
 }
 
 // ── Success presentation ────────────────────────────────────────────────────
@@ -482,8 +681,13 @@ class WebComposerExercise extends StatefulWidget {
     this.layout,
     this.shortcutsEnabled = true,
     this.header,
+    this.scrollingHeader,
     this.revealTarget = true,
   });
+
+  /// Shown inside the workspace's scroll above the palette (narrow hosts),
+  /// instead of a fixed header above it (v2.6 M11D.1).
+  final Widget? scrollingHeader;
 
   final ComposerLevel level;
 
@@ -632,11 +836,11 @@ class WebComposerExerciseState extends State<WebComposerExercise> {
               child: Text(
                 _feedback!.message,
                 key: const ValueKey('web-lesson-feedback'),
-                style: TextStyle(
+                style: QqType.body.copyWith(
                   color: _feedback!.success
-                      ? Colors.greenAccent
-                      : Colors.orangeAccent,
-                  fontWeight: FontWeight.w700,
+                      ? QubitQuestColors.success
+                      : QubitQuestColors.warning,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -665,66 +869,114 @@ class WebComposerExerciseState extends State<WebComposerExercise> {
     return DecoratedBox(
       key: const ValueKey('web-exercise-actions'),
       decoration: const BoxDecoration(
-        color: QubitQuestColors.surface,
-        border: Border(top: BorderSide(color: QubitQuestColors.borderSoft)),
+        color: QubitQuestSurfaces.nav,
+        border: Border(top: BorderSide(color: QubitQuestColors.border)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (details.isNotEmpty) ...[
-              ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: maxDetails),
-                child: SingleChildScrollView(
-                  key: const ValueKey('web-exercise-feedback-scroll'),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (var i = 0; i < details.length; i++) ...[
-                        if (i > 0) const SizedBox(height: 8),
-                        details[i],
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              runSpacing: 6,
+      // The bar's content shares the workspace's maximum width and left
+      // edge (M11D.1), so Check sits under the work, not in a far corner.
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+              maxWidth: LaboratoryComposerWorkspace.maxContentWidth + 40),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                if (_visibleHints < hints.length)
-                  OutlinedButton.icon(
-                    key: const ValueKey('web-lesson-hint'),
-                    onPressed:
-                        _solved ? null : () => setState(() => _visibleHints++),
-                    icon: const Icon(Icons.lightbulb_outline, size: 18),
-                    label: Text(_visibleHints == 0
-                        ? 'Hint'
-                        : 'Next hint (${_visibleHints + 1} of ${hints.length})'),
-                  )
-                else if (hints.isNotEmpty)
-                  Text('All ${hints.length} hints shown',
-                      key: const ValueKey('web-lesson-hints-exhausted'),
-                      style: QubitQuestTypography.supporting)
-                else
-                  const SizedBox.shrink(),
-                FilledButton.icon(
-                  key: const ValueKey('web-lesson-check'),
-                  onPressed: _solved || _saving ? null : _check,
-                  icon: Icon(_solved ? Icons.check_circle : Icons.check,
-                      size: 18),
-                  label: Text(_solved ? 'Completed' : 'Check Circuit'),
-                ),
+                if (details.isNotEmpty) ...[
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: maxDetails),
+                    child: SingleChildScrollView(
+                      key: const ValueKey('web-exercise-feedback-scroll'),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (var i = 0; i < details.length; i++) ...[
+                            if (i > 0) const SizedBox(height: 8),
+                            details[i],
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                // The action bar (M11B prototype 6): hints on the left, the
+                // explicit Check on the right, and the reminder that nothing is
+                // checked until the learner asks.
+                LayoutBuilder(builder: (context, constraints) {
+                  final hint = _visibleHints < hints.length
+                      ? OutlinedButton.icon(
+                          key: const ValueKey('web-lesson-hint'),
+                          onPressed: _solved
+                              ? null
+                              : () => setState(() => _visibleHints++),
+                          icon: const Icon(Icons.lightbulb_outline, size: 18),
+                          label: Text(
+                            _visibleHints == 0
+                                ? 'Hint${hints.length > 1 ? ' 1 of ${hints.length}' : ''}'
+                                : 'Next hint (${_visibleHints + 1} of ${hints.length})',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        )
+                      : hints.isNotEmpty
+                          ? Text('All ${hints.length} hints shown',
+                              key: const ValueKey('web-lesson-hints-exhausted'),
+                              style: QqType.meta)
+                          : const SizedBox.shrink();
+                  final check = FilledButton.icon(
+                    key: const ValueKey('web-lesson-check'),
+                    onPressed: _solved || _saving ? null : _check,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 44),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      textStyle: QqType.control.copyWith(fontSize: 15),
+                    ),
+                    icon: Icon(_solved ? Icons.check_circle : Icons.check,
+                        size: 18),
+                    label: Text(_solved ? 'Completed' : 'Check Circuit',
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  );
+                  final reminder = constraints.maxWidth >= 640 && !_solved;
+                  return Row(
+                    children: [
+                      Expanded(
+                        child:
+                            Align(alignment: Alignment.centerLeft, child: hint),
+                      ),
+                      const SizedBox(width: 8),
+                      // The trailing group keeps its natural width (up to 70%
+                      // of the bar), so Check sits at the right edge.
+                      ConstrainedBox(
+                        constraints:
+                            BoxConstraints(maxWidth: constraints.maxWidth * .7),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (reminder) ...[
+                              const Flexible(
+                                child: Text('Nothing is checked until you ask',
+                                    key: ValueKey('web-lesson-check-reminder'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: QqType.meta),
+                              ),
+                              const SizedBox(width: 16),
+                            ],
+                            Flexible(child: check),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -743,5 +995,9 @@ class WebComposerExerciseState extends State<WebComposerExercise> {
         markFixedGates: true,
         header: widget.header,
         footer: _footer(context),
+        learning: !debugClassicExerciseLayout,
+        learningIntro: widget.scrollingHeader,
+        learningPaletteLabel:
+            widget.isMastery ? 'Available' : 'Available in this lesson',
       );
 }

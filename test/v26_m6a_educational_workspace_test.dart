@@ -32,6 +32,7 @@ import 'package:quantumquiz/widgets/quantum_state_inspector_content.dart';
 
 import 'support/journey_navigation.dart';
 import 'support/mastery_math_test_platform.dart';
+import 'support/laboratory_composer_finders.dart';
 
 ValueKey<String> _k(String key) => ValueKey(key);
 
@@ -92,6 +93,14 @@ void _size(WidgetTester tester, Size size) {
 }
 
 void main() {
+  // These tests verify the classic three-column exercise layout, kept as a
+  // test seam after M11D moved lessons and challenges to the learning layout.
+  setUpAll(() => debugClassicExerciseLayout = true);
+  tearDownAll(() => debugClassicExerciseLayout = false);
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   useMasteryMathTestPlatform();
 
   group('every existing circuit exercise in the shared session', () {
@@ -465,6 +474,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(_k('web-nav-composer')));
       await tester.pumpAndSettle();
+      await pumpUntilSandboxOpen(tester);
       await tester.tap(find.byKey(_k('web-composer-qubits-2')));
       await tester.pumpAndSettle();
       final session = sandboxSession(tester);

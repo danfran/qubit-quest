@@ -14,6 +14,8 @@ import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/measured_circuit_run_panel.dart';
 
 import 'web_sandbox_measurement_test.dart' show openSandbox, tapVisible;
+import 'support/laboratory_composer_finders.dart';
+import 'package:quantumquiz/screens/web_app.dart' show debugClassicSandboxLayout;
 
 ValueKey<String> _k(String key) => ValueKey(key);
 final _runOnce = find.byKey(_k('web-sandbox-run-once'));
@@ -45,11 +47,13 @@ class _CountingStorage extends InMemoryAppStorage {
 
 Future<void> _measureTab(WidgetTester tester) => tapVisible(
     tester,
-    find.descendant(
-        of: find.byKey(_k('quantum-inspector-view-selector')),
-        matching: find.text('Measure')));
+    anyMeasureTab);
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   testWidgets('H → M: exact before sampling, observed after, same scale',
       (tester) async {
     await openSandbox(tester, InMemoryAppStorage(), qubits: 1);
@@ -78,12 +82,12 @@ void main() {
     final bar = tester.widget<ComparisonBar>(find.byKey(_k('measure-bar-0')));
     expect(bar.exact, closeTo(.5, 1e-12));
     expect(bar.observed, zeros / 1000);
-    expect(find.text('1,000 SHOTS'), findsOneWidget);
+    expect(find.text('1,000 shots'), findsOneWidget);
 
     // Changing the shot count never relabels the existing result.
     await tester.enterText(find.byKey(_k('web-sandbox-shot-count')), '250');
     await tester.pumpAndSettle();
-    expect(find.text('1,000 SHOTS'), findsOneWidget);
+    expect(find.text('1,000 shots'), findsOneWidget);
     expect(find.byKey(_k('measure-shots-changed')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -262,7 +266,7 @@ void main() {
     expect(_text(tester, 'measure-exact-00000'), '3.125%');
     expect(find.byKey(_k('web-sandbox-outcomes-scroll')), findsOneWidget);
     await tapVisible(tester, _runShots);
-    expect(find.text('1,000 SHOTS'), findsOneWidget);
+    expect(find.text('1,000 shots'), findsOneWidget);
     expect(find.textContaining('Total exact probability 100%'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

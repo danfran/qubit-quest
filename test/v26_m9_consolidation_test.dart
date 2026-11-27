@@ -22,6 +22,7 @@ import 'package:quantumquiz/utils/complex_formatter.dart';
 import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/composer_workspace/composer_gate_palette_panel.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
+import 'support/laboratory_composer_finders.dart';
 
 void _size(WidgetTester tester, Size size) {
   tester.view.devicePixelRatio = 1;
@@ -33,6 +34,10 @@ String _expr(List<Complex> v, int n) =>
     formatQuantumStateExpression(v, numQubits: n);
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   group('shared notation', () {
     test('imaginary unit placement is unambiguous', () {
       expect(formatComplex(Complex(0, math.sqrt1_2)), 'i/√2');
@@ -167,6 +172,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
       await tester.pump();
+      await pumpUntilSandboxOpen(tester);
       await tester.tap(find.byKey(const ValueKey('web-composer-qubits-5')));
       await tester.pumpAndSettle();
       // Preview a gate: the inspector shows a subject.

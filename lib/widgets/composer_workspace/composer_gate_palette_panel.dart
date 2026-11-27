@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:quantumquiz/models/composer_session.dart'
-    show minimumQubitsFor;
+import 'package:quantumquiz/models/composer_session.dart' show minimumQubitsFor;
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
@@ -40,6 +39,41 @@ GatePaletteCategory gatePaletteCategoryFor(SelectedGateType type) =>
       SelectedGateType.measureZ => GatePaletteCategory.measurement,
       _ => GatePaletteCategory.basic,
     };
+
+/// The one palette order every web palette uses (v2.6 M11D): Basic, Phase,
+/// Rotations, then Multi-qubit by size.
+const paletteDisplayOrder = [
+  SelectedGateType.hadamard,
+  SelectedGateType.x,
+  SelectedGateType.y,
+  SelectedGateType.z,
+  SelectedGateType.s,
+  SelectedGateType.t,
+  SelectedGateType.rx,
+  SelectedGateType.ry,
+  SelectedGateType.rz,
+  SelectedGateType.cnot,
+  SelectedGateType.cy,
+  SelectedGateType.cz,
+  SelectedGateType.ccnot,
+  SelectedGateType.mcx,
+];
+
+/// [gates] in [paletteDisplayOrder] (stable for unlisted types).
+List<Gate> orderedPaletteGates(Iterable<Gate> gates) {
+  int rank(SelectedGateType t) {
+    final i = paletteDisplayOrder.indexOf(t);
+    return i < 0 ? paletteDisplayOrder.length : i;
+  }
+
+  final list = gates.toList();
+  final indexed = [for (final (i, g) in list.indexed) (i, g)]
+    ..sort((a, b) {
+      final r = rank(a.$2.type).compareTo(rank(b.$2.type));
+      return r != 0 ? r : a.$1.compareTo(b.$1);
+    });
+  return [for (final e in indexed) e.$2];
+}
 
 /// Three-letter labels (CCX, MCX) use a smaller tile font.
 bool isWideGateLabel(SelectedGateType type) =>
@@ -132,7 +166,13 @@ class ComposerGatePalettePanel extends StatefulWidget {
     this.onToggleCollapsed,
     this.circuitScale = 1.0,
     this.numQubits,
+    this.horizontal = false,
   });
+
+  /// Laboratory layout (v2.6 M11C): the same tiles and categories in one
+  /// horizontal strip above the circuit. Groups wrap onto further lines when
+  /// the strip is narrow, so no gate is ever scrolled out of reach.
+  final bool horizontal;
 
   /// The canvas's display scale; drag feedback is drawn at that size.
   final double circuitScale;
@@ -159,23 +199,7 @@ class _ComposerGatePalettePanelState extends State<ComposerGatePalettePanel> {
   final Set<GatePaletteCategory> _folded = {};
   final _scroll = ScrollController();
 
-  static const _displayOrder = [
-    SelectedGateType.hadamard,
-    SelectedGateType.x,
-    SelectedGateType.y,
-    SelectedGateType.z,
-    SelectedGateType.s,
-    SelectedGateType.t,
-    SelectedGateType.rx,
-    SelectedGateType.ry,
-    SelectedGateType.rz,
-    SelectedGateType.cnot,
-    SelectedGateType.cy,
-    SelectedGateType.cz,
-    SelectedGateType.ccnot,
-    SelectedGateType.mcx,
-  ];
-
+  static const _displayOrder = paletteDisplayOrder;
   @override
   void dispose() {
     _scroll.dispose();
@@ -205,7 +229,86 @@ class _ComposerGatePalettePanelState extends State<ComposerGatePalettePanel> {
   }
 
   @override
-  Widget build(BuildContext context) => widget.collapsed ? _rail() : _panel();
+  Widget build(BuildContext context) => widget.horizontal
+      ? _strip()
+      : widget.collapsed
+          ? _rail()
+          : _panel();
+
+  /// Horizontal, categorised strip: each category is a labelled group of
+  /// tiles; groups wrap as a whole and, on very narrow hosts, their tiles
+  /// wrap inside the group.
+  Widget _strip() {
+    final groups = _groups;
+    // Regular tiles when the whole palette fits on one row, compact tiles
+    // when only they fit; otherwise the single row scrolls sideways. The
+    // palette never wraps, so no group (such as Measurement) is left alone
+    // on an otherwise empty second row (v2.6 M11D).
+    final gateCount = groups.values.fold<int>(0, (n, g) => n + g.length);
+    final groupCount = groups.length + (widget.allowsMeasurement ? 1 : 0);
+    double naturalWidth(double tile, double tileGap, double groupGap,
+            double measure) =>
+        gateCount * tile +
+        (gateCount - groups.length).clamp(0, 99) * tileGap +
+        (groupCount - 1).clamp(0, 99) * groupGap +
+        (widget.allowsMeasurement ? measure : 0);
+    return LayoutBuilder(builder: (context, constraints) {
+      final available = constraints.maxWidth;
+      final regular = naturalWidth(44, 6, 22, 56) <= available;
+      final tile = regular ? 44.0 : 40.0;
+      final tileGap = regular ? 6.0 : 4.0;
+      final groupGap = regular ? 22.0 : 14.0;
+      final measure = regular ? 56.0 : 50.0;
+      Widget group(GatePaletteCategory category, List<Widget> tiles) => Column(
+            key: ValueKey('composer-palette-group-${category.name}'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 2, bottom: 5),
+                child: Text(category.label,
+                    style: QqType.meta.copyWith(fontSize: 12, height: 1.2)),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final (i, t) in tiles.indexed) ...[
+                    if (i > 0) SizedBox(width: tileGap),
+                    t,
+                  ],
+                ],
+              ),
+            ],
+          );
+      final children = [
+        for (final entry in groups.entries)
+          group(entry.key, [
+            for (final gate in entry.value) _gateTile(gate, width: tile),
+          ]),
+        if (widget.allowsMeasurement)
+          group(GatePaletteCategory.measurement,
+              [_measurementTile(width: measure)]),
+      ];
+      return Semantics(
+        container: true,
+        label: 'Gate palette',
+        child: SingleChildScrollView(
+          key: const ValueKey('composer-gate-palette-strip'),
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              for (final (i, c) in children.indexed) ...[
+                if (i > 0) SizedBox(width: groupGap),
+                c,
+              ],
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
 
   Widget _panel() {
     final groups = _groups;
@@ -386,9 +489,8 @@ class _ComposerGatePalettePanelState extends State<ComposerGatePalettePanel> {
           ),
           childWhenDragging: face(dimmed: true),
           child: MouseRegion(
-            cursor: unavailable
-                ? SystemMouseCursors.help
-                : SystemMouseCursors.grab,
+            cursor:
+                unavailable ? SystemMouseCursors.help : SystemMouseCursors.grab,
             child: GestureDetector(
               onTap: () => widget.onPreview(gate.type),
               child: face(dimmed: unavailable),

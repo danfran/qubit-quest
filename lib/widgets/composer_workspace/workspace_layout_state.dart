@@ -188,6 +188,18 @@ class WorkspaceLayoutController extends ChangeNotifier {
   WorkspaceLayoutPreferences get preferences => _preferences;
   bool get isLoaded => _loaded;
 
+  /// Laboratory Composer mode (v2.6 M11C): true shows *Focus circuit*
+  /// (analysis hidden, circuit given the height), false shows *Analysis*.
+  /// In memory only, like other disclosure state (M11B D5): it is never
+  /// written to storage, and switching it never touches a session.
+  bool get focusCircuit => _focusCircuit;
+  bool _focusCircuit = false;
+  set focusCircuit(bool value) {
+    if (_disposed || value == _focusCircuit) return;
+    _focusCircuit = value;
+    notifyListeners();
+  }
+
   /// Loads stored preferences once. Preferences changed before loading
   /// finishes win over the stored record.
   Future<void> load() async {

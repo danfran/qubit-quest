@@ -125,7 +125,7 @@ void main() {
       expect(effectiveStyle?.height, expectedStyle.height);
       expect(
           find.byKey(const ValueKey('mastery-task-instruction')), findsNothing);
-      expect(find.text('Task'), findsOneWidget);
+      expect(find.text('TASK'), findsOneWidget);
       if (level.conceptIntro != null) {
         expect(find.text(level.conceptIntro!), findsOneWidget);
       }

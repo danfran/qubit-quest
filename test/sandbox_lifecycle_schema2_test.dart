@@ -13,8 +13,13 @@ import 'package:quantumquiz/widgets/state_vector_display.dart';
 import 'package:quantumquiz/widgets/sandbox_load_recovery.dart';
 import 'sandbox_activation_test.dart' show FaultStorage, definition;
 import 'web_sandbox_measurement_test.dart' show openSandbox, tapVisible;
+import 'package:quantumquiz/screens/web_app.dart' show debugClassicSandboxLayout;
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   setUp(() => SharedPreferences.setMockInitialValues({}));
   testWidgets(
       'native measured edits persist after disposal; no misleading state',
@@ -86,8 +91,9 @@ void main() {
     canvas.circuit.addMeasurement(column: 1, qubit: 0, classicalBit: 2);
     await tester.pumpAndSettle();
     expect(find.text('Circuit not saved. Please retry.'), findsOneWidget);
+    // M11C: reopen the 1-qubit Sandbox from storage via another size.
     await tapVisible(
-        tester, find.byKey(const ValueKey('web-composer-change-qubits')));
+        tester, find.byKey(const ValueKey('web-composer-qubits-2')));
     await tapVisible(
         tester, find.byKey(const ValueKey('web-composer-qubits-1')));
     final reopened = tester

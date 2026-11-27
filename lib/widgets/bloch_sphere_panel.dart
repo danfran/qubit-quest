@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/bloch_explorer_model.dart';
 import 'package:quantumquiz/models/bloch_lab.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 
 enum BlochSphereGestureMode { state, orbit, zoom }
@@ -61,7 +62,11 @@ class BlochSpherePanel extends StatefulWidget {
     required this.onGestureStarted,
     required this.onStateGestureStarted,
     this.overlay,
+    this.showStateLabels = false,
   });
+
+  /// Draws |0⟩ |1⟩ |±⟩ |±i⟩ beside the six poles (v2.6 M11D).
+  final bool showStateLabels;
 
   /// Optional laboratory overlays (v2.6 M8); none by default.
   final BlochSphereOverlay? overlay;
@@ -101,7 +106,8 @@ class _BlochSpherePanelState extends State<BlochSpherePanel> {
           painter: BlochSpherePainter(
               state: widget.state,
               camera: widget.camera,
-              overlay: widget.overlay),
+              overlay: widget.overlay,
+              stateLabels: widget.showStateLabels),
           child: const SizedBox.expand(),
         );
         if (!widget.interactive) return canvas;
@@ -498,11 +504,19 @@ abstract final class BlochOverlayColors {
 }
 
 class BlochSpherePainter extends CustomPainter {
-  const BlochSpherePainter(
-      {required this.state, required this.camera, this.overlay});
+  const BlochSpherePainter({
+    required this.state,
+    required this.camera,
+    this.overlay,
+    this.stateLabels = false,
+  });
   final BlochState state;
   final BlochCamera camera;
   final BlochSphereOverlay? overlay;
+
+  /// Canonical states at the six poles (|0⟩ |1⟩ |+⟩ |−⟩ |+i⟩ |−i⟩), placed
+  /// from the same projection as the sphere (v2.6 M11D).
+  final bool stateLabels;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -542,6 +556,7 @@ class BlochSpherePainter extends CustomPainter {
     final o = overlay;
     if (o != null) _paintOverlay(canvas, p, o);
     final tip = p.project(state.x, state.y, state.z);
+    if (stateLabels) _paintStateLabels(canvas, p, tip);
     canvas.drawLine(
         center,
         tip,
@@ -721,8 +736,78 @@ class BlochSpherePainter extends CustomPainter {
     text.paint(canvas, labelCenter - Offset(text.width / 2, text.height / 2));
   }
 
+  /// Each pole label sits just outside the sphere along its projected
+  /// axis direction, nudged sideways off the axis line (so it never covers
+  /// the axis letter at the axis end). Labels on the far hemisphere are
+  /// dimmer. A label that would overlap the state vector's tip or an
+  /// earlier label moves further out along its direction.
+  void _paintStateLabels(Canvas canvas, BlochProjection p, Offset tip) {
+    const poles = [
+      (0.0, 0.0, 1.0, '|0⟩'),
+      (0.0, 0.0, -1.0, '|1⟩'),
+      (1.0, 0.0, 0.0, '|+⟩'),
+      (-1.0, 0.0, 0.0, '|−⟩'),
+      (0.0, 1.0, 0.0, '|+i⟩'),
+      (0.0, -1.0, 0.0, '|−i⟩'),
+    ];
+    final center = p.center;
+    final placed = <Rect>[Rect.fromCircle(center: tip, radius: 15)];
+    // Axis letters (drawn at 1.25 R on the positive ends) are obstacles too.
+    for (final (x, y, z) in const [
+      (1.25, 0.0, 0.0),
+      (0.0, 1.25, 0.0),
+      (0.0, 0.0, 1.25)
+    ]) {
+      placed.add(Rect.fromCircle(center: p.project(x, y, z), radius: 9));
+    }
+    for (final (x, y, z, text) in poles) {
+      final surface = p.projectWithDepth(x, y, z);
+      var direction = surface.point - center;
+      if (direction.distance < p.radius * .2) {
+        // An axis pointing at the viewer: offset to the lower right.
+        direction = const Offset(1, 1);
+      }
+      final unit = direction / direction.distance;
+      final normal = Offset(-unit.dy, unit.dx);
+      final painter = TextPainter(
+        text: TextSpan(
+          text: text,
+          style: TextStyle(
+            fontFamily: QqType.family,
+            fontFamilyFallback: QqType.fallback,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: QubitQuestColors.textBody
+                .withValues(alpha: surface.depth >= -0.05 ? .95 : .5),
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      Rect rectAt(double out) {
+        final c = surface.point + unit * out + normal * 12;
+        final clamped = p.safeLabelCenter(c, painter.size);
+        return Rect.fromCenter(
+            center: clamped,
+            width: painter.width + 4,
+            height: painter.height + 2);
+      }
+
+      var out = 12.0;
+      var rect = rectAt(out);
+      for (var attempt = 0;
+          attempt < 6 && placed.any((r) => r.overlaps(rect));
+          attempt++) {
+        out += 10;
+        rect = rectAt(out);
+      }
+      placed.add(rect);
+      painter.paint(canvas, rect.topLeft + const Offset(2, 1));
+    }
+  }
+
   @override
   bool shouldRepaint(covariant BlochSpherePainter oldDelegate) =>
+      oldDelegate.stateLabels != stateLabels ||
       oldDelegate.state != state ||
       oldDelegate.camera != camera ||
       oldDelegate.overlay != overlay;

@@ -16,11 +16,16 @@ import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
 import 'package:quantumquiz/widgets/composer_placement_flow.dart';
 import 'package:quantumquiz/widgets/composer_workspace/circuit_scale_control.dart';
+import 'package:quantumquiz/widgets/composer_workspace/composer_analysis_workspace.dart';
+import 'package:quantumquiz/widgets/qubit_quest_workspace_primitives.dart';
+import 'package:quantumquiz/widgets/state_amplitude_panel.dart';
+import 'package:quantumquiz/widgets/lesson_state_comparison.dart';
 import 'package:quantumquiz/widgets/composer_workspace/composer_gate_palette_panel.dart';
 import 'package:quantumquiz/widgets/composer_workspace/composer_results_panel.dart';
 import 'package:quantumquiz/widgets/composer_workspace/composer_workspace_toolbar.dart';
 import 'package:quantumquiz/widgets/composer_workspace/desktop_composer_workspace.dart';
 import 'package:quantumquiz/widgets/composer_workspace/gate_inspector_panel.dart';
+import 'package:quantumquiz/widgets/composer_workspace/laboratory_composer_workspace.dart';
 import 'package:quantumquiz/widgets/composer_workspace/workspace_layout_state.dart';
 import 'package:quantumquiz/widgets/measured_circuit_run_panel.dart';
 import 'package:quantumquiz/widgets/quantum_circuit_painter.dart';
@@ -83,7 +88,30 @@ class ComposerSessionWorkspace extends StatefulWidget {
     this.markFixedGates = false,
     this.header,
     this.footer,
+    this.laboratory = false,
+    this.learning = false,
+    this.learningPaletteLabel = 'Available in this lesson',
+    this.learningIntro,
   });
+
+  /// Learning layout: a header that scrolls with the work (narrow hosts).
+  final Widget? learningIntro;
+
+  /// The learning layout (v2.6 M11D) for Journey lessons and Mastery
+  /// circuit challenges: the laboratory skeleton composed for a task. The
+  /// restricted palette with undo, redo and reset; the content-sized
+  /// circuit; "Your circuit now" against the target with the activity's
+  /// validation scope; the contextual inspector. No Sandbox toolbar,
+  /// qubit selector, Measure tab or Focus mode.
+  final bool learning;
+  final String learningPaletteLabel;
+
+  /// The laboratory layout (v2.6 M11C): horizontal palette, content-sized
+  /// circuit, central analysis and a contextual inspector, with *Analysis*
+  /// and *Focus circuit* modes. False keeps the classic three-column layout
+  /// (Journey, Mastery and Notebook hosts until their M11D redesign). Both
+  /// present the same session through the same commands.
+  final bool laboratory;
 
   final ComposerWorkspaceSlot slot;
   final WorkspaceLayoutController layout;
@@ -144,6 +172,13 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
       QuantumInspectorSelection();
   final ScrollController _resultsScroll = ScrollController();
 
+  /// Laboratory analysis tab and Bloch camera (presentation only).
+  final ComposerAnalysisSelection _analysisSelection =
+      ComposerAnalysisSelection();
+
+  /// Inspector disclosures the learner opened; in memory (M11B D5).
+  final Set<String> _openInspectorSections = {};
+
   double get _circuitScale => widget.layout.preferences.circuitScale;
 
   /// Presentation only: never touches the session, its history, results or
@@ -186,6 +221,7 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
   void initState() {
     super.initState();
     _session.addListener(_sessionChanged);
+    widget.layout.addListener(_layoutChanged);
     _consumeFadingStatus();
   }
 
@@ -196,12 +232,17 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
       oldWidget.slot.session.removeListener(_sessionChanged);
       widget.slot.session.addListener(_sessionChanged);
     }
+    if (!identical(oldWidget.layout, widget.layout)) {
+      oldWidget.layout.removeListener(_layoutChanged);
+      widget.layout.addListener(_layoutChanged);
+    }
     _consumeFadingStatus();
   }
 
   @override
   void dispose() {
     _infoTimer?.cancel();
+    widget.layout.removeListener(_layoutChanged);
     if (!_session.isDisposed) _session.removeListener(_sessionChanged);
     _resultsScroll.dispose();
     super.dispose();
@@ -240,8 +281,9 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
       );
   }
 
-  static const String _measurementRunNote =
-      'Run it from the Measure tab in Results.';
+  String get _measurementRunNote => widget.laboratory
+      ? 'Run it from the Measure tab.'
+      : 'Run it from the Measure tab in Results.';
 
   void _dropMeasurement(CircuitLocation location) {
     final outcome = _session.insertMeasurement(location);
@@ -404,14 +446,17 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
-          'Before measurement',
-          key: ValueKey('web-composer-pre-measurement-caption'),
-          style: TextStyle(
-            color: QubitQuestColors.textPrimary,
-            fontWeight: FontWeight.w800,
+        // The laboratory's panel title already says "State before
+        // measurement"; the classic results column needs the caption.
+        if (!widget.laboratory)
+          const Text(
+            'Before measurement',
+            key: ValueKey('web-composer-pre-measurement-caption'),
+            style: TextStyle(
+              color: QubitQuestColors.textPrimary,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
         const Text(_preMeasurementNote, style: QubitQuestTypography.supporting),
         const SizedBox(height: 8),
         // The copied expression leaves this caption behind, so it names
@@ -421,9 +466,43 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
     );
   }
 
+  /// The laboratory's Current State panel (v2.6 M11C.1): the ideal state,
+  /// or the state just before measurement, or why there is none.
+  Widget _buildLaboratoryState(PreMeasurementState? preMeasurement) {
+    final numQubits = _activeCircuit.currentLevel.numQubits;
+    if (preMeasurement != null && preMeasurement.stateVector == null) {
+      return QqWorkspacePanel(
+        key: const ValueKey('web-composer-state-unavailable'),
+        label: 'State before measurement',
+        child: Text(preMeasurement.unavailableReason!, style: QqType.meta),
+      );
+    }
+    final measured = preMeasurement != null;
+    return QqCurrentStatePanel(
+      key: const ValueKey('web-composer-current-state'),
+      stateVector: preMeasurement?.stateVector ??
+          _activeCircuit.currentState.stateVector,
+      numQubits: numQubits,
+      title: measured ? 'State before measurement' : 'Current state',
+      stateLabel: measured ? '|ψ_pre⟩' : '|ψ⟩',
+      contextNote: measured
+          ? 'Just before the measurements: not a sampled outcome. Use '
+              'Measure to run the circuit.'
+          : null,
+      nonZeroOnly: _slot.nonZeroOnly,
+      onNonZeroOnlyChanged: (value) =>
+          setState(() => _slot.nonZeroOnly = value),
+      precisionOpen: _openInspectorSections.contains('state-precision'),
+      onPrecisionChanged: (open) => open
+          ? _openInspectorSections.add('state-precision')
+          : _openInspectorSections.remove('state-precision'),
+    );
+  }
+
   /// The single Measure tab for every circuit; the panel picks its wording
   /// from whether the circuit has M operations.
   Widget _buildMeasurePanel() => MeasuredCircuitRunPanel(
+        splitLayout: widget.laboratory,
         measurements: _activeCircuit.measurements,
         numQubits: _activeCircuit.currentLevel.numQubits,
         running: _session.running,
@@ -503,6 +582,12 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
       tab: _inspectorTab,
       onTabChanged: (tab) => setState(() => _inspectorTab = tab),
       onOpenRelatedConcept: widget.onOpenNotebookEntry,
+      contextual: widget.laboratory || widget.learning,
+      onClose: widget.laboratory || widget.learning ? _closeInspector : null,
+      openSections: _openInspectorSections,
+      onSectionChanged: (section, open) => open
+          ? _openInspectorSections.add(section)
+          : _openInspectorSections.remove(section),
       actions: GateInspectorActions(
         onReplace: _replaceSelectedGate,
         onDuplicate: _duplicateSelectedGate,
@@ -581,6 +666,269 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
           : null,
     );
   }
+
+  /// Closes the contextual inspector by clearing the selection and any
+  /// palette preview. Never edits the circuit.
+  void _closeInspector() {
+    _session.select(null);
+    setState(() => _slot.previewType = null);
+  }
+
+  bool get _inspecting =>
+      _session.selectedId != null || _slot.previewType != null;
+
+  /// The laboratory analysis workspace: the same state, Bloch and Measure
+  /// content as [_buildResults], arranged centrally.
+  Widget _buildAnalysis(PreMeasurementState? preMeasurement) {
+    final measured = _activeCircuit.hasMeasurements;
+    final single = _session.singleShot;
+    final after = measured &&
+            _activeCircuit.currentLevel.numQubits == 1 &&
+            single?.conditionalState != null
+        ? single
+        : null;
+    final showAfter = after != null && _blochAfterRun;
+    final probabilityVector = measured
+        ? preMeasurement?.stateVector
+        : _activeCircuit.currentState.stateVector;
+    return ComposerAnalysisWorkspace(
+      selection: _analysisSelection,
+      measured: measured,
+      stateView: _buildLaboratoryState(preMeasurement),
+      numQubits: _activeCircuit.currentLevel.numQubits,
+      probabilityStateVector: probabilityVector,
+      probabilityNote: probabilityVector == null
+          ? 'This circuit has no single state before measurement (an '
+              'operation follows a measurement). Use Measure to run it and '
+              'see its outcomes.'
+          : null,
+      measureView:
+          _session.policy.runsExperiments ? _buildMeasurePanel() : null,
+      blochStateVector: showAfter
+          ? after.conditionalState!
+          : preMeasurement?.stateVector ??
+              _activeCircuit.currentState.stateVector,
+      allowBloch: !measured || preMeasurement!.isAvailable || showAfter,
+      blochCaption: !measured
+          ? null
+          : showAfter
+              ? 'After the single run (outcome ${after.outcome})'
+              : 'Before measurement',
+      blochNote: !measured
+          ? null
+          : showAfter
+              ? 'The state this run left after measuring. Another run may '
+                  'give the other outcome and state.'
+              : 'The state just before M, not a sampled outcome. '
+                  'Measuring it gives 0 or 1 at random.',
+      onOpenBlochExplorer: _activeCircuit.currentLevel.numQubits == 1
+          ? widget.onExploreInBloch
+          : null,
+      blochSelector: after == null
+          ? null
+          : SegmentedButton<bool>(
+              key: const ValueKey('bloch-pre-post-selector'),
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                visualDensity:
+                    const VisualDensity(horizontal: -2, vertical: -3),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: const TextStyle(fontSize: 12),
+              ),
+              segments: const [
+                ButtonSegment(value: false, label: Text('Before measurement')),
+                ButtonSegment(value: true, label: Text('After single run')),
+              ],
+              selected: {showAfter},
+              onSelectionChanged: (v) =>
+                  setState(() => _blochAfterRun = v.single),
+            ),
+      blochUnavailableMessage: measured && preMeasurement!.isAvailable
+          ? null
+          : preMeasurement?.unavailableReason,
+    );
+  }
+
+  Widget _buildLaboratory(PreMeasurementState? preMeasurement) =>
+      LaboratoryComposerWorkspace(
+        key: widget.workspaceKey,
+        shortcutsEnabled: widget.shortcutsEnabled,
+        onUndo: _undo,
+        onRedo: _redo,
+        focusCircuit: widget.layout.focusCircuit,
+        canvasHeight: _scaledDrawingHeight + _canvasChrome,
+        header: ({required bool compact}) => ComposerWorkspaceToolbar(
+          title: 'Quantum Composer',
+          context: widget.contextLabel,
+          qubitCount: _slot.qubitCount,
+          qubitChoices: _session.policy.permittedQubitCounts.toList()..sort(),
+          onSelectQubits: widget.onSelectQubits,
+          inlineQubitSelector: true,
+          canUndo: _session.canUndo,
+          canRedo: _session.canRedo,
+          onUndo: _undo,
+          onRedo: _redo,
+          clearLabel: widget.clearLabel ??
+              (_session.policy.clearAction == ComposerClearAction.reset
+                  ? 'Reset'
+                  : 'Clear'),
+          onClear: _clearCircuit,
+          saveQueue: _session.saveQueue,
+          focusCircuit: widget.layout.focusCircuit,
+          onFocusCircuitChanged: (focus) => widget.layout.focusCircuit = focus,
+          compact: compact,
+        ),
+        palette: (_) => ComposerGatePalettePanel(
+          horizontal: true,
+          circuitScale: _circuitScale,
+          numQubits: _activeCircuit.currentLevel.numQubits,
+          gates: _gates,
+          allowsMeasurement: _session.policy.allowsMeasurement,
+          previewedType: _slot.previewType,
+          onPreview: _previewGate,
+        ),
+        narrowPalette: (_) => ComposerGatePalette(
+          numQubits: _activeCircuit.currentLevel.numQubits,
+          measurementDraggable: _session.policy.allowsMeasurement,
+          gates: _gates,
+          embedded: true,
+          onGateTap: (gate) => _previewGate(gate.type),
+          onInspectGate: (gate) => _previewGate(gate.type),
+        ),
+        canvas: (_) => _buildCanvasRegion(),
+        analysis: (_) => _buildAnalysis(preMeasurement),
+        inspector: _inspecting
+            ? (_) => _buildInspector(false, null, false, null)
+            : null,
+        onCloseInspector: _closeInspector,
+      );
+
+  /// Undo, redo and reset for the learning layout (same commands and keys
+  /// as the Composer toolbar).
+  Widget _learningActions() {
+    final reset = widget.clearLabel ??
+        (_session.policy.clearAction == ComposerClearAction.reset
+            ? 'Reset'
+            : 'Clear');
+    return Row(
+      key: const ValueKey('lesson-workspace-actions'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          key: const ValueKey('composer-undo'),
+          tooltip: 'Undo',
+          onPressed: _session.canUndo ? _undo : null,
+          icon: const Icon(Icons.undo_rounded, size: 20),
+        ),
+        IconButton(
+          key: const ValueKey('composer-redo'),
+          tooltip: 'Redo',
+          onPressed: _session.canRedo ? _redo : null,
+          icon: const Icon(Icons.redo_rounded, size: 20),
+        ),
+        const SizedBox(width: 4),
+        TextButton.icon(
+          key: const ValueKey('web-clear-circuit'),
+          onPressed: _clearCircuit,
+          icon: const Icon(Icons.restart_alt_rounded, size: 18),
+          label: Text(reset),
+        ),
+      ],
+    );
+  }
+
+  Widget _learningPalette({required bool narrow}) {
+    final label = Text(widget.learningPaletteLabel.toUpperCase(),
+        key: const ValueKey('lesson-palette-label'),
+        style: QqType.panelHeading.copyWith(color: QubitQuestColors.textMuted));
+    if (narrow) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(children: [Expanded(child: label), _learningActions()]),
+          const SizedBox(height: 6),
+          ComposerGatePalette(
+            numQubits: _activeCircuit.currentLevel.numQubits,
+            measurementDraggable: false,
+            gates: _gates,
+            embedded: true,
+            onGateTap: (gate) => _previewGate(gate.type),
+            onInspectGate: (gate) => _previewGate(gate.type),
+          ),
+        ],
+      );
+    }
+    return Row(
+      key: const ValueKey('lesson-palette-row'),
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              label,
+              const SizedBox(height: 8),
+              ComposerGatePalettePanel(
+                horizontal: true,
+                circuitScale: _circuitScale,
+                numQubits: _activeCircuit.currentLevel.numQubits,
+                gates: _gates,
+                allowsMeasurement: _session.policy.allowsMeasurement,
+                previewedType: _slot.previewType,
+                onPreview: _previewGate,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        _learningActions(),
+      ],
+    );
+  }
+
+  /// The learning layout's analysis: the learner's state against the
+  /// activity's target and its validation scope.
+  Widget _buildLessonComparison() {
+    final level = _activeCircuit.currentLevel;
+    final showTarget = _session.policy.showsTargetState;
+    return LessonStateComparison(
+      key: const ValueKey('lesson-comparison'),
+      currentState: _activeCircuit.currentState.stateVector,
+      numQubits: level.numQubits,
+      validationMode: level.validationMode,
+      targetState: showTarget
+          ? [for (final column in level.solutionFinalVector) column.first]
+          : null,
+      targetLabel: showTarget ? level.targetStateLabel : null,
+      targetExpression: showTarget ? level.targetStateExpression : null,
+      nonZeroOnly: _slot.nonZeroOnly,
+      onNonZeroOnlyChanged: (value) =>
+          setState(() => _slot.nonZeroOnly = value),
+    );
+  }
+
+  Widget _buildLearning() => LaboratoryComposerWorkspace(
+        key: widget.workspaceKey,
+        shortcutsEnabled: widget.shortcutsEnabled,
+        onUndo: _undo,
+        onRedo: _redo,
+        focusCircuit: false,
+        canvasHeight: _scaledDrawingHeight + _canvasChrome,
+        header: ({required bool compact}) => const SizedBox.shrink(),
+        palette: (_) => _learningPalette(narrow: false),
+        narrowPalette: (_) => _learningPalette(narrow: true),
+        canvas: (_) => _buildCanvasRegion(),
+        analysis: (_) => _buildLessonComparison(),
+        inspector: _inspecting
+            ? (_) => _buildInspector(false, null, false, null)
+            : null,
+        onCloseInspector: _closeInspector,
+        naturalCanvasHeight: true,
+        alignStart: true,
+        intro: widget.learningIntro,
+      );
 
   /// The Bloch tab's header: the pre/post selector, if any, and the
   /// "Explore in Bloch Explorer" action for one-qubit circuits (v2.6 M8).
@@ -749,6 +1097,9 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
         qubitCount: _slot.qubitCount,
         qubitChoices: _session.policy.permittedQubitCounts.toList()..sort(),
         onSelectQubits: widget.onSelectQubits,
+        // The Composer opens straight into the Sandbox (M11C): the size is
+        // always one visible choice in the header.
+        inlineQubitSelector: true,
         canUndo: _session.canUndo,
         canRedo: _session.canRedo,
         onUndo: _undo,
@@ -766,43 +1117,64 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
         compact: compact,
       );
 
+  /// The laboratory reads the Analysis / Focus mode from the layout
+  /// controller; the classic layout listens to it on its own.
+  void _layoutChanged() {
+    if (mounted && widget.laboratory) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final preMeasurement = _session.preMeasurement;
-    final workspace = DesktopComposerWorkspace(
-      key: widget.workspaceKey,
-      layout: widget.layout,
-      shortcutsEnabled: widget.shortcutsEnabled,
-      inspectorIdle: _session.selectedId == null && _slot.previewType == null,
-      onUndo: _undo,
-      onRedo: _redo,
-      canvasMinHeight: _scaledDrawingHeight + _canvasChrome,
-      toolbar: _buildToolbar,
-      palette: (collapsed, onToggle) => ComposerGatePalettePanel(
-        circuitScale: _circuitScale,
-        numQubits: _activeCircuit.currentLevel.numQubits,
-        gates: _gates,
-        allowsMeasurement: _session.policy.allowsMeasurement,
-        previewedType: _slot.previewType,
-        onPreview: _previewGate,
-        collapsed: collapsed,
-        onToggleCollapsed: onToggle,
-      ),
-      narrowPalette: (_) => ComposerGatePalette(
-        measurementDraggable: _session.policy.allowsMeasurement,
-        gates: _gates,
-        embedded: true,
-        onGateTap: (gate) => _previewGate(gate.type),
-        // The stacked layout keeps the integrated inspector below the
-        // canvas, so inspection previews there instead of opening a modal.
-        onInspectGate: (gate) => _previewGate(gate.type),
-      ),
-      canvas: (_) => _buildCanvasRegion(),
-      inspector: _buildInspector,
-      results: (collapsed, onToggle) =>
-          _buildResults(collapsed, onToggle, preMeasurement),
-    );
-    final header = widget.header;
+    final workspace = widget.learning
+        ? _buildLearning()
+        : widget.laboratory
+            ? _buildLaboratory(preMeasurement)
+            : DesktopComposerWorkspace(
+                key: widget.workspaceKey,
+                layout: widget.layout,
+                shortcutsEnabled: widget.shortcutsEnabled,
+                inspectorIdle:
+                    _session.selectedId == null && _slot.previewType == null,
+                onUndo: _undo,
+                onRedo: _redo,
+                canvasMinHeight: _scaledDrawingHeight + _canvasChrome,
+                toolbar: _buildToolbar,
+                palette: (collapsed, onToggle) => ComposerGatePalettePanel(
+                  circuitScale: _circuitScale,
+                  numQubits: _activeCircuit.currentLevel.numQubits,
+                  gates: _gates,
+                  allowsMeasurement: _session.policy.allowsMeasurement,
+                  previewedType: _slot.previewType,
+                  onPreview: _previewGate,
+                  collapsed: collapsed,
+                  onToggleCollapsed: onToggle,
+                ),
+                narrowPalette: (_) => ComposerGatePalette(
+                  measurementDraggable: _session.policy.allowsMeasurement,
+                  gates: _gates,
+                  embedded: true,
+                  onGateTap: (gate) => _previewGate(gate.type),
+                  // The stacked layout keeps the integrated inspector below the
+                  // canvas, so inspection previews there instead of opening a modal.
+                  onInspectGate: (gate) => _previewGate(gate.type),
+                ),
+                canvas: (_) => _buildCanvasRegion(),
+                inspector: _buildInspector,
+                results: (collapsed, onToggle) =>
+                    _buildResults(collapsed, onToggle, preMeasurement),
+              );
+    // The classic layout has no scrolling intro: a narrow host's header is
+    // shown fixed above it instead.
+    final intro = widget.learning ? null : widget.learningIntro;
+    final header = widget.header ??
+        (intro == null
+            ? null
+            : ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxHeight: MediaQuery.sizeOf(context).height * .45),
+                child: SingleChildScrollView(child: intro),
+              ));
     final footer = widget.footer;
     if (header == null && footer == null) return workspace;
     return Column(

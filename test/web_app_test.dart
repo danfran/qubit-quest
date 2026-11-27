@@ -25,6 +25,7 @@ import 'package:quantumquiz/widgets/circuit_geometry.dart';
 import 'package:quantumquiz/widgets/circuit_layout_metrics.dart';
 import 'support/journey_navigation.dart';
 import 'package:quantumquiz/screens/web_journey_overview.dart';
+import 'support/laboratory_composer_finders.dart';
 
 // The metrics request a preferred height; the shared workbench can constrain it.
 // Check the actual constraint contract AND complete drawing/hit-area containment.
@@ -61,6 +62,10 @@ class _FailingCircuitStorage extends InMemoryAppStorage {
 }
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   Future<void> setSize(
     WidgetTester tester,
     Size size,
@@ -82,7 +87,9 @@ void main() {
     await pumpApp(tester);
 
     void expectNoGlobalLevel() {
-      expect(tester.widget<AppBar>(find.byType(AppBar)).actions, isNull);
+      // M11C shell v2: wide layouts have no top bar; the brand heads the
+      // navigation instead.
+      expect(find.byType(AppBar), findsNothing);
       expect(
           find.descendant(
               of: find.byType(AppBar),
@@ -130,8 +137,10 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
     await tester.pump();
-    expect(find.text('Choose Number of Qubits'), findsOneWidget);
+    // M11C: the Composer opens straight into the Sandbox.
+    expect(find.byKey(const ValueKey('web-composer-opening')), findsOneWidget);
     expectNoGlobalLevel();
+    await pumpUntilSandboxOpen(tester);
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-3')));
     await tester.pump();
     expect(find.byType(ComposerGatePalettePanel), findsOneWidget);
@@ -169,6 +178,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
     await tester.pumpAndSettle();
+    await pumpUntilSandboxOpen(tester);
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-2')));
     await tester.pump();
     expect(find.byType(ComposerCircuitCanvas), findsOneWidget);
@@ -190,6 +200,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
     await tester.pumpAndSettle();
+    await pumpUntilSandboxOpen(tester);
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-1')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Clear'));
@@ -232,6 +243,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
     await tester.pump();
+    await pumpUntilSandboxOpen(tester);
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-3')));
     await tester.pump();
 
@@ -244,6 +256,7 @@ void main() {
     await pumpApp(tester);
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
     await tester.pump();
+    await pumpUntilSandboxOpen(tester);
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-3')));
     await tester.pump();
 
@@ -321,6 +334,7 @@ void main() {
     await tester.pump();
 
     Future<double> openAndMeasure(int qubitCount) async {
+      await pumpUntilSandboxOpen(tester);
       await tester.tap(
         find.byKey(ValueKey('web-composer-qubits-$qubitCount')),
       );
@@ -355,19 +369,16 @@ void main() {
       isTrue,
     );
 
-    await tester.tap(find.byKey(const ValueKey('web-composer-change-qubits')));
-    await tester.pump();
     final oneQubitHeight = await openAndMeasure(1);
     expectCanvasFits(tester, 1);
 
-    await tester.tap(find.byKey(const ValueKey('web-composer-change-qubits')));
-    await tester.pump();
     final twoQubitHeight = await openAndMeasure(2);
     expectCanvasFits(tester, 2);
-    // The viewport is set by the workspace region, not by the circuit; the
-    // drawing inside it grows with the qubit count.
-    expect(twoQubitHeight, oneQubitHeight);
-    expect(populatedFiveQubitHeight, oneQubitHeight);
+    // The canvas is content-sized (M3.1): it grows with the qubit count.
+    // (Before M11C this test measured the previous session's canvas one
+    // frame after the switch, so the heights looked equal.)
+    expect(twoQubitHeight, greaterThan(oneQubitHeight));
+    expect(populatedFiveQubitHeight, greaterThan(twoQubitHeight));
     expect(CircuitLayoutMetrics.drawingHeight(5),
         greaterThan(CircuitLayoutMetrics.drawingHeight(2)));
   });
@@ -378,6 +389,7 @@ void main() {
     await pumpApp(tester);
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
     await tester.pump();
+    await pumpUntilSandboxOpen(tester);
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-3')));
     await tester.pump();
 
@@ -411,6 +423,7 @@ void main() {
     await pumpApp(tester);
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
     await tester.pump();
+    await pumpUntilSandboxOpen(tester);
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-1')));
     await tester.pump();
 
@@ -457,6 +470,7 @@ void main() {
     await pumpApp(tester);
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
     await tester.pump();
+    await pumpUntilSandboxOpen(tester);
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-2')));
     await tester.pump();
 
@@ -515,6 +529,7 @@ void main() {
     await pumpApp(tester);
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
     await tester.pump();
+    await pumpUntilSandboxOpen(tester);
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-2')));
     await tester.pump();
 

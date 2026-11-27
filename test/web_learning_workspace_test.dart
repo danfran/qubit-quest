@@ -26,6 +26,10 @@ import 'support/mastery_math_test_platform.dart';
 import 'support/journey_navigation.dart';
 
 void main() {
+  // These tests verify the classic three-column exercise layout, kept as a
+  // test seam after M11D moved lessons and challenges to the learning layout.
+  setUpAll(() => debugClassicExerciseLayout = true);
+  tearDownAll(() => debugClassicExerciseLayout = false);
   useMasteryMathTestPlatform();
   Future<CampaignProgressController> controllerWith(
       [CampaignProgressState? state]) async {
@@ -80,10 +84,11 @@ void main() {
     expect(find.text(getQQLevelById(1)!.title!), findsOneWidget);
     expect(find.byKey(const ValueKey('web-compact-question')), findsOneWidget);
     expect(find.byKey(const ValueKey('web-compact-task')), findsOneWidget);
+    // M11D: the question and the Task callout sit in the context header.
     expect(
         find.descendant(
             of: find.byKey(const ValueKey('web-compact-activity-context')),
-            matching: find.byType(ActivityInstructionPresentation)),
+            matching: find.byKey(const ValueKey('web-task-callout'))),
         findsOneWidget);
     expect(find.byKey(const ValueKey('web-lesson-1-learning-brief')),
         findsNothing);
@@ -102,7 +107,9 @@ void main() {
     final activityWidth = tester
         .getSize(find.byKey(const ValueKey('web-chapter-activity')))
         .width;
-    expect(activityWidth, greaterThan(1200));
+    // M11D: the curriculum stays beside the lesson, so the lesson area is
+    // the window less the global navigation and the curriculum.
+    expect(activityWidth, greaterThan(900));
 
     await tester.tap(find.byKey(const ValueKey('web-lesson-chooser')));
     await tester.pumpAndSettle();

@@ -17,6 +17,7 @@ import 'package:quantumquiz/widgets/composer_workspace/composer_gate_palette_pan
 import 'package:quantumquiz/widgets/composer_workspace/workspace_layout_state.dart';
 
 import 'support/composer_canvas_geometry.dart';
+import 'support/laboratory_composer_finders.dart';
 
 ValueKey<String> _k(String key) => ValueKey(key);
 
@@ -38,6 +39,8 @@ Future<void> _open(WidgetTester tester, AppStorage storage,
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(_k('web-nav-composer')));
   await tester.pumpAndSettle();
+  await pumpUntilSandboxOpen(tester);
+  await pumpUntilSandboxOpen(tester);
   await tester.tap(find.byKey(ValueKey('web-composer-qubits-$qubits')));
   await tester.pumpAndSettle();
 }
@@ -76,6 +79,10 @@ Finder _palette(SelectedGateType type) =>
     find.byKey(ValueKey('composer-palette-gate-${type.name}'));
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   for (final percent in [100, 125, 150]) {
     testWidgets('$percent%: drops, moves and hit-tests agree with geometry',
         (tester) async {

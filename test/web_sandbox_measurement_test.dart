@@ -17,6 +17,7 @@ import 'package:quantumquiz/widgets/circuit_geometry.dart';
 import 'package:quantumquiz/models/measured_circuit_runner.dart';
 import 'package:quantumquiz/widgets/measured_circuit_run_panel.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
+import 'support/laboratory_composer_finders.dart';
 
 class DelayedStorage extends InMemoryAppStorage {
   Completer<void>? pendingSave;
@@ -47,9 +48,7 @@ Future<void> tapVisible(WidgetTester tester, Finder finder) async {
     await tester.pumpAndSettle();
   }
   // Run controls live in the Inspector's Measure tab: open it when needed.
-  final measureTab = find.descendant(
-      of: find.byKey(const ValueKey('quantum-inspector-view-selector')),
-      matching: find.text('Measure'));
+  final measureTab = anyMeasureTab;
   if (finder.evaluate().isEmpty && measureTab.evaluate().isNotEmpty) {
     await tapVisible(tester, measureTab);
   }
@@ -72,6 +71,8 @@ Future<void> openSandbox(WidgetTester tester, InMemoryAppStorage storage,
     await tapVisible(tester, find.byKey(const ValueKey('web-navigation-menu')));
   }
   await tapVisible(tester, find.byKey(const ValueKey('web-nav-composer')));
+  await pumpUntilSandboxOpen(tester);
+  await pumpUntilSandboxOpen(tester);
   await tapVisible(tester, find.byKey(ValueKey('web-composer-qubits-$qubits')));
   // Override scale at the existing MediaQuery boundary without changing app code.
   tester.platformDispatcher.textScaleFactorTestValue = scale;
@@ -80,6 +81,10 @@ Future<void> openSandbox(WidgetTester tester, InMemoryAppStorage storage,
 }
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   testWidgets(
       'no-op, rejected edits and Inspector interactions retain result; simulation error refuses run',
       (tester) async {
@@ -218,8 +223,9 @@ void main() {
     expect(results, findsNothing);
     await tapVisible(tester, run);
     expect(shotsResult(tester).counts, {'00': 1000});
+    // M11C: reopen the 2-qubit Sandbox from storage via another size.
     await tapVisible(
-        tester, find.byKey(const ValueKey('web-composer-change-qubits')));
+        tester, find.byKey(const ValueKey('web-composer-qubits-1')));
     await tapVisible(
         tester, find.byKey(const ValueKey('web-composer-qubits-2')));
     expect(results, findsNothing);

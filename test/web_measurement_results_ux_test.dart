@@ -11,6 +11,8 @@ import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 
 import 'web_sandbox_measurement_test.dart' show openSandbox, tapVisible;
+import 'support/laboratory_composer_finders.dart';
+import 'package:quantumquiz/screens/web_app.dart' show debugClassicSandboxLayout;
 
 class _CountingStorage extends InMemoryAppStorage {
   int writes = 0;
@@ -58,10 +60,7 @@ Future<QuantumCircuit> _measured(
   return c;
 }
 
-final _measureTab = find.descendant(
-  of: find.byKey(_k('quantum-inspector-view-selector')),
-  matching: find.text('Measure'),
-);
+final _measureTab = anyMeasureTab;
 final _inspectorCard = find.byKey(_k('web-composer-inspector-card'));
 
 double _inspectorOffset(WidgetTester tester) => tester
@@ -139,6 +138,10 @@ BlochSpherePanel _sphere(WidgetTester tester) =>
     tester.widget<BlochSpherePanel>(find.byType(BlochSpherePanel));
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   group('results visibility', () {
     for (final size in const [Size(1440, 900), Size(1440, 700)]) {
       testWidgets(
@@ -166,6 +169,8 @@ void main() {
         (tester) async {
       await _measured(tester, qubits: 3, size: const Size(1440, 640));
       await _tapInPlace(tester, _runOnce);
+      await tester.ensureVisible(_runShots);
+      await tester.pumpAndSettle();
       final page = _pageOffset(tester);
       final inspector = _inspectorOffset(tester);
       final canvas = tester.getRect(find.byKey(_k('web-composer-canvas')));
@@ -200,8 +205,10 @@ void main() {
         final once = tester.getRect(_runOnce);
         final shots = tester.getRect(_runShots);
         final field = tester.getRect(_shotField);
-        expect(once.bottom, lessThanOrEqualTo(shots.top),
-            reason: 'Run once is on its own row above Run shots');
+        // M11C.1: the experiment's primary action (Run shots with its
+        // count) comes first; Run once is the secondary row below it.
+        expect(shots.bottom, lessThanOrEqualTo(once.top),
+            reason: 'Run once is on its own row below Run shots');
         expect((field.center.dy - shots.center.dy).abs(), lessThan(4),
             reason: 'shot count is on the Run shots row');
         expect(field.left, greaterThan(shots.right));
@@ -214,7 +221,7 @@ void main() {
       await _typeShots(tester, '876');
       expect(_shotError, findsNothing);
       await tapVisible(tester, _runShots);
-      expect(find.text('876 SHOTS'), findsOneWidget);
+      expect(find.text('876 shots'), findsOneWidget);
       expect(_histogramTotal(tester), 876);
     });
 
@@ -227,7 +234,7 @@ void main() {
       expect(tester.widget<TextField>(_shotField).controller!.text, '100');
       await _typeShots(tester, '2,500');
       await tapVisible(tester, _runShots);
-      expect(find.text('2,500 SHOTS'), findsOneWidget);
+      expect(find.text('2,500 shots'), findsOneWidget);
       expect(_histogramTotal(tester), 2500);
     });
 
@@ -246,7 +253,7 @@ void main() {
         expect(tester.widget<TextField>(_shotField).controller!.text, input,
             reason: 'never rounded or substituted');
       }
-      expect(tester.widget<FilledButton>(_runOnce).onPressed, isNotNull,
+      expect(tester.widget<ButtonStyleButton>(_runOnce).onPressed, isNotNull,
           reason: 'Run once does not depend on the shot count');
       await _typeShots(tester, '10000');
       expect(_shotError, findsNothing);

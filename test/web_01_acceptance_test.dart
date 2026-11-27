@@ -16,8 +16,13 @@ import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
 import 'package:quantumquiz/widgets/composer_workspace/composer_gate_palette_panel.dart';
 import 'package:quantumquiz/screens/web_journey_overview.dart';
+import 'support/laboratory_composer_finders.dart';
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   Future<CampaignProgressController> loadedController(
     CampaignProgressState state,
   ) async {
@@ -156,6 +161,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
     await tester.pump();
+    await pumpUntilSandboxOpen(tester);
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-3')));
     await tester.pump();
     // Desktop tiers use the categorised panel; stacked layouts the strip.

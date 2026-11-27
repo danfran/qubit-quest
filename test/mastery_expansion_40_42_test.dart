@@ -247,7 +247,7 @@ void main() {
                   onBackToChapter: () {},
                   onOpenNotebook: () {}))));
       await tester.pumpAndSettle();
-      expect(find.text(id != ids[2] ? 'Confirm Answer' : 'Check Circuit'),
+      expect(find.text(id != ids[2] ? 'Check Answer' : 'Check Circuit'),
           findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(MaterialApp(

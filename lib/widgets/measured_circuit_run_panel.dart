@@ -5,6 +5,8 @@ import 'package:quantumquiz/models/measured_circuit_runner.dart';
 import 'package:quantumquiz/models/measurement_distribution.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/utils/probability_format.dart';
+import 'package:quantumquiz/widgets/qq_scientific_primitives.dart';
+import 'package:quantumquiz/widgets/qubit_quest_workspace_primitives.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart';
 
 /// The Measure tab (v2.6 M4): the environment for comparing theory with
@@ -37,7 +39,14 @@ class MeasuredCircuitRunPanel extends StatefulWidget {
     this.shotsResult,
     this.error,
     this.exact,
+    this.splitLayout = false,
   });
+
+  /// Laboratory Composer (v2.6 M11C): from 760 px the experiment set-up,
+  /// run controls and single run sit in a left column and the outcome
+  /// distribution gets the remaining width. Content and order are otherwise
+  /// unchanged; narrower hosts keep the single column.
+  final bool splitLayout;
 
   /// The exact distribution of this experiment (null: not shown, for hosts
   /// that have not adopted M4).
@@ -68,8 +77,16 @@ class MeasuredCircuitRunPanel extends StatefulWidget {
 class _MeasuredCircuitRunPanelState extends State<MeasuredCircuitRunPanel> {
   static final _compact = FilledButton.styleFrom(
     visualDensity: VisualDensity.compact,
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    minimumSize: const Size(0, 42),
+    textStyle: QqType.control,
+  );
+  static final _secondary = OutlinedButton.styleFrom(
+    visualDensity: VisualDensity.compact,
     padding: const EdgeInsets.symmetric(horizontal: 14),
     minimumSize: const Size(0, 40),
+    textStyle: QqType.control,
+    side: const BorderSide(color: QubitQuestColors.border),
   );
   final _singleKey = GlobalKey();
   final _shotsKey = GlobalKey();
@@ -161,149 +178,145 @@ class _MeasuredCircuitRunPanelState extends State<MeasuredCircuitRunPanel> {
     final single = widget.singleShot;
     final observed = widget.shotsResult;
     final exact = widget.exact;
-    return Column(
-      key: const ValueKey('web-sandbox-run-panel'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _MeasurementConfiguration(
-          finalState: finalState,
-          numQubits: widget.numQubits,
-          measurements: widget.measurements,
-        ),
-        const SizedBox(height: 12),
-        Row(
-          key: const ValueKey('web-sandbox-run-once-row'),
-          children: [
-            FilledButton.tonalIcon(
-              key: const ValueKey('web-sandbox-run-once'),
+    final setup = <Widget>[
+      _MeasurementConfiguration(
+        finalState: finalState,
+        numQubits: widget.numQubits,
+        measurements: widget.measurements,
+      ),
+      const SizedBox(height: 16),
+      // The shot count belongs to Run shots: same row, never wrapped away.
+      Row(
+        key: const ValueKey('web-sandbox-run-shots-row'),
+        children: [
+          // Under large text the label shortens rather than overflowing.
+          Flexible(
+            flex: 3,
+            child: FilledButton.icon(
+              key: const ValueKey('web-sandbox-run-shots'),
               style: _compact,
-              onPressed: running ? null : widget.onRunOnce,
-              icon: const Icon(Icons.play_arrow_rounded, size: 18),
-              label: const Text('Run once'),
-            ),
-            if (running) ...[
-              const SizedBox(width: 10),
-              const SizedBox.square(
-                key: ValueKey('web-sandbox-running'),
-                dimension: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 8),
-        // The shot count belongs to Run shots: same row, never wrapped away.
-        Row(
-          key: const ValueKey('web-sandbox-run-shots-row'),
-          children: [
-            // Under large text the label shortens rather than overflowing.
-            Flexible(
-              flex: 3,
-              child: FilledButton.icon(
-                key: const ValueKey('web-sandbox-run-shots'),
-                style: _compact,
-                onPressed: canRunShots ? widget.onRunShots : null,
-                icon: const Icon(Icons.bar_chart_rounded, size: 18),
-                label: const Text(
-                  'Run shots',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+              onPressed: canRunShots ? widget.onRunShots : null,
+              icon: const Icon(Icons.bar_chart_rounded, size: 18),
+              label: const Text(
+                'Run shots',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 8),
-            Flexible(
-              flex: 2,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 96, maxWidth: 132),
-                child: TextField(
-                  key: const ValueKey('web-sandbox-shot-count'),
-                  controller: _shotText,
-                  enabled: !running,
-                  keyboardType: TextInputType.number,
-                  textInputAction: TextInputAction.done,
-                  onChanged: _shotsTyped,
-                  onSubmitted: (_) {
-                    if (canRunShots) widget.onRunShots();
-                  },
-                  style: const TextStyle(fontFamily: 'monospace'),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    labelText: 'Shots',
-                    hintText: '1–10,000',
-                    border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.fromLTRB(10, 10, 0, 10),
-                    enabledBorder: _shotError == null
-                        ? null
-                        : OutlineInputBorder(
-                            borderSide: BorderSide(color: errorColor),
-                          ),
-                    suffixIconConstraints:
-                        const BoxConstraints(minWidth: 32, minHeight: 32),
-                    suffixIcon: PopupMenuButton<int>(
-                      key: const ValueKey('web-sandbox-shot-presets'),
-                      enabled: !running,
-                      tooltip: 'Shot presets',
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.arrow_drop_down, size: 20),
-                      onSelected: _presetChosen,
-                      itemBuilder: (context) => [
-                        for (final option in MeasuredCircuitRunner.shotOptions)
-                          PopupMenuItem(
-                            key: ValueKey('web-sandbox-shot-preset-$option'),
-                            value: option,
-                            child: Text('${formatCount(option)} shots'),
-                          ),
-                      ],
-                    ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            flex: 2,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 96, maxWidth: 132),
+              child: TextField(
+                key: const ValueKey('web-sandbox-shot-count'),
+                controller: _shotText,
+                enabled: !running,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                onChanged: _shotsTyped,
+                onSubmitted: (_) {
+                  if (canRunShots) widget.onRunShots();
+                },
+                style: const TextStyle(fontFamily: 'monospace'),
+                decoration: InputDecoration(
+                  isDense: true,
+                  labelText: 'Shots',
+                  hintText: '1–10,000',
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.fromLTRB(10, 10, 0, 10),
+                  enabledBorder: _shotError == null
+                      ? null
+                      : OutlineInputBorder(
+                          borderSide: BorderSide(color: errorColor),
+                        ),
+                  suffixIconConstraints:
+                      const BoxConstraints(minWidth: 32, minHeight: 32),
+                  suffixIcon: PopupMenuButton<int>(
+                    key: const ValueKey('web-sandbox-shot-presets'),
+                    enabled: !running,
+                    tooltip: 'Shot presets',
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.arrow_drop_down, size: 20),
+                    onSelected: _presetChosen,
+                    itemBuilder: (context) => [
+                      for (final option in MeasuredCircuitRunner.shotOptions)
+                        PopupMenuItem(
+                          key: ValueKey('web-sandbox-shot-preset-$option'),
+                          value: option,
+                          child: Text('${formatCount(option)} shots'),
+                        ),
+                    ],
                   ),
                 ),
               ),
             ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      Row(
+        key: const ValueKey('web-sandbox-run-once-row'),
+        children: [
+          OutlinedButton.icon(
+            key: const ValueKey('web-sandbox-run-once'),
+            style: _secondary,
+            onPressed: running ? null : widget.onRunOnce,
+            icon: const Icon(Icons.play_arrow_rounded, size: 18),
+            label: const Text('Run once'),
+          ),
+          if (running) ...[
+            const SizedBox(width: 10),
+            const SizedBox.square(
+              key: ValueKey('web-sandbox-running'),
+              dimension: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
           ],
+        ],
+      ),
+      if (_shotError case final shotError?) ...[
+        const SizedBox(height: 4),
+        Text(
+          shotError,
+          key: const ValueKey('web-sandbox-shot-count-error'),
+          style: TextStyle(color: errorColor, fontSize: 12),
         ),
-        if (_shotError case final shotError?) ...[
-          const SizedBox(height: 4),
-          Text(
-            shotError,
-            key: const ValueKey('web-sandbox-shot-count-error'),
-            style: TextStyle(color: errorColor, fontSize: 12),
+      ],
+      if (error != null) ...[
+        const SizedBox(height: 8),
+        KeyedSubtree(
+          key: _errorKey,
+          child: Text(
+            error,
+            key: const ValueKey('web-sandbox-run-error'),
+            style: TextStyle(color: errorColor),
+          ),
+        ),
+      ],
+      if (single != null) ...[
+        const SizedBox(height: 16),
+        KeyedSubtree(
+          key: _singleKey,
+          child: _SingleShotView(
+            result: single,
+            separateFromShots: observed != null,
+          ),
+        ),
+        // The single run's conditional state belongs with that run.
+        if (single.conditionalState case final state?) ...[
+          const SizedBox(height: 10),
+          _ConditionalStateView(
+            state: state,
+            numQubits: widget.numQubits,
+            single: single,
           ),
         ],
-        if (error != null) ...[
-          const SizedBox(height: 8),
-          KeyedSubtree(
-            key: _errorKey,
-            child: Text(
-              error,
-              key: const ValueKey('web-sandbox-run-error'),
-              style: TextStyle(color: errorColor),
-            ),
-          ),
-        ],
-        if (single != null) ...[
-          const SizedBox(height: 16),
-          KeyedSubtree(
-            key: _singleKey,
-            child: _SingleShotView(
-              result: single,
-              separateFromShots: observed != null,
-            ),
-          ),
-          // The single run's conditional state belongs with that run.
-          if (single.conditionalState case final state?) ...[
-            const SizedBox(height: 10),
-            _ConditionalStateView(
-              state: state,
-              numQubits: widget.numQubits,
-              single: single,
-            ),
-          ],
-        ],
-        if (exact != null || observed != null) ...[
-          const SizedBox(height: 18),
-          KeyedSubtree(
+      ],
+    ];
+    final distribution = exact != null || observed != null
+        ? KeyedSubtree(
             key: _shotsKey,
             child: _DistributionView(
               exact: exact,
@@ -312,25 +325,63 @@ class _MeasuredCircuitRunPanelState extends State<MeasuredCircuitRunPanel> {
               filter: _filter,
               onFilterChanged: (f) => setState(() => _filter = f),
             ),
-          ),
-        ],
-        const SizedBox(height: 14),
-        Text(
-          finalState
-              ? 'No M gates: each shot prepares the final state and measures '
-                  'every qubit in the Z basis.'
-              : 'Each shot starts from the initial state and executes every '
-                  'gate and M operation in order.',
-          key: const ValueKey('web-sandbox-measure-mode'),
-          style: QubitQuestTypography.supporting,
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Measurement outcomes are random, so runs can differ.',
-          style: QubitQuestTypography.supporting,
-        ),
-        _MoreAbout(finalState: finalState),
-      ],
+          )
+        : null;
+    final notes = <Widget>[
+      const SizedBox(height: 14),
+      const QqMeta('Measurement outcomes are random, so runs can differ.'),
+      const SizedBox(height: 8),
+      _MoreAbout(finalState: finalState),
+    ];
+    Widget column(List<Widget> children) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: children,
+        );
+    final stacked = column([
+      ...setup,
+      if (distribution != null) ...[const SizedBox(height: 18), distribution],
+      ...notes,
+    ]);
+    if (!widget.splitLayout) {
+      return KeyedSubtree(
+          key: const ValueKey('web-sandbox-run-panel'), child: stacked);
+    }
+    return LayoutBuilder(
+      key: const ValueKey('web-sandbox-run-panel'),
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 760) return stacked;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: (constraints.maxWidth * .34).clamp(320.0, 400.0),
+              child: column([...setup, ...notes]),
+            ),
+            const SizedBox(width: 20),
+            const SizedBox(
+              height: 220,
+              child: VerticalDivider(width: 1, color: QubitQuestSurfaces.rule),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: KeyedSubtree(
+                key: const ValueKey('measure-outcomes-column'),
+                // Outcome rows stay readable on ultrawide screens.
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 980),
+                    child: distribution ??
+                        const QqMeta(
+                            'Run the experiment to see outcome counts here.'),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -353,27 +404,44 @@ class _MeasurementConfiguration extends StatelessWidget {
       ..sort((a, b) => a.qubit.compareTo(b.qubit));
     return Column(
       key: const ValueKey('measure-configuration'),
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('MEASUREMENT SETUP', style: QubitQuestTypography.label),
-        const SizedBox(height: 4),
-        Text(
-          finalState
-              ? 'Final-state sampling · all $numQubits qubit'
-                  '${numQubits == 1 ? '' : 's'}'
-              : 'Measures ${measurements.map((m) => 'q${m.qubit} → c${m.classicalBit}').join(', ')}',
-          key: const ValueKey('web-sandbox-measure-summary'),
-          style: QubitQuestTypography.supporting,
-        ),
-        if (!finalState) ...[
-          if (ordered.length < numQubits) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Outcomes are classical-register values, not full basis '
-              'states: unmeasured qubits are not read.',
-              style: QubitQuestTypography.supporting.copyWith(fontSize: 12),
+        const Text('Experiment', style: QqType.subheading),
+        const SizedBox(height: 8),
+        QqFactList(
+          labelWidth: 84,
+          facts: [
+            (
+              'Setup',
+              Text(
+                finalState
+                    ? 'Final-state sampling · all $numQubits qubit'
+                        '${numQubits == 1 ? '' : 's'}'
+                    : 'Measures ${measurements.map((m) => 'q${m.qubit} → c${m.classicalBit}').join(', ')}',
+                key: const ValueKey('web-sandbox-measure-summary'),
+              ),
+            ),
+            ('Basis', const Text('Z (computational basis)')),
+            (
+              'Each shot',
+              Text(
+                finalState
+                    ? 'No M gates: each shot prepares the final state and '
+                        'measures every qubit in the Z basis.'
+                    : 'Each shot starts from the initial state and executes '
+                        'every gate and M operation in order.',
+                key: const ValueKey('web-sandbox-measure-mode'),
+                style: QqType.body.copyWith(fontSize: 14, height: 1.45),
+              ),
             ),
           ],
+        ),
+        if (!finalState && ordered.length < numQubits) ...[
+          const SizedBox(height: 8),
+          const QqMeta(
+            'Outcomes are classical-register values, not full basis '
+            'states: unmeasured qubits are not read.',
+          ),
         ],
       ],
     );
@@ -396,22 +464,19 @@ class _SingleShotView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('SINGLE RUN', style: QubitQuestTypography.label),
+          const Text('Single run', style: QqType.subheading),
           const SizedBox(height: 6),
           Text.rich(
             TextSpan(children: [
-              const TextSpan(
-                text: 'Outcome  ',
-                style: QubitQuestTypography.supporting,
-              ),
+              const TextSpan(text: 'Outcome  ', style: QqType.meta),
               TextSpan(
                 text: result.readout.isFinalState
                     ? '|${result.outcome}⟩'
                     : result.outcome,
                 style: const TextStyle(
-                  fontFamily: 'monospace',
                   fontSize: 22,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: QqType.tabular,
                   color: QubitQuestColors.textPrimary,
                 ),
               ),
@@ -449,7 +514,7 @@ class _SingleShotView extends StatelessWidget {
             Text(
               'A separate execution from the shot experiment below.',
               key: const ValueKey('measure-single-separate'),
-              style: QubitQuestTypography.supporting.copyWith(fontSize: 12),
+              style: QqType.meta,
             ),
         ],
       );
@@ -488,10 +553,14 @@ class _DistributionViewState extends State<_DistributionView> {
       ((MediaQuery.sizeOf(context).height - 520) / _rowHeight(context))
           .floor()
           .clamp(8, 16);
+
+  /// Wide outcome tables put label, bar and values on one aligned line.
+  bool _wide = false;
   final ScrollController scroll = ScrollController();
 
-  double _rowHeight(BuildContext context) =>
-      6 + MediaQuery.textScalerOf(context).scale(18) + 4 + 12;
+  double _rowHeight(BuildContext context) => _wide
+      ? 12 + MediaQuery.textScalerOf(context).scale(22)
+      : 6 + MediaQuery.textScalerOf(context).scale(18) + 4 + 12;
 
   @override
   void dispose() {
@@ -506,10 +575,20 @@ class _DistributionViewState extends State<_DistributionView> {
   ValueChanged<OutcomeFilter> get onFilterChanged => widget.onFilterChanged;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, c) {
+        _wide = c.maxWidth >= 520;
+        return _build(context);
+      });
+
+  Widget _build(BuildContext context) {
+    final wide = _wide;
     final exact = this.exact;
     final observed = this.observed;
     final readout = exact?.readout ?? observed!.readout;
+    final bits = (exact?.isAvailable ?? false)
+        ? (exact!.readout.orderLabel.split(' ').length)
+        : (observed?.counts.keys.firstOrNull?.length ?? 1);
+    final outcomeWidth = (28.0 + 10.5 * bits).clamp(80.0, 200.0);
     final comparison = exact != null
         ? MeasurementComparison.build(
             exact: exact, observed: observed, filter: filter)
@@ -531,13 +610,16 @@ class _DistributionViewState extends State<_DistributionView> {
     String label(String o) => finalState ? '|$o⟩' : o;
 
     final header = DefaultTextStyle(
-      style: QubitQuestTypography.supporting.copyWith(
-        fontSize: 11.5,
-        fontWeight: FontWeight.w700,
-      ),
+      style: QqType.tableHeader,
       child: Row(
         children: [
-          const Expanded(child: Text('Outcome')),
+          if (wide) ...[
+            SizedBox(width: outcomeWidth, child: const Text('Outcome')),
+            const SizedBox(width: 12),
+            const Expanded(child: Text('0–100%')),
+            const SizedBox(width: 16),
+          ] else
+            const Expanded(child: Text('Outcome')),
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Row(
@@ -574,10 +656,9 @@ class _DistributionViewState extends State<_DistributionView> {
                 r.exact == null ? '—' : formatProbability(r.exact!),
                 key: ValueKey('measure-exact-${r.outcome}'),
                 textAlign: TextAlign.right,
-                style: const TextStyle(
+                style: QqType.table.copyWith(
                   color: QubitQuestColors.accentInteractive,
-                  fontWeight: FontWeight.w700,
-                  fontFeatures: [FontFeature.tabularFigures()],
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -588,10 +669,9 @@ class _DistributionViewState extends State<_DistributionView> {
                 formatProbability(r.frequency ?? 0),
                 key: ValueKey('measure-observed-${r.outcome}'),
                 textAlign: TextAlign.right,
-                style: const TextStyle(
+                style: QqType.table.copyWith(
                   color: _observedColor,
-                  fontWeight: FontWeight.w700,
-                  fontFeatures: [FontFeature.tabularFigures()],
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -601,10 +681,7 @@ class _DistributionViewState extends State<_DistributionView> {
                 formatCount(r.count ?? 0),
                 key: ValueKey('web-sandbox-outcome-count-${r.outcome}'),
                 textAlign: TextAlign.right,
-                style: const TextStyle(
-                  color: QubitQuestColors.textPrimary,
-                  fontFeatures: [FontFeature.tabularFigures()],
-                ),
+                style: QqType.table,
               ),
             ),
           ],
@@ -618,6 +695,56 @@ class _DistributionViewState extends State<_DistributionView> {
               '${formatCount(r.shots!)} shots '
               '(${formatProbability(r.frequency!)})',
       ].join(' · ');
+      final outcomeLabel = Text(
+        label(r.outcome),
+        style: QqType.table.copyWith(
+          fontWeight: FontWeight.w600,
+          color: finalState ? QqType.ketColor : QubitQuestColors.textPrimary,
+        ),
+      );
+      if (wide) {
+        return Tooltip(
+          message: tooltip,
+          child: Container(
+            key: ValueKey('web-sandbox-outcome-${r.outcome}'),
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Color(0x1F344A73))),
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: outcomeWidth,
+                  child: Row(children: [
+                    Flexible(child: outcomeLabel),
+                    if (r.unexpected) ...[
+                      const SizedBox(width: 4),
+                      const Tooltip(
+                        message: 'Observed although its exact probability is '
+                            '0%: please report this circuit.',
+                        child: Icon(Icons.warning_amber_rounded,
+                            key: ValueKey('measure-unexpected'),
+                            size: 16,
+                            color: QubitQuestColors.warning),
+                      ),
+                    ],
+                  ]),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ComparisonBar(
+                    key: ValueKey('measure-bar-${r.outcome}'),
+                    exact: r.exact,
+                    observed: r.frequency,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                cells,
+              ],
+            ),
+          ),
+        );
+      }
       return Tooltip(
         message: tooltip,
         child: Padding(
@@ -628,14 +755,7 @@ class _DistributionViewState extends State<_DistributionView> {
             children: [
               Row(
                 children: [
-                  Text(
-                    label(r.outcome),
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontWeight: FontWeight.w800,
-                      color: QubitQuestColors.textPrimary,
-                    ),
-                  ),
+                  outcomeLabel,
                   if (r.unexpected) ...[
                     const SizedBox(width: 6),
                     const Tooltip(
@@ -713,15 +833,14 @@ class _DistributionViewState extends State<_DistributionView> {
           textBaseline: TextBaseline.alphabetic,
           children: [
             const Expanded(
-              child: Text('MEASUREMENT DISTRIBUTION',
-                  style: QubitQuestTypography.label),
+              child: Text('Outcomes', style: QqType.subheading),
             ),
             if (observed != null)
               Text(
-                '${formatCount(observed.shots)} SHOTS',
+                '${formatCount(observed.shots)} shots',
                 key: const ValueKey('measure-observed-shots'),
-                style:
-                    QubitQuestTypography.label.copyWith(color: _observedColor),
+                style: QqType.table.copyWith(
+                    color: _observedColor, fontWeight: FontWeight.w500),
               ),
           ],
         ),
@@ -731,9 +850,9 @@ class _DistributionViewState extends State<_DistributionView> {
           '${finalState ? 'qubit' : 'classical bit'} on the left)'
           '${distinct == null ? '' : ' · $distinct distinct outcome${distinct == 1 ? '' : 's'}'}',
           key: const ValueKey('web-sandbox-outcome-order'),
-          style: QubitQuestTypography.supporting.copyWith(fontSize: 12),
+          style: QqType.meta,
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         _Legend(observed: hasObserved, exact: hasExact),
         if (observed != null &&
             configuredShots != null &&
@@ -744,7 +863,7 @@ class _DistributionViewState extends State<_DistributionView> {
               'Shot count is now ${formatCount(configuredShots!)}; these '
               'results are from ${formatCount(observed.shots)} shots.',
               key: const ValueKey('measure-shots-changed'),
-              style: QubitQuestTypography.supporting.copyWith(fontSize: 12),
+              style: QqType.meta,
             ),
           )
         else if (observed == null && hasExact)
@@ -753,7 +872,7 @@ class _DistributionViewState extends State<_DistributionView> {
             child: Text(
               'No shots run yet: run shots to compare.',
               key: const ValueKey('measure-no-observed'),
-              style: QubitQuestTypography.supporting.copyWith(fontSize: 12),
+              style: QqType.meta,
             ),
           ),
         if (exactNote != null)
@@ -762,35 +881,39 @@ class _DistributionViewState extends State<_DistributionView> {
             child: Text(
               exactNote,
               key: const ValueKey('measure-exact-unavailable'),
-              style: QubitQuestTypography.supporting.copyWith(fontSize: 12),
+              style: QqType.meta,
             ),
           ),
         if (comparison != null &&
             (comparison.hiddenOutcomes > 0 || filter == OutcomeFilter.all) &&
             comparison.totalOutcomes <= 64) ...[
-          const SizedBox(height: 6),
-          SegmentedButton<OutcomeFilter>(
-            key: const ValueKey('measure-outcome-filter'),
-            showSelectedIcon: false,
-            style: SegmentedButton.styleFrom(
-              visualDensity: const VisualDensity(horizontal: -2, vertical: -3),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              textStyle: const TextStyle(fontSize: 12),
-            ),
-            segments: const [
-              ButtonSegment(
-                value: OutcomeFilter.possibleOrObserved,
-                label: Text('Possible or observed'),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: SegmentedButton<OutcomeFilter>(
+              key: const ValueKey('measure-outcome-filter'),
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                visualDensity:
+                    const VisualDensity(horizontal: -2, vertical: -3),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: const TextStyle(fontSize: 12),
               ),
-              ButtonSegment(value: OutcomeFilter.all, label: Text('All')),
-            ],
-            selected: {filter},
-            onSelectionChanged: (v) => onFilterChanged(v.single),
+              segments: const [
+                ButtonSegment(
+                  value: OutcomeFilter.possibleOrObserved,
+                  label: Text('Possible or observed'),
+                ),
+                ButtonSegment(value: OutcomeFilter.all, label: Text('All')),
+              ],
+              selected: {filter},
+              onSelectionChanged: (v) => onFilterChanged(v.single),
+            ),
           ),
         ],
-        const SizedBox(height: 6),
+        const SizedBox(height: 12),
         header,
-        const Divider(height: 8),
+        const Divider(height: 10, color: QubitQuestSurfaces.rule),
         list,
         if (footnote.isNotEmpty)
           Padding(
@@ -798,7 +921,7 @@ class _DistributionViewState extends State<_DistributionView> {
             child: Text(
               footnote,
               key: const ValueKey('measure-footnote'),
-              style: QubitQuestTypography.supporting.copyWith(fontSize: 12),
+              style: QqType.meta,
             ),
           ),
         if (comparison?.hasUnexpected ?? false)
@@ -836,9 +959,7 @@ class _Legend extends StatelessWidget {
             swatch,
             const SizedBox(width: 6),
             Flexible(
-              child: Text(text,
-                  style:
-                      QubitQuestTypography.supporting.copyWith(fontSize: 12)),
+              child: Text(text, style: QqType.meta),
             ),
           ],
         );
@@ -997,7 +1118,7 @@ class _ConditionalStateViewState extends State<_ConditionalStateView> {
               'The full register after this run (outcome ${single.outcome}: '
               '${single.register}), including every later operation. It '
               'belongs to this run only, not to the shot experiment.',
-              style: QubitQuestTypography.supporting.copyWith(fontSize: 12),
+              style: QqType.meta,
             ),
             const SizedBox(height: 6),
             StateVectorDisplay(
@@ -1027,43 +1148,24 @@ class _MoreAbout extends StatefulWidget {
 }
 
 class _MoreAboutState extends State<_MoreAbout> {
-  bool _open = false;
-
   @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextButton.icon(
-            key: const ValueKey('measure-more-about'),
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              visualDensity: VisualDensity.compact,
-            ),
-            onPressed: () => setState(() => _open = !_open),
-            icon: Icon(
-              _open ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-              size: 18,
-            ),
-            label: Text(_open
-                ? 'Less about this experiment'
-                : 'More about this experiment'),
-          ),
-          if (_open)
-            Text(
-              widget.finalState
-                  ? 'Add M gates to choose which qubits are measured and '
-                      'which classical bits store the results. Exact '
-                      'probabilities are |amplitude|² of the final state; '
-                      'observed frequencies are counts divided by shots.'
-                  : 'Outcomes are the values of the classical bits the '
-                      'measurements write (unmeasured qubits are not read). '
-                      'Exact probabilities follow this same sequence of '
-                      'operations; observed frequencies are counts divided '
-                      'by shots. A single run\'s conditional state belongs to '
-                      'that run only.',
-              key: const ValueKey('measure-more-about-text'),
-              style: QubitQuestTypography.supporting.copyWith(fontSize: 12.5),
-            ),
-        ],
+  Widget build(BuildContext context) => QqDisclosure(
+        toggleKey: const ValueKey('measure-more-about'),
+        title: 'More about this experiment',
+        summary: 'exact versus observed',
+        child: Text(
+          widget.finalState
+              ? 'Add M gates to choose which qubits are measured and '
+                  'which classical bits store the results. Exact '
+                  'probabilities are |amplitude|² of the final state; '
+                  'observed frequencies are counts divided by shots.'
+              : 'Outcomes are the values of the classical bits the '
+                  'measurements write (unmeasured qubits are not read). '
+                  'Exact probabilities follow this same sequence of '
+                  'operations; observed frequencies are counts divided '
+                  'by shots. A single run\'s conditional state belongs to '
+                  'that run only.',
+          key: const ValueKey('measure-more-about-text'),
+        ),
       );
 }

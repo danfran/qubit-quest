@@ -117,6 +117,41 @@ class ComposerWorkspaceGeometry {
       minCanvasWidth;
 }
 
+/// Undo: Ctrl/⌘+Z. Redo: Ctrl/⌘+Shift+Z or Ctrl+Y. Ignored while a text
+/// field has focus (it keeps its own text undo), while a dialog or menu
+/// covers the workspace, and while the Composer is not visible ([enabled]).
+/// Returns true when the key was handled, so each press runs exactly one
+/// command. Shared by every Composer layout.
+bool handleComposerHistoryShortcut(
+  BuildContext context,
+  KeyEvent event, {
+  required bool enabled,
+  required VoidCallback onUndo,
+  required VoidCallback onRedo,
+}) {
+  if (event is! KeyDownEvent || !enabled) return false;
+  final keyboard = HardwareKeyboard.instance;
+  final command = keyboard.isMetaPressed || keyboard.isControlPressed;
+  if (!command || keyboard.isAltPressed) return false;
+  final key = event.logicalKey;
+  final undo = key == LogicalKeyboardKey.keyZ && !keyboard.isShiftPressed;
+  final redo = (key == LogicalKeyboardKey.keyZ && keyboard.isShiftPressed) ||
+      (key == LogicalKeyboardKey.keyY && keyboard.isControlPressed);
+  if (!undo && !redo) return false;
+  if (!(ModalRoute.of(context)?.isCurrent ?? true)) return false;
+  if (textInputHasFocus()) return false;
+  undo ? onUndo() : onRedo();
+  return true;
+}
+
+/// Whether an editable text field currently has keyboard focus.
+bool textInputHasFocus() {
+  final focused = FocusManager.instance.primaryFocus?.context;
+  return focused != null &&
+      (focused.widget is EditableText ||
+          focused.findAncestorWidgetOfExactType<EditableText>() != null);
+}
+
 typedef WorkspaceToolbarBuilder = Widget Function({
   required bool compact,
   required List<WorkspacePanelToggle> toggles,
@@ -240,32 +275,15 @@ class _DesktopComposerWorkspaceState extends State<DesktopComposerWorkspace> {
     if (mounted) setState(() {});
   }
 
-  /// Undo: Ctrl/⌘+Z. Redo: Ctrl/⌘+Shift+Z or Ctrl+Y. Ignored while a text
-  /// field has focus (it keeps its own text undo), while a dialog or menu
-  /// covers the workspace, and while the Composer is not visible. Handled
-  /// keys stop here, so each press runs exactly one command.
-  bool _handleKey(KeyEvent event) {
-    if (event is! KeyDownEvent || !mounted || !widget.shortcutsEnabled) {
-      return false;
-    }
-    final keyboard = HardwareKeyboard.instance;
-    final command = keyboard.isMetaPressed || keyboard.isControlPressed;
-    if (!command || keyboard.isAltPressed) return false;
-    final key = event.logicalKey;
-    final undo = key == LogicalKeyboardKey.keyZ && !keyboard.isShiftPressed;
-    final redo = (key == LogicalKeyboardKey.keyZ && keyboard.isShiftPressed) ||
-        (key == LogicalKeyboardKey.keyY && keyboard.isControlPressed);
-    if (!undo && !redo) return false;
-    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return false;
-    final focused = FocusManager.instance.primaryFocus?.context;
-    if (focused != null &&
-        (focused.widget is EditableText ||
-            focused.findAncestorWidgetOfExactType<EditableText>() != null)) {
-      return false;
-    }
-    undo ? widget.onUndo() : widget.onRedo();
-    return true;
-  }
+  bool _handleKey(KeyEvent event) =>
+      mounted &&
+      handleComposerHistoryShortcut(
+        context,
+        event,
+        enabled: widget.shortcutsEnabled,
+        onUndo: widget.onUndo,
+        onRedo: widget.onRedo,
+      );
 
   void _toggle({bool? palette, bool? inspector, bool? results}) =>
       _layout.commit(_prefs.copyWith(
@@ -489,8 +507,11 @@ class _DesktopComposerWorkspaceState extends State<DesktopComposerWorkspace> {
           // cap used to hide the last wires of 4- and 5-qubit circuits.
           final canvasNeed = math.min(
               widget.canvasMinHeight,
-              math.max(0.0,
-                  height - WorkspaceLayoutPreferences.minInspectorHeight - gap));
+              math.max(
+                  0.0,
+                  height -
+                      WorkspaceLayoutPreferences.minInspectorHeight -
+                      gap));
           final maxInspector = math.max(
             WorkspaceLayoutPreferences.minInspectorHeight,
             height - canvasNeed - gap,

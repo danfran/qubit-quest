@@ -52,8 +52,9 @@ Future<void> _openComposer(WidgetTester tester, AppStorage storage) async {
 Future<void> _chooseQubits(WidgetTester tester, int n) =>
     tapVisible(tester, find.byKey(ValueKey('web-composer-qubits-$n')));
 
-Future<void> _changeQubits(WidgetTester tester) => tapVisible(
-    tester, find.byKey(const ValueKey('web-composer-change-qubits')));
+/// M11C: the qubit choices are always visible in the header; nothing to
+/// open first.
+Future<void> _changeQubits(WidgetTester tester) async {}
 
 QuantumCircuit _openCircuit(WidgetTester tester) =>
     tester.widget<ComposerCircuitCanvas>(_canvas).circuit;
@@ -69,6 +70,10 @@ SandboxProgramSnapshot _distinct(int n) {
 }
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   tearDown(() => SandboxWorkspacePersistence.secureRandom = Random.secure);
 
   group('session identifier', () {
@@ -114,7 +119,7 @@ void main() {
           tester
               .widget<Text>(
                   find.byKey(const ValueKey('web-composer-qubit-count')))
-              .data,
+              .semanticsLabel,
           startsWith('$n qubit'));
       await _changeQubits(tester);
     }
@@ -160,7 +165,9 @@ void main() {
         SandboxWorkspacePersistence.activeKey(1), 'invalid');
     await _openComposer(tester, storage);
 
-    await _chooseQubits(tester, 1);
+    // M11C: entering the Composer opens the 1-qubit Sandbox, which offers
+    // recovery straight away.
+    await tester.pumpAndSettle();
     expect(find.text('Sandbox could not be restored'), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();

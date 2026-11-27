@@ -18,6 +18,7 @@ import 'package:quantumquiz/widgets/measurement_glyph.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 
 import 'web_sandbox_measurement_test.dart' show openSandbox, tapVisible;
+import 'package:quantumquiz/screens/web_app.dart' show debugClassicSandboxLayout;
 
 ValueKey<String> _k(String key) => ValueKey(key);
 final _toolbar = find.byKey(_k('composer-inspector-placed-gate'));
@@ -81,6 +82,10 @@ List<Rect> _actionRects(WidgetTester tester) => [
     ];
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   group('identity', () {
     final cases = {
       SelectedGateType.x: 'Pauli-X gate',

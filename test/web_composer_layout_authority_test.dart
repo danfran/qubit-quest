@@ -16,8 +16,18 @@ import 'package:quantumquiz/widgets/composer_workspace/desktop_composer_workspac
 import 'package:quantumquiz/widgets/composer_workspace/workspace_layout_state.dart';
 import 'web_sandbox_measurement_test.dart' as sandbox;
 import 'support/mastery_math_test_platform.dart';
+import 'package:quantumquiz/screens/web_app.dart' show debugClassicSandboxLayout;
+import 'support/laboratory_composer_finders.dart';
 
 void main() {
+  // These tests verify the classic three-column exercise layout, kept as a
+  // test seam after M11D moved lessons and challenges to the learning layout.
+  setUpAll(() => debugClassicExerciseLayout = true);
+  tearDownAll(() => debugClassicExerciseLayout = false);
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   useMasteryMathTestPlatform();
   testWidgets(
       'Sandbox transitions retain circuit, filter, measurement and contained controls',
@@ -115,8 +125,8 @@ void main() {
     await sandbox.tapVisible(tester, find.text('State'));
     await sandbox.tapVisible(tester, find.byType(Checkbox));
     expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
-    await sandbox.tapVisible(
-        tester, find.byKey(const ValueKey('web-composer-change-qubits')));
+    // M11C: the qubit choices are always visible in the header.
+    await pumpUntilSandboxOpen(tester);
     await sandbox.tapVisible(
         tester, find.byKey(const ValueKey('web-composer-qubits-3')));
     expect(

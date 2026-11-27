@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/journey_curriculum.dart';
 import 'package:quantumquiz/models/qq_levels.dart';
+import 'package:quantumquiz/screens/journey_navigation.dart';
 import 'package:quantumquiz/screens/learning_map_screen.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/widgets/journey_chapter_illustration.dart';
@@ -27,7 +28,12 @@ class WebJourneyOverview extends StatelessWidget {
     this.onOpenMastery,
     this.narrowShowsDetail = false,
     this.onNarrowBack,
+    this.masteryCompleted,
+    this.masteryTotal,
   });
+
+  final int? masteryCompleted;
+  final int? masteryTotal;
 
   final JourneyCurriculum curriculum;
   final int selectedIndex;
@@ -44,7 +50,7 @@ class WebJourneyOverview extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ColoredBox(
         key: const ValueKey('web-workspace-journey'),
-        color: QubitQuestColors.background,
+        color: QubitQuestSurfaces.page,
         child: LayoutBuilder(builder: (context, constraints) {
           final width = constraints.maxWidth;
           final selected = curriculum.chapters[selectedIndex];
@@ -64,7 +70,7 @@ class WebJourneyOverview extends StatelessWidget {
           );
           if (width >= masterDetailWidth) {
             final listWidth = width >= 1200
-                ? 300.0
+                ? JourneyCurriculumNav.width
                 : width >= 960
                     ? 268.0
                     : 236.0;
@@ -78,12 +84,16 @@ class WebJourneyOverview extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      SizedBox(
+                      Container(
                         width: listWidth,
-                        child: _CurriculumList(
+                        color: QubitQuestSurfaces.section,
+                        child: JourneyCurriculumNav(
                           curriculum: curriculum,
                           selectedIndex: selectedIndex,
-                          onSelect: onSelectChapter,
+                          onSelectChapter: onSelectChapter,
+                          masteryCompleted: masteryCompleted,
+                          masteryTotal: masteryTotal,
+                          onOpenMastery: onOpenMastery,
                         ),
                       ),
                       const VerticalDivider(
@@ -123,10 +133,10 @@ class WebJourneyOverview extends StatelessWidget {
               header,
               const Divider(height: 1, color: QubitQuestColors.borderSoft),
               Expanded(
-                child: _CurriculumList(
+                child: JourneyCurriculumNav(
                   curriculum: curriculum,
                   selectedIndex: selectedIndex,
-                  onSelect: onSelectChapter,
+                  onSelectChapter: onSelectChapter,
                 ),
               ),
             ],
@@ -134,15 +144,6 @@ class WebJourneyOverview extends StatelessWidget {
         }),
       );
 }
-
-String _statusWord(JourneyChapterStatus status) => switch (status) {
-      JourneyChapterStatus.completed => 'Completed',
-      JourneyChapterStatus.inProgress => 'In progress',
-      JourneyChapterStatus.available => 'Not started',
-      JourneyChapterStatus.locked => 'Locked',
-    };
-
-String _two(int n) => n.toString().padLeft(2, '0');
 
 class _JourneyHeader extends StatelessWidget {
   const _JourneyHeader({
@@ -181,12 +182,12 @@ class _JourneyHeader extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text('Learning Journey',
-                      style: QubitQuestTypography.title
-                          .copyWith(fontSize: compact ? 20 : 24)),
+                      style: QqType.pageTitle
+                          .copyWith(fontSize: compact ? 22 : 26)),
                   const SizedBox(height: 4),
                   Text(summary,
                       key: const ValueKey('journey-overall-progress'),
-                      style: QubitQuestTypography.supporting),
+                      style: QqType.meta),
                 ],
               ),
               if (onOpenMastery != null)
@@ -218,174 +219,6 @@ class _JourneyHeader extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _CurriculumList extends StatelessWidget {
-  const _CurriculumList({
-    required this.curriculum,
-    required this.selectedIndex,
-    required this.onSelect,
-  });
-
-  final JourneyCurriculum curriculum;
-  final int selectedIndex;
-  final ValueChanged<int> onSelect;
-
-  @override
-  // A non-lazy column: the curriculum is short and every row stays
-  // reachable (and testable) without scrolling it into existence.
-  Widget build(BuildContext context) => SingleChildScrollView(
-        key: const ValueKey('journey-curriculum'),
-        padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(12, 0, 12, 8),
-              child: Text('CURRICULUM', style: QubitQuestTypography.label),
-            ),
-            for (final chapter in curriculum.chapters)
-              _ChapterRow(
-                chapter: chapter,
-                selected: chapter.index == selectedIndex,
-                onTap: () => onSelect(chapter.index),
-              ),
-          ],
-        ),
-      );
-}
-
-/// One status glyph per chapter: completed ✓, the active chapter ▶, an
-/// available chapter ○, a locked chapter 🔒. Selection is a separate,
-/// background highlight.
-Widget _statusGlyph(JourneyChapterSummary chapter, {double size = 20}) {
-  final (icon, color, tooltip) = switch (chapter.status) {
-    JourneyChapterStatus.completed => (
-        Icons.check_circle_rounded,
-        QubitQuestColors.success,
-        'Completed'
-      ),
-    JourneyChapterStatus.locked => (
-        Icons.lock_outline_rounded,
-        QubitQuestColors.textMuted,
-        'Locked'
-      ),
-    _ when chapter.isActive => (
-        Icons.play_circle_fill_rounded,
-        QubitQuestColors.accentInteractive,
-        'Your current chapter'
-      ),
-    _ => (
-        Icons.radio_button_unchecked_rounded,
-        QubitQuestColors.textBody,
-        _statusWord(chapter.status)
-      ),
-  };
-  return Tooltip(
-    message: tooltip,
-    child: Icon(icon,
-        key:
-            ValueKey('journey-status-${chapter.number}-${chapter.status.name}'),
-        size: size,
-        color: color),
-  );
-}
-
-class _ChapterRow extends StatelessWidget {
-  const _ChapterRow({
-    required this.chapter,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final JourneyChapterSummary chapter;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final locked = chapter.status == JourneyChapterStatus.locked;
-    final showCount = chapter.status == JourneyChapterStatus.inProgress;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
-      child: Semantics(
-        selected: selected,
-        button: true,
-        label: 'Chapter ${chapter.number}, ${chapter.title}, '
-            '${_statusWord(chapter.status)}'
-            '${chapter.isActive ? ', current chapter' : ''}, '
-            '${chapter.completedLessons} of ${chapter.totalLessons} lessons',
-        child: ExcludeSemantics(
-          child: Material(
-            color:
-                selected ? QubitQuestColors.surfaceRaised : Colors.transparent,
-            borderRadius: QubitQuestRadii.control,
-            child: InkWell(
-              key: ValueKey('journey-chapter-${chapter.number}'),
-              borderRadius: QubitQuestRadii.control,
-              onTap: onTap,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
-                decoration: BoxDecoration(
-                  borderRadius: QubitQuestRadii.control,
-                  border: Border(
-                    left: BorderSide(
-                      color: selected
-                          ? QubitQuestColors.accentInteractive
-                          : Colors.transparent,
-                      width: 3,
-                    ),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    _statusGlyph(chapter),
-                    const SizedBox(width: 10),
-                    Text(
-                      _two(chapter.number),
-                      style: const TextStyle(
-                        color: QubitQuestColors.textMuted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        chapter.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: locked
-                              ? QubitQuestColors.textMuted
-                              : QubitQuestColors.textPrimary,
-                          fontSize: 14,
-                          fontWeight:
-                              selected ? FontWeight.w800 : FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    if (showCount) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        '${chapter.completedLessons}/${chapter.totalLessons}',
-                        style: const TextStyle(
-                          color: QubitQuestColors.textMuted,
-                          fontSize: 12,
-                          fontFeatures: [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -437,28 +270,38 @@ class _ChapterDetail extends StatelessWidget {
       JourneyChapterActionKind.locked => 'Locked',
     };
 
+    Widget label(String text) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(text.toUpperCase(),
+              style: QqType.panelHeading
+                  .copyWith(color: QubitQuestColors.textMuted)),
+        );
+
+    // A centred reading column (M11B prototype 5): identity and progress,
+    // purpose, the one action, the lessons, then objectives, illustration
+    // and connections. Paragraphs never stretch across wide displays.
     return SingleChildScrollView(
       key: const ValueKey('journey-detail-scroll'),
       padding: EdgeInsets.fromLTRB(
-          narrow ? 16 : 36, narrow ? 12 : 28, narrow ? 16 : 36, 32),
+          narrow ? 16 : 40, narrow ? 12 : 32, narrow ? 16 : 40, 40),
       child: Align(
-        alignment: Alignment.topLeft,
+        alignment: Alignment.topCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
+          constraints: const BoxConstraints(maxWidth: 880),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  _statusGlyph(chapter, size: 18),
+                  journeyStatusGlyph(chapter, size: 18),
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
-                      'CHAPTER ${_two(chapter.number)} · '
-                      '${_statusWord(chapter.status).toUpperCase()}'
-                      '${chapter.isActive ? ' · YOUR CURRENT CHAPTER' : ''}',
+                      'Chapter ${chapter.number} · '
+                      '${journeyStatusWord(chapter.status)}'
+                      '${chapter.isActive ? ' · Your current chapter' : ''}',
                       key: const ValueKey('journey-detail-status'),
-                      style: QubitQuestTypography.label,
+                      style: QqType.breadcrumb.copyWith(fontSize: 14),
                     ),
                   ),
                 ],
@@ -467,18 +310,17 @@ class _ChapterDetail extends StatelessWidget {
               Text(
                 chapter.title,
                 key: const ValueKey('journey-detail-title'),
-                style: QubitQuestTypography.display
-                    .copyWith(fontSize: narrow ? 24 : 30),
+                style: QqType.pageTitle.copyWith(fontSize: narrow ? 24 : 30),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               if (chapter.category.categoryIntro case final intro?)
                 Text(
                   intro,
                   key: const ValueKey('journey-detail-intro'),
-                  style: QubitQuestTypography.body
-                      .copyWith(fontSize: 15.5, height: 1.5),
+                  style: QqType.body.copyWith(
+                      fontSize: 16.5, color: QubitQuestColors.textPrimary),
                 ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 22),
               Wrap(
                 spacing: 16,
                 runSpacing: 10,
@@ -486,6 +328,11 @@ class _ChapterDetail extends StatelessWidget {
                 children: [
                   FilledButton.icon(
                     key: const ValueKey('journey-primary-action'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 46),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      textStyle: QqType.control.copyWith(fontSize: 15),
+                    ),
                     onPressed: action.lessonId == null
                         ? null
                         : () => onOpenLesson(action.lessonId!),
@@ -504,18 +351,18 @@ class _ChapterDetail extends StatelessWidget {
                     '${chapter.completedLessons} of ${chapter.totalLessons} '
                     'lessons completed',
                     key: const ValueKey('journey-chapter-progress'),
-                    style: QubitQuestTypography.supporting,
+                    style: QqType.meta.copyWith(fontSize: 14),
                   ),
                 ],
               ),
               if (locked && prerequisite != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   'Opens when you complete “${prerequisite.title}”, the final '
                   'lesson of Chapter ${chapter.number - 1}. You can read '
                   'this chapter’s introduction now.',
                   key: const ValueKey('journey-prerequisite'),
-                  style: QubitQuestTypography.supporting,
+                  style: QqType.meta,
                 ),
               ],
               if (!chapter.isActive && active != null && !narrow) ...[
@@ -535,56 +382,69 @@ class _ChapterDetail extends StatelessWidget {
                   'You have completed the whole Journey. Every chapter stays '
                   'open for review.',
                   key: const ValueKey('journey-complete-note'),
-                  style: QubitQuestTypography.supporting
-                      .copyWith(color: QubitQuestColors.success),
+                  style: QqType.meta.copyWith(color: QubitQuestColors.success),
                 ),
               ],
-              const SizedBox(height: 24),
-              JourneyChapterIllustration(chapterNumber: chapter.number),
-              if (journeyChapterIllustrations.containsKey(chapter.number))
-                const SizedBox(height: 24),
-              const Text('WHAT YOU WILL LEARN',
-                  style: QubitQuestTypography.label),
-              const SizedBox(height: 8),
+              const SizedBox(height: 26),
+              Container(
+                key: const ValueKey('journey-lesson-table'),
+                decoration: BoxDecoration(
+                  color: QubitQuestSurfaces.work,
+                  borderRadius: QubitQuestRadii.card,
+                  border: Border.all(color: QubitQuestSurfaces.rule),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final (position, (id, lesson)) in lessons.indexed) ...[
+                      if (position > 0)
+                        const Divider(
+                            height: 1,
+                            indent: 14,
+                            endIndent: 14,
+                            color: Color(0x1F344A73)),
+                      _LessonRow(
+                        chapterNumber: chapter.number,
+                        position: position + 1,
+                        lessonId: id,
+                        title: lesson.title ?? 'Lesson ${position + 1}',
+                        type: journeyLessonTypeLabel(lesson),
+                        status: JourneyCurriculum.lessonStatusFor(
+                            curriculum.state, id),
+                        isNext: id == chapter.nextLessonId,
+                        onOpen: () => onOpenLesson(id),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+              label('What you will learn'),
               for (final (id, lesson) in lessons)
                 if (lesson.keyInsight case final insight?)
                   Padding(
                     key: ValueKey('journey-insight-$id'),
-                    padding: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.only(bottom: 8),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Padding(
-                          padding: EdgeInsets.only(top: 7, right: 10),
+                          padding: EdgeInsets.only(top: 9, right: 12),
                           child: Icon(Icons.circle,
                               size: 5, color: QubitQuestColors.accentStrong),
                         ),
-                        Expanded(
-                          child:
-                              Text(insight, style: QubitQuestTypography.body),
-                        ),
+                        Expanded(child: Text(insight, style: QqType.body)),
                       ],
                     ),
                   ),
-              const SizedBox(height: 22),
-              const Text('LESSONS', style: QubitQuestTypography.label),
-              const SizedBox(height: 6),
-              for (final (position, (id, lesson)) in lessons.indexed)
-                _LessonRow(
-                  chapterNumber: chapter.number,
-                  position: position + 1,
-                  lessonId: id,
-                  title: lesson.title ?? 'Lesson ${position + 1}',
-                  type: journeyLessonTypeLabel(lesson),
-                  status:
-                      JourneyCurriculum.lessonStatusFor(curriculum.state, id),
-                  isNext: id == chapter.nextLessonId,
-                  onOpen: () => onOpenLesson(id),
-                ),
+              if (journeyChapterIllustrations.containsKey(chapter.number)) ...[
+                const SizedBox(height: 24),
+                JourneyChapterIllustration(chapterNumber: chapter.number),
+              ],
               if (buildsOn.isNotEmpty || preparesFor.isNotEmpty) ...[
-                const SizedBox(height: 22),
-                const Text('CONNECTIONS', style: QubitQuestTypography.label),
-                const SizedBox(height: 6),
+                const SizedBox(height: 28),
+                label('Connections'),
                 for (final link in buildsOn)
                   _Connection(
                     key: ValueKey('journey-builds-on-${link.fromChapter}'),
@@ -612,11 +472,11 @@ class _ChapterDetail extends StatelessWidget {
                           detail: link.description,
                           onTap: () => onSelectChapter(link.toChapter - 1),
                         ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 const Text(
                   'Connections are conceptual; chapters still open in '
                   'order.',
-                  style: QubitQuestTypography.supporting,
+                  style: QqType.meta,
                 ),
               ],
             ],
@@ -672,61 +532,57 @@ class _LessonRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
       child: Material(
-        color: isNext ? QubitQuestColors.surfaceRaised : Colors.transparent,
+        color: isNext
+            ? QubitQuestColors.accentInteractive.withValues(alpha: .08)
+            : Colors.transparent,
         borderRadius: QubitQuestRadii.control,
         child: InkWell(
           key: ValueKey('journey-lesson-$lessonId'),
           borderRadius: QubitQuestRadii.control,
           onTap: locked ? null : onOpen,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
               children: [
                 Icon(icon, size: 18, color: color),
                 const SizedBox(width: 10),
                 SizedBox(
-                  width: 34,
+                  width: 44,
                   child: Text(
                     '$chapterNumber.$position',
-                    style: const TextStyle(
-                      color: QubitQuestColors.textMuted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: [FontFeature.tabularFigures()],
-                    ),
+                    style: QqType.navMeta.copyWith(fontSize: 13.5),
                   ),
                 ),
                 Expanded(
                   child: Text(
                     title,
-                    style: TextStyle(
+                    style: QqType.navLabel.copyWith(
+                      fontSize: 15,
                       color: locked
                           ? QubitQuestColors.textMuted
                           : QubitQuestColors.textPrimary,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(type, style: QubitQuestTypography.supporting),
+                Text(type, style: QqType.meta),
                 const SizedBox(width: 12),
                 SizedBox(
                   width: 64,
                   child: Text(
                     switch (status) {
                       JourneyLessonStatus.completed => 'Review',
-                      JourneyLessonStatus.available => isNext ? 'Next' : 'Open',
+                      JourneyLessonStatus.available =>
+                        isNext ? 'Continue' : 'Open',
                       JourneyLessonStatus.locked => 'Locked',
                     },
                     key: ValueKey('journey-lesson-action-$lessonId'),
                     textAlign: TextAlign.right,
-                    style: TextStyle(
+                    style: QqType.control.copyWith(
+                      fontSize: 13.5,
                       color: locked
                           ? QubitQuestColors.textMuted
                           : QubitQuestColors.accentInteractive,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
@@ -760,21 +616,13 @@ class _Connection extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
           child: Text.rich(TextSpan(children: [
-            TextSpan(
-              text: '$label  ',
-              style: QubitQuestTypography.supporting,
-            ),
+            TextSpan(text: '$label  ', style: QqType.meta),
             TextSpan(
               text: target,
-              style: const TextStyle(
-                color: QubitQuestColors.accentInteractive,
-                fontWeight: FontWeight.w700,
-              ),
+              style: QqType.navLabel
+                  .copyWith(color: QubitQuestColors.accentInteractive),
             ),
-            TextSpan(
-              text: ' — $detail',
-              style: QubitQuestTypography.body,
-            ),
+            TextSpan(text: ' — $detail', style: QqType.body),
           ])),
         ),
       );

@@ -28,7 +28,20 @@ class ComposerWorkspaceToolbar extends StatelessWidget {
     this.view,
     this.onViewChanged,
     this.compact = false,
+    this.focusCircuit,
+    this.onFocusCircuitChanged,
+    this.inlineQubitSelector = false,
   });
+
+  /// Laboratory layout (v2.6 M11C): the Analysis / Focus circuit switch.
+  /// Null hides it (the classic three-column layout).
+  final bool? focusCircuit;
+  final ValueChanged<bool>? onFocusCircuitChanged;
+
+  /// Shows the qubit choices as one visible segmented control instead of a
+  /// menu (the laboratory Composer opens straight into the Sandbox, so the
+  /// register size is chosen here).
+  final bool inlineQubitSelector;
 
   /// Narrow layouts wrap the same controls onto several lines.
   final bool compact;
@@ -75,7 +88,8 @@ class ComposerWorkspaceToolbar extends StatelessWidget {
     final modifier = _isApple ? '⌘' : 'Ctrl+';
     // Narrower toolbars drop secondary text before anything can overflow.
     final showContext = compact || width >= 860;
-    final showSaveText = compact || width >= 980;
+    final showSaveText =
+        compact || width >= (focusCircuit == null ? 980 : 1320);
     final children = <Widget>[
       const Icon(Icons.blur_on_rounded,
           size: 18, color: QubitQuestColors.accentInteractive),
@@ -102,7 +116,13 @@ class ComposerWorkspaceToolbar extends StatelessWidget {
         ),
       ],
       const SizedBox(width: 10),
-      if (onSelectQubits != null)
+      if (onSelectQubits != null && inlineQubitSelector)
+        _QubitSelector(
+          count: qubitCount,
+          choices: qubitChoices.toList(),
+          onSelected: onSelectQubits!,
+        )
+      else if (onSelectQubits != null)
         PopupMenuButton<int>(
           key: const ValueKey('web-composer-change-qubits'),
           tooltip: 'Change the number of qubits',
@@ -183,6 +203,34 @@ class ComposerWorkspaceToolbar extends StatelessWidget {
         ),
         const SizedBox(width: 6),
       ],
+      if (focusCircuit != null && onFocusCircuitChanged != null) ...[
+        SegmentedButton<bool>(
+          key: const ValueKey('composer-lab-mode'),
+          segments: const [
+            ButtonSegment(
+              value: false,
+              icon: Icon(Icons.analytics_outlined, size: 16),
+              label:
+                  Text('Analysis', key: ValueKey('composer-lab-mode-analysis')),
+              tooltip: 'Circuit with its state and measurement analysis',
+            ),
+            ButtonSegment(
+              value: true,
+              icon: Icon(Icons.fit_screen_outlined, size: 16),
+              label: Text('Focus circuit',
+                  key: ValueKey('composer-lab-mode-focus')),
+              tooltip: 'Give the circuit the whole workspace for editing',
+            ),
+          ],
+          selected: {focusCircuit!},
+          showSelectedIcon: false,
+          style: const ButtonStyle(
+            visualDensity: VisualDensity(horizontal: -2, vertical: -3),
+          ),
+          onSelectionChanged: (s) => onFocusCircuitChanged!(s.single),
+        ),
+        const SizedBox(width: 6),
+      ],
       for (final toggle in panelToggles)
         IconButton(
           key: ValueKey('composer-toggle-${toggle.id}'),
@@ -204,8 +252,10 @@ class ComposerWorkspaceToolbar extends StatelessWidget {
           color: QubitQuestColors.textMuted,
         ),
     ];
-    const decoration = BoxDecoration(
-      border: Border(bottom: BorderSide(color: QubitQuestColors.borderSoft)),
+    final decoration = BoxDecoration(
+      color: focusCircuit == null ? null : QubitQuestSurfaces.page,
+      border:
+          const Border(bottom: BorderSide(color: QubitQuestColors.borderSoft)),
     );
     if (compact) {
       return Container(
@@ -215,7 +265,9 @@ class ComposerWorkspaceToolbar extends StatelessWidget {
         child: Wrap(
           key: const ValueKey('web-composer-workspace-actions'),
           crossAxisAlignment: WrapCrossAlignment.center,
-          runSpacing: 2,
+          // Items never touch when the compact header wraps (M11C.1).
+          spacing: 10,
+          runSpacing: 4,
           children: [
             for (final child in children)
               if (child is Flexible)
@@ -230,8 +282,8 @@ class ComposerWorkspaceToolbar extends StatelessWidget {
     }
     return Container(
       key: const ValueKey('composer-workspace-toolbar'),
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      height: focusCircuit == null ? 48 : 56,
+      padding: EdgeInsets.symmetric(horizontal: focusCircuit == null ? 12 : 20),
       decoration: decoration,
       // The leading group scrolls horizontally when text is wider than
       // expected (large text, long example titles), so the toolbar can never
@@ -280,6 +332,83 @@ class WorkspacePanelToggle {
   final IconData icon;
   final bool visible;
   final VoidCallback onPressed;
+}
+
+/// Register size as one visible choice ("Qubits 1 2 3 4 5"). Choosing a
+/// size opens (or restores from storage) that Sandbox.
+class _QubitSelector extends StatelessWidget {
+  const _QubitSelector({
+    required this.count,
+    required this.choices,
+    required this.onSelected,
+  });
+
+  final int? count;
+  final List<int> choices;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        container: true,
+        label: 'Number of qubits',
+        child: Row(
+          key: const ValueKey('web-composer-qubit-selector'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Qubits',
+                key: const ValueKey('web-composer-qubit-count'),
+                semanticsLabel: '$count qubit${count == 1 ? '' : 's'}',
+                style: QubitQuestTypography.supporting),
+            const SizedBox(width: 8),
+            for (final n in choices)
+              Padding(
+                padding: const EdgeInsets.only(right: 3),
+                child: Tooltip(
+                  message: n == count
+                      ? '$n-qubit Sandbox (open)'
+                      : 'Open the $n-qubit Sandbox',
+                  child: Semantics(
+                    selected: n == count,
+                    button: true,
+                    label: '$n qubit${n == 1 ? '' : 's'}',
+                    excludeSemantics: true,
+                    child: InkWell(
+                      key: ValueKey('web-composer-qubits-$n'),
+                      borderRadius: QubitQuestRadii.control,
+                      onTap: n == count ? null : () => onSelected(n),
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: n == count
+                              ? QubitQuestColors.navigationSelected
+                              : null,
+                          borderRadius: QubitQuestRadii.control,
+                          border: Border.all(
+                            color: n == count
+                                ? QubitQuestColors.accentInteractive
+                                : QubitQuestColors.border,
+                          ),
+                        ),
+                        child: Text(
+                          '$n',
+                          style: TextStyle(
+                            color: n == count
+                                ? QubitQuestColors.accentInteractive
+                                : QubitQuestColors.textBody,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
 }
 
 class _Pill extends StatelessWidget {

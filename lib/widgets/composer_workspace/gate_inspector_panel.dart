@@ -20,6 +20,7 @@ import 'package:quantumquiz/widgets/gate_educational_visual.dart';
 import 'package:quantumquiz/widgets/latex_text.dart';
 import 'package:quantumquiz/widgets/measurement_glyph.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
+import 'package:quantumquiz/widgets/qubit_quest_workspace_primitives.dart';
 
 /// Circuit facts for the inspector's empty state.
 @immutable
@@ -96,7 +97,25 @@ class GateInspectorPanel extends StatelessWidget {
     this.onTabChanged,
     this.onOpenRelatedConcept,
     this.legacyNote,
+    this.contextual = false,
+    this.onClose,
+    this.openSections = const {},
+    this.onSectionChanged,
   });
+
+  /// Contextual presentation (v2.6 M11C): shown only while something is
+  /// selected or previewed, closed with one control at the top right
+  /// ([onClose], which deselects and never edits the circuit), and laid out
+  /// as stacked sections: identity and actions, *What it does*, *Rule*, then
+  /// *Mathematics* and *Learn more* as disclosures. No tabs, no collapse
+  /// and no expanded mode.
+  final bool contextual;
+  final VoidCallback? onClose;
+
+  /// Disclosure sections the learner opened (`mathematics`, `learn`); kept
+  /// by the host in memory so they stay open across selections.
+  final Set<String> openSections;
+  final void Function(String section, bool open)? onSectionChanged;
 
   /// Opens a related concept's Notebook discovery; null leaves the related
   /// concepts as read-only chips.
@@ -145,6 +164,7 @@ class GateInspectorPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (contextual) return _buildContextual(context);
     final info = _info;
     final tabbed = info != null && !collapsed && onTabChanged != null;
     final iconButtons = [
@@ -262,6 +282,113 @@ class GateInspectorPanel extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildContextual(BuildContext context) {
+    final info = _info;
+    final gate = selectedGate;
+    final type = gate?.type ?? previewType;
+    final measurement = selectedMeasurement;
+    final subject = measurement != null
+        ? 'measurement-${measurement.id.value}'
+        : gate != null
+            ? 'gate-${gate.id.value}'
+            : type != null
+                ? 'preview-${type.name}'
+                : 'none';
+    final Widget body;
+    if (measurement != null) {
+      body = _MeasurementDetails(
+        measurement: measurement,
+        width: classicalBitWidth,
+        usedBits: usedClassicalBits,
+        onBitChanged: actions.onClassicalBitChanged,
+        onDelete: actions.onDelete,
+      );
+    } else if (type == null) {
+      body = _EmptyState(summary: summary);
+    } else {
+      final footprint = gate ?? _syntheticFootprint(_previewGate(type));
+      final rotation = footprint.gate.requiresAngle;
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (gate != null)
+            _PlacedGateDetails(
+              gate: gate,
+              capabilities: capabilities,
+              actions: actions,
+              replacementTypes: replacementTypes,
+              legacyNote: legacyNote,
+              showTheory: false,
+            )
+          else
+            _PreviewDetails(type: type, showTheory: false),
+          if (info != null)
+            _ContextualTheory(
+              info: info,
+              footprint: footprint,
+              // A placed rotation's editor already states what it does.
+              describe: !(rotation && gate != null),
+              openSections: openSections,
+              onSectionChanged: onSectionChanged,
+              onOpenRelatedConcept: onOpenRelatedConcept,
+            )
+          else if (type == SelectedGateType.measureZ) ...[
+            const SizedBox(height: 4),
+            const Text(
+              'Reads one qubit in the Z basis and stores the outcome (0 or 1) '
+              'in a classical bit. Run the circuit from the Measure tab.',
+              style: QubitQuestTypography.body,
+            ),
+          ],
+        ],
+      );
+    }
+    return Semantics(
+      container: true,
+      label: 'Gate inspector',
+      child: Column(
+        key: const ValueKey('composer-gate-inspector'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 8, 4),
+            child: Row(
+              children: [
+                const Expanded(child: QqPanelLabel('Gate inspector')),
+                Text(
+                  _heading,
+                  key: const ValueKey('composer-inspector-heading'),
+                  style: QqType.meta,
+                ),
+                const SizedBox(width: 4),
+                if (onClose != null)
+                  IconButton(
+                    key: const ValueKey('composer-inspector-close'),
+                    tooltip: 'Close the inspector (the circuit is unchanged)',
+                    onPressed: onClose,
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    color: QubitQuestColors.textMuted,
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              key: const ValueKey('composer-inspector-scroll'),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              child: KeyedSubtree(
+                // Nothing from a previous subject (an angle draft, a scroll
+                // position) leaks into the next one.
+                key: ValueKey('composer-inspector-subject-$subject'),
+                child: body,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -490,17 +617,9 @@ class _Identity extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  key: titleKey,
-                  style: QubitQuestTypography.heading.copyWith(fontSize: 16),
-                ),
+                Text(title, key: titleKey, style: QqType.subjectTitle),
                 const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  key: subtitleKey,
-                  style: QubitQuestTypography.supporting,
-                ),
+                Text(subtitle, key: subtitleKey, style: QqType.meta),
               ],
             ),
           ),
@@ -727,8 +846,10 @@ class _GateLearn extends StatelessWidget {
 }
 
 class _PreviewDetails extends StatelessWidget {
-  const _PreviewDetails({super.key, required this.type});
+  const _PreviewDetails(
+      {super.key, required this.type, this.showTheory = true});
   final SelectedGateType type;
+  final bool showTheory;
 
   @override
   Widget build(BuildContext context) {
@@ -751,7 +872,9 @@ class _PreviewDetails extends StatelessWidget {
           subtitle: '$category · preview — drag it onto a qubit wire to place',
         ),
         const SizedBox(height: 12),
-        if (info != null)
+        if (!showTheory)
+          const SizedBox.shrink()
+        else if (info != null)
           _GateTheory(info: info)
         else if (type == SelectedGateType.measureZ)
           const Text(
@@ -772,8 +895,12 @@ class _PlacedGateDetails extends StatelessWidget {
     required this.actions,
     required this.replacementTypes,
     this.legacyNote,
+    this.showTheory = true,
   });
 
+  /// False in the contextual inspector, which shows the theory as its own
+  /// stacked sections below the actions.
+  final bool showTheory;
   final LogicalGateFootprint gate;
   final ComposerSelectedGateCapabilities capabilities;
   final GateInspectorActions actions;
@@ -847,7 +974,9 @@ class _PlacedGateDetails extends StatelessWidget {
                 subtitleKey: const ValueKey('web-composer-selection-position'),
                 subtitle: role,
               ),
-              if (controls.length >= 3) ...[
+              // The contextual inspector's subtitle already names every
+              // control and the target; the classic panel repeats them.
+              if (controls.length >= 3 && showTheory) ...[
                 const SizedBox(height: 6),
                 Text(
                   '${controls.length} controls: '
@@ -902,8 +1031,24 @@ class _PlacedGateDetails extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               details,
-              const SizedBox(height: 10),
-              Align(alignment: Alignment.centerLeft, child: buttons),
+              // Narrow (contextual inspector, stacked layouts): location
+              // belongs to the identity; the actions form their own row,
+              // left-aligned under it.
+              Padding(
+                padding: const EdgeInsets.only(left: 52, top: 2),
+                child:
+                    DefaultTextStyle.merge(style: QqType.meta, child: position),
+              ),
+              if (actionButtons.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Wrap(
+                  key: const ValueKey('web-composer-selection-actions'),
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: actionButtons,
+                ),
+              ],
             ],
           );
         }),
@@ -917,8 +1062,94 @@ class _PlacedGateDetails extends StatelessWidget {
             onCommit: (angle) => actions.onAngleCommitted(gate.id, angle),
             info: info,
           )
-        else if (info != null)
+        else if (info != null && showTheory)
           _GateTheory(info: info),
+      ],
+    );
+  }
+}
+
+/// Stacked theory sections of the contextual inspector: a plain sentence,
+/// the basis-state rule, then the mathematics and the learning material as
+/// closed disclosures (M11B information tiers T3/T4). Every statement comes
+/// from [GateEducationalCatalog]; nothing is generated from the circuit.
+class _ContextualTheory extends StatelessWidget {
+  const _ContextualTheory({
+    required this.info,
+    required this.footprint,
+    required this.describe,
+    required this.openSections,
+    this.onSectionChanged,
+    this.onOpenRelatedConcept,
+  });
+
+  final GateEducationalInfo info;
+  final LogicalGateFootprint footprint;
+  final bool describe;
+  final Set<String> openSections;
+  final void Function(String section, bool open)? onSectionChanged;
+  final ValueChanged<String>? onOpenRelatedConcept;
+
+  @override
+  Widget build(BuildContext context) {
+    final related = info.relatedConcepts;
+    return Column(
+      key: const ValueKey('composer-inspector-sections'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (describe) ...[
+          const SizedBox(height: 4),
+          const Text('What it does', style: QqType.subheading),
+          const SizedBox(height: 4),
+          Text(plainGateText(info.intuition),
+              key: const ValueKey('composer-inspector-intuition'),
+              style: QqType.body.copyWith(fontSize: 14.5)),
+        ],
+        if (info.transformations.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          const Text('Rule on basis states', style: QqType.subheading),
+          const SizedBox(height: 8),
+          QqMathWell(
+            child: Wrap(
+              key: const ValueKey('composer-inspector-transformations'),
+              spacing: 18,
+              runSpacing: 6,
+              children: [for (final t in info.transformations) _InlineMath(t)],
+            ),
+          ),
+        ],
+        const SizedBox(height: 20),
+        QqDisclosure(
+          key: const ValueKey('composer-inspector-section-mathematics'),
+          toggleKey:
+              const ValueKey('composer-inspector-section-mathematics-toggle'),
+          title: 'Mathematics',
+          summary: [
+            mathDefinitionHeading(info.matrix).toLowerCase(),
+            if (info.properties.isNotEmpty) 'properties',
+            if (info.identities.isNotEmpty) 'identities',
+          ].join(' · '),
+          initiallyExpanded: openSections.contains('mathematics'),
+          onChanged: (open) => onSectionChanged?.call('mathematics', open),
+          child: _GateMathematics(info: info, gate: footprint.gate),
+        ),
+        QqDisclosure(
+          key: const ValueKey('composer-inspector-section-learn'),
+          toggleKey: const ValueKey('composer-inspector-section-learn-toggle'),
+          title: 'Learn more',
+          // Counted, not listed: a truncated list of names said little.
+          summary: related.isEmpty
+              ? 'picture and explanation'
+              : 'picture, explanation · ${related.length} related '
+                  'concept${related.length == 1 ? '' : 's'}',
+          initiallyExpanded: openSections.contains('learn'),
+          onChanged: (open) => onSectionChanged?.call('learn', open),
+          child: _GateLearn(
+            info: info,
+            footprint: footprint,
+            onOpenRelatedConcept: onOpenRelatedConcept,
+          ),
+        ),
       ],
     );
   }
@@ -994,10 +1225,10 @@ class _ActionButton extends StatelessWidget {
               ? QubitQuestColors.error.withValues(alpha: .45)
               : QubitQuestColors.border,
         ),
-        minimumSize: const Size(0, 40),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
+        minimumSize: const Size(0, 38),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         visualDensity: VisualDensity.compact,
-        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        textStyle: QqType.control.copyWith(fontSize: 13.5),
       ),
     );
   }
@@ -1208,14 +1439,14 @@ class _RotationAngleEditorState extends State<RotationAngleEditor> {
       children: [
         Text(
           'Rotates the state by θ about the Bloch-sphere $_axis axis.',
-          style: QubitQuestTypography.body,
+          style: QqType.body.copyWith(fontSize: 14.5),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           'Angle: ${(widget.committedAngle / math.pi).toStringAsFixed(3)}π '
           '(${widget.committedAngle.toStringAsFixed(6)} rad)',
           key: const ValueKey('web-composer-selected-rotation-angle'),
-          style: QubitQuestTypography.supporting,
+          style: QqType.meta.copyWith(fontFeatures: QqType.tabular),
         ),
         if (widget.editable) ...[
           const SizedBox(height: 8),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
+import 'package:quantumquiz/models/composer_session.dart' show minimumQubitsFor;
+import 'package:quantumquiz/widgets/composer_workspace/composer_gate_palette_panel.dart' show orderedPaletteGates;
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/widgets/measurement_glyph.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
@@ -15,7 +17,13 @@ class ComposerGatePalette extends StatefulWidget {
     this.onMeasurementTap,
     this.measurementDraggable = false,
     this.embedded = false,
+    this.numQubits,
   });
+
+  /// Web hosts pass the register size: tiles then follow the shared
+  /// palette order, and gates that need more qubits are shown disabled
+  /// and cannot be dragged (v2.6 M11D). Null keeps the native behaviour.
+  final int? numQubits;
 
   /// Legacy tap-to-place measurement button (native host).
   final VoidCallback? onMeasurementTap;
@@ -174,7 +182,9 @@ class _ComposerGatePaletteState extends State<ComposerGatePalette> {
                                 key: const ValueKey('measurement-palette'),
                                 onPressed: widget.onMeasurementTap,
                                 child: const Text('M'))),
-                      for (final gate in widget.gates)
+                      for (final gate in widget.numQubits == null
+                          ? widget.gates
+                          : orderedPaletteGates(widget.gates))
                         Padding(
                           padding: EdgeInsets.symmetric(
                             horizontal: widget.dense ? 1 : 2,
@@ -298,6 +308,23 @@ class _ComposerGatePaletteState extends State<ComposerGatePalette> {
           onPressed: () => widget.onGateTap(gate),
           onInspect: () => widget.onInspectGate(gate),
         );
+    final needed = minimumQubitsFor(gate.type);
+    final unavailable =
+        widget.numQubits != null && needed > widget.numQubits!;
+    if (unavailable) {
+      return Tooltip(
+        message: 'Needs at least $needed qubits; this circuit has '
+            '${widget.numQubits}.',
+        child: Semantics(
+          enabled: false,
+          child: Opacity(
+            key: ValueKey('palette-gate-unavailable-${gate.type.name}'),
+            opacity: .35,
+            child: IgnorePointer(child: tile()),
+          ),
+        ),
+      );
+    }
     return Draggable<CircuitDragData>(
       data: CircuitDragData.palette(gate),
       feedback: Material(

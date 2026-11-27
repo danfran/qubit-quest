@@ -23,6 +23,7 @@ import 'package:quantumquiz/models/bloch_explorer_model.dart';
 import 'package:quantumquiz/models/bloch_lab.dart';
 import 'package:quantumquiz/models/canonical_qubit_state.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
+import 'support/laboratory_composer_finders.dart';
 
 const _e = 1e-12;
 final _r = math.sqrt1_2;
@@ -84,6 +85,10 @@ Future<WebBlochWorkspaceState> _pumpLab(WidgetTester tester,
 }
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   group('canonical states', () {
     test('six canonical states map to the six axis points', () {
       final expected = {
@@ -671,6 +676,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
       await tester.pump();
+      await pumpUntilSandboxOpen(tester);
       await tester.tap(find.byKey(const ValueKey('web-composer-qubits-1')));
       await tester.pumpAndSettle();
       final canvas = tester

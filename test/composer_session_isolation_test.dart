@@ -15,6 +15,7 @@ import 'package:quantumquiz/screens/web_app.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
 import 'package:quantumquiz/widgets/circuit_geometry.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
+import 'support/laboratory_composer_finders.dart';
 
 class _KeyedStorage extends InMemoryAppStorage {
   final List<String> writtenKeys = [];
@@ -77,6 +78,10 @@ QuantumCircuit _experimentCircuit(WidgetTester tester) => tester
     .circuit;
 
 void main() {
+  // These tests cover the classic Composer layout (lessons, Mastery and
+  // Notebook examples until M11D) through the Sandbox host (v2.6 M11C).
+  setUpAll(() => debugClassicSandboxLayout = true);
+  tearDownAll(() => debugClassicSandboxLayout = false);
   testWidgets(
       'Notebook examples never overwrite, edit or save the Sandbox session',
       (tester) async {
@@ -94,6 +99,7 @@ void main() {
     // Sandbox: 2 qubits with H on q1.
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
     await tester.pump();
+    await pumpUntilSandboxOpen(tester);
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-2')));
     await tester.pumpAndSettle();
     await _drop(tester, SelectedGateType.hadamard, 1, 0);
@@ -212,6 +218,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('web-nav-composer')));
     await tester.pump();
+    await pumpUntilSandboxOpen(tester);
     await tester.tap(find.byKey(const ValueKey('web-composer-qubits-2')));
     await tester.pumpAndSettle();
     await buildParityCircuit(tester);

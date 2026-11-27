@@ -78,9 +78,9 @@ void main() {
         'search_pipeline_forensics',
       ]) {
         await pumpTask(tester, id, size, 1, false);
-        final heading = find.text('Task');
+        final heading = find.text('TASK');
         expect(heading, findsOneWidget);
-        expect(find.text('TASK'), findsNothing);
+        // M11D: 'TASK' is now the shared panel's own (uppercase) heading.
         final panel = find
             .ancestor(
               of: heading,
@@ -90,9 +90,8 @@ void main() {
         final decoration = tester.widget<DecoratedBox>(panel).decoration;
         taskDecoration ??= decoration;
         expect(decoration, taskDecoration, reason: id);
-        expect(
-            find.descendant(
-                of: panel, matching: find.byIcon(Icons.flag_outlined)),
+        // M11D: the shared panel heading carries no icon.
+        expect(find.descendant(of: panel, matching: find.text('TASK')),
             findsOneWidget);
         final title = find.byKey(const ValueKey('web-lesson-title'));
         expect(tester.getRect(panel).top - tester.getRect(title).bottom, 14);
@@ -170,18 +169,19 @@ void main() {
     for (final challenge in mastery2Catalogue.orderedDefinitions) {
       await pumpTask(
           tester, challenge.semanticId, const Size(1440, 1000), 1, false);
-      final heading = find.text('Task');
+      final heading = find.text('TASK');
       expect(heading, findsOneWidget, reason: challenge.semanticId);
       final panel =
           find.ancestor(of: heading, matching: find.byType(DecoratedBox)).first;
       final decoration = tester.widget<DecoratedBox>(panel).decoration;
       sharedDecoration ??= decoration;
       expect(decoration, sharedDecoration, reason: challenge.semanticId);
+      // M11D: the shared panel heading has no icon; the heading is the
+      // panel's own label.
       expect(
-          find.descendant(
-              of: panel, matching: find.byIcon(Icons.flag_outlined)),
+          find.descendant(of: panel, matching: find.text('TASK')),
           findsOneWidget);
-      expect(find.text('TASK'), findsNothing);
+      // M11D: 'TASK' is now the shared panel's own (uppercase) heading.
       expect(tester.takeException(), isNull, reason: challenge.semanticId);
     }
   });
