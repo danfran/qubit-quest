@@ -437,3 +437,211 @@ The evaluators are unchanged (`ComposerLevel.evaluateCircuit`):
 - **Shared wording corrections:** the lesson wording corrections in `qq_levels.dart` also apply to the native app (scientific improvements only).
 - **Compilation:** `flutter analyze lib` reports no errors or warnings.
 
+
+## 13. Notebook knowledge base (M6b)
+
+### 13.1 Model: composed, not copied
+
+`models/notebook_knowledge_base.dart` builds the knowledge base from existing content only:
+
+| Category | Articles | Source | Availability |
+|---|---|---|---|
+| `reference` | Notation & terms (1) | `notebookEntries` (`notation_and_terms`) | Always |
+| `gates` | 12 production gates | `GateEducationalCatalog` (the inspector's content) | Always |
+| `chapter-N` | 66 discovery entries, 5 per chapter | `notebookEntries` | Unchanged rule: `isNotebookEntryAvailable` |
+
+- **Stable identifiers:** entry IDs, and `gate-<SelectedGateType.name>` for gates. Routes use them (`#/notebook/<id>`).
+- **Relationships are derived:**
+  - an entry's lesson: `discoveryTitle` → `journeyLessons`;
+  - related articles: authored `relatedDiscoveryTitles` and the gate catalogue's `notebookDiscoveryTitle`/`relatedConcepts`;
+  - a gate's Mastery challenges and Journey lessons: their palettes.
+- **Search:** the existing `NotebookSearchIndex`, restricted to unlocked entries, plus a token match over gate names, symbols and authored reference text.
+- **Gate experiments:** `notebookGateExampleIds` maps gates to curated example IDs. A test checks each ID exists and uses that gate.
+- **Video references:** `NotebookVideoReference` (provider, id/url, purpose) and an empty `notebookVideoReferences` registry. There is no UI and no network.
+
+### 13.2 Availability decision
+
+- **Discovery entries stay gated.** Each describes the result of its lesson, so opening one early would reveal it.
+- **Locked entries are listed with a lock and are selectable.** Selecting one shows a preview with no content: the lesson that discovers it, and an Open-lesson action only when that lesson is unlocked (Journey's own guard still applies).
+- **Gate reference and notation are always available.** This is new for gates (the same content the Composer inspector already shows everywhere). The notation entry was already always available.
+- Reading never completes lessons or unlocks discoveries. It only records "opened" for available entries, as before.
+
+### 13.3 Executable examples as experiments
+
+"Explore circuit" opens an example **inside the Notebook destination**. The Notebook's browser and the experiment sit in one `IndexedStack`, so the article stays mounted with its scroll.
+
+| Aspect | Behaviour |
+|---|---|
+| Host | `ComposerSessionWorkspace`, the shared workspace from M6a. No new host, simulator or renderer |
+| Level | `ExecutableNotebookExample.createExperimentLevel()`: authored initial state and operations (`applyCanonicalCircuitSteps`, editable), the full Sandbox palette, no target |
+| Policy | `ComposerMode.notebookExample`: measurement and shots enabled (`runsExperiments`), no Check or hints, `clearAction: reset` ("Reset example"), qubit count fixed, `persistsToSandbox: false` |
+| Session | A fresh `ComposerSession` for each open, with no save queue. The previous session is disposed after the frame. Reopening an example always starts from the authored circuit |
+| Return | Back or "Back to article" restores the originating article, its selection and its scroll. Selecting another article or a deep link also closes the experiment |
+| Bloch | "Explore in Bloch" still hands the executed state to the Bloch Explorer (unchanged) |
+
+**Isolation:** the Composer destination is now Sandbox-only. The former path that replaced the Sandbox view with an example (`_openNotebookExampleInComposer`) was removed. Tests show that:
+- the Sandbox's circuit and storage are untouched;
+- successive examples share no state;
+- progress (lessons, Mastery, discoveries) is unchanged after editing, measuring and running shots.
+
+In the browser, no `sandbox`/`composer` storage keys were written.
+
+**Catalogue additions** (all validated against the simulator by the existing catalogue tests):
+- `hh_reversibility`: H·H|0⟩ = |0⟩;
+- `rz_interference`: H·Rz(π/3)·H|0⟩ = cos(π/6)|0⟩ − i·sin(π/6)|1⟩, giving P = 0.75/0.25 under the simulator's Rz = diag(e^{−iθ/2}, e^{iθ/2});
+- `ghz_three`: (|000⟩ + |111⟩)/√2.
+
+### 13.4 Cross-destination links
+
+| From → to | Mechanism | Guard |
+|---|---|---|
+| Notebook → Journey lesson | `onOpenJourneyLesson(id)` → `WebJourneyWorkspace.requestedLessonId` | `_openLesson`'s unlock check, and the action is shown only when the lesson is unlocked |
+| Notebook → Mastery challenge | `onOpenMasteryChallenge(semanticId)` → `requestedChallengeId` | Mastery is always open (D10) |
+| Mastery → Notebook | "Gate reference" chips for a circuit challenge's palette gates | Shows only gates the challenge displays on opening |
+| Journey → Notebook | Existing discovery deep link (`requestedDiscoveryTitle`) | Unchanged |
+| URL | `#/notebook/<id>` (startup and mirrored) | Unknown or malformed IDs fall back to the default article |
+
+### 13.5 Layout
+
+- **Index and article (≥ 998 px of content):** the index is 280 px (320 px at ≥ 1200 px), and the article has a reading measure of about 780 px. The default article is notation and terms.
+- **Narrow:** the index, then the article with "Notebook index" back.
+- **Experiments:** use the shared workspace tiers (M3/M6a).
+- **Verified at:** 1920×1080, 1600×900, 1440×900, 1280×800, 1024×768, 800×700 and 500×900.
+
+### 13.6 Removed and retained
+
+- **Removed:**
+  - the Contents dialog and welcome panel;
+  - the Composer-destination example slot (`_requestedComposerExample`);
+  - the example banner in the Sandbox.
+- **Retained:** `ExecutableNotebookExampleView` keeps "Open in Composer" for the native app (`learning_flow_widgets.dart`). The native Notebook is unchanged.
+
+## 14. Controlled operations: CY and MCX (M7)
+
+### 14.1 Decision: one controlled-operation model
+
+CCX was implemented as a fixed two-control special case (fields `controlQubitIndex`/`control2QubitIndex`, a dedicated Kronecker-sum matrix, its own insertion body and painter branch). M7 generalises the shared paths rather than adding parallel ones:
+
+| Layer | Before | After (M7) |
+|---|---|---|
+| Matrix | `buildTwoQubitsGateOperator` (CX, CZ) and `ccnot`: sums of Kronecker products of projectors | `QuantumMatrix.controlled(controls, target, U)`: one span-local kernel built column by column; `cnot`, `cz`, `cy`, `ccnot`, `mcx` delegate |
+| Measured runs | Executor applied a 2×2 to amplitude pairs under a 1–2 control mask | Same algorithm, mask from `UnitaryOperation.controls` (any count) |
+| Model | `PlacedQuantumGate` control fields | Plus `controlQubitIndices` (MCX only, sorted); `controlQubits` getter on placed gates, footprints and operations |
+| Insertion | Two near-identical bodies (double, triple) | `_insertControlledGate`; `insertDouble…`, `insertTriple…`, `insertMultiControlled…` validate type and delegate |
+| Topology | Per-type checks for CX/CZ and CCX | One rule for every controlled type: contiguous span lowest→highest operand; each row is a control, the target or a link; metadata matches |
+| Rendering | Separate CX/CZ and CCX branches | `_drawControlledGate`: one wire over all operands, a dot per control, target glyph by type (⊕ X family, dot CZ, **Y tile CY**) |
+| Session | `controlCountFor` with counts > 2 unsupported | `acceptsControlCount`: MCX takes ≥ 3 |
+
+**Identity conventions are preserved.** CX, CZ and CCX keep their types, fields and fragment roles (CCX's second control is still `isControl2`), so every existing circuit, lesson and saved program behaves exactly as before (tested against explicit matrices and a legacy schema-2 CCX record).
+
+**Presentation.** CX = 1 control, CCX = 2, MCX = 3 or more (3–4 within the 5-qubit limit). The kernel itself accepts any count. The roadmap's earlier "MCX for 2–4 controls" is superseded by the brief: two controls stay CCX.
+
+### 14.2 Mathematics and conventions
+
+- Register kets |q(n−1)…q0⟩; bit k of a basis index is qubit k (unchanged).
+- The kernel's local span is little-endian too (bit k = qubit `min + k`); the circuit tensors it with the rest of its column, exactly as before.
+- CY's catalogue matrix uses the **local** order |control, target⟩ (control written first), stated in its properties and Key ideas, with a worked mapping to register kets.
+- Verified exactly (no per-entry phase discarding): CY matrix, CY² = I, CY† = CY, CY = (I⊗S) CX (I⊗S†); MCX² = I, MCX† = MCX; every basis input for 4- and 5-qubit MCX topologies; complex superpositions against an independent amplitude-pair reference; norm preservation.
+- Numerical tolerances unchanged; measurement semantics unchanged; no dense full-register operator added beyond the existing column construction.
+
+### 14.3 Persistence (additive)
+
+| Format | MCX encoding | Compatibility |
+|---|---|---|
+| Schema 2 (written by Sandbox autosave) | `"gateType":"mcx","controls":[…]` | Records without `controls` decode unchanged; CX/CCX still use `control`/`secondControl` |
+| Schema 1 (legacy, read and upgraded) | `"controlQubits":[…]` | Same |
+
+Invalid MCX records (missing, too few, duplicate or non-integer controls; target among controls; mixed shapes) fail the existing way (`FormatException` / `InvalidCircuitProgram`) and the existing recovery flow applies. Schema numbers are unchanged. An older build reading a record with CY/MCX rejects that record as an unknown gate, as for any newer gate.
+
+### 14.4 Composer, inspector, contexts
+
+- Palette: CY and MCX in Multi-qubit (`sandboxGatePaletteTypes`), so Sandbox and Notebook experiments have them; authored lesson/challenge palettes are untouched, so Journey and Mastery refuse them (`policy.allowsGateType`).
+- Placement: CY reuses the one-control role picker. MCX opens `MultiControlledPlacementDialog`: the drop row is the target, every other qubit starts selected, Place is enabled only for ≥ 3 controls, with a live "Controls: … · Target: …" summary. On a register with fewer than 4 qubits the drop is refused with an explanation (shown in full); the register is never resized.
+- Move, duplicate, delete, undo/redo and reset use the shared paths (MCX and CCX behave identically, tested). Replacement remains single-qubit only, as for CX/CCX.
+- Inspector: CY shows basis actions, matrix, identities; MCX shows its control count and topology ("4 controls: q0, q1, q3, q4 · Target: q2") and a conditional rule instead of a 16×16/32×32 matrix.
+- `GateEducationalInfo.keyIdeas` (optional) carries the longer Notebook explanations.
+
+### 14.5 Notebook
+
+- `gate-cy` and `gate-mcx` articles appear automatically (production gate types), always available.
+- 12 examples in a separate `gateReferenceExamples` catalogue (same class and validation), owned by gate articles so discovery entries and their authored content are unchanged; `notebookExampleById` resolves both catalogues.
+
+### 14.6 Platforms
+
+Shared mathematics and models stay platform-neutral. Native offers CY through its existing CX/CZ flow and hides MCX (no native multi-control interaction; no mobile redesign in M7). The shared painter renders MCX safely if one is ever restored natively.
+
+### 14.7 Fixes found during M7
+
+- `clearPlacedGatesWithOutcome` treated an empty circuit as already reset, so a Notebook experiment whose gates were all deleted could not be restored by Reset example (pre-existing since M6b). Fixed: an empty circuit is "already reset" only when its level authors no gates.
+- Undo/redo snapshot comparison (`_sameCell`) now compares MCX control lists.
+
+## 15. Bloch Explorer laboratory (M8)
+
+### 15.1 Investigation
+
+| Existing piece | Finding | Decision |
+|---|---|---|
+| `BlochState.applyGate` | A second gate implementation: rotated the Bloch vector geometrically and never updated the global phase (Y\|0⟩ gave \|1⟩, not i\|1⟩; Rz(2π) left the sign unchanged) | **Replaced:** applies the simulator's `QuantumMatrix` 2×2 (`singleQubitGateMatrix`) to the exact amplitudes. `BlochState` already stores θ, φ and γ, so α = e^{iγ}cos(θ/2) and β = e^{i(γ+φ)}sin(θ/2) are exact. Native benefits too |
+| `BlochState.interpolate` | Shortest-path slerp: wrong for H (not about Y) and for rotations > π | Kept for native; the lab draws trajectories with `BlochRotation` (Rodrigues, full angle) |
+| `BlochSpherePanel` / painter | Reusable; camera vs state separated by hit position | Reused; added optional `BlochSphereOverlay` (start ghost, preview, axis, trajectory, basis highlight, basis labels), off by default |
+| Web `_BlochWorkspace` | Card stack; Notebook handoff passed only the final state | Replaced by `WebBlochWorkspace` + `BlochLabSession` |
+| Composer Bloch tab | One qubit only; otherwise an explanation | Kept; added "Explore step by step" for one-qubit circuits and a reduced-state explanation |
+| Reduced density matrices | None in `lib` | Not implemented (brief: no broad density-matrix work); documented boundary |
+| Measurement | `FinalStateSampler` samples any vector | Reused after the basis change (H for X; S† then H for Y) |
+
+### 15.2 Model (`models/bloch_lab.dart`, platform-neutral)
+
+- `BlochLabSession`: prepared initial state; applied steps with redo tail; `preview` (pure, from `current`), `commit` (exactly one step; refused while inspecting), `undo`/`redo`, `inspect`/`returnToCurrent`, `prepare` (new start, history cleared), `reset` (standalone: back to the prepared start; seeded: the seed's state and authored gates).
+- `BlochLabSeed` (origin: standalone, notebook, composer, comparison): initial state, authored gates, note, source id, return label. Factories `blochSeedForNotebookExample` (one-qubit, single-qubit gates) and `blochSeedForCircuit` (one-qubit circuits; measured circuits explored up to M with an explicit note; multi-qubit → null).
+- `BlochBasis` (Z, X, Y): exact probabilities from amplitudes after the basis change, the geometric (1 + r·n)/2 equivalent, eigenstates for post-measurement display. `BlochMeasurer` wraps `FinalStateSampler`.
+- Unambiguous notation helpers: `blochComplex` ("0.7071i", "0.5000 − 0.5000i"), `blochStateExpression` (no "+ −", unit coefficients omitted), `blochAngle` ("π/2 (1.5708 rad)"), `parseBlochAngle`.
+
+### 15.3 Conventions
+
+x = 2Re(α*β), y = 2Im(α*β), z = |α|² − |β|²; |ψ⟩ = cos(θ/2)|0⟩ + e^{iφ}sin(θ/2)|1⟩, θ ∈ [0, π], φ ∈ [0, 2π). Screen projection: Bloch x right, z up, y into the screen, rotated by the camera; camera changes never touch the state. Gate rotations: X, Y, Z π; S π/2, T π/4 about Z; H π about (X+Z)/√2; Rx, Ry, Rz their own angle (labelled as equivalent rotations up to global phase for discrete gates).
+
+### 15.4 Isolation
+
+The shell owns one standalone `BlochLabSession` (survives destination switches) and at most one exploration session. Notebook, Composer and comparison explorations are new sessions; they never modify the standalone lab, the Sandbox (no storage writes), Journey/Mastery progress or Notebook discoveries. Return paths: Notebook (article and scroll intact), Composer (session retained).
+
+### 15.5 Layout
+
+≥1180 px: Prepare/Gates | sphere + legend + evolution | State/Measure. 760–1180 px: sphere + evolution | four tabs. <760 px: stacked (sphere first, evolution, tabs). The sphere is always the principal element.
+
+## 16. Consolidation (M9)
+
+- **Notation** is centralised in the existing formatters (no new formatter, no symbolic engine). See `V26_NOTATION_GUIDE.md`. Changes: i in the numerator (`i/√2`), subtraction for negative terms (`joinQuantumStateTerms`), bare ±1/±i coefficients, exact fractions only up to denominator 64, π-numerator angle labels (`π/2`), no negative zero.
+- **Theme:** `QubitQuestTheme.web()` now defines `snackBarTheme` and `tooltipTheme` (dark raised surface, bordered, floating). Individual `SnackBar` call sites are unchanged and inherit it.
+- **Composer layout:** the circuit's height is guaranteed whenever the inspector can keep its 150 px minimum (previously capped at 260 px, which clipped 4–5-qubit circuits).
+- **Palette:** `minimumQubitsFor(type)` (controls + 1); the desktop palette marks gates that do not fit the register as unavailable (dimmed, not draggable, still previewable, tooltip with the requirement).
+- **Snapshots:** `CircuitEditSnapshot.sameDefinitionAs` compares the effective classical width (fixes built vs restored measured circuits comparing unequal).
+- **Notebook experiments** detect a structural change from the authored circuit and label the description as the original example's.
+
+## 17. Educational expansion (M10)
+
+**Content.** Chapter 14 *Conditional Quantum Logic* lives in `lib/models/chapter_14_levels.dart` and is appended after Chapter 13 in `_consolidatedQQLevels()`. Its Journey IDs are 67–71, and its `QQLevelsCategory` spans indices 66–70. The six Mastery challenges, 43–48 (`lib/models/mastery_conditional_logic.dart`), are appended to `mastery2Catalogue`, each with a `MasteryChallengePresentation`. The five discovery titles are appended to `DiscoveryProgress.discoveryOrder` (discovery_067…071), because discovery IDs are positional. `guidedDiscoveryLevelCount` is 71, and the release gate expects 14 guided chapters. Existing IDs, persistence schemas and progress are unchanged: a learner who finished 66 lessons has frontier 67, so Chapter 14 simply unlocks.
+
+**Validation contracts.** Each lesson carries its own `canonicalSolution`, because canonical attachment does not cover IDs above 60.
+
+| Activity | Mode | Contract |
+|---|---|---|
+| 14.1 | `physicalState` | target \|01⟩ |
+| 14.2 | `unitary` | the five-qubit MCX(q0,q2,q3→q1) |
+| 14.3 | `finalState` | exact |
+| 14.4 | `physicalState` | ±1/4 amplitudes |
+| 14.5 | `unitary` | U_f·P, with Z_f·P as an alternate |
+| Mastery 44 | `unitary` | identity |
+| Mastery 45 | `unitary` | permutation |
+| Mastery 48 | `unitary` | bit oracle for 0110 |
+
+U_f·P and Z_f·P agree on the prepared-auxiliary subspace (q4 = 0 input columns). Constructions that differ only outside that subspace are rejected, and this limitation is documented.
+
+**Notebook.** The five entries have chapterIndex 14. Nine executable examples are in `conditionalLogicExamples`: seven moved from the gate catalogue and two are new, `mcx_phase_kickback` and `oracle_pattern_1010`. They keep their `relatedConcept`, so each article shows its own experiments. `journeyLessonsUsing(type)` also lists the lessons whose Chapter 14 discovery is one of the gate's related concepts.
+
+**Native.** The native Composer now offers MCX. A drop opens the shared `showMultiControlledPlacementDialog`, and `QuantumComposerController.insertGate` accepts `controlQubits`. Native Journey progression therefore does not stall at lesson 68, and no web-only guard is needed.
+
+**Infrastructure corrections** (minimal, listed separately in the report):
+- The release-gate chapter count is now 14.
+- The Notebook "N Journey lesson(s) use" text has the correct verb agreement.
+- The test harness takes an explicit activity domain.
+

@@ -2,7 +2,94 @@ import 'dart:math' as math;
 
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/foundation.dart';
+import 'package:quantumquiz/models/quantum_matrix.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
+
+/// Tolerance below which an amplitude counts as zero (relative phase then
+/// undefined) in the Bloch Explorer.
+const double blochAmplitudeEpsilon = 1e-9;
+
+/// The simulator's own 2×2 matrix for a single-qubit gate (v2.6 M8): the
+/// Bloch Explorer evolves states with exactly the matrices the Composer uses,
+/// so it has no second gate implementation. Null for non-unitary or
+/// multi-qubit types.
+QuantumMatrix? singleQubitGateMatrix(SelectedGateType type, {double? angle}) =>
+    switch (type) {
+      SelectedGateType.x => QuantumMatrix.pauliX(),
+      SelectedGateType.y => QuantumMatrix.pauliY(),
+      SelectedGateType.z => QuantumMatrix.pauliZ(),
+      SelectedGateType.hadamard => QuantumMatrix.hadamard(),
+      SelectedGateType.s => QuantumMatrix.phaseS(),
+      SelectedGateType.t => QuantumMatrix.t(),
+      SelectedGateType.rx => QuantumMatrix.rx(angle ?? math.pi / 2),
+      SelectedGateType.ry => QuantumMatrix.ry(angle ?? math.pi / 2),
+      SelectedGateType.rz => QuantumMatrix.rz(angle ?? math.pi / 2),
+      _ => null,
+    };
+
+/// A rotation of the Bloch sphere: unit [axis] and signed [angle] (right-hand
+/// rule). Used only to *visualise* a gate; the state itself always comes from
+/// [singleQubitGateMatrix].
+@immutable
+class BlochRotation {
+  const BlochRotation(this.axis, this.angle);
+  final (double, double, double) axis;
+  final double angle;
+
+  /// Rotates [v] by `fraction × angle` about [axis] (Rodrigues' formula), so
+  /// a 3π/2 rotation is drawn as 3π/2, never as a shortest-path arc.
+  (double, double, double) apply((double, double, double) v,
+      [double fraction = 1]) {
+    final a = angle * fraction;
+    final c = math.cos(a), s = math.sin(a);
+    final (kx, ky, kz) = axis;
+    final (vx, vy, vz) = v;
+    final dot = kx * vx + ky * vy + kz * vz;
+    final cx = ky * vz - kz * vy,
+        cy = kz * vx - kx * vz,
+        cz = kx * vy - ky * vx;
+    return (
+      vx * c + cx * s + kx * dot * (1 - c),
+      vy * c + cy * s + ky * dot * (1 - c),
+      vz * c + cz * s + kz * dot * (1 - c),
+    );
+  }
+
+  /// Whether [v] lies on the axis (its Bloch position does not move; the
+  /// state vector may still gain a phase).
+  bool fixes((double, double, double) v) {
+    final (kx, ky, kz) = axis;
+    final (vx, vy, vz) = v;
+    final cx = ky * vz - kz * vy,
+        cy = kz * vx - kx * vz,
+        cz = kx * vy - ky * vx;
+    return math.sqrt(cx * cx + cy * cy + cz * cz) < 1e-9 ||
+        (math.sin(angle / 2)).abs() < 1e-12;
+  }
+}
+
+/// The equivalent Bloch rotation of a gate, up to global phase: X, Y, Z are
+/// π about their axes; S and T are π/2 and π/4 about Z; H is π about
+/// (X + Z)/√2 (not a Y rotation); Rx, Ry, Rz rotate by their own angle.
+/// For discrete gates this is the chosen interpolation, not a claim about
+/// how hardware implements the gate.
+BlochRotation? blochRotationFor(SelectedGateType type, {double? angle}) {
+  const x = (1.0, 0.0, 0.0), y = (0.0, 1.0, 0.0), z = (0.0, 0.0, 1.0);
+  final theta = angle ?? math.pi / 2;
+  return switch (type) {
+    SelectedGateType.x => const BlochRotation(x, math.pi),
+    SelectedGateType.y => const BlochRotation(y, math.pi),
+    SelectedGateType.z => const BlochRotation(z, math.pi),
+    SelectedGateType.s => const BlochRotation(z, math.pi / 2),
+    SelectedGateType.t => const BlochRotation(z, math.pi / 4),
+    SelectedGateType.hadamard =>
+      const BlochRotation((math.sqrt1_2, 0.0, math.sqrt1_2), math.pi),
+    SelectedGateType.rx => BlochRotation(x, theta),
+    SelectedGateType.ry => BlochRotation(y, theta),
+    SelectedGateType.rz => BlochRotation(z, theta),
+    _ => null,
+  };
+}
 
 @immutable
 class BlochState {
@@ -82,6 +169,23 @@ class BlochState {
   double get probabilityZero => alphaMagnitude * alphaMagnitude;
   double get probabilityOne => betaMagnitude * betaMagnitude;
 
+  /// The exact amplitude of |0⟩, including the global phase:
+  /// α = e^{iγ} cos(θ/2).
+  Complex get alpha => Complex(alphaMagnitude * math.cos(globalPhase),
+      alphaMagnitude * math.sin(globalPhase));
+
+  /// The exact amplitude of |1⟩: β = e^{i(γ+φ)} sin(θ/2).
+  Complex get beta => Complex(betaMagnitude * math.cos(globalPhase + phi),
+      betaMagnitude * math.sin(globalPhase + phi));
+
+  /// Relative phase is defined only when both amplitudes are non-zero; at
+  /// the poles φ carries no physical meaning.
+  bool get hasDefinedRelativePhase =>
+      alphaMagnitude > blochAmplitudeEpsilon &&
+      betaMagnitude > blochAmplitudeEpsilon;
+
+  (double, double, double) get vector => (x, y, z);
+
   BlochState withGlobalPhase(double phase) => BlochState.fromAngles(
         theta: theta,
         phi: phi,
@@ -116,24 +220,16 @@ class BlochState {
     };
   }
 
+  /// Applies a gate with the simulator's own matrix to the exact amplitudes
+  /// (v2.6 M8). The global phase is tracked, so Y|0⟩ = i|1⟩ and
+  /// Rz(2π)|ψ⟩ = −|ψ⟩ exactly. Non-gates leave the state unchanged.
   BlochState applyGate(SelectedGateType type, {double angle = math.pi / 2}) {
-    return switch (type) {
-      SelectedGateType.x => rotate('X', math.pi),
-      SelectedGateType.y => rotate('Y', math.pi),
-      SelectedGateType.z => rotate('Z', math.pi),
-      SelectedGateType.s => rotate('Z', math.pi / 2),
-      SelectedGateType.t => rotate('Z', math.pi / 4),
-      SelectedGateType.rx => rotate('X', angle),
-      SelectedGateType.ry => rotate('Y', angle),
-      SelectedGateType.rz => rotate('Z', angle),
-      SelectedGateType.hadamard => BlochState.fromCartesian(
-          z,
-          -y,
-          x,
-          globalPhase: globalPhase,
-        ),
-      _ => this,
-    };
+    final matrix = singleQubitGateMatrix(type, angle: angle);
+    if (matrix == null) return this;
+    final m = matrix.toComplexList();
+    final a = alpha, b = beta;
+    return BlochState.fromAmplitudes(
+        m[0][0] * a + m[0][1] * b, m[1][0] * a + m[1][1] * b);
   }
 
   static BlochState interpolate(BlochState from, BlochState to, double t) {

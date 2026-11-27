@@ -16,15 +16,27 @@ import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/sandbox_program_snapshot.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 
-/// Number of control qubits a controlled gate type needs, or 0 for an
-/// uncontrolled gate. The command boundary ([GatePlacementRequest.controls])
-/// is a list, so a future multi-controlled X can carry any count without a
-/// new command; only this table and the model's insertion grow.
+/// Number of control qubits a controlled gate type needs (the minimum for
+/// the multi-controlled X), or 0 for an uncontrolled gate. The command
+/// boundary ([GatePlacementRequest.controls]) is a list, so MCX (v2.6 M7)
+/// carries any count without a new command.
 int controlCountFor(SelectedGateType type) => switch (type) {
-      SelectedGateType.cnot || SelectedGateType.cz => 1,
+      SelectedGateType.cnot || SelectedGateType.cz || SelectedGateType.cy => 1,
       SelectedGateType.ccnot => 2,
+      SelectedGateType.mcx => QuantumCircuit.minMultiControlCount,
       _ => 0,
     };
+
+/// The smallest register a gate fits in: its controls plus one target
+/// (CX, CY, CZ: 2; CCX: 3; MCX: 4; single-qubit gates: 1) (v2.6 M9).
+int minimumQubitsFor(SelectedGateType type) => controlCountFor(type) + 1;
+
+/// Whether [type] accepts exactly [count] controls: MCX takes three or
+/// more (bounded by the register), every other gate its fixed count.
+bool acceptsControlCount(SelectedGateType type, int count) =>
+    type == SelectedGateType.mcx
+        ? count >= QuantumCircuit.minMultiControlCount
+        : count == controlCountFor(type);
 
 /// A fully configured gate insertion: the gate (with its angle, if any), the
 /// target slot and the control qubits in the order they were chosen.
@@ -212,7 +224,7 @@ class ComposerSession extends ChangeNotifier {
   /// nothing to redo.
   bool redo() => !_readOnly && _restore(_history.redo());
 
-    bool _restore(CircuitEditSnapshot? snapshot) {
+  bool _restore(CircuitEditSnapshot? snapshot) {
     if (_disposed || snapshot == null) return false;
     _applying = true;
     try {
@@ -251,7 +263,7 @@ class ComposerSession extends ChangeNotifier {
         detail: 'Choose an angle before placing this gate.',
       ));
     }
-    if (request.controls.length != controlCountFor(gate.type)) {
+    if (!acceptsControlCount(gate.type, request.controls.length)) {
       return _reject(const CircuitEditOutcome(
         CircuitEditStatus.invalid,
         detail: 'Choose the control qubits for this gate.',
@@ -267,9 +279,8 @@ class ComposerSession extends ChangeNotifier {
             gate, column, target, controls[0]),
         2 => _circuit.insertTripleGateWithOutcome(
             gate, column, target, controls[0], controls[1]),
-        // Multi-controlled X (M7) extends the model here; the request shape
-        // already carries any number of controls.
-        _ => CircuitEditOutcome.unsupported,
+        _ => _circuit.insertMultiControlledGateWithOutcome(
+            gate, column, target, controls),
       },
     );
   }
@@ -356,6 +367,11 @@ class ComposerSession extends ChangeNotifier {
     }
     return outcome;
   }
+
+  /// Reports a refusal decided before a command could be issued (for
+  /// example an MCX dropped on a register too small for it), through the
+  /// same feedback channel as a rejected command. Changes nothing.
+  CircuitEditOutcome rejectWith(CircuitEditOutcome outcome) => _reject(outcome);
 
   CircuitEditOutcome _reject(CircuitEditOutcome outcome) {
     if (_disposed) return CircuitEditOutcome.cancelled;

@@ -1,6 +1,5 @@
 import '../widgets/sandbox_load_recovery.dart';
 import 'dart:async';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:quantumquiz/widgets/progress_save_feedback.dart';
@@ -9,24 +8,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:quantumquiz/models/bloch_explorer_model.dart';
+import 'package:quantumquiz/models/bloch_lab.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/qq_levels.dart' show journeyChapters;
 import 'package:quantumquiz/models/composer_policy.dart';
 import 'package:quantumquiz/models/composer_session.dart';
 import 'package:quantumquiz/models/executable_notebook_example.dart';
-import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/sandbox_circuit_persistence.dart';
-import 'package:quantumquiz/models/selected_gate_type.dart';
-import 'package:quantumquiz/screens/gate_inspector_dialog.dart';
+import 'package:quantumquiz/screens/web_bloch_workspace.dart';
 import 'package:quantumquiz/screens/web_learning_workspace.dart';
 import 'package:quantumquiz/screens/web_notebook_workspace.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
 import 'package:quantumquiz/storage/shared_preferences_app_storage.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
-import 'package:quantumquiz/widgets/bloch_explorer_panels.dart';
-import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/composer_workspace/composer_session_workspace.dart';
 import 'package:quantumquiz/widgets/composer_workspace/workspace_layout_state.dart';
 
@@ -41,8 +36,8 @@ enum WebDestination { journey, notebook, mastery, composer, bloch }
 /// D8). Returns null for an empty or unknown destination. A chapter is
 /// returned (zero-based) only for an existing Journey chapter; it selects
 /// the chapter for reading and never unlocks its lessons.
-({WebDestination destination, int? chapterIndex})? parseWebRoute(
-    String fragment) {
+({WebDestination destination, int? chapterIndex, String? articleId})?
+    parseWebRoute(String fragment) {
   final segments =
       fragment.split('/').where((segment) => segment.isNotEmpty).toList();
   if (segments.isEmpty) return null;
@@ -57,7 +52,13 @@ enum WebDestination { journey, notebook, mastery, composer, bloch }
       chapter = number - 1;
     }
   }
-  return (destination: destination, chapterIndex: chapter);
+  // v2.6 M6b: `#/notebook/<article-id>` (an entry ID or `gate-<type>`).
+  String? article;
+  if (destination == WebDestination.notebook && segments.length > 1) {
+    final id = segments[1];
+    if (RegExp(r'^[a-z0-9_-]+$').hasMatch(id)) article = id;
+  }
+  return (destination: destination, chapterIndex: chapter, articleId: article);
 }
 
 class QubitQuestWebApp extends StatelessWidget {
@@ -143,8 +144,24 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
   int? _initialJourneyChapter;
   String? _reportedRoute;
   String? _requestedNotebookDiscoveryTitle;
-  ExecutableNotebookExample? _requestedComposerExample;
-  BlochState? _requestedBlochState;
+  String? _requestedNotebookArticleId;
+
+  /// Article shown in the Notebook, mirrored as `#/notebook/<id>`.
+  String? _notebookArticle;
+
+  /// Cross-destination requests (v2.6 M6b). The serial makes a repeated
+  /// request for the same target act again.
+  int _requestSerial = 0;
+  int _notebookRequestSerial = 0;
+  ({int lessonId, int serial})? _journeyLessonRequest;
+  ({String id, int serial})? _masteryChallengeRequest;
+
+  /// The learner's own Bloch laboratory (kept across destinations) and an
+  /// optional isolated exploration (v2.6 M8). Explorations never modify the
+  /// standalone lab, the Sandbox or any progress.
+  final BlochLabSession _blochLab = BlochLabSession.standalone();
+  BlochLabSession? _blochExploration;
+  VoidCallback? _blochReturn;
   late final WorkspaceLayoutController _layout =
       widget.layoutController ?? WorkspaceLayoutController();
 
@@ -162,11 +179,17 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
     _destination = route.destination;
     _initialJourneyChapter = route.chapterIndex;
     _journeyChapter = route.chapterIndex;
+    if (route.articleId case final id?) {
+      _requestedNotebookArticleId = id;
+      _notebookRequestSerial = ++_requestSerial;
+    }
   }
 
   String get _route => switch (_destination) {
         WebDestination.journey when _journeyChapter != null =>
           '/journey/chapter-${_journeyChapter! + 1}',
+        WebDestination.notebook when _notebookArticle != null =>
+          '/notebook/$_notebookArticle',
         _ => '/${_destination.name}',
       };
 
@@ -212,18 +235,41 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
   }
 
   void _select(WebDestination destination) {
-    setState(() {
-      if (destination == WebDestination.composer) {
-        _requestedComposerExample = null;
-      }
-      _destination = destination;
-    });
+    setState(() => _destination = destination);
   }
 
   void _openNotebook([String? discoveryTitle]) {
     setState(() {
       _requestedNotebookDiscoveryTitle = discoveryTitle;
+      _requestedNotebookArticleId = null;
+      _notebookRequestSerial = ++_requestSerial;
       _destination = WebDestination.notebook;
+    });
+  }
+
+  /// Opens a Notebook article by its stable ID (e.g. `gate-cnot`).
+  void _openNotebookArticle(String id) {
+    setState(() {
+      _requestedNotebookDiscoveryTitle = null;
+      _requestedNotebookArticleId = id;
+      _notebookRequestSerial = ++_requestSerial;
+      _destination = WebDestination.notebook;
+    });
+  }
+
+  /// Opens a Journey lesson; the Journey enforces its locks.
+  void _openJourneyLesson(int lessonId) {
+    setState(() {
+      _journeyLessonRequest = (lessonId: lessonId, serial: ++_requestSerial);
+      _destination = WebDestination.journey;
+    });
+  }
+
+  /// Opens a Mastery challenge (always accessible).
+  void _openMasteryChallenge(String semanticId) {
+    setState(() {
+      _masteryChallengeRequest = (id: semanticId, serial: ++_requestSerial);
+      _destination = WebDestination.mastery;
     });
   }
 
@@ -231,25 +277,47 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
     _select(WebDestination.mastery);
   }
 
-  void _openNotebookExampleInComposer(ExecutableNotebookExample example) {
+  /// Opens [seed] as an isolated exploration; [onReturn] goes back to where
+  /// it came from. A new exploration replaces only the previous exploration.
+  void _openBlochExploration(BlochLabSeed seed, {VoidCallback? onReturn}) {
+    final previous = _blochExploration;
     setState(() {
-      _requestedComposerExample = example;
-      _destination = WebDestination.composer;
+      _blochExploration = BlochLabSession(seed);
+      _blochReturn = onReturn;
+      _destination = WebDestination.bloch;
     });
+    if (previous != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => previous.dispose());
+    }
+  }
+
+  void _closeBlochExploration() {
+    final previous = _blochExploration;
+    if (previous == null) return;
+    setState(() {
+      _blochExploration = null;
+      _blochReturn = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => previous.dispose());
   }
 
   void _openNotebookExampleInBloch(
     ExecutableNotebookExample example,
     ExecutableNotebookResult result,
   ) {
-    if (example.qubitCount != 1 || result.state.length != 2) return;
-    setState(() {
-      _requestedBlochState = BlochState.fromAmplitudes(
-        result.state[0],
-        result.state[1],
-      );
-      _destination = WebDestination.bloch;
-    });
+    final seed = blochSeedForNotebookExample(example);
+    if (seed == null) return;
+    // The Notebook stays mounted, so its article and scroll are intact.
+    _openBlochExploration(seed,
+        onReturn: () => _select(WebDestination.notebook));
+  }
+
+  void _exploreCircuitInBloch(QuantumCircuit circuit) {
+    final seed = blochSeedForCircuit(circuit);
+    if (seed == null) return;
+    // The Composer session (circuit and results) is retained.
+    _openBlochExploration(seed,
+        onReturn: () => _select(WebDestination.composer));
   }
 
   Widget _workspace() => IndexedStack(
@@ -267,14 +335,25 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
             onOpenMastery: _openMastery,
             layout: _layout,
             isActive: _destination == WebDestination.journey,
+            requestedLessonId: _journeyLessonRequest?.lessonId,
+            lessonRequestSerial: _journeyLessonRequest?.serial ?? 0,
           ),
           WebNotebookWorkspace(
             key: const ValueKey('web-workspace-notebook'),
             progressController: widget.progressController,
             requestedDiscoveryTitle: _requestedNotebookDiscoveryTitle,
+            requestedArticleId: _requestedNotebookArticleId,
+            requestSerial: _notebookRequestSerial,
             onOpenJourney: () => _select(WebDestination.journey),
-            onOpenExampleInComposer: _openNotebookExampleInComposer,
             onOpenExampleInBlochExplorer: _openNotebookExampleInBloch,
+            onOpenJourneyLesson: _openJourneyLesson,
+            onOpenMasteryChallenge: _openMasteryChallenge,
+            layout: _layout,
+            isActive: _destination == WebDestination.notebook,
+            onArticleShown: (id) {
+              _notebookArticle = id;
+              _reportRoute();
+            },
           ),
           WebMasteryWorkspace(
             key: const ValueKey('web-workspace-mastery'),
@@ -282,20 +361,27 @@ class _QubitQuestWebShellState extends State<QubitQuestWebShell> {
             onBackToJourney: () => _select(WebDestination.journey),
             onOpenNotebook: _openNotebook,
             onOpenNotebookEntry: _openNotebook,
+            onOpenNotebookArticle: _openNotebookArticle,
             layout: _layout,
             isActive: _destination == WebDestination.mastery,
+            requestedChallengeId: _masteryChallengeRequest?.id,
+            challengeRequestSerial: _masteryChallengeRequest?.serial ?? 0,
           ),
           _ComposerWorkspace(
             key: const ValueKey('web-workspace-composer'),
             persistence: widget.sandboxPersistenceStore,
-            example: _requestedComposerExample,
             isActive: _destination == WebDestination.composer,
             layout: _layout,
             onOpenNotebookEntry: _openNotebook,
+            onExploreInBloch: _exploreCircuitInBloch,
           ),
-          _BlochWorkspace(
+          WebBlochWorkspace(
             key: const ValueKey('web-workspace-bloch'),
-            requestedInitialState: _requestedBlochState,
+            standalone: _blochLab,
+            exploration: _blochExploration,
+            onReturnFromExploration: _blochReturn,
+            onCloseExploration: _closeBlochExploration,
+            onStartComparison: (seed) => _openBlochExploration(seed),
             onOpenNotebookEntry: _openNotebook,
           ),
         ],
@@ -585,16 +671,18 @@ class _ComposerWorkspace extends StatefulWidget {
     required this.persistence,
     required this.isActive,
     required this.layout,
-    this.example,
     this.onOpenNotebookEntry,
+    this.onExploreInBloch,
   });
+
+  /// Opens a one-qubit Sandbox circuit in the Bloch Explorer (v2.6 M8).
+  final ValueChanged<QuantumCircuit>? onExploreInBloch;
 
   /// Opens a Notebook discovery (related concepts in the Learn section).
   /// The Composer stays mounted, so its session survives the visit.
   final ValueChanged<String>? onOpenNotebookEntry;
   final SandboxPersistenceStore persistence;
   final bool isActive;
-  final ExecutableNotebookExample? example;
 
   /// Presentation-only layout preferences, shared with the shell.
   final WorkspaceLayoutController layout;
@@ -603,14 +691,11 @@ class _ComposerWorkspace extends StatefulWidget {
   State<_ComposerWorkspace> createState() => _ComposerWorkspaceState();
 }
 
-/// Web host for the Sandbox and for Notebook examples. It owns the two
-/// sessions and the qubit chooser; the workspace itself is the shared
-/// [ComposerSessionWorkspace] (also used by Journey lessons and Mastery
-/// challenges, v2.6 M6a).
-///
-/// The Sandbox and the active Notebook example are independent sessions:
-/// opening an example never replaces, edits or saves the Sandbox circuit,
-/// and returning to the Sandbox shows it exactly as it was left.
+/// Web host for the Sandbox. It owns the Sandbox session and the qubit
+/// chooser; the workspace itself is the shared [ComposerSessionWorkspace]
+/// (also used by Journey lessons, Mastery challenges and Notebook
+/// experiments). Notebook experiments run inside the Notebook in sessions of
+/// their own (v2.6 M6b), so nothing here ever replaces the Sandbox.
 ///
 /// Measurement results belong to each session (v2.6 M6a): leaving the
 /// Composer for another destination keeps them, because the session is
@@ -620,54 +705,17 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
       'Choose a circuit size to open the Sandbox.';
 
   ComposerWorkspaceSlot? _sandbox;
-  ComposerWorkspaceSlot? _example;
   bool _opening = false;
   String? _openError;
   String _chooserStatus = _chooseStatus;
-
-  bool get _isExample => widget.example != null;
-  ComposerWorkspaceSlot? get _slot => _isExample ? _example : _sandbox;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.example != null) _example = _newExampleSlot(widget.example!);
-  }
-
-  ComposerWorkspaceSlot _newExampleSlot(ExecutableNotebookExample example) {
-    final level = example.createEditableComposerLevel();
-    final session = ComposerSession(
-      circuit: QuantumCircuit(currentLevel: level),
-      policy: ComposerPolicy.forMode(ComposerMode.notebookExample, level),
-      beforeRun: _endOfFrame,
-    );
-    return ComposerWorkspaceSlot(session,
-        status: 'Notebook example: ${example.title}');
-  }
 
   static Future<void> _endOfFrame() => WidgetsBinding.instance.endOfFrame;
 
   void _disposeSlot(ComposerWorkspaceSlot? slot) => slot?.session.dispose();
 
   @override
-  void didUpdateWidget(covariant _ComposerWorkspace oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.example, widget.example)) {
-      // Only the example session changes; the Sandbox session is untouched.
-      final old = _example;
-      _example =
-          widget.example == null ? null : _newExampleSlot(widget.example!);
-      // Disposed after this frame, once its workspace has unmounted.
-      if (old != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _disposeSlot(old));
-      }
-    }
-  }
-
-  @override
   void dispose() {
     _disposeSlot(_sandbox);
-    _disposeSlot(_example);
     super.dispose();
   }
 
@@ -681,7 +729,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
       final programs = widget.persistence.programs;
       final loaded =
           await loadSandboxWithRecovery(context, programs, qubitCount);
-      if (!mounted || !loaded.opened || widget.example != null) return;
+      if (!mounted || !loaded.opened) return;
       final snapshot = loaded.snapshot;
       nextCircuit = snapshot?.restoreCircuit() ??
           QuantumCircuit(currentLevel: createSandboxComposerLevel(qubitCount));
@@ -782,7 +830,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
 
   @override
   Widget build(BuildContext context) {
-    final slot = _slot;
+    final slot = _sandbox;
     if (slot == null) {
       return LayoutBuilder(builder: (context, constraints) {
         final compact = constraints.maxWidth < 700;
@@ -806,21 +854,19 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
       });
     }
     return ComposerSessionWorkspace(
-      // One workspace state per session: Sandbox and example never share
-      // inspector tabs, result scroll or status.
+      // One workspace state per session.
       key: ObjectKey(slot.session),
       slot: slot,
       layout: widget.layout,
       shortcutsEnabled: widget.isActive,
-      contextLabel: _isExample
-          ? 'Notebook example · ${widget.example!.title}'
-          : 'Sandbox',
-      onSelectQubits: _isExample ? null : _openSandbox,
-      clearLabel: _isExample ? 'Reset example' : null,
-      clearedStatus:
-          _isExample ? 'Cleared Notebook example.' : 'Circuit cleared.',
+      contextLabel: 'Sandbox',
+      onSelectQubits: _openSandbox,
+      clearedStatus: 'Circuit cleared.',
       onOpenNotebookEntry: widget.onOpenNotebookEntry,
-      showLegacyMeasurementNote: !_isExample,
+      showLegacyMeasurementNote: true,
+      onExploreInBloch: widget.onExploreInBloch == null
+          ? null
+          : () => widget.onExploreInBloch!(slot.session.circuit),
     );
   }
 }
@@ -848,438 +894,6 @@ class _ComposerSectionHeading extends StatelessWidget {
                 fontWeight: FontWeight.w900,
                 color: QubitQuestColors.textPrimary,
               ),
-            ),
-          ),
-        ],
-      );
-}
-
-class _BlochWorkspace extends StatefulWidget {
-  const _BlochWorkspace({
-    super.key,
-    this.requestedInitialState,
-    this.onOpenNotebookEntry,
-  });
-
-  final BlochState? requestedInitialState;
-  final ValueChanged<String>? onOpenNotebookEntry;
-
-  @override
-  State<_BlochWorkspace> createState() => _BlochWorkspaceState();
-}
-
-class _BlochWorkspaceState extends State<_BlochWorkspace>
-    with SingleTickerProviderStateMixin {
-  static const _gateDuration = Duration(milliseconds: 650);
-  static const _replayDuration = Duration(milliseconds: 420);
-  static const _replayGap = Duration(milliseconds: 90);
-
-  late final BlochExplorerHistory _history;
-  late final AnimationController _animation;
-  final ScrollController _historyScrollController = ScrollController();
-  late BlochState _displayState;
-  BlochState? _animationStart;
-  BlochState? _animationEnd;
-  BlochCamera _camera = const BlochCamera();
-  double _angle = math.pi / 2;
-  bool _instant = false;
-  bool _replaying = false;
-  int _replayGeneration = 0;
-  int? _selectedHistoryIndex;
-  BlochHistoryEntry? _selectedHistoryEntry;
-  int? _activeHistoryIndex;
-  bool _historyExpanded = false;
-  String _interaction = 'Ready.';
-
-  @override
-  void initState() {
-    super.initState();
-    _displayState = widget.requestedInitialState ?? BlochState.zero;
-    _history = BlochExplorerHistory(initial: _displayState)
-      ..addListener(_syncHistory);
-    _animation = AnimationController(vsync: this, duration: _gateDuration)
-      ..addListener(_tickAnimation);
-  }
-
-  @override
-  void didUpdateWidget(covariant _BlochWorkspace oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!identical(
-        oldWidget.requestedInitialState, widget.requestedInitialState)) {
-      final requested = widget.requestedInitialState;
-      if (requested != null) {
-        _cancelMotion(restoreCurrent: false);
-        _history.reset(initial: requested);
-        setState(() {
-          _displayState = requested;
-          _selectedHistoryIndex = null;
-          _selectedHistoryEntry = null;
-          _interaction = 'Opened Notebook example result.';
-        });
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _animation.dispose();
-    _history
-      ..removeListener(_syncHistory)
-      ..dispose();
-    _historyScrollController.dispose();
-    super.dispose();
-  }
-
-  void _syncHistory() {
-    if (!mounted) return;
-    setState(() {
-      final selected = _selectedHistoryIndex;
-      if (selected != null &&
-          (selected > _history.index ||
-              selected >= _history.entries.length ||
-              !identical(_history.entries[selected], _selectedHistoryEntry))) {
-        _selectedHistoryIndex = null;
-        _selectedHistoryEntry = null;
-      }
-      _displayState = _history.state;
-    });
-  }
-
-  void _tickAnimation() {
-    final start = _animationStart;
-    final end = _animationEnd;
-    if (!mounted || start == null || end == null) return;
-    final progress = Curves.easeInOut.transform(_animation.value);
-    setState(
-        () => _displayState = BlochState.interpolate(start, end, progress));
-  }
-
-  void _cancelMotion({bool restoreCurrent = true}) {
-    _replayGeneration++;
-    _animation.stop();
-    if (mounted) {
-      setState(() {
-        _replaying = false;
-        _activeHistoryIndex = null;
-        if (restoreCurrent) _displayState = _history.state;
-      });
-    }
-  }
-
-  void _animate(BlochState from, BlochState to, Duration duration) {
-    _animation
-      ..stop()
-      ..duration = duration;
-    _animationStart = from;
-    _animationEnd = to;
-    setState(() => _displayState = from);
-    unawaited(_animation.forward(from: 0));
-  }
-
-  void _applyGate(SelectedGateType type) {
-    _cancelMotion();
-    _clearHistoryPreview();
-    final rotation = type == SelectedGateType.rx ||
-        type == SelectedGateType.ry ||
-        type == SelectedGateType.rz;
-    final gate = Gate.fromIdentifier(type, angle: rotation ? _angle : null);
-    final source = _history.state;
-    final destination = source.applyGate(type, angle: _angle);
-    _history.commit(
-      gate.label.replaceAll('\n', ' '),
-      destination,
-      gate: gate,
-    );
-    setState(() {
-      _interaction = 'Applied ${gate.label.replaceAll('\n', ' ')}.';
-    });
-    if (!_instant) _animate(source, destination, _gateDuration);
-  }
-
-  Future<void> _replay() async {
-    if (_replaying) return;
-    _cancelMotion();
-    final startIndex = _selectedHistoryIndex ?? 0;
-    final sequence = _history.replaySequenceFrom(startIndex);
-    if (sequence.isEmpty) return;
-    final generation = _replayGeneration;
-    setState(() => _replaying = true);
-    for (final (offset, transition) in sequence.indexed) {
-      if (!mounted || generation != _replayGeneration) return;
-      setState(() {
-        _activeHistoryIndex = startIndex + offset + 1;
-        _displayState = _instant ? transition.destination : transition.source;
-      });
-      _scrollActiveHistoryEntry();
-      if (_instant) {
-        await Future<void>.delayed(_replayGap);
-      } else {
-        _animationStart = transition.source;
-        _animationEnd = transition.destination;
-        _animation.duration = _replayDuration;
-        try {
-          await _animation.forward(from: 0).orCancel;
-        } on TickerCanceled {
-          return;
-        }
-      }
-      if (!_instant && offset + 1 < sequence.length) {
-        await Future<void>.delayed(_replayGap);
-      }
-    }
-    if (mounted && generation == _replayGeneration) {
-      setState(() {
-        _replaying = false;
-        _activeHistoryIndex = null;
-        _displayState = _history.state;
-      });
-    }
-  }
-
-  void _clearHistoryPreview() {
-    if (_selectedHistoryIndex == null) return;
-    setState(() {
-      _selectedHistoryIndex = null;
-      _selectedHistoryEntry = null;
-      _displayState = _history.state;
-    });
-  }
-
-  void _selectHistory(int index) {
-    if (_replaying || index < 0 || index > _history.index) return;
-    setState(() {
-      if (_selectedHistoryIndex == index) {
-        _selectedHistoryIndex = null;
-        _selectedHistoryEntry = null;
-        _displayState = _history.state;
-      } else {
-        final entry = _history.entries[index];
-        _selectedHistoryIndex = index;
-        _selectedHistoryEntry = entry;
-        _displayState = entry.state;
-      }
-      _interaction = _selectedHistoryIndex == null
-          ? 'History preview cleared.'
-          : 'History step $index selected.';
-    });
-  }
-
-  Future<void> _inspectHistoryGate(int index) async {
-    if (_replaying || index <= 0 || index > _history.index) return;
-    final gate = _history.entries[index].gate;
-    if (gate == null) return;
-    final preceding = [
-      for (var step = 1; step < index; step++) _history.entries[step].label,
-    ];
-    final concise = preceding.length <= 4
-        ? preceding
-        : ['…', ...preceding.sublist(preceding.length - 4)];
-    await _inspect(
-      gate,
-      inspectionContext: GateInspectorContext(
-        title: 'History step $index of ${_history.index}',
-        description:
-            'Applied after: ${concise.isEmpty ? 'Start' : concise.join(' → ')}',
-      ),
-    );
-  }
-
-  Future<void> _inspect(
-    Gate gate, {
-    GateInspectorContext? inspectionContext,
-  }) async {
-    final info = GateEducationalCatalog.forType(gate.type);
-    final notebookTitle = info?.notebookDiscoveryTitle;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => GateInspectorDialog.forGate(
-        gate: gate,
-        info: info,
-        inspectionContext: inspectionContext,
-        onOpenNotebook:
-            notebookTitle == null || widget.onOpenNotebookEntry == null
-                ? null
-                : () {
-                    Navigator.of(dialogContext).pop();
-                    widget.onOpenNotebookEntry!(notebookTitle);
-                  },
-        onOpenRelatedConcept: widget.onOpenNotebookEntry == null
-            ? null
-            : (title) {
-                Navigator.of(dialogContext).pop();
-                widget.onOpenNotebookEntry!(title);
-              },
-      ),
-    );
-  }
-
-  void _scrollActiveHistoryEntry() {
-    if (!_historyExpanded || _activeHistoryIndex == null) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_historyScrollController.hasClients) return;
-      final target = (_activeHistoryIndex! * 82.0).clamp(
-        0.0,
-        _historyScrollController.position.maxScrollExtent,
-      );
-      _historyScrollController.animateTo(
-        target,
-        duration: const Duration(milliseconds: 160),
-        curve: Curves.easeOut,
-      );
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) => ListView(
-        key: const ValueKey('web-bloch-workspace-scroll'),
-        padding: const EdgeInsets.all(24),
-        children: [
-          const _WorkspaceHeading(
-            title: 'Bloch Explorer',
-            subtitle: 'See how gates transform a single qubit.',
-          ),
-          const SizedBox(height: 18),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 1000;
-              final sphereHeight = wide
-                  ? (constraints.maxWidth * .48).clamp(470.0, 610.0)
-                  : (constraints.maxWidth * .72).clamp(350.0, 540.0);
-              final sphere = _WorkspaceCard(
-                child: MouseRegion(
-                  key: const ValueKey('web-bloch-sphere-pointer-area'),
-                  cursor: _replaying
-                      ? SystemMouseCursors.basic
-                      : SystemMouseCursors.grab,
-                  child: SizedBox(
-                    key: const ValueKey('web-bloch-sphere'),
-                    height: sphereHeight,
-                    child: IgnorePointer(
-                      ignoring: _replaying,
-                      child: BlochSpherePanel(
-                        reserveOverlaySafeRegions: wide,
-                        state: _displayState,
-                        camera: _camera,
-                        onCameraChanged: (camera) => setState(() {
-                          _camera = camera;
-                          _interaction = 'Camera updated.';
-                        }),
-                        onStatePreview: (state) => setState(() {
-                          _displayState = state;
-                          _interaction = 'Vector preview updated.';
-                        }),
-                        onStateCommitted: (state) {
-                          _history.commit('Direct state', state);
-                          setState(
-                              () => _interaction = 'Vector state committed.');
-                        },
-                        onGestureStarted: _cancelMotion,
-                        onStateGestureStarted: () {
-                          _cancelMotion();
-                          _clearHistoryPreview();
-                          return _history.state;
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              );
-              final controls = Column(
-                key: const ValueKey('web-bloch-tools'),
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _WorkspaceCard(
-                    child: BlochGatePanel(
-                      initialState: _history.initialState,
-                      rotationAngle: _angle,
-                      enabled: !_replaying,
-                      onSelectPreset: (preset) {
-                        _cancelMotion(restoreCurrent: false);
-                        _history.reset(initial: preset.blochState);
-                        setState(() {
-                          _selectedHistoryIndex = null;
-                          _selectedHistoryEntry = null;
-                          _displayState = preset.blochState;
-                          _interaction = 'Preset ${preset.label} selected.';
-                        });
-                      },
-                      onApplyGate: _applyGate,
-                      onInspectGate: _inspect,
-                      onAngleChanged: (angle) => setState(() => _angle = angle),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _WorkspaceCard(
-                    child: BlochPlaybackControls(
-                      canUndo: _history.canUndo,
-                      canRedo: _history.canRedo,
-                      canReplay: (_selectedHistoryIndex ?? 0) < _history.index,
-                      replayRunning: _replaying,
-                      instant: _instant,
-                      onUndo: () {
-                        _cancelMotion();
-                        _clearHistoryPreview();
-                        _history.undo();
-                      },
-                      onRedo: () {
-                        _cancelMotion();
-                        _clearHistoryPreview();
-                        _history.redo();
-                      },
-                      onReplay: _replay,
-                      onReset: () {
-                        _cancelMotion(restoreCurrent: false);
-                        _selectedHistoryIndex = null;
-                        _selectedHistoryEntry = null;
-                        _history.reset();
-                      },
-                      onInstantChanged: (value) =>
-                          setState(() => _instant = value),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _WorkspaceCard(
-                    child: BlochHistoryPanel(
-                      entries: _history.entries,
-                      currentIndex: _history.index,
-                      selectedIndex: _selectedHistoryIndex,
-                      activeReplayIndex: _activeHistoryIndex,
-                      replayRunning: _replaying,
-                      scrollController: _historyScrollController,
-                      onExpansionChanged: (expanded) {
-                        _historyExpanded = expanded;
-                        if (expanded) _scrollActiveHistoryEntry();
-                      },
-                      onSelected: _selectHistory,
-                      onInspect: _inspectHistoryGate,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(_interaction, key: const ValueKey('web-bloch-status')),
-                ],
-              );
-              if (!wide) {
-                return Column(
-                  key: const ValueKey('web-bloch-stacked-layout'),
-                  children: [sphere, const SizedBox(height: 12), controls],
-                );
-              }
-              return Row(
-                key: const ValueKey('web-bloch-wide-layout'),
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 13, child: sphere),
-                  const SizedBox(width: 18),
-                  Expanded(flex: 10, child: controls),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 14),
-          _WorkspaceCard(
-            child: BlochStateMathPanel(
-              state: _displayState,
-              globalPhase: _displayState.globalPhase,
             ),
           ),
         ],

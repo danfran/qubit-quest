@@ -8,6 +8,13 @@ enum SelectedGateType {
   cz,
   cnot,
   ccnot,
+
+  /// Controlled Pauli-Y (v2.6 M7): one control, one target.
+  cy,
+
+  /// Multi-controlled X (v2.6 M7): three or more controls, one target.
+  /// CX (one control) and CCX (two) keep their own identities.
+  mcx,
   s,
   t,
   x,
@@ -77,7 +84,7 @@ class Gate {
       const double tolerance = 1e-5;
 
       // The sign is handled separately for cleaner fraction formatting
-      final String sign = angle.isNegative ? '-' : '';
+      final String sign = angle.isNegative ? '\u2212' : '';
       final double absAngle = angle.abs();
 
       // Common denominators to check: 1, 2, 4, 8, 16
@@ -104,8 +111,11 @@ class Gate {
             if (numerator == 1) return '$sign\u03c0';
             return '$sign$numerator\u03c0';
           } else {
-            // e.g., pi/2, 3*pi/4, 5*pi/8
-            return '$sign$numerator/$denominator\u03c0';
+            // π/2, 3π/4, 5π/8 (v2.6 M9: never "1/2π", which reads as
+            // 1/(2π)).
+            return numerator == 1
+                ? '$sign\u03c0/$denominator'
+                : '$sign$numerator\u03c0/$denominator';
           }
         }
       }
@@ -149,6 +159,14 @@ class Gate {
       case SelectedGateType.ccnot:
         gateColor = Colors.blue;
         gateLabel = () => 'CCX';
+        break;
+      case SelectedGateType.cy:
+        gateColor = Colors.blue;
+        gateLabel = () => 'CY';
+        break;
+      case SelectedGateType.mcx:
+        gateColor = Colors.blue;
+        gateLabel = () => 'MCX';
         break;
       case SelectedGateType.rx:
         gateColor = Colors.blue.shade600;

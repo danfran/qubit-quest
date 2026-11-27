@@ -209,9 +209,10 @@ class CircuitExecutor {
       SelectedGateType.t => QuantumMatrix.t(),
       SelectedGateType.x ||
       SelectedGateType.cnot ||
-      SelectedGateType.ccnot =>
+      SelectedGateType.ccnot ||
+      SelectedGateType.mcx =>
         QuantumMatrix.pauliX(),
-      SelectedGateType.y => QuantumMatrix.pauliY(),
+      SelectedGateType.y || SelectedGateType.cy => QuantumMatrix.pauliY(),
       SelectedGateType.z || SelectedGateType.cz => QuantumMatrix.pauliZ(),
       SelectedGateType.rx => QuantumMatrix.rx(op.gate.angle!),
       SelectedGateType.ry => QuantumMatrix.ry(op.gate.angle!),
@@ -221,8 +222,7 @@ class CircuitExecutor {
     };
     final m = matrix.toComplexList();
     final target = 1 << op.target;
-    final controls = (op.control == null ? 0 : 1 << op.control!) |
-        (op.secondControl == null ? 0 : 1 << op.secondControl!);
+    final controls = op.controls.fold<int>(0, (mask, c) => mask | 1 << c);
     for (var i = 0; i < state.length; i++) {
       if ((i & target) != 0 || (i & controls) != controls) continue;
       final j = i | target;

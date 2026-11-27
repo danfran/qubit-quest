@@ -35,7 +35,8 @@ class ControlledGatePlacement {
           <int>{...roles, second}.length == 3;
     }
     return (gateType == SelectedGateType.cnot ||
-            gateType == SelectedGateType.cz) &&
+            gateType == SelectedGateType.cz ||
+            gateType == SelectedGateType.cy) &&
         secondControlQubit == null;
   }
 }
@@ -57,7 +58,9 @@ Future<ControlledGatePlacement?> showControlledGatePlacementDialog(
   required int targetQubit,
   required int numQubits,
 }) async {
-  if (gateType == SelectedGateType.cnot || gateType == SelectedGateType.cz) {
+  if (gateType == SelectedGateType.cnot ||
+      gateType == SelectedGateType.cz ||
+      gateType == SelectedGateType.cy) {
     final controlCandidates = validControlQubitCandidates(
       targetQubit: targetQubit,
       numQubits: numQubits,

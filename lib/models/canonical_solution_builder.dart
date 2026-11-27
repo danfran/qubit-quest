@@ -34,6 +34,7 @@ const _rotationGateTypes = {
 const _controlledGateTypes = {
   SelectedGateType.cnot,
   SelectedGateType.cz,
+  SelectedGateType.cy,
 };
 
 List<String> validateCanonicalSolutionMetadata(ComposerLevel level) {
@@ -45,7 +46,8 @@ List<String> validateCanonicalSolutionMetadata(ComposerLevel level) {
     final prefix = 'step ${index + 1} (${step.gateType.name})';
     final supported = _singleGateTypes.contains(step.gateType) ||
         _controlledGateTypes.contains(step.gateType) ||
-        step.gateType == SelectedGateType.ccnot;
+        step.gateType == SelectedGateType.ccnot ||
+        step.gateType == SelectedGateType.mcx;
     if (!supported) errors.add('$prefix uses an unsupported gate type');
     if (step.targetQubit < 0 || step.targetQubit >= level.numQubits) {
       errors.add('$prefix target qubit is out of range');
@@ -72,7 +74,21 @@ List<String> validateCanonicalSolutionMetadata(ComposerLevel level) {
       errors.add('$prefix has meaningless angle metadata');
     }
 
-    if (_controlledGateTypes.contains(step.gateType)) {
+    if (step.gateType == SelectedGateType.mcx) {
+      final controls = step.controlQubits;
+      final roles = {...?controls, step.targetQubit};
+      if (controls == null ||
+          controls.length < QuantumCircuit.minMultiControlCount ||
+          step.controlQubit != null ||
+          step.secondControlQubit != null ||
+          roles.length != controls.length + 1 ||
+          roles.any((q) => q < 0 || q >= level.numQubits)) {
+        errors.add('$prefix requires three or more distinct in-range '
+            'controls and a distinct target');
+      }
+    } else if (step.controlQubits != null) {
+      errors.add('$prefix has a control list for a fixed-control gate');
+    } else if (_controlledGateTypes.contains(step.gateType)) {
       final control = step.controlQubit;
       if (control == null || control < 0 || control >= level.numQubits) {
         errors.add('$prefix control qubit is missing or out of range');
@@ -148,6 +164,13 @@ void applyCanonicalCircuitSteps(
         column,
         step.targetQubit,
         step.controlQubit!,
+      );
+    } else if (step.gateType == SelectedGateType.mcx) {
+      outcome = circuit.insertMultiControlledGateWithOutcome(
+        gate,
+        column,
+        step.targetQubit,
+        step.controlQubits!,
       );
     } else {
       outcome = circuit.insertTripleGateWithOutcome(

@@ -47,6 +47,10 @@ class QQFraction {
     pi: 'π',
   };
 
+  /// Largest denominator shown as an exact fraction; larger ones are
+  /// presented as decimals.
+  static const int maxExactDenominator = 64;
+
   static int gcd(int a, int b) {
     while (b != 0) {
       int t = b;
@@ -112,8 +116,11 @@ class QQFraction {
     numerator = (numerator ~/ commonDivisor);
     denominator = (denominator ~/ commonDivisor);
 
-    // Fallback to decimal if the approximation is not good enough
-    if ((numerator / denominator - valAbs).abs() > epsilon) {
+    // Fallback to decimal if the approximation is not good enough, or if
+    // the fraction is not a plausible exact value (v2.6 M9: 0.123456 must
+    // read 0.1235, never "1929/15625").
+    if ((numerator / denominator - valAbs).abs() > epsilon ||
+        denominator > maxExactDenominator) {
       return QQFraction.asDecimal(
           sign: sign,
           decimalValue: valAbs);

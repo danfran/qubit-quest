@@ -332,6 +332,12 @@ class GateInspectorPanel extends StatelessWidget {
   }
 }
 
+/// The footprint the inspector's Learn visual uses for a gate *type* that
+/// is not in a circuit. Shared with the Notebook's gate articles (M6b), so
+/// both show the same educational visual.
+LogicalGateFootprint gateEducationalPreviewFootprint(SelectedGateType type) =>
+    _syntheticFootprint(_previewGate(type));
+
 /// Default-angle gate used to show a palette preview.
 Gate _previewGate(SelectedGateType type) => Gate.fromIdentifier(type,
     angle: Gate.fromIdentifier(type).requiresAngle ? math.pi / 2 : null);
@@ -402,12 +408,9 @@ String _qubitList(LogicalGateFootprint gate) {
   return qubits.map((q) => 'q$q').join(', ');
 }
 
-/// Control qubits of [gate] in role order. A list, so a future
-/// multi-controlled X shows every control without special cases.
-List<int> controlQubitsOf(LogicalGateFootprint gate) => [
-      if (gate.controlQubit case final c?) c,
-      if (gate.secondControlQubit case final c?) c,
-    ];
+/// Control qubits of [gate] in role order; every control of a
+/// multi-controlled X (v2.6 M7).
+List<int> controlQubitsOf(LogicalGateFootprint gate) => gate.controlQubits;
 
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.summary});
@@ -741,7 +744,7 @@ class _PreviewDetails extends StatelessWidget {
               : QubitQuestGateTile(
                   gate: _previewGate(type),
                   size: 40,
-                  fontSize: type == SelectedGateType.ccnot ? 12 : 16,
+                  fontSize: isWideGateLabel(type) ? 12 : 16,
                   onPressed: null,
                 ),
           title: _gateName(type),
@@ -829,7 +832,7 @@ class _PlacedGateDetails extends StatelessWidget {
                     child: QubitQuestGateTile(
                       gate: gate.gate,
                       size: 40,
-                      fontSize: gate.type == SelectedGateType.ccnot
+                      fontSize: isWideGateLabel(gate.type)
                           ? 12
                           : rotation
                               ? 9.5
@@ -844,6 +847,16 @@ class _PlacedGateDetails extends StatelessWidget {
                 subtitleKey: const ValueKey('web-composer-selection-position'),
                 subtitle: role,
               ),
+              if (controls.length >= 3) ...[
+                const SizedBox(height: 6),
+                Text(
+                  '${controls.length} controls: '
+                  '${controls.map((c) => 'q$c').join(', ')}  ·  '
+                  'Target: q${gate.targetQubit}',
+                  key: const ValueKey('composer-inspector-topology'),
+                  style: QubitQuestTypography.supporting,
+                ),
+              ],
               if (readOnly) ...[
                 const SizedBox(height: 6),
                 const Text(
@@ -1451,7 +1464,7 @@ class _CompactIdentity extends StatelessWidget {
           QubitQuestGateTile(
             gate: gate,
             size: 28,
-            fontSize: gate.type == SelectedGateType.ccnot
+            fontSize: isWideGateLabel(gate.type)
                 ? 9
                 : gate.requiresAngle
                     ? 7.5

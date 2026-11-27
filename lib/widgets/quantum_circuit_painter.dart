@@ -206,6 +206,14 @@ class QuantumCircuitPainter extends CustomPainter {
         centerX,
         qubitCenterYFor(fragment.location.qubit),
       );
+      if (gate.isTarget && footprint.type == SelectedGateType.cy) {
+        final rect = RRect.fromRectAndRadius(
+            Rect.fromCenter(center: center, width: gateSize, height: gateSize),
+            const Radius.circular(10));
+        canvas.drawRRect(rect, ghostFill);
+        canvas.drawRRect(rect, ghostStroke);
+        continue;
+      }
       final radius = gate.isTarget && footprint.type != SelectedGateType.cz
           ? targetRadius
           : controlDotRadius;
@@ -428,173 +436,16 @@ class QuantumCircuitPainter extends CustomPainter {
           continue;
         }
         // Calculate the top-left corner of the gate icon square
-        if (placedGate.gate.type == SelectedGateType.cnot ||
-            placedGate.gate.type == SelectedGateType.cz) {
-          final String gateLabel = placedGate.gate.label;
-          // Drawing logic for CNOT not target
-          // int currentX = gateXPosititionPerQubit.reduce(max);
+        if (placedGate.controlQubits.isNotEmpty &&
+            placedGate.targetQubitIndex != null) {
+          // Every controlled gate (CX, CZ, CY, CCX, MCX): drawn once, from
+          // its target cell; control and link cells only advance the column.
           final double gateColumnCenterX =
               padding + currentX * gateSpacing + gateSpacing / 2;
-          debugPrint('  Drawing $gateLabel at $gateColumnCenterX');
-
-          gateXPosititionPerQubit[primaryDrawingQubit] +=
-              1; // Increment for next gate
-
-          if (placedGate.gate.type != SelectedGateType.none &&
-              placedGate.isTarget) {
-            // Use the helper for the vertical centers of control and target qubits
-            final double controlY =
-                getQubitCenterY(placedGate.controlQubitIndex!);
-            final double targetY = getQubitCenterY(primaryDrawingQubit);
-
-            // Draw control circle/dot
-            final visual = _visualForGate(placedGate.gate);
-            final controlPaint = Paint()..color = visual.top;
-            canvas.drawCircle(Offset(gateColumnCenterX, controlY),
-                controlDotRadius, controlPaint);
-
-            // Draw connection line between control and target
-            final linePaint = Paint()
-              ..color = circuitLineBlue
-              ..strokeWidth = 2.0;
-            canvas.drawLine(Offset(gateColumnCenterX, controlY),
-                Offset(gateColumnCenterX, targetY), linePaint);
-
-            if (placedGate.gate.type == SelectedGateType.cnot) {
-              // Draw target circle
-              final targetPaint = Paint()
-                ..shader = RadialGradient(
-                  colors: visual.colors,
-                ).createShader(
-                  Rect.fromCircle(
-                    center: Offset(gateColumnCenterX, targetY),
-                    radius: targetRadius,
-                  ),
-                );
-              final targetGlowPaint = Paint()
-                ..color = Colors.black.withValues(alpha: 0.45)
-                ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-              canvas.drawCircle(
-                Offset(gateColumnCenterX, targetY + 3),
-                targetRadius + 1,
-                targetGlowPaint,
-              );
-              canvas.drawCircle(Offset(gateColumnCenterX, targetY),
-                  targetRadius, targetPaint);
-
-              // Draw '+' inside target circle
-              final plusPainter = TextPainter(
-                text: TextSpan(
-                    text: '+',
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.95),
-                        fontSize: 24)),
-                textDirection: TextDirection.ltr,
-              );
-              plusPainter.layout();
-              plusPainter.paint(
-                  canvas,
-                  Offset(gateColumnCenterX - plusPainter.width / 2,
-                      targetY - plusPainter.height / 2));
-            } else if (placedGate.gate.type == SelectedGateType.cz) {
-              final targetPaint = Paint()..color = visual.top;
-              canvas.drawCircle(Offset(gateColumnCenterX, targetY),
-                  controlDotRadius, targetPaint);
-            }
-            if (markFixedGates && !placedGate.isDeletable) {
-              _drawFixedBadge(
-                  canvas,
-                  Offset(gateColumnCenterX + targetRadius * .8,
-                      targetY - targetRadius * .8));
-            }
-          }
-        } else if (placedGate.gate.type == SelectedGateType.ccnot) {
-          // Drawing logic for CCNOT not target
-          // int currentX = gateXPosititionPerQubit.reduce(max);
-          final double gateColumnCenterX =
-              padding + currentX * gateSpacing + gateSpacing / 2;
-          debugPrint('  Drawing CCNOT at $gateColumnCenterX');
-
-          gateXPosititionPerQubit[primaryDrawingQubit] +=
-              1; // Increment for next gate
-
-          if (placedGate.gate.type != SelectedGateType.none &&
-              placedGate.isTarget) {
-            // Use the helper for the vertical centers of control and target qubits
-            final double controlY =
-                getQubitCenterY(placedGate.controlQubitIndex!);
-            final double control2Y =
-                getQubitCenterY(placedGate.control2QubitIndex!);
-            final double targetY = getQubitCenterY(primaryDrawingQubit);
-
-            // Draw control circle/dot
-            final visual = _visualForGate(placedGate.gate);
-            final controlPaint = Paint()
-              ..color = visual.top; // Use the static constant
-            canvas.drawCircle(Offset(gateColumnCenterX, controlY),
-                controlDotRadius, controlPaint);
-
-            // Draw control 2 circle/dot
-            final control2Paint = Paint()
-              ..color = visual.top; // Use the static constant
-            canvas.drawCircle(Offset(gateColumnCenterX, control2Y),
-                controlDotRadius, control2Paint);
-
-            // Draw connection line between control and target
-            final linePaint = Paint()
-              ..color = circuitLineBlue
-              ..strokeWidth = 2.0; // Use the static constant
-            canvas.drawLine(Offset(gateColumnCenterX, controlY),
-                Offset(gateColumnCenterX, targetY), linePaint);
-
-            // Draw connection line between control 2 and target
-            final line2Paint = Paint()
-              ..color = circuitLineBlue
-              ..strokeWidth = 2.0; // Use the static constant
-            canvas.drawLine(Offset(gateColumnCenterX, control2Y),
-                Offset(gateColumnCenterX, targetY), line2Paint);
-
-            // Draw target circle
-            final targetPaint = Paint()
-              ..shader = RadialGradient(
-                colors: visual.colors,
-              ).createShader(
-                Rect.fromCircle(
-                  center: Offset(gateColumnCenterX, targetY),
-                  radius: targetRadius,
-                ),
-              ); // Use the static constant
-            final targetGlowPaint = Paint()
-              ..color = Colors.black.withValues(alpha: 0.45)
-              ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-            canvas.drawCircle(
-              Offset(gateColumnCenterX, targetY + 3),
-              targetRadius + 1,
-              targetGlowPaint,
-            );
-            canvas.drawCircle(
-                Offset(gateColumnCenterX, targetY), targetRadius, targetPaint);
-
-            // Draw '+' inside target circle
-            final plusPainter = TextPainter(
-              text: TextSpan(
-                  text: '+',
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.95),
-                      fontSize: 24)),
-              textDirection: TextDirection.ltr,
-            );
-            plusPainter.layout();
-            plusPainter.paint(
-                canvas,
-                Offset(gateColumnCenterX - plusPainter.width / 2,
-                    targetY - plusPainter.height / 2));
-            if (markFixedGates && !placedGate.isDeletable) {
-              _drawFixedBadge(
-                  canvas,
-                  Offset(gateColumnCenterX + targetRadius * .8,
-                      targetY - targetRadius * .8));
-            }
+          gateXPosititionPerQubit[primaryDrawingQubit] += 1;
+          if (placedGate.isTarget) {
+            _drawControlledGate(
+                canvas, placedGate, gateColumnCenterX, primaryDrawingQubit);
           }
         } else {
           // Use the helper for the vertical center of the primary qubit line
@@ -628,7 +479,8 @@ class QuantumCircuitPainter extends CustomPainter {
             } else {
               _drawCircuitGateTile(canvas, gateRect, placedGate.gate);
               if (markFixedGates && !placedGate.isDeletable) {
-                _drawFixedBadge(canvas, gateRect.topRight + const Offset(-2, 2));
+                _drawFixedBadge(
+                    canvas, gateRect.topRight + const Offset(-2, 2));
               }
               if (placedGate.id == selectedGateId) {
                 final selectionPaint = Paint()
@@ -662,6 +514,75 @@ class QuantumCircuitPainter extends CustomPainter {
     _drawSourceGhost(canvas);
   }
 
+  /// One renderer for controlled gates (v2.6 M7): a wire spanning every
+  /// operand, a dot per control (above or below the target, contiguous or
+  /// not) and the target glyph: ⊕ for X-type gates, a dot for CZ and a Y
+  /// tile for CY (never the CX ⊕, since CY also changes phase).
+  void _drawControlledGate(
+    Canvas canvas,
+    PlacedQuantumGate placedGate,
+    double x,
+    int targetRow,
+  ) {
+    final visual = _visualForGate(placedGate.gate);
+    final targetY = getQubitCenterY(targetRow);
+    final controlYs = [
+      for (final control in placedGate.controlQubits) getQubitCenterY(control)
+    ];
+    final ys = [...controlYs, targetY];
+    canvas.drawLine(
+      Offset(x, ys.reduce(min)),
+      Offset(x, ys.reduce(max)),
+      Paint()
+        ..color = circuitLineBlue
+        ..strokeWidth = 2.0,
+    );
+    final controlPaint = Paint()..color = visual.top;
+    for (final y in controlYs) {
+      canvas.drawCircle(Offset(x, y), controlDotRadius, controlPaint);
+    }
+    var badgeCorner =
+        Offset(x + targetRadius * .8, targetY - targetRadius * .8);
+    switch (placedGate.gate.type) {
+      case SelectedGateType.cz:
+        canvas.drawCircle(Offset(x, targetY), controlDotRadius, controlPaint);
+      case SelectedGateType.cy:
+        final rect = Rect.fromCenter(
+            center: Offset(x, targetY), width: gateSize, height: gateSize);
+        _drawCircuitGateTile(canvas, rect, placedGate.gate);
+        gateTextPainter('Y', 16, canvas, x, rect.top);
+        badgeCorner = rect.topRight + const Offset(-2, 2);
+      default:
+        final center = Offset(x, targetY);
+        canvas.drawCircle(
+          center.translate(0, 3),
+          targetRadius + 1,
+          Paint()
+            ..color = Colors.black.withValues(alpha: 0.45)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+        );
+        canvas.drawCircle(
+          center,
+          targetRadius,
+          Paint()
+            ..shader = RadialGradient(colors: visual.colors).createShader(
+                Rect.fromCircle(center: center, radius: targetRadius)),
+        );
+        final plus = TextPainter(
+          text: TextSpan(
+              text: '+',
+              style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.95), fontSize: 24)),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        plus.paint(
+            canvas, Offset(x - plus.width / 2, targetY - plus.height / 2));
+    }
+    if (markFixedGates && !placedGate.isDeletable) {
+      _drawFixedBadge(canvas, badgeCorner);
+    }
+  }
+
   static const double fixedBadgeRadius = 7;
 
   /// Lock badge centred on [corner] (the top-right corner of a gate).
@@ -688,8 +609,8 @@ class QuantumCircuitPainter extends CustomPainter {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    painter.paint(canvas,
-        corner - Offset(painter.width / 2, painter.height / 2));
+    painter.paint(
+        canvas, corner - Offset(painter.width / 2, painter.height / 2));
   }
 
   void gateTextPainter(String gateText, double gateTextSize, Canvas canvas,

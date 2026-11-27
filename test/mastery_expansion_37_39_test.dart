@@ -23,7 +23,7 @@ void main() {
   test(
       '42 catalogue identities exactly match presentations; archive remains independent',
       () {
-    expect(mastery2Catalogue.length, 42);
+    expect(mastery2Catalogue.length, 48);
     expect(mastery2Catalogue.semanticIds.toSet(),
         mastery2Presentations.keys.toSet());
     expect(

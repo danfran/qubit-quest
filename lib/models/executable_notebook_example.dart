@@ -5,6 +5,8 @@ import 'package:quantumquiz/models/canonical_composer_solution.dart';
 import 'package:quantumquiz/models/canonical_solution_builder.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
+import 'package:quantumquiz/models/sandbox_circuit_persistence.dart'
+    show sandboxGatePaletteTypes;
 import 'package:quantumquiz/models/selected_gate_type.dart';
 
 class NotebookAmplitude {
@@ -111,6 +113,24 @@ class ExecutableNotebookExample {
       );
 
   ComposerLevel createEditableComposerLevel() => _level(prepopulate: true);
+
+  /// The level for a Notebook experiment (v2.6 M6b): the authored initial
+  /// state and operations, editable, with the full Sandbox palette so the
+  /// learner can extend the experiment. Reset restores exactly the authored
+  /// operations. No target: an experiment is not an exercise.
+  ComposerLevel createExperimentLevel() => ComposerLevel(
+        title: title,
+        taskDescription: description,
+        numQubits: qubitCount,
+        initialQubitsStateStr: initialBinaryState,
+        initialQubitsState: initialState,
+        availableGates: [
+          for (final type in sandboxGatePaletteTypes) Gate.fromIdentifier(type),
+        ],
+        solutionFinalVector: const [],
+        preInsertedGates: (circuit) =>
+            applyCanonicalCircuitSteps(circuit, operations),
+      );
 
   List<String> validate() {
     final errors = <String>[];

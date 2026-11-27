@@ -234,6 +234,34 @@ abstract final class QubitQuestTheme {
           backgroundColor: QubitQuestColors.background,
           surfaceTintColor: Colors.transparent,
         ),
+        // v2.6 M9: one readable treatment for transient messages on the
+        // dark theme (Material's default was a light-grey bar).
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: QubitQuestColors.surfaceRaised,
+          contentTextStyle: const TextStyle(
+            color: QubitQuestColors.textBody,
+            fontSize: 14,
+            height: 1.35,
+          ),
+          actionTextColor: QubitQuestColors.accentInteractive,
+          behavior: SnackBarBehavior.floating,
+          elevation: 6,
+          insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: QubitQuestColors.border),
+          ),
+        ),
+        tooltipTheme: TooltipThemeData(
+          decoration: BoxDecoration(
+            color: QubitQuestColors.surfaceRaised,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: QubitQuestColors.border),
+          ),
+          textStyle: const TextStyle(
+              color: QubitQuestColors.textBody, fontSize: 12.5),
+          waitDuration: const Duration(milliseconds: 400),
+        ),
       );
 
   static const _baseTextTheme = TextTheme(

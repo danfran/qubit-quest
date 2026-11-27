@@ -18,9 +18,9 @@ void main() {
   test(
       'six ordered discoveries cover unchanged Journey and Mastery namespaces; release passes',
       () {
-    expect(journeyLessons, hasLength(66));
-    expect(mastery2Catalogue.length, 42);
-    for (var i = 1; i <= 66; i++) {
+    expect(journeyLessons, hasLength(71)); // 66 until v2.6 M10
+    expect(mastery2Catalogue.length, 48);
+    for (var i = 1; i <= 71; i++) {
       expect(getJourneyLessonById(i), same(journeyLessons[i - 1]));
     }
     for (var i = 61; i <= 114; i++) {
@@ -29,7 +29,7 @@ void main() {
     }
     expect(entries, hasLength(6));
     expect(entries.map((e) => e.discoveryTitle),
-        DiscoveryProgress.discoveryOrder.skip(60));
+        DiscoveryProgress.discoveryOrder.skip(60).take(6)); // Chapter 14 follows
     for (var i = 0; i < 6; i++) {
       expect(entries[i].discoveryTitle,
           getJourneyLessonById(61 + i)!.discoveryTitle);
@@ -164,15 +164,31 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(entries[0].intuition.body), findsOneWidget);
     expect(find.text(entries[1].intuition.body), findsNothing);
-    final related = find.widgetWithText(ActionChip, entries[1].discoveryTitle);
-    expect(tester.widget<ActionChip>(related).onPressed, isNull);
-    // Navigation skips locked discoveries and may reach the always-open reference.
+    // M6b: a locked related entry is listed with a lock; opening it shows a
+    // preview that names the lesson but never the entry's content.
+    final related =
+        find.byKey(ValueKey('web-notebook-related-${entries[1].id}'));
     expect(
-        find.descendant(
-            of: find.byKey(const ValueKey('web-notebook-next')),
-            matching: find
-                .text(notebookEntriesById[notebookReferenceEntryId]!.title)),
+        find.descendant(of: related, matching: find.byIcon(Icons.lock_outline)),
         findsOneWidget);
+    await tester.ensureVisible(related);
+    await tester.pumpAndSettle();
+    await tester.tap(related);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('web-notebook-locked-preview')),
+        findsOneWidget);
+    expect(find.text(entries[1].intuition.body), findsNothing);
+    // Navigation within the chapter skips locked discoveries.
+    await tester.scrollUntilVisible(
+        find.byKey(ValueKey('web-notebook-entry-${entries[0].id}')), 200,
+        scrollable: find
+            .descendant(
+                of: find.byKey(const ValueKey('web-notebook-index')),
+                matching: find.byType(Scrollable))
+            .first);
+    await tester.tap(find.byKey(ValueKey('web-notebook-entry-${entries[0].id}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('web-notebook-next')), findsNothing);
     await controller.unlockDiscovery(entries[1].discoveryTitle);
     await tester.pumpAndSettle();
     expect(controller.unlockedDiscoveryTitles(),
@@ -186,19 +202,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('web-notebook-reader-${entries[1].id}')),
         findsOneWidget);
+    expect(find.text(entries[1].intuition.body), findsOneWidget);
     final previous = find.byKey(const ValueKey('web-notebook-previous'));
     await tester.ensureVisible(previous);
     await tester.pumpAndSettle();
     await tester.tap(previous);
     await tester.pumpAndSettle();
     expect(find.text(entries[0].intuition.body), findsOneWidget);
-    expect(tester.widget<ActionChip>(related).onPressed, isNotNull);
-    await tester.ensureVisible(related);
-    await tester.pumpAndSettle();
-    await tester.tap(related);
-    await tester.pumpAndSettle();
-    expect(find.byKey(ValueKey('web-notebook-reader-${entries[1].id}')),
-        findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -170,11 +170,12 @@ void main() {
           discoveries[i]);
       expect(identical(getHistoricalMasteryById(id), level), isFalse);
     }
-    expect(journeyLessons, hasLength(66));
-    expect(journeyChapters, hasLength(13));
+    // v2.6 M10: Chapter 14 follows Chapter 13.
+    expect(journeyLessons, hasLength(71));
+    expect(journeyChapters, hasLength(14));
     expect(journeyChapterForLesson(66)!.to, 65);
-    expect(getJourneyLessonById(67), isNull);
-    expect(mastery2Catalogue.length, 42);
+    expect(journeyChapterForLesson(67)!.from, 66);
+    expect(mastery2Catalogue.length, 48);
   });
 
   for (final count in [60, 63]) {
@@ -209,13 +210,13 @@ void main() {
           count + 1);
       final controller = CampaignProgressController(store: store);
       await controller.load();
-      for (var id = count + 1; id <= 66; id++) {
+      for (var id = count + 1; id <= 71; id++) {
         expect(controller.state.completedLessonIds.contains(id), isFalse);
         expect(controller.state.maxUnlockedLevel, id);
         await controller.completeLesson(id);
       }
       final restarted = await store.load();
-      expect(restarted.completedLessonIds, {for (var i = 1; i <= 66; i++) i});
+      expect(restarted.completedLessonIds, {for (var i = 1; i <= 71; i++) i});
       expect(
           CampaignProgressPolicy.continueJourneyDestination(restarted)
               .isJourneyComplete,

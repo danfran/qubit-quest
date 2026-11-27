@@ -20,6 +20,9 @@ class CanonicalCircuitStep {
   final int targetQubit;
   final int? controlQubit;
   final int? secondControlQubit;
+
+  /// Every control of a multi-controlled X (v2.6 M7); null otherwise.
+  final List<int>? controlQubits;
   final double? angle;
 
   const CanonicalCircuitStep({
@@ -27,21 +30,33 @@ class CanonicalCircuitStep {
     required this.targetQubit,
     this.controlQubit,
     this.secondControlQubit,
+    this.controlQubits,
     this.angle,
   });
+
+  /// Multi-controlled X with three or more [controlQubits] (v2.6 M7).
+  const CanonicalCircuitStep.multiControlledX({
+    required List<int> this.controlQubits,
+    required this.targetQubit,
+  })  : gateType = SelectedGateType.mcx,
+        controlQubit = null,
+        secondControlQubit = null,
+        angle = null;
 
   const CanonicalCircuitStep.single(
     this.gateType, {
     required this.targetQubit,
     this.angle,
   })  : controlQubit = null,
-        secondControlQubit = null;
+        secondControlQubit = null,
+        controlQubits = null;
 
   const CanonicalCircuitStep.controlled(
     this.gateType, {
     required this.controlQubit,
     required this.targetQubit,
   })  : secondControlQubit = null,
+        controlQubits = null,
         angle = null;
 
   const CanonicalCircuitStep.toffoli({
@@ -49,11 +64,12 @@ class CanonicalCircuitStep {
     required this.secondControlQubit,
     required this.targetQubit,
   })  : gateType = SelectedGateType.ccnot,
+        controlQubits = null,
         angle = null;
 
   @override
   String toString() {
-    final controls = [controlQubit, secondControlQubit]
+    final controls = (controlQubits ?? <int?>[controlQubit, secondControlQubit])
         .whereType<int>()
         .map((qubit) => 'q$qubit')
         .join(',');

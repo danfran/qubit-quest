@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/models/composer_session.dart'
+    show minimumQubitsFor;
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
@@ -31,11 +33,17 @@ GatePaletteCategory gatePaletteCategoryFor(SelectedGateType type) =>
         GatePaletteCategory.rotations,
       SelectedGateType.cnot ||
       SelectedGateType.cz ||
-      SelectedGateType.ccnot =>
+      SelectedGateType.ccnot ||
+      SelectedGateType.cy ||
+      SelectedGateType.mcx =>
         GatePaletteCategory.multiQubit,
       SelectedGateType.measureZ => GatePaletteCategory.measurement,
       _ => GatePaletteCategory.basic,
     };
+
+/// Three-letter labels (CCX, MCX) use a smaller tile font.
+bool isWideGateLabel(SelectedGateType type) =>
+    type == SelectedGateType.ccnot || type == SelectedGateType.mcx;
 
 /// Compact label shown on palette tiles.
 String gatePaletteLabel(SelectedGateType type) => switch (type) {
@@ -51,6 +59,8 @@ String gatePaletteLabel(SelectedGateType type) => switch (type) {
       SelectedGateType.cnot => 'CX',
       SelectedGateType.cz => 'CZ',
       SelectedGateType.ccnot => 'CCX',
+      SelectedGateType.cy => 'CY',
+      SelectedGateType.mcx => 'MCX',
       SelectedGateType.measureZ => 'M',
       _ => type.name.toUpperCase(),
     };
@@ -121,10 +131,15 @@ class ComposerGatePalettePanel extends StatefulWidget {
     this.collapsed = false,
     this.onToggleCollapsed,
     this.circuitScale = 1.0,
+    this.numQubits,
   });
 
   /// The canvas's display scale; drag feedback is drawn at that size.
   final double circuitScale;
+
+  /// The circuit's register size. Gates needing more qubits are shown as
+  /// unavailable: dimmed, not draggable, still previewable (v2.6 M9).
+  final int? numQubits;
 
   final List<Gate> gates;
   final bool allowsMeasurement;
@@ -155,8 +170,10 @@ class _ComposerGatePalettePanelState extends State<ComposerGatePalettePanel> {
     SelectedGateType.ry,
     SelectedGateType.rz,
     SelectedGateType.cnot,
+    SelectedGateType.cy,
     SelectedGateType.cz,
     SelectedGateType.ccnot,
+    SelectedGateType.mcx,
   ];
 
   @override
@@ -323,6 +340,9 @@ class _ComposerGatePalettePanelState extends State<ComposerGatePalettePanel> {
 
   Widget _gateTile(Gate gate, {required double width, bool square = false}) {
     final previewed = widget.previewedType == gate.type;
+    final needed = minimumQubitsFor(gate.type);
+    final register = widget.numQubits;
+    final unavailable = register != null && needed > register;
     final style = QubitQuestGateStyle.forGate(gate);
     final label = gatePaletteLabel(gate.type);
     Widget face({bool dimmed = false}) => _PaletteTileFace(
@@ -334,16 +354,23 @@ class _ComposerGatePalettePanelState extends State<ComposerGatePalettePanel> {
           selected: previewed,
           dimmed: dimmed,
         );
+    final unavailableReason = unavailable
+        ? 'Needs at least $needed qubits; this circuit has $register. '
+            'Select it to read about it.'
+        : null;
     return Tooltip(
-      message: gateTooltip(gate.type),
+      message: unavailableReason ?? gateTooltip(gate.type),
       waitDuration: const Duration(milliseconds: 450),
       child: Semantics(
         button: true,
         selected: previewed,
+        enabled: !unavailable,
         label: GateEducationalCatalog.forType(gate.type)?.name ?? label,
-        hint: 'Drag onto a qubit wire, or activate to preview',
+        hint: unavailableReason ??
+            'Drag onto a qubit wire, or activate to preview',
         child: Draggable<CircuitDragData>(
           key: ValueKey('composer-palette-gate-${gate.type.name}'),
+          maxSimultaneousDrags: unavailable ? 0 : null,
           data: CircuitDragData.palette(gate),
           dragAnchorStrategy: _pointerAnchor,
           feedback: _centredFeedback(
@@ -351,18 +378,20 @@ class _ComposerGatePalettePanelState extends State<ComposerGatePalettePanel> {
               key: const ValueKey('composer-palette-drag-feedback'),
               gate: gate,
               size: paletteFeedbackSize(widget.circuitScale),
-              fontSize: (gate.type == SelectedGateType.ccnot ? 10 : 13) *
-                  widget.circuitScale,
+              fontSize:
+                  (isWideGateLabel(gate.type) ? 10 : 13) * widget.circuitScale,
               onPressed: null,
             ),
             paletteFeedbackSize(widget.circuitScale),
           ),
           childWhenDragging: face(dimmed: true),
           child: MouseRegion(
-            cursor: SystemMouseCursors.grab,
+            cursor: unavailable
+                ? SystemMouseCursors.help
+                : SystemMouseCursors.grab,
             child: GestureDetector(
               onTap: () => widget.onPreview(gate.type),
-              child: face(),
+              child: face(dimmed: unavailable),
             ),
           ),
         ),

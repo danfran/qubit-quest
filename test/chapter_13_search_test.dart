@@ -145,8 +145,10 @@ void main() {
       expect(controller.state.completedLessonIds.contains(id), isFalse);
       await controller.completeLesson(id);
     }
-    expect(controller.continueJourneyDestination.isJourneyComplete, isTrue);
-    expect(getJourneyLessonById(67), isNull);
+    // v2.6 M10: Chapter 14 follows; lesson 67 is next, not the end.
+    expect(controller.continueJourneyDestination.isJourneyComplete, isFalse);
+    expect(controller.continueJourneyDestination.levelNumber, 67);
+    expect(getJourneyLessonById(67)!.title, 'More Than a Controlled Flip');
     expect(controller.state.completedChallengeIds, {61, 114});
     expect(
         controller.state.completedLessonIds, {for (var i = 1; i <= 66; i++) i});
@@ -216,7 +218,7 @@ void main() {
       expect(find.byType(WebLessonWorkspace), findsNothing);
       expect(find.byType(WebJourneyOverview), findsOneWidget);
       expect(mastery, 0);
-      expect(getJourneyLessonById(67), isNull);
+      expect(getJourneyLessonById(67), isNotNull); // Chapter 14 (v2.6 M10)
     });
   }
 
@@ -226,7 +228,7 @@ void main() {
     expect(chapter.to, 65);
     expect(chapter.isMasteryPhase, isFalse);
     expect(journeyChapterForLesson(63), same(chapter));
-    expect(journeyChapterForLesson(67), isNull);
+    expect(journeyChapterForLesson(67), isNot(same(chapter))); // Chapter 14
     final release = ChapterReleaseGate.validateChapter(chapter);
     expect(release.passed, isTrue, reason: release.toReport());
     for (final (id, title) in [

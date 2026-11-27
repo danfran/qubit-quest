@@ -16,7 +16,9 @@ void main() {
   group('Executable Notebook corpus contract', () {
     test('every discovered example is unique, valid, executable and normalized',
         () {
-      expect(executableNotebookExamples, hasLength(15));
+      // M6b added hh_reversibility, rz_interference and ghz_three; M10 the
+      // nine Chapter 14 experiments (seven moved from the gate catalogue).
+      expect(executableNotebookExamples, hasLength(27));
       final ids = <String>{};
       for (final example in executableNotebookExamples) {
         expect(ids.add(example.id), isTrue, reason: example.id);
@@ -154,6 +156,8 @@ void main() {
           's_on_plus',
           'ry_rotation',
           'interference_hzh',
+          'hh_reversibility',
+          'rz_interference',
         },
       );
     });

@@ -120,12 +120,13 @@ class ChapterReleaseGate {
     final masteryPhases =
         groupedLevels.where((category) => category.isMasteryPhase).toList();
 
-    if (guidedDiscovery.length != 13) {
+    // 13 until v2.6 M10 added Chapter 14 (Conditional Quantum Logic).
+    if (guidedDiscovery.length != 14) {
       failures.add(
-        '[Level System Validation] Phase 1 expected 13 guided discovery chapters but found ${guidedDiscovery.length}.',
+        '[Level System Validation] Phase 1 expected 14 guided discovery chapters but found ${guidedDiscovery.length}.',
       );
       fixPlan
-          .add('Keep Chapters 1-13 as the Phase 1 concept acquisition path.');
+          .add('Keep Chapters 1-14 as the Phase 1 concept acquisition path.');
     }
     if (masteryPhases.length != 1) {
       failures.add(

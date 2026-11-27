@@ -37,7 +37,8 @@ void main() {
           addTearDown(tester.view.resetPhysicalSize);
           addTearDown(tester.view.resetDevicePixelRatio);
           final harness = CampaignIntegrationHarness(tester);
-          await harness.loadLevel(entry.id, entry.level);
+          await harness.loadLevel(entry.id, entry.level,
+              domain: NumericActivityDomain.journey);
           await harness.applyCanonicalSolution();
           await harness.checkResultAndComplete();
         },
@@ -60,7 +61,8 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
         final harness = CampaignIntegrationHarness(tester);
-        await harness.loadLevel(entry.id, entry.level);
+        await harness.loadLevel(entry.id, entry.level,
+              domain: NumericActivityDomain.journey);
         await harness.checkWrongResult();
       });
     }
@@ -73,7 +75,8 @@ void main() {
     final first = composerLevels[0];
     final second = composerLevels[1];
     final firstHarness = CampaignIntegrationHarness(tester);
-    await firstHarness.loadLevel(first.id, first.level);
+    await firstHarness.loadLevel(first.id, first.level,
+        domain: NumericActivityDomain.journey);
     await firstHarness.applyCanonicalSolution();
     await firstHarness.checkResultAndComplete();
     await tester.pumpWidget(const SizedBox.shrink());
@@ -85,6 +88,7 @@ void main() {
       second.level,
       progressController: firstHarness.progress,
       resetPreferences: false,
+      domain: NumericActivityDomain.journey,
     );
     await secondHarness.applyCanonicalSolution();
     await secondHarness.checkResultAndComplete();

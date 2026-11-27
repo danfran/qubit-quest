@@ -62,7 +62,39 @@ class QuantumStateTerm {
 
   String get displayText =>
       coefficientIsUnit ? basisKet : '($formattedCoefficient)$basisKet';
+
+  /// A single-signed negative coefficient (real or imaginary only, e.g.
+  /// "−1/√2", "−i/√2", "−1"), written as a subtraction (v2.6 M9).
+  bool get isNegated =>
+      formattedCoefficient.startsWith('−') &&
+      !formattedCoefficient.substring(1).contains(RegExp(r' [+−] '));
+
+  /// What precedes the term: "" or "−" first; " + " or " − " after.
+  String separator({required bool first}) => first
+      ? (isNegated ? '−' : '')
+      : (isNegated ? ' − ' : ' + ');
+
+  /// The coefficient as shown after [separator]: nothing for ±1, bare "i"
+  /// for ±i, otherwise parenthesised ("(1/√2)", "(1/2 + i/2)").
+  String get coefficientDisplay {
+    if (coefficientIsUnit) return '';
+    final magnitude =
+        isNegated ? formattedCoefficient.substring(1) : formattedCoefficient;
+    if (magnitude == '1') return '';
+    if (magnitude == 'i') return 'i';
+    return '($magnitude)';
+  }
+
+  /// The term with its separator, e.g. " − (1/√2)|11⟩".
+  String joinedText({required bool first}) =>
+      '${separator(first: first)}$coefficientDisplay$basisKet';
 }
+
+/// Joins terms as conventional algebra: "(1/√2)|00⟩ − (1/√2)|11⟩",
+/// "−|0⟩", "(1/2 + i/2)|0⟩ + (1/2 − i/2)|1⟩" (v2.6 M9).
+String joinQuantumStateTerms(List<QuantumStateTerm> terms) => [
+      for (final (i, t) in terms.indexed) t.joinedText(first: i == 0),
+    ].join();
 
 List<QuantumStateTerm> formatQuantumStateTerms(
   List<Complex> stateVector, {
@@ -106,7 +138,7 @@ String formatQuantumStateExpression(
     numQubits: numQubits,
   );
 
-  return '$stateLabel = ${terms.isEmpty ? '0' : terms.map((term) => term.displayText).join(' + ')}';
+  return '$stateLabel = ${terms.isEmpty ? '0' : joinQuantumStateTerms(terms)}';
 }
 
 QuantumStateTerm _formatStateTerm(Complex coefficient, String ket) {

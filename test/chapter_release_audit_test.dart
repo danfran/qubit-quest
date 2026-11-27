@@ -5,7 +5,7 @@ import 'package:quantumquiz/validation/chapter_release_gate.dart';
 void main() {
   final chapters = groupedLevels.where((chapter) => !chapter.isMasteryPhase);
   test('release catalogue contains thirteen Journey chapters', () {
-    expect(chapters, hasLength(13));
+    expect(chapters, hasLength(14));
   });
   for (final chapter in chapters) {
     test('release gate: ${chapter.groupName}', () {

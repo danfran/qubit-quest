@@ -111,8 +111,9 @@ final List<QQLevel> chapter13Lessons = [
       [-0.5],
       [-0.5]
     ]),
-    targetStateExpression:
-        r'\(\frac{1}{2}(|00\rangle-|01\rangle-|10\rangle-|11\rangle)\)',
+    // Unicode notation, converted by the target renderer (v2.6 M10: the
+    // \( \) delimiters were shown as raw text).
+    targetStateExpression: '(|00⟩ − |01⟩ − |10⟩ − |11⟩)/2',
     validationMode: ValidationMode.unitary,
     targetUnitary: _negativeDiffuser,
     canonicalSolution: _reflectionSolution,
@@ -169,7 +170,7 @@ final List<QQLevel> chapter13Lessons = [
       [-1],
       [0]
     ]),
-    targetStateExpression: r'\(-|10\rangle\)',
+    targetStateExpression: '−|10⟩',
     validationMode: ValidationMode.unitary,
     targetUnitary: _fourStateSearch,
     canonicalSolution: _reflectionSolution,

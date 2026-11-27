@@ -50,7 +50,8 @@ class QubitQuestGateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final labelSize = fontSize ??
-        (gate.type == SelectedGateType.ccnot
+        (gate.type == SelectedGateType.ccnot ||
+                gate.type == SelectedGateType.mcx
             ? 14
             : gate.requiresAngle && gate.angle != null
                 ? 10

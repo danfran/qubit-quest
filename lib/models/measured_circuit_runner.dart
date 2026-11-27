@@ -280,11 +280,7 @@ class PreMeasurementState {
       for (final op in operations) {
         final wires = switch (op) {
           MeasureZOperation() => [op.qubit],
-          UnitaryOperation() => [
-              op.target,
-              if (op.control != null) op.control!,
-              if (op.secondControl != null) op.secondControl!,
-            ],
+          UnitaryOperation() => [op.target, ...op.controls],
         };
         for (final q in wires) {
           if (measured.contains(q)) {

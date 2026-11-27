@@ -484,7 +484,13 @@ class _DesktopComposerWorkspaceState extends State<DesktopComposerWorkspace> {
           const collapsedInspector = 44.0;
           const gap = ComposerWorkspaceGeometry.gap;
           final height = constraints.maxHeight;
-          final canvasNeed = math.min(widget.canvasMinHeight, 260.0);
+          // v2.6 M9: the whole circuit stays visible whenever the inspector
+          // can still have its minimum height (it scrolls). A fixed 260 px
+          // cap used to hide the last wires of 4- and 5-qubit circuits.
+          final canvasNeed = math.min(
+              widget.canvasMinHeight,
+              math.max(0.0,
+                  height - WorkspaceLayoutPreferences.minInspectorHeight - gap));
           final maxInspector = math.max(
             WorkspaceLayoutPreferences.minInspectorHeight,
             height - canvasNeed - gap,

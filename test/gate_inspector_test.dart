@@ -66,7 +66,8 @@ LogicalGateFootprint _productionFootprint(SelectedGateType type) =>
 
 void main() {
   test('all production gate types have educational metadata', () {
-    expect(GateEducationalCatalog.productionGateTypes, hasLength(12));
+    // 12 until v2.6 M7, which added CY and MCX.
+    expect(GateEducationalCatalog.productionGateTypes, hasLength(14));
     for (final type in GateEducationalCatalog.productionGateTypes) {
       final info = GateEducationalCatalog.forType(type);
       expect(info, isNotNull, reason: type.name);
@@ -281,7 +282,7 @@ void main() {
       ),
     ));
 
-    expect(find.textContaining('Configured angle: Rx 1/4π'), findsOneWidget);
+    expect(find.textContaining('Configured angle: Rx π/4'), findsOneWidget);
     expect(find.textContaining('Axis: X'), findsOneWidget);
   });
 

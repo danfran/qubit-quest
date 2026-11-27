@@ -344,10 +344,10 @@ void main() {
       'catalogue contains fifteen unique semantic challenges and preserves progress',
       () {
     final ordered = mastery2Catalogue.orderedDefinitions;
-    expect(ordered, hasLength(42));
+    expect(ordered, hasLength(48));
     expect(ordered.map((item) => item.displayOrder),
-        List.generate(42, (i) => i + 1));
-    expect(ordered.map((item) => item.semanticId).toSet(), hasLength(42));
+        List.generate(48, (i) => i + 1));
+    expect(ordered.map((item) => item.semanticId).toSet(), hasLength(48));
     expect(
       ordered.where((item) => item.semanticId == 'phase_state_uncomputation'),
       hasLength(1),

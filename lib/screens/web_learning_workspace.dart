@@ -47,9 +47,16 @@ class WebJourneyWorkspace extends StatefulWidget {
     this.onChapterShown,
     this.layout,
     this.isActive = true,
+    this.requestedLessonId,
+    this.lessonRequestSerial = 0,
   });
 
   final CampaignProgressController progressController;
+
+  /// A lesson another destination asked to open (e.g. a Notebook "related
+  /// activity"); opened only when the progression rules unlock it.
+  final int? requestedLessonId;
+  final int lessonRequestSerial;
 
   /// Shared Composer workspace layout preferences (circuit lessons).
   final WorkspaceLayoutController? layout;
@@ -84,6 +91,29 @@ class _WebJourneyWorkspaceState extends State<WebJourneyWorkspace> {
 
   /// Narrow layout: the overview shows the chapter detail, not the list.
   late bool _narrowDetail = widget.initialChapterIndex != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.requestedLessonId != null) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _openRequestedLesson());
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant WebJourneyWorkspace oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.lessonRequestSerial != widget.lessonRequestSerial) {
+      _openRequestedLesson();
+    }
+  }
+
+  void _openRequestedLesson() {
+    final id = widget.requestedLessonId;
+    if (!mounted || id == null || !widget.progressController.isLoaded) return;
+    _openLesson(id);
+  }
 
   void _selectChapter(int index) {
     setState(() {
@@ -214,11 +244,21 @@ class WebMasteryWorkspace extends StatefulWidget {
     required this.onBackToJourney,
     required this.onOpenNotebook,
     this.onOpenNotebookEntry,
+    this.onOpenNotebookArticle,
     this.layout,
     this.isActive = true,
+    this.requestedChallengeId,
+    this.challengeRequestSerial = 0,
   });
 
   final CampaignProgressController progressController;
+
+  /// Opens a Notebook article (gate reference) by its stable ID.
+  final ValueChanged<String>? onOpenNotebookArticle;
+
+  /// A challenge another destination asked to open.
+  final String? requestedChallengeId;
+  final int challengeRequestSerial;
   final VoidCallback onBackToJourney;
   final VoidCallback onOpenNotebook;
   final ValueChanged<String>? onOpenNotebookEntry;
@@ -253,6 +293,29 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
 
   List<MasteryChallengeDefinition> get _challenges =>
       mastery2Catalogue.orderedDefinitions;
+
+  @override
+  void initState() {
+    super.initState();
+    _openRequested();
+  }
+
+  @override
+  void didUpdateWidget(covariant WebMasteryWorkspace oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.challengeRequestSerial != widget.challengeRequestSerial) {
+      _openRequested();
+    }
+  }
+
+  void _openRequested() {
+    final id = widget.requestedChallengeId;
+    if (id == null || mastery2Catalogue.bySemanticId(id) == null) return;
+    _selectedSemanticId = id;
+    _openSemanticId = id;
+    _showOverview = false;
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
@@ -413,6 +476,7 @@ class _WebMasteryWorkspaceState extends State<WebMasteryWorkspace> {
                   onQuery: (q) => setState(() => _query = q),
                   onSelect: _selectInLibrary,
                   onStart: _open,
+                  onOpenNotebookArticle: widget.onOpenNotebookArticle,
                   onBackToJourney: widget.onBackToJourney,
                   narrowShowsDetail: _narrowDetail,
                   onNarrowBack: () => setState(() => _narrowDetail = false),

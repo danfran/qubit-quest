@@ -165,7 +165,7 @@ void main() {
   }
 
   testWidgets('all 42 Web Mastery tasks share the outer panel', (tester) async {
-    expect(mastery2Catalogue.length, 42);
+    expect(mastery2Catalogue.length, 48);
     Decoration? sharedDecoration;
     for (final challenge in mastery2Catalogue.orderedDefinitions) {
       await pumpTask(

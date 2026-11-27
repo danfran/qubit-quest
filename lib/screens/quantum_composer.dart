@@ -3,6 +3,7 @@ import '../widgets/sandbox_load_recovery.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:quantumquiz/screens/multi_controlled_gate_placement_dialog.dart';
 import 'package:quantumquiz/models/circuit_save_queue.dart';
 import 'package:quantumquiz/widgets/circuit_save_status.dart';
 import 'package:quantumquiz/models/progression_rules.dart';
@@ -62,6 +63,7 @@ typedef _ComposerInsertCallback = CircuitEditOutcome Function({
   required CircuitLocation location,
   int? controlQubit,
   int? secondControlQubit,
+  List<int>? controlQubits,
 });
 
 /// Drives the Composer's normal insertion pipeline without exposing its live
@@ -76,6 +78,7 @@ class QuantumComposerController {
     required CircuitLocation location,
     int? controlQubit,
     int? secondControlQubit,
+    List<int>? controlQubits,
   }) {
     final insert = _insert;
     if (insert == null) {
@@ -89,6 +92,7 @@ class QuantumComposerController {
       location: location,
       controlQubit: controlQubit,
       secondControlQubit: secondControlQubit,
+      controlQubits: controlQubits,
     );
   }
 
@@ -247,6 +251,8 @@ class _QuantumComposerState extends State<QuantumComposer>
     _sharedNonZeroOnly = defaultNonZeroOnlyForQubitCount(_numQubits);
     _taskDescription = activeLevel.taskDescription;
     _initialState = activeLevel.initialQubitsState;
+    // v2.6 M10: MCX is placed natively with the shared multi-control
+    // chooser (see the drop handler), so Chapter 14 is completable here.
     _availableGates = activeLevel.availableGates;
     _solutionVector = activeLevel.solutionFinalVector;
     widget.controller?._attach(_insertGateFromController);
@@ -328,9 +334,19 @@ class _QuantumComposerState extends State<QuantumComposer>
     required CircuitLocation location,
     int? controlQubit,
     int? secondControlQubit,
+    List<int>? controlQubits,
   }) {
     final CircuitEditOutcome outcome;
-    if (gate.type == SelectedGateType.ccnot) {
+    if (gate.type == SelectedGateType.mcx) {
+      if (controlQubits == null) {
+        return const CircuitEditOutcome(
+          CircuitEditStatus.invalid,
+          detail: 'MCX requires its control list.',
+        );
+      }
+      outcome = _circuit.insertMultiControlledGateWithOutcome(
+          gate, location.column, location.qubit, controlQubits);
+    } else if (gate.type == SelectedGateType.ccnot) {
       if (controlQubit == null || secondControlQubit == null) {
         return const CircuitEditOutcome(
           CircuitEditStatus.invalid,
@@ -345,7 +361,8 @@ class _QuantumComposerState extends State<QuantumComposer>
         secondControlQubit,
       );
     } else if (gate.type == SelectedGateType.cnot ||
-        gate.type == SelectedGateType.cz) {
+        gate.type == SelectedGateType.cz ||
+        gate.type == SelectedGateType.cy) {
       if (controlQubit == null) {
         return const CircuitEditOutcome(
           CircuitEditStatus.invalid,
@@ -412,7 +429,8 @@ class _QuantumComposerState extends State<QuantumComposer>
     }
 
     if (droppedGateType == SelectedGateType.cnot ||
-        droppedGateType == SelectedGateType.cz) {
+        droppedGateType == SelectedGateType.cz ||
+        droppedGateType == SelectedGateType.cy) {
       // For CNOT/CZ drag and drop, we need to select control/target after dropping.
       // This is a more complex interaction. For simplicity in this initial drag/drop,
       // let's assume CNOT/CZ drag requires dropping the control part, and then
@@ -463,6 +481,22 @@ class _QuantumComposerState extends State<QuantumComposer>
         // Optionally provide feedback
         return;
       }
+    } else if (droppedGateType == SelectedGateType.mcx) {
+      // v2.6 M10: the shared chooser (same as the web Composer).
+      final reason = multiControlledUnavailableReason(_numQubits);
+      if (reason != null) {
+        ScaffoldMessenger.maybeOf(context)
+            ?.showSnackBar(SnackBar(content: Text(reason)));
+        return;
+      }
+      final controls = await showMultiControlledPlacementDialog(context,
+          targetQubit: tappedQubitLine, numQubits: _numQubits);
+      if (!mounted || controls == null) return;
+      editOutcome = _circuit.insertMultiControlledGateWithOutcome(
+          Gate.fromIdentifier(SelectedGateType.mcx),
+          insertionPosition,
+          tappedQubitLine,
+          controls);
     } else if (droppedGateType == SelectedGateType.ccnot) {
       if (_numQubits < 3) {
         debugPrint(

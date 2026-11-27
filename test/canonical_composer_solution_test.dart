@@ -157,8 +157,9 @@ void main() {
           (id: 'Legacy ${entry.key}', level: entry.value as ComposerLevel),
     ];
 
-    test('all 87 active Composer levels carry canonical metadata', () {
-      expect(composerEntries, hasLength(87));
+    // 87 until v2.6 M10 added five Chapter 14 Composer lessons.
+    test('all 92 active Composer levels carry canonical metadata', () {
+      expect(composerEntries, hasLength(92));
       for (final entry in composerEntries) {
         expect(
           entry.level.canonicalSolution,

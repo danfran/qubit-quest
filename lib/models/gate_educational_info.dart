@@ -6,6 +6,9 @@ enum GateEducationalVisualKind {
   superposition,
   controlledX,
   controlledPhase,
+
+  /// Controlled-Y: a control dot and a Y target (v2.6 M7).
+  controlledY,
   multiControlledX,
   staticGate,
 }
@@ -17,9 +20,14 @@ class GateEducationalVisual {
     this.axisLabel,
     this.rotationRadians,
     this.representativeTransition,
+    this.controlCount,
   });
 
   final GateEducationalVisualKind kind;
+
+  /// Controls drawn by [GateEducationalVisualKind.multiControlledX]
+  /// (two when null: the Toffoli).
+  final int? controlCount;
   final String? axisLabel;
   final double? rotationRadians;
   final String? representativeTransition;
@@ -49,7 +57,12 @@ class GateEducationalInfo {
     required this.visual,
     this.axis,
     this.notebookDiscoveryTitle,
+    this.keyIdeas = const [],
   });
+
+  /// Longer explanations for the Notebook gate article (v2.6 M7); inline
+  /// LaTeX allowed. Empty for gates whose summary already suffices.
+  final List<String> keyIdeas;
 
   final SelectedGateType type;
   final String name;
@@ -82,6 +95,8 @@ class GateEducationalCatalog {
     SelectedGateType.cnot,
     SelectedGateType.cz,
     SelectedGateType.ccnot,
+    SelectedGateType.cy,
+    SelectedGateType.mcx,
   };
 
   static GateEducationalInfo? forType(SelectedGateType type) => _entries[type];
@@ -444,6 +459,108 @@ class GateEducationalCatalog {
       visual: GateEducationalVisual(
           kind: GateEducationalVisualKind.multiControlledX),
       notebookDiscoveryTitle: 'Information Flow',
+    ),
+    // v2.6 M7. Local ordering |control, target⟩ (control written first) for
+    // the matrix and basis actions; the register itself is |q(n−1)…q0⟩.
+    SelectedGateType.cy: GateEducationalInfo(
+      type: SelectedGateType.cy,
+      name: 'Controlled-Y (CY)',
+      intuition:
+          r'Applies Pauli-Y to the target exactly in the components where the control is \(|1\rangle\).',
+      physicalChange:
+          r'Where the control is \(|1\rangle\), the target bit flips and gains a phase: \(|0\rangle\to i|1\rangle\), \(|1\rangle\to -i|0\rangle\). Unlike CX, it changes amplitude phases.',
+      commonUse:
+          'Controlled rotations and transformations, entangling gates with a built-in phase, and gate decompositions.',
+      transformations: [
+        r'\(|00\rangle \rightarrow |00\rangle\)',
+        r'\(|01\rangle \rightarrow |01\rangle\)',
+        r'\(|10\rangle \rightarrow i|11\rangle\)',
+        r'\(|11\rangle \rightarrow -i|10\rangle\)',
+      ],
+      matrix:
+          r'\[\mathrm{CY}=\begin{bmatrix}1&0&0&0\\0&1&0&0\\0&0&0&-i\\0&0&i&0\end{bmatrix}\]',
+      properties: [
+        'Two-qubit',
+        'Self-inverse (CY² = I)',
+        'Hermitian (CY† = CY)',
+        'Can create entanglement',
+        r'Matrix and basis actions use the local order \(|\mathrm{control},\mathrm{target}\rangle\)',
+      ],
+      identities: [
+        r'\(\mathrm{CY}^2=I\)',
+        r'\(\mathrm{CY}^\dagger=\mathrm{CY}\)',
+        r'\(\mathrm{CY}=(I\otimes S)\,\mathrm{CX}\,(I\otimes S^\dagger)\)',
+      ],
+      relatedConcepts: [
+        GateRelatedConcept('Conditional phase',
+            notebookDiscoveryTitle: 'Conditional Phase'),
+        GateRelatedConcept('Control', notebookDiscoveryTitle: 'Control'),
+        GateRelatedConcept('Relative phase',
+            notebookDiscoveryTitle: 'Relative Phase'),
+        GateRelatedConcept('Entanglement',
+            notebookDiscoveryTitle: 'Entanglement'),
+      ],
+      visual:
+          GateEducationalVisual(kind: GateEducationalVisualKind.controlledY),
+      notebookDiscoveryTitle: 'Control',
+      keyIdeas: [
+        r'CY is not just a controlled bit flip. CX swaps the target amplitudes; CY swaps them and multiplies them by \(i\) and \(-i\). On a single basis state that factor is unobservable, but in a superposition it becomes a relative phase.',
+        r'From \(|00\rangle\), H on the control and then CY give \((|00\rangle + i|11\rangle)/\sqrt{2}\). Measured in the Z basis it gives 50% \(|00\rangle\) and 50% \(|11\rangle\), exactly like the CX Bell state \((|00\rangle+|11\rangle)/\sqrt{2}\). The two states differ only in the relative phase \(i\), which interference reveals (see the comparison experiment).',
+        r'\(\mathrm{CY}=(I\otimes S)\,\mathrm{CX}\,(I\otimes S^\dagger)\): conjugating the target by S turns X into Y, since \(SXS^\dagger=Y\). Read right to left: \(S^\dagger\) acts first.',
+        r'Basis order: the matrix uses the local order \(|\mathrm{control},\mathrm{target}\rangle\). Qubit Quest writes register kets as \(|q_{n-1}\ldots q_0\rangle\), so with control q0 and target q1 the register ket \(|q_1q_0\rangle=|01\rangle\) is the local \(|10\rangle\).',
+        r'CY is Hermitian and unitary, so it is its own inverse: applying it twice restores any input.',
+      ],
+    ),
+    SelectedGateType.mcx: GateEducationalInfo(
+      type: SelectedGateType.mcx,
+      name: 'Multi-controlled X (MCX)',
+      intuition:
+          r'Flips the target in exactly the basis components where every control is \(|1\rangle\).',
+      physicalChange:
+          r'Performs \(t := t\oplus(c_1\cdot c_2\cdots c_k)\) on each basis component, coherently. The controls are not measured and nothing classical is decided.',
+      commonUse:
+          'Reversible computation, multi-condition logic, and oracle construction (marking states that satisfy several conditions).',
+      transformations: [
+        r'\(|c_1\ldots c_k,t\rangle \rightarrow |c_1\ldots c_k,\;t\oplus(c_1 c_2\cdots c_k)\rangle\)',
+        r'\(|c_1\ldots c_k,0\rangle \rightarrow |c_1\ldots c_k,\;c_1\cdots c_k\rangle\)',
+      ],
+      // The rule on the target (controls unchanged), not a 2ⁿ×2ⁿ matrix.
+      matrix: r'\[t\;\mapsto\;t\oplus(c_1 c_2\cdots c_k)\]',
+      properties: [
+        'Three or more controls, one target',
+        'Self-inverse (MCX² = I)',
+        'Hermitian (MCX† = MCX)',
+        'Permutes basis states: no phases, no measurement',
+        'CX and CCX are the one- and two-control cases',
+      ],
+      identities: [
+        r'\(\mathrm{MCX}^2=I\)',
+        r'\(\mathrm{MCX}^\dagger=\mathrm{MCX}\)',
+      ],
+      relatedConcepts: [
+        GateRelatedConcept('Multi-qubit control',
+            notebookDiscoveryTitle: 'Control'),
+        GateRelatedConcept('Multi-controlled logic',
+            notebookDiscoveryTitle: 'Multi-Controlled Logic'),
+        GateRelatedConcept('Coherent conditions',
+            notebookDiscoveryTitle: 'Coherent Conditions'),
+        GateRelatedConcept('Condition becomes phase',
+            notebookDiscoveryTitle: 'Condition Becomes Phase'),
+        GateRelatedConcept('Reusable phase oracle',
+            notebookDiscoveryTitle: 'Reusable Phase Oracle'),
+        GateRelatedConcept('Reversible logic',
+            notebookDiscoveryTitle: 'Information Flow'),
+      ],
+      visual: GateEducationalVisual(
+          kind: GateEducationalVisualKind.multiControlledX, controlCount: 3),
+      notebookDiscoveryTitle: 'Information Flow',
+      keyIdeas: [
+        r'CX, CCX and MCX are one family: X on the target, conditioned on one, two, or three or more controls. Qubit Quest keeps CX and CCX as their own gates; MCX covers three and four controls in the five-qubit register.',
+        r'The condition is checked per basis component, not by looking at the qubits. A control in superposition makes the flip happen in one component and not the other, producing a coherent (often entangled) superposition.',
+        r'MCX is not a measurement and does not compute an irreversible classical AND: it never discards information. With the target prepared in \(|0\rangle\) it ends holding the AND of the controls in every component, and applying MCX again uncomputes it.',
+        r'Because it permutes basis states, MCX is its own inverse \((\mathrm{MCX}^2=I)\) and is Hermitian. Its full matrix is 2ⁿ × 2ⁿ (16 × 16 for four qubits, 32 × 32 for five), so the conditional rule is the clearer description.',
+        r'Oracles use multi-controlled gates to mark the inputs that satisfy several conditions at once, and reversible arithmetic uses them to compute without erasing.',
+      ],
     ),
   };
 }

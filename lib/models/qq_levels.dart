@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:quantumquiz/models/chapter_14_levels.dart';
 import 'package:quantumquiz/models/chapter_13_levels.dart';
 
 import 'package:advance_math/advance_math.dart';
@@ -1563,9 +1564,9 @@ final List<QQLevel> _authoredQQLevels = [
     conceptIntro:
         'The GHZ (Greenberger–Horne–Zeilinger) state (|000⟩+|111⟩)/√2 is '
         'maximally entangled across all three qubits. '
-        'A striking property of maximally entangled states is that a local operation '
-        'on a single qubit affects all terms of the superposition simultaneously — '
-        'the qubits are perfectly correlated. '
+        'Because the state is one superposition, an operation on a single qubit acts on '
+        'that qubit\'s part of every term at once; it does not reach the other qubits. '
+        'Measured in the Z basis, the three qubits always agree. '
         'Compare the target state term by term with the GHZ state: identify which bit position '
         'has changed in each term, and reason about which single-qubit operation causes that change.',
     hints: [
@@ -2238,8 +2239,8 @@ final List<QQLevel> _authoredQQLevels = [
         r'This 2-qubit circuit is prepared in the Bell state \( |\Phi^+\rangle = (|00\rangle + |11\rangle)/\sqrt{2} \). '
         r'Press Measure at least 20 times. Notice that you only ever see |00⟩ or |11⟩ — never |01⟩ or |10⟩.',
     conceptIntro:
-        'Entangled qubits are perfectly correlated. No matter how many times you measure, '
-        'the two qubits always agree — both 0 or both 1. Classically correlated random bits can '
+        'In this Bell state, measured in the Z basis, the two qubits always agree — both 0 or '
+        'both 1 — however many times you repeat it. Classically correlated random bits can '
         'show the same statistics in this one basis, so this histogram alone does not prove nonclassicality.',
     numQubits: 2,
     initialQubitsStateString: '00',
@@ -4888,6 +4889,7 @@ List<QQLevel> _consolidatedQQLevels() {
     ...chapter11GroverLoopIntuition,
     ...chapter12QuantumAlgorithmStructure,
     ...chapter13Lessons,
+    ...chapter14Lessons,
   ];
   return levels.indexed
       .map((entry) => _attachCanonical(
@@ -5243,6 +5245,13 @@ final List<QQLevelsCategory> journeyChapters = [
     from: 60,
     to: 65,
     categoryIntro: 'Turn a phase mark into an observable search result.',
+  ),
+  QQLevelsCategory(
+    groupName: 'Chapter 14 - Conditional Quantum Logic',
+    from: 66,
+    to: 70,
+    categoryIntro:
+        'How can a circuit evaluate a condition without measuring the information it acts on? Controlled phases, multi-controlled X and phase kickback become a reusable oracle.',
   ),
 ];
 

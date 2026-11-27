@@ -41,8 +41,12 @@ class GateEducationalVisualView extends StatelessWidget {
         'Controlled-X links a control to a target',
       GateEducationalVisualKind.controlledPhase =>
         'Controlled-Z applies a conditional phase',
+      GateEducationalVisualKind.controlledY =>
+        'Controlled-Y applies Y to the target when the control is 1',
       GateEducationalVisualKind.multiControlledX =>
-        'Toffoli links two controls to one target',
+        (visual.controlCount ?? 2) == 2
+            ? 'Toffoli links two controls to one target'
+            : '${visual.controlCount} controls link to one X target',
       GateEducationalVisualKind.staticGate =>
         '${footprint.gate.label.replaceAll('\n', ' ')} gate illustration',
     };
@@ -60,6 +64,7 @@ class GateEducationalVisualView extends StatelessWidget {
             rotationRadians: rotationRadians,
             rotationLabel: rotationLabel,
             representativeTransition: visual.representativeTransition,
+            controlCount: visual.controlCount ?? 2,
           ),
         ),
       ),
@@ -84,8 +89,10 @@ class _GateVisualPainter extends CustomPainter {
     required this.rotationRadians,
     required this.rotationLabel,
     required this.representativeTransition,
+    this.controlCount = 2,
   });
 
+  final int controlCount;
   final GateEducationalVisualKind kind;
   final String gateLabel;
   final String? axisLabel;
@@ -104,8 +111,12 @@ class _GateVisualPainter extends CustomPainter {
         _paintControlled(canvas, size, controls: 1, phaseTarget: false);
       case GateEducationalVisualKind.controlledPhase:
         _paintControlled(canvas, size, controls: 1, phaseTarget: true);
+      case GateEducationalVisualKind.controlledY:
+        _paintControlled(canvas, size,
+            controls: 1, phaseTarget: false, targetLabel: 'Y');
       case GateEducationalVisualKind.multiControlledX:
-        _paintControlled(canvas, size, controls: 2, phaseTarget: false);
+        _paintControlled(canvas, size,
+            controls: controlCount, phaseTarget: false);
       case GateEducationalVisualKind.staticGate:
         _paintGateTile(canvas, size.center(Offset.zero), gateLabel);
     }
@@ -244,7 +255,7 @@ class _GateVisualPainter extends CustomPainter {
   }
 
   void _paintControlled(Canvas canvas, Size size,
-      {required int controls, required bool phaseTarget}) {
+      {required int controls, required bool phaseTarget, String? targetLabel}) {
     final rows = controls + 1;
     final spacing = size.height / (rows + 1);
     final x = size.width / 2;
@@ -261,7 +272,9 @@ class _GateVisualPainter extends CustomPainter {
       canvas.drawCircle(Offset(x, spacing * control), 6, marker);
     }
     final target = Offset(x, spacing * rows);
-    if (phaseTarget) {
+    if (targetLabel != null) {
+      _paintGateTile(canvas, target, targetLabel);
+    } else if (phaseTarget) {
       canvas.drawCircle(target, 6, marker);
     } else {
       canvas.drawCircle(
@@ -323,5 +336,6 @@ class _GateVisualPainter extends CustomPainter {
       axisLabel != oldDelegate.axisLabel ||
       rotationRadians != oldDelegate.rotationRadians ||
       rotationLabel != oldDelegate.rotationLabel ||
-      representativeTransition != oldDelegate.representativeTransition;
+      representativeTransition != oldDelegate.representativeTransition ||
+      controlCount != oldDelegate.controlCount;
 }

@@ -68,10 +68,8 @@ void _replayCanonical(ComposerSession session, ComposerLevel level) {
       target: CircuitLocation(
           qubit: gate.isSingleQubit ? gate.anchor.qubit : gate.targetQubit!,
           column: gate.column),
-      controls: [
-        if (gate.controlQubit != null) gate.controlQubit!,
-        if (gate.secondControlQubit != null) gate.secondControlQubit!,
-      ],
+      // Every control, including a multi-controlled X's (v2.6 M10).
+      controls: gate.controlQubits,
     ));
     expect(outcome.changed, isTrue,
         reason: 'canonical ${gate.type} at ${gate.anchor}');

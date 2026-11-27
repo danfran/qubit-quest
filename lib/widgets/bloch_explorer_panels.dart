@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/models/bloch_lab.dart' show blochNumber;
 import 'package:quantumquiz/models/bloch_explorer_model.dart';
 import 'package:quantumquiz/models/canonical_qubit_state.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
@@ -559,7 +560,7 @@ class BlochStateMathPanel extends StatelessWidget {
             ),
           ),
           const Divider(height: 24),
-          Text('Global phase γ: ${globalPhase.toStringAsFixed(2)} rad',
+          Text('Global phase γ: ${blochNumber(globalPhase, digits: 2)} rad',
               style: const TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
           const Text(
@@ -570,5 +571,5 @@ class BlochStateMathPanel extends StatelessWidget {
       );
 
   static Widget _detailValue(String label, double value) =>
-      Text('$label = ${value.toStringAsFixed(3)}');
+      Text('$label = ${blochNumber(value, digits: 3)}');
 }

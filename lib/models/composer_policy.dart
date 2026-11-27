@@ -90,18 +90,21 @@ class ComposerPolicy {
           angleEntry: ComposerAngleEntry.defaultOnPlacement,
           presetAngleTypes: const {},
         ),
+      // Notebook experiment (v2.6 M6b): exploratory, like the Sandbox but
+      // never persisted, with a Reset that restores the authored example.
+      // No Check, hints or completion.
       ComposerMode.notebookExample => ComposerPolicy._(
           mode: mode,
           availableGates: gates,
           permittedQubitCounts: {level.numQubits},
-          allowsMeasurement: false,
+          allowsMeasurement: true,
           runsExperiments: true,
           persistsToSandbox: false,
           showsTargetState: hasTarget,
           offersCheck: false,
           offersHints: false,
-          clearAction: ComposerClearAction.clear,
-          angleEntry: ComposerAngleEntry.promptOnPlacement,
+          clearAction: ComposerClearAction.reset,
+          angleEntry: ComposerAngleEntry.defaultOnPlacement,
           presetAngleTypes: const {},
         ),
       ComposerMode.journeyExercise ||
@@ -150,6 +153,7 @@ class ComposerPolicy {
   /// Whether committed edits autosave to the per-qubit-count Sandbox store.
   /// Never true for examples, exercises or challenges.
   final bool persistsToSandbox;
+
   /// Whether the target state may be presented at all (see
   /// [ComposerPolicy.forMode]'s `revealTarget`).
   final bool showsTargetState;

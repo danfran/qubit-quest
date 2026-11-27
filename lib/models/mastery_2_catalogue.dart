@@ -3,12 +3,13 @@ import 'dart:math' as math;
 import 'package:advance_math/advance_math.dart';
 import 'package:quantumquiz/models/canonical_composer_solution.dart';
 import 'package:quantumquiz/models/mastery_challenge_catalogue.dart';
+import 'package:quantumquiz/models/mastery_conditional_logic.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 
-final MasteryChallengeCatalogue mastery2Catalogue =
-    MasteryChallengeCatalogue(_mastery2FirstBatch);
+final MasteryChallengeCatalogue mastery2Catalogue = MasteryChallengeCatalogue(
+    [..._mastery2FirstBatch, ...masteryConditionalLogicBatch]);
 
 final List<MasteryChallengeDefinition> _mastery2FirstBatch = [
   MasteryChallengeDefinition(

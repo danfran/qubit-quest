@@ -49,21 +49,32 @@ Future<void> _drop(
 List<SelectedGateType> _types(QuantumCircuit circuit) =>
     [for (final gate in circuit.logicalGates) gate.type];
 
+/// Opens the X example as an in-Notebook experiment (v2.6 M6b).
 Future<void> _openXExample(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('web-nav-notebook')));
   await tester.pump();
-  await tester.tap(find.byKey(const ValueKey('web-notebook-contents')));
+  final entry = notebookEntries.first;
+  final row = find.byKey(ValueKey('web-notebook-entry-${entry.id}'));
+  if (row.evaluate().isEmpty) {
+    await tester.tap(find.byKey(
+        ValueKey('web-notebook-category-chapter-${entry.chapterIndex}')));
+    await tester.pumpAndSettle();
+  }
+  await tester.tap(row);
   await tester.pumpAndSettle();
-  await tester.tap(
-      find.byKey(ValueKey('web-notebook-entry-${notebookEntries.first.id}')));
+  final explore = find.byKey(const ValueKey('notebook-explore-x_from_zero'));
+  await tester.ensureVisible(explore);
   await tester.pumpAndSettle();
-  tester
-      .widget<OutlinedButton>(
-        find.byKey(const ValueKey('composer-example-x_from_zero')),
-      )
-      .onPressed!();
-  await tester.pump();
+  await tester.tap(explore);
+  await tester.pumpAndSettle();
 }
+
+/// The experiment's canvas (the Sandbox's canvas is in another destination).
+QuantumCircuit _experimentCircuit(WidgetTester tester) => tester
+    .widget<ComposerCircuitCanvas>(find.descendant(
+        of: find.byKey(const ValueKey('notebook-experiment-workspace')),
+        matching: find.byType(ComposerCircuitCanvas)))
+    .circuit;
 
 void main() {
   testWidgets(
@@ -92,14 +103,25 @@ void main() {
 
     // Open the X example: a different session with its own circuit.
     await _openXExample(tester);
-    expect(find.text('Notebook example: Run the X gate'), findsOneWidget);
-    final example = _canvas(tester).circuit;
+    expect(find.byKey(const ValueKey('notebook-experiment-title')),
+        findsOneWidget);
+    final example = _experimentCircuit(tester);
     expect(identical(example, sandbox), isFalse);
     final exampleStart = _types(example);
 
     final sandboxWritesBefore =
         storage.writtenKeys.where((k) => k.startsWith('sandbox')).length;
-    await _drop(tester, SelectedGateType.x, 0, 3);
+    final experimentCanvas = tester.widget<ComposerCircuitCanvas>(
+        find.descendant(
+            of: find.byKey(const ValueKey('notebook-experiment-workspace')),
+            matching: find.byType(ComposerCircuitCanvas)));
+    await experimentCanvas.onDropRequested(ComposerCircuitDropIntent(
+      data: CircuitDragData.palette(Gate.fromIdentifier(SelectedGateType.x)),
+      destination: const CircuitDropDestination(
+        contentPoint: Offset.zero,
+        location: CircuitLocation(qubit: 0, column: 3),
+      ),
+    ));
     await tester.pumpAndSettle();
     expect(_types(example), hasLength(exampleStart.length + 1));
     expect(
@@ -117,8 +139,12 @@ void main() {
     expect(_types(sandbox), [SelectedGateType.hadamard]);
 
     // Reopening the example starts from its original circuit.
+    await tester.tap(find.byKey(const ValueKey('web-nav-notebook')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('notebook-experiment-back')));
+    await tester.pumpAndSettle();
     await _openXExample(tester);
-    final reopened = _canvas(tester).circuit;
+    final reopened = _experimentCircuit(tester);
     expect(identical(reopened, example), isFalse);
     expect(_types(reopened), exampleStart);
   });

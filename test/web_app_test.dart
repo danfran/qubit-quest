@@ -2,6 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quantumquiz/models/gate_educational_info.dart';
+import 'package:quantumquiz/models/bloch_lab.dart';
+import 'package:quantumquiz/screens/web_bloch_workspace.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
@@ -15,7 +18,6 @@ import 'package:quantumquiz/screens/two_qubits_gate_target_qubit_selection_dialo
 import 'package:quantumquiz/screens/web_app.dart';
 import 'package:quantumquiz/screens/web_notebook_workspace.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
-import 'package:quantumquiz/widgets/bloch_explorer_panels.dart';
 import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_workspace/composer_gate_palette_panel.dart';
@@ -145,10 +147,9 @@ void main() {
     await tester.pump();
     expectNoGlobalLevel();
     expect(find.byType(BlochSpherePanel), findsOneWidget);
-    expect(find.byType(BlochGatePanel), findsOneWidget);
-    expect(find.byType(BlochPlaybackControls), findsOneWidget);
-    expect(find.byType(BlochHistoryPanel), findsOneWidget);
-    expect(find.byType(BlochStateMathPanel), findsOneWidget);
+    expect(find.byType(WebBlochWorkspace), findsOneWidget);
+    expect(find.byKey(const ValueKey('bloch-evolution')), findsOneWidget);
+    expect(find.byKey(const ValueKey('bloch-state')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('web-nav-notebook')));
     await tester.pump();
@@ -610,7 +611,9 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('web-nav-notebook')));
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('web-notebook-contents')));
+    // M6b: the index is persistent; chapters expand in place.
+    await tester.tap(find.byKey(
+        ValueKey('web-notebook-category-chapter-${entry.chapterIndex}')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('web-notebook-entry-${entry.id}')));
     await tester.pumpAndSettle();
@@ -633,7 +636,8 @@ void main() {
         findsOneWidget);
   });
 
-  testWidgets('Notebook X example routes through Web Composer and Bloch hosts',
+  testWidgets(
+      'Notebook X example opens an in-Notebook experiment and the Bloch host',
       (tester) async {
     await setSize(tester, const Size(1440, 1100));
     await pumpApp(tester);
@@ -643,250 +647,95 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('web-nav-notebook')));
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('web-notebook-contents')));
+    await tester.tap(find.byKey(
+        ValueKey('web-notebook-category-chapter-${entry.chapterIndex}')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('web-notebook-entry-${entry.id}')));
     await tester.pumpAndSettle();
 
-    tester
-        .widget<OutlinedButton>(
-          find.byKey(const ValueKey('composer-example-x_from_zero')),
-        )
-        .onPressed!();
-    await tester.pump();
-    expect(find.text('Notebook example: Run the X gate'), findsOneWidget);
-    expect(find.byKey(const ValueKey('web-sandbox-run-measure')), findsNothing);
-    expect(find.byKey(const ValueKey('web-sandbox-measurement-results')),
-        findsNothing);
-    expect(
-      find.byKey(const ValueKey('web-composer-target-state')),
-      findsOneWidget,
-    );
+    // M6b: Explore circuit opens the shared workspace inside the Notebook;
+    // the Composer destination (Sandbox) is not involved.
+    final explore = find.byKey(const ValueKey('notebook-explore-x_from_zero'));
+    await tester.ensureVisible(explore);
+    await tester.pumpAndSettle();
+    await tester.tap(explore);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('notebook-experiment-workspace')),
+        findsOneWidget);
+    expect(find.text('Choose Number of Qubits', skipOffstage: false),
+        findsOneWidget,
+        reason: 'the Sandbox was never opened or replaced');
+    expect(find.byKey(const ValueKey('web-lesson-check')), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('web-nav-notebook')));
-    await tester.pump();
-    tester
-        .widget<FilledButton>(
-          find.byKey(const ValueKey('run-example-x_from_zero')),
-        )
-        .onPressed!();
-    await tester.pump();
-    tester
-        .widget<OutlinedButton>(
-          find.byKey(const ValueKey('bloch-example-x_from_zero')),
-        )
-        .onPressed!();
-    await tester.pump();
-
+    await tester.tap(find.byKey(const ValueKey('notebook-experiment-back')));
+    await tester.pumpAndSettle();
+    final bloch = find.byKey(const ValueKey('bloch-example-x_from_zero'));
+    await tester.ensureVisible(bloch);
+    await tester.pumpAndSettle();
+    await tester.tap(bloch);
+    await tester.pumpAndSettle();
     final canvas = tester.widget<CustomPaint>(
       find.byKey(const ValueKey('bloch-sphere-canvas')),
     );
     expect((canvas.painter! as BlochSpherePainter).state.z, closeTo(-1, .001));
   });
 
-  testWidgets('Bloch Instant off animates to the gate endpoint',
+  // v2.6 M8: the Bloch Explorer is a state laboratory. Its behaviour is
+  // covered in depth by test/v26_m8_bloch_lab_test.dart; these keep the
+  // shell-level guarantees of the earlier tests.
+  testWidgets('Bloch: preview then Apply commits exactly one step',
       (tester) async {
     await setSize(tester, const Size(1440, 1000));
     await pumpApp(tester);
     await tester.tap(find.byKey(const ValueKey('web-nav-bloch')));
-    await tester.pump();
-
+    await tester.pumpAndSettle();
+    final lab = tester.state<WebBlochWorkspaceState>(
+        find.byType(WebBlochWorkspace));
     await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
     await tester.pump();
-    final initial = tester.widget<CustomPaint>(
-      find.byKey(const ValueKey('bloch-sphere-canvas')),
-    );
-    expect((initial.painter! as BlochSpherePainter).state.z, closeTo(1, .001));
-
-    await tester.pump(const Duration(milliseconds: 325));
-    final midwayPaint = tester.widget<CustomPaint>(
-      find.byKey(const ValueKey('bloch-sphere-canvas')),
-    );
-    final midwayState = (midwayPaint.painter! as BlochSpherePainter).state;
-    expect(midwayState.x, greaterThan(.01));
-    expect(midwayState.x, lessThan(.99));
-    expect(midwayState.z, greaterThan(.01));
-    expect(midwayState.z, lessThan(.99));
-
-    await tester.pump(const Duration(milliseconds: 400));
-    final finished = tester.widget<CustomPaint>(
-      find.byKey(const ValueKey('bloch-sphere-canvas')),
-    );
-    expect((finished.painter! as BlochSpherePainter).state.x, closeTo(1, .001));
-  });
-
-  testWidgets('Bloch Instant on applies the endpoint without a tween',
-      (tester) async {
-    await setSize(tester, const Size(1440, 1000));
-    await pumpApp(tester);
-    await tester.tap(find.byKey(const ValueKey('web-nav-bloch')));
-    await tester.pump();
-
-    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
-    await tester.pump();
-
+    expect(find.byKey(const ValueKey('bloch-preview-card')), findsOneWidget);
+    expect(lab.session.appliedCount, 0, reason: 'a preview records nothing');
+    await tester.tap(find.byKey(const ValueKey('bloch-apply')));
+    await tester.pumpAndSettle();
+    expect(lab.session.appliedCount, 1);
+    expect(lab.session.current.x, closeTo(1, 1e-9));
     final canvas = tester.widget<CustomPaint>(
       find.byKey(const ValueKey('bloch-sphere-canvas')),
     );
-    expect((canvas.painter! as BlochSpherePainter).state.x, closeTo(1, .001));
+    expect((canvas.painter! as BlochSpherePainter).state.x, closeTo(1, 1e-9));
   });
 
-  testWidgets('Web Bloch uses the shared production gate order and Inspector',
+  testWidgets('Bloch: gates use the shared production order and inspector',
       (tester) async {
     await setSize(tester, const Size(1440, 1000));
     await pumpApp(tester);
     await tester.tap(find.byKey(const ValueKey('web-nav-bloch')));
-    await tester.pump();
-
-    expect(
-      blochExplorerGateTypes,
-      orderedEquals(const [
-        SelectedGateType.x,
-        SelectedGateType.y,
-        SelectedGateType.z,
-        SelectedGateType.hadamard,
-        SelectedGateType.s,
-        SelectedGateType.t,
-        SelectedGateType.rx,
-        SelectedGateType.ry,
-        SelectedGateType.rz,
-      ]),
-    );
-    for (final type in blochExplorerGateTypes) {
+    await tester.pumpAndSettle();
+    for (final type in blochLabGateTypes) {
       expect(find.byKey(ValueKey('bloch-gate-${type.name}')), findsOneWidget);
+      expect(GateEducationalCatalog.forType(type), isNotNull);
     }
-
-    await tester.longPress(
-      find.byKey(const ValueKey('bloch-gate-hadamard')),
-    );
+    await tester.tap(find.byKey(const ValueKey('bloch-gate-s')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('bloch-about-gate')));
     await tester.pumpAndSettle();
     expect(find.byType(GateInspectorDialog), findsOneWidget);
-    expect(find.text('Hadamard gate'), findsOneWidget);
-    expect(find.text('Open Notebook'), findsOneWidget);
   });
 
-  testWidgets('Web Bloch history preview toggles and Undo clears stale start',
-      (tester) async {
-    await setSize(tester, const Size(1440, 1000));
-    await pumpApp(tester);
-    await tester.tap(find.byKey(const ValueKey('web-nav-bloch')));
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
-    await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('bloch-gate-hadamard')));
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey('bloch-history-step-1')));
-    await tester.pump();
-    expect(
-      find.byKey(const ValueKey('bloch-history-marker-selected')),
-      findsOneWidget,
-    );
-    await tester.tap(find.byKey(const ValueKey('bloch-history-step-1')));
-    await tester.pump();
-    expect(
-      find.byKey(const ValueKey('bloch-history-marker-selected')),
-      findsNothing,
-    );
-
-    await tester.tap(find.byKey(const ValueKey('bloch-history-step-2')));
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('bloch-undo')));
-    await tester.pump();
-    expect(
-      find.byKey(const ValueKey('bloch-history-marker-selected')),
-      findsNothing,
-    );
-  });
-
-  testWidgets('Web Bloch rotation and replay retain production semantics',
-      (tester) async {
-    await setSize(tester, const Size(1440, 1000));
-    await pumpApp(tester);
-    await tester.tap(find.byKey(const ValueKey('web-nav-bloch')));
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('bloch-instant-mode')));
-    final slider = tester.widget<Slider>(
-      find.byKey(const ValueKey('bloch-rotation-slider')),
-    );
-    slider.onChanged!(math.pi / 4);
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('bloch-gate-ry')));
-    await tester.pump();
-
-    final rotated = (tester
-            .widget<CustomPaint>(
-              find.byKey(const ValueKey('bloch-sphere-canvas')),
-            )
-            .painter! as BlochSpherePainter)
-        .state;
-    final inverseSqrtTwo = 1 / math.sqrt(2);
-    expect(rotated.x, closeTo(inverseSqrtTwo, .001));
-    expect(rotated.z, closeTo(inverseSqrtTwo, .001));
-
-    await tester.tap(find.byKey(const ValueKey('bloch-gate-x')));
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('bloch-history-expansion')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('bloch-history-step-0')));
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('bloch-replay')));
-    await tester.pump();
-    expect(
-      find.byKey(const ValueKey('bloch-history-marker-active')),
-      findsOneWidget,
-    );
-    await tester.pumpAndSettle();
-    final replayed = (tester
-            .widget<CustomPaint>(
-              find.byKey(const ValueKey('bloch-sphere-canvas')),
-            )
-            .painter! as BlochSpherePainter)
-        .state;
-    expect(replayed.x, closeTo(inverseSqrtTwo, .001));
-    expect(replayed.z, closeTo(-inverseSqrtTwo, .001));
-  });
-
-  testWidgets('Web Bloch uses wide and stacked constraint-driven layouts',
-      (tester) async {
-    await setSize(tester, const Size(1440, 1000));
-    await pumpApp(tester);
-    await tester.tap(find.byKey(const ValueKey('web-nav-bloch')));
-    await tester.pump();
-    expect(find.byKey(const ValueKey('web-bloch-wide-layout')), findsOneWidget);
-    final sphere = tester.getRect(
-      find.byKey(const ValueKey('web-bloch-sphere')),
-    );
-    expect(sphere.height, inInclusiveRange(470, 610));
-    expect(
-      tester
-          .widget<MouseRegion>(
-            find.byKey(const ValueKey('web-bloch-sphere-pointer-area')),
-          )
-          .cursor,
-      SystemMouseCursors.grab,
-    );
-
-    await setSize(tester, const Size(700, 1000));
-    await tester.pump();
-    expect(
-      find.byKey(const ValueKey('web-bloch-stacked-layout')),
-      findsOneWidget,
-    );
-    final webBlochScroll = find.descendant(
-      of: find.byKey(const ValueKey('web-bloch-workspace-scroll')),
-      matching: find.byType(Scrollable),
-    );
-    tester.state<ScrollableState>(webBlochScroll.first).position.jumpTo(tester
-        .state<ScrollableState>(webBlochScroll.first)
-        .position
-        .maxScrollExtent);
-    await tester.pump();
-    expect(find.byType(BlochStateMathPanel), findsOneWidget);
+  testWidgets('Bloch: wide, medium and stacked layouts', (tester) async {
+    final lab = BlochLabSession.standalone();
+    addTearDown(lab.dispose);
+    for (final (size, key) in const [
+      (Size(1600, 1000), 'web-bloch-wide-layout'),
+      (Size(900, 800), 'web-bloch-medium-layout'),
+      (Size(500, 900), 'web-bloch-stacked-layout'),
+    ]) {
+      await setSize(tester, size);
+      await tester.pumpWidget(MaterialApp(
+          home: Scaffold(body: WebBlochWorkspace(standalone: lab))));
+      await tester.pump();
+      expect(find.byKey(ValueKey(key)), findsOneWidget, reason: '$size');
+      expect(tester.takeException(), isNull);
+    }
   });
 }

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/bloch_explorer_model.dart';
+import 'package:quantumquiz/models/bloch_lab.dart';
 import 'package:quantumquiz/widgets/qubit_quest_dialog.dart';
 
 enum BlochSphereGestureMode { state, orbit, zoom }
@@ -59,8 +60,11 @@ class BlochSpherePanel extends StatefulWidget {
     required this.onStateCommitted,
     required this.onGestureStarted,
     required this.onStateGestureStarted,
+    this.overlay,
   });
 
+  /// Optional laboratory overlays (v2.6 M8); none by default.
+  final BlochSphereOverlay? overlay;
   final bool reserveOverlaySafeRegions;
   final bool showAnnotations;
   final bool showHelper;
@@ -94,8 +98,10 @@ class _BlochSpherePanelState extends State<BlochSpherePanel> {
         final projection = BlochProjection(size: size, camera: widget.camera);
         final canvas = CustomPaint(
           key: const ValueKey('bloch-sphere-canvas'),
-          painter:
-              BlochSpherePainter(state: widget.state, camera: widget.camera),
+          painter: BlochSpherePainter(
+              state: widget.state,
+              camera: widget.camera,
+              overlay: widget.overlay),
           child: const SizedBox.expand(),
         );
         if (!widget.interactive) return canvas;
@@ -367,7 +373,7 @@ class _LiveValues extends StatelessWidget {
             children: [
               for (final value in values)
                 Text(
-                  '${value.$1} = ${value.$2.toStringAsFixed(3)}',
+                  '${value.$1} = ${blochNumber(value.$2, digits: 3)}',
                   style: compact
                       ? blochTelemetryTextStyle.copyWith(height: .85)
                       : blochTelemetryTextStyle,
@@ -440,10 +446,63 @@ class BlochProjection {
   }
 }
 
+/// What the Bloch Explorer draws on top of the sphere (v2.6 M8).
+@immutable
+class BlochSphereOverlay {
+  const BlochSphereOverlay({
+    this.startVector,
+    this.previewVector,
+    this.rotation,
+    this.basis,
+    this.basisLabels = false,
+  });
+
+  /// The input state of a transformation (hollow marker).
+  final (double, double, double)? startVector;
+
+  /// The state a previewed gate would produce (dashed amber).
+  final (double, double, double)? previewVector;
+
+  /// The equivalent rotation: its axis and the full-angle trajectory of
+  /// [startVector] are drawn.
+  final BlochRotation? rotation;
+
+  /// Highlighted measurement axis.
+  final BlochBasis? basis;
+
+  /// Labels |0⟩, |1⟩, |±⟩, |±i⟩ at the axis ends.
+  final bool basisLabels;
+
+  @override
+  bool operator ==(Object other) =>
+      other is BlochSphereOverlay &&
+      other.startVector == startVector &&
+      other.previewVector == previewVector &&
+      other.rotation?.axis == rotation?.axis &&
+      other.rotation?.angle == rotation?.angle &&
+      other.basis == basis &&
+      other.basisLabels == basisLabels;
+
+  @override
+  int get hashCode => Object.hash(startVector, previewVector, rotation?.axis,
+      rotation?.angle, basis, basisLabels);
+}
+
+/// Overlay colours, shared with the Explorer's legend.
+abstract final class BlochOverlayColors {
+  static const current = QubitQuestDialog.purple;
+  static const start = Color(0xFF9FB0CC);
+  static const preview = Color(0xFFFFC857);
+  static const axis = Color(0xFFFFC857);
+  static const basis = Color(0xFF7CFFB2);
+}
+
 class BlochSpherePainter extends CustomPainter {
-  const BlochSpherePainter({required this.state, required this.camera});
+  const BlochSpherePainter(
+      {required this.state, required this.camera, this.overlay});
   final BlochState state;
   final BlochCamera camera;
+  final BlochSphereOverlay? overlay;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -480,6 +539,8 @@ class BlochSpherePainter extends CustomPainter {
     _axis(canvas, p, 1.25, 0, 0, 'X', front);
     _axis(canvas, p, 0, 1.25, 0, 'Y', front);
     _axis(canvas, p, 0, 0, 1.25, 'Z', front);
+    final o = overlay;
+    if (o != null) _paintOverlay(canvas, p, o);
     final tip = p.project(state.x, state.y, state.z);
     canvas.drawLine(
         center,
@@ -496,6 +557,132 @@ class BlochSpherePainter extends CustomPainter {
           ..color = QubitQuestDialog.purple.withValues(alpha: .35)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 3);
+  }
+
+  void _paintOverlay(Canvas canvas, BlochProjection p, BlochSphereOverlay o) {
+    final center = p.center;
+    Offset at((double, double, double) v, [double scale = 1]) =>
+        p.project(v.$1 * scale, v.$2 * scale, v.$3 * scale);
+    if (o.basisLabels) {
+      for (final (v, label) in const [
+        ((0.0, 0.0, 1.0), '|0⟩'),
+        ((0.0, 0.0, -1.0), '|1⟩'),
+        ((1.0, 0.0, 0.0), '|+⟩'),
+        ((-1.0, 0.0, 0.0), '|−⟩'),
+        ((0.0, 1.0, 0.0), '|+i⟩'),
+        ((0.0, -1.0, 0.0), '|−i⟩'),
+      ]) {
+        // Offset beside the axis end so the label never sits on the axis
+        // letter or on a vector tip.
+        _label(canvas, p, at(v, 1.12) + const Offset(18, 10), label,
+            const Color(0xFFB6C4DA), 11, FontWeight.w600);
+      }
+    }
+    final basis = o.basis;
+    if (basis != null) {
+      final paint = Paint()
+        ..color = BlochOverlayColors.basis
+        ..strokeWidth = 3
+        ..strokeCap = StrokeCap.round;
+      final plus = at(basis.axis), minus = at(_neg(basis.axis));
+      canvas.drawLine(minus, plus, paint);
+      canvas.drawCircle(plus, 6, Paint()..color = BlochOverlayColors.basis);
+      canvas.drawCircle(minus, 6, Paint()..color = BlochOverlayColors.basis);
+    }
+    final rotation = o.rotation;
+    final start = o.startVector;
+    if (rotation != null) {
+      final axisPaint = Paint()
+        ..color = BlochOverlayColors.axis.withValues(alpha: .85)
+        ..strokeWidth = 2;
+      _dashed(canvas, at(_neg(rotation.axis), 1.18), at(rotation.axis, 1.18),
+          axisPaint);
+      // At the negative end, clear of the X/Y/Z letters.
+      _label(canvas, p, at(_neg(rotation.axis), 1.2) + const Offset(-22, 0),
+          'axis', BlochOverlayColors.axis, 11, FontWeight.w800);
+      if (start != null && !rotation.fixes(start)) {
+        final arc = Paint()
+          ..color = BlochOverlayColors.preview
+          ..strokeWidth = 3
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round;
+        final segments = math.max(24, (rotation.angle.abs() * 24).ceil());
+        final path = Path()..moveTo(at(start).dx, at(start).dy);
+        for (var i = 1; i <= segments; i++) {
+          final point = at(rotation.apply(start, i / segments));
+          path.lineTo(point.dx, point.dy);
+        }
+        canvas.drawPath(path, arc);
+        // Direction arrowhead at the end of the trajectory.
+        final end = at(rotation.apply(start, 1));
+        final before = at(rotation.apply(start, (segments - 1) / segments));
+        final dir = end - before;
+        if (dir.distance > 0.01) {
+          final u = dir / dir.distance;
+          final normal = Offset(-u.dy, u.dx);
+          final head = Path()
+            ..moveTo(end.dx, end.dy)
+            ..lineTo(
+                (end - u * 10 + normal * 5).dx, (end - u * 10 + normal * 5).dy)
+            ..lineTo(
+                (end - u * 10 - normal * 5).dx, (end - u * 10 - normal * 5).dy)
+            ..close();
+          canvas.drawPath(head, Paint()..color = BlochOverlayColors.preview);
+        }
+      }
+    }
+    if (start != null) {
+      final tip = at(start);
+      canvas.drawLine(
+          center,
+          tip,
+          Paint()
+            ..color = BlochOverlayColors.start.withValues(alpha: .7)
+            ..strokeWidth = 2);
+      canvas.drawCircle(
+          tip,
+          7,
+          Paint()
+            ..color = BlochOverlayColors.start
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2);
+    }
+    final preview = o.previewVector;
+    if (preview != null) {
+      final tip = at(preview);
+      _dashed(
+          canvas,
+          center,
+          tip,
+          Paint()
+            ..color = BlochOverlayColors.preview
+            ..strokeWidth = 3);
+      canvas.drawCircle(tip, 7, Paint()..color = BlochOverlayColors.preview);
+    }
+  }
+
+  static (double, double, double) _neg((double, double, double) v) =>
+      (-v.$1, -v.$2, -v.$3);
+
+  void _dashed(Canvas canvas, Offset a, Offset b, Paint paint) {
+    final total = (b - a).distance;
+    if (total < 1) return;
+    final u = (b - a) / total;
+    for (var d = 0.0; d < total; d += 10) {
+      canvas.drawLine(a + u * d, a + u * math.min(d + 6, total), paint);
+    }
+  }
+
+  void _label(Canvas canvas, BlochProjection p, Offset point, String text,
+      Color color, double size, FontWeight weight) {
+    final painter = TextPainter(
+      text: TextSpan(
+          text: text,
+          style: TextStyle(color: color, fontSize: size, fontWeight: weight)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final c = p.safeLabelCenter(point, painter.size);
+    painter.paint(canvas, c - Offset(painter.width / 2, painter.height / 2));
   }
 
   void _circle(
@@ -536,5 +723,7 @@ class BlochSpherePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant BlochSpherePainter oldDelegate) =>
-      oldDelegate.state != state || oldDelegate.camera != camera;
+      oldDelegate.state != state ||
+      oldDelegate.camera != camera ||
+      oldDelegate.overlay != overlay;
 }

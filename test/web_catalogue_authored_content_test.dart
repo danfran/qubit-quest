@@ -10,7 +10,7 @@ void main() {
       {List<Map<String, dynamic>>? original}) {
     final rows = <Map<String, dynamic>>[];
     final journeyIds = original == null
-        ? [for (var id = 1; id <= 66; id++) id]
+        ? [for (var id = 1; id <= 71; id++) id]
         : original
             .where((row) => row['semanticId'] == null)
             .map((row) => int.parse((row['id'] as String).substring(1)))
@@ -111,19 +111,19 @@ void main() {
   test(
       'current 66 Journey and 42 Mastery presentations are exhaustively represented',
       () {
-    expect(journeyLessons, hasLength(66));
+    expect(journeyLessons, hasLength(71));
     final rows = currentRows();
-    expect(mastery2Catalogue.length, 42);
-    expect(rows, hasLength(108));
+    expect(mastery2Catalogue.length, 48);
+    expect(rows, hasLength(119)); // 71 + 48 (v2.6 M10)
     expect(rows.where((r) => r['semanticId'] == null).map((r) => r['id']),
-        [for (var id = 1; id <= 66; id++) 'J$id']);
+        [for (var id = 1; id <= 71; id++) 'J$id']);
     expect(
         rows
             .where((r) => r['semanticId'] != null)
             .map((r) => r['semanticId'])
             .toSet(),
         mastery2Presentations.keys.toSet());
-    expect(rows.map(identity).toSet(), hasLength(108));
+    expect(rows.map(identity).toSet(), hasLength(119));
     for (final row in rows) {
       expect(row['title'], isNotEmpty, reason: identity(row));
     }

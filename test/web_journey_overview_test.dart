@@ -149,8 +149,8 @@ void main() {
   testWidgets('completed curriculum stays a review environment',
       (tester) async {
     await _pump(tester, await _controller(_after(journeyLessons.length)));
-    expect(_text(tester, 'journey-detail-title'),
-        'Building and Stopping Quantum Search');
+    // v2.6 M10: Chapter 14 is now the final chapter.
+    expect(_text(tester, 'journey-detail-title'), 'Conditional Quantum Logic');
     expect(find.text('Review chapter'), findsOneWidget);
     expect(find.byKey(_k('journey-complete-note')), findsOneWidget);
     expect(find.byKey(_k('journey-go-to-current')), findsNothing);
@@ -180,7 +180,7 @@ void main() {
       onStartChapter: (_) async {},
       onOpenMastery: () => mastery++,
     )));
-    final node = find.byKey(_k('learning-map-chapter-14'));
+    final node = find.byKey(_k('learning-map-chapter-15')) /* Mastery follows 14 chapters (v2.6 M10) */;
     await tester.ensureVisible(node);
     await tester.pumpAndSettle();
     await tester.tap(node);

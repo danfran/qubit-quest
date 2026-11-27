@@ -123,6 +123,17 @@ The web Journey is now the master–detail `WebJourneyOverview` (spec: `V26_LEAR
   - No embedded player and no dependency on the Videos repository.
 - **N4:** Maths notation uses `LatexText` and `NativeMathText`. Keep the notation identical to the Videos project (`|q2 q1 q0⟩` little-endian ordering per `docs/qubit_ordering.md`).
 
+**M6b outcome (2026-11-26):**
+
+- **N1, done:** a persistent, collapsible, categorised index (Notation, Gate reference, 13 chapters with discovered counts) beside an article at about a 780 px measure. Narrow layouts use the index, then the article.
+- **N2, done differently:** examples open as **in-Notebook experiments** in the shared Composer workspace, not in the Composer destination. This resolves the open question: the Sandbox is never replaced or written. Each experiment has "Reset example" and "Back to article", and measurement and shots are enabled.
+- **N3, partly done:** video-reference metadata exists (`NotebookVideoReference`, an empty registry). The link UI is deferred.
+- **N4:** unchanged. Articles reuse the existing renderers, the gate inspector's maths and visuals, and the example previews.
+
+**M7 note (2026-11-26):** the Gate reference gained CY and MCX articles with executable examples; the Composer palette gained CY and MCX, with an MCX control chooser that refuses registers that are too small.
+
+**M8 note (2026-11-26):** the Bloch Explorer is now a single-qubit laboratory (§15 of the shared architecture): the sphere is the principal element; preparation, gates, state maths and measurement sit in panels or tabs around it; Notebook and Composer open isolated explorations with return paths.
+
 ## 4. Mastery Challenges [Code → Proposal]
 
 - **M1:** Overview cards show only "Challenge N", the title and "Completed/Incomplete". `MasteryChallengeDefinition.difficulty` exists but is not displayed. The top of the page has a redundant "Back to Journey" (Mastery is a top-level destination). Proposal: a list with difficulty, the concept it practises and a ✓ when complete, plus filters (All / To do / Done) and search [Exists].

@@ -69,6 +69,7 @@ class SandboxProgramSnapshot {
                     if (op.control != null) 'control': op.control,
                     if (op.secondControl != null)
                       'secondControl': op.secondControl,
+                    if (op.multiControls != null) 'controls': op.multiControls,
                     if (op.gate.angle != null) 'angle': op.gate.angle,
                     'isDeletable': op.isDeletable
                   },
@@ -149,6 +150,7 @@ class SandboxProgramSnapshot {
               target: integer(op, 'target'),
               control: optional(op, 'control'),
               secondControl: optional(op, 'secondControl'),
+              multiControls: _optionalIntList(op, 'controls'),
               isDeletable: op['isDeletable']));
         default:
           throw const FormatException('Unsupported operation kind');
@@ -161,6 +163,17 @@ class SandboxProgramSnapshot {
             initialState: state,
             operations: operations),
         initialStateLabel: label);
+  }
+
+  /// The `controls` list of a multi-controlled X (v2.6 M7); absent for
+  /// every other operation, so earlier schema-2 records decode unchanged.
+  static List<int>? _optionalIntList(Map<String, dynamic> m, String k) {
+    if (!m.containsKey(k)) return null;
+    final v = m[k];
+    if (v is! List || v.any((e) => e is! int)) {
+      throw FormatException('Missing/invalid $k');
+    }
+    return v.cast<int>().toList();
   }
 
   /// Writes only a caller-unique staging key. No active pointer or legacy mutation.

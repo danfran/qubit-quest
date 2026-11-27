@@ -30,6 +30,7 @@ class CampaignIntegrationHarness {
   final unlockedLevels = <int>[];
   final _completionWrites = <Future<void>>[];
   int _nextColumn = 0;
+  bool _mastery = false;
 
   Finder get circuitSurface =>
       find.byKey(const ValueKey('circuit-interaction-surface'));
@@ -40,8 +41,14 @@ class CampaignIntegrationHarness {
     Size viewport = const Size(900, 1200),
     CampaignProgressController? progressController,
     bool resetPreferences = true,
+    // Journey lesson IDs 61–71 overlap the legacy Mastery range, so the
+    // domain must be explicit for them (v2.6 M10); inferred otherwise.
+    NumericActivityDomain? domain,
   }) async {
     levelId = id;
+    _mastery = domain == null
+        ? LevelHeaderRouter.isMasteryLevel(id)
+        : domain == NumericActivityDomain.historicalMastery;
     level = composerLevel;
     if (resetPreferences) SharedPreferences.setMockInitialValues({});
     progress = progressController ?? CampaignProgressController();
@@ -61,14 +68,14 @@ class CampaignIntegrationHarness {
         home: QuantumComposer(
           key: ValueKey('campaign-composer-$id'),
           levelId: id,
-          activityDomain: id >= ProgressionRules.legacyMasteryFirstId
+          activityDomain: _mastery
               ? NumericActivityDomain.historicalMastery
               : NumericActivityDomain.journey,
           level: level,
           controller: composerController,
           onLevelUnlocked: (nextLevel) {
             unlockedLevels.add(nextLevel);
-            final write = LevelHeaderRouter.isMasteryLevel(id)
+            final write = _mastery
                 ? progress.completeChallenge(id)
                 : progress.completeLesson(id);
             _completionWrites.add(write);
@@ -109,6 +116,7 @@ class CampaignIntegrationHarness {
       ),
       controlQubit: step.controlQubit,
       secondControlQubit: step.secondControlQubit,
+      controlQubits: step.controlQubits,
     );
     expect(outcome.changed, isTrue,
         reason: diagnostic(
@@ -246,7 +254,7 @@ class CampaignIntegrationHarness {
 
     expect(unlockedLevels, contains(levelId + 1),
         reason: diagnostic('Completion callback did not fire'));
-    if (LevelHeaderRouter.isMasteryLevel(levelId)) {
+    if (_mastery) {
       expect(find.text('Challenge Complete'), findsWidgets,
           reason: diagnostic('Mastery success dialog did not appear'));
       await tester.tap(find.text('Continue'));
@@ -258,7 +266,7 @@ class CampaignIntegrationHarness {
     }
     await Future.wait(_completionWrites);
 
-    if (LevelHeaderRouter.isMasteryLevel(levelId)) {
+    if (_mastery) {
       expect(progress.state.completedChallengeIds, contains(levelId),
           reason: diagnostic('Mastery progression was not persisted'));
     } else {

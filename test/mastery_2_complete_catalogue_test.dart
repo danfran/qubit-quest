@@ -53,6 +53,13 @@ const approvedActiveIds = <String>[
   'half_marked_search',
   'search_overshoot_forensics',
   'nonuniform_reference_reflection',
+  // v2.6 M10
+  'same_odds_different_phase',
+  'undo_complex_control',
+  'every_control_matters',
+  'condition_without_decision',
+  'mark_the_condition',
+  'oracle_left_a_trace',
 ];
 
 void main() {
@@ -112,10 +119,10 @@ void main() {
       final actual = mastery2Catalogue.semanticIds.toSet();
       expect(actual, approvedActiveIds.toSet());
       expect(actual, hasLength(approvedActiveIds.length));
-      expect(mastery2Catalogue.length, 42);
+      expect(mastery2Catalogue.length, 48);
       expect(
         mastery2Catalogue.orderedDefinitions.map((item) => item.displayOrder),
-        List.generate(42, (index) => index + 1),
+        List.generate(48, (index) => index + 1),
       );
     });
 

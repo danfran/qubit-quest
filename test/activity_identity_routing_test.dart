@@ -28,7 +28,7 @@ void main() {
         snapshot.where((row) => (row['id'] as String).startsWith('J')).toList();
     expect(journey, hasLength(60));
     expect(numericActivityCatalogue.journey.keys.toSet(),
-        {for (var i = 1; i <= 66; i++) i});
+        {for (var i = 1; i <= 71; i++) i}); // 66 until v2.6 M10
     for (final row in journey) {
       final id = int.parse((row['id'] as String).substring(1));
       final level = getJourneyLessonById(id)!;
@@ -37,7 +37,7 @@ void main() {
       expect(level.runtimeType.toString(), row['type'], reason: 'Journey $id');
       expect(identical(level, getQQLevelById(id)), isTrue);
     }
-    expect(getJourneyLessonById(67), isNull);
+    expect(getJourneyLessonById(72), isNull);
     expect(getJourneyLessonById(0), isNull);
   });
 
@@ -72,16 +72,17 @@ void main() {
       expect(extended.lookup(id, NumericActivityDomain.historicalMastery),
           same(getHistoricalMasteryById(id)));
     }
-    expect(getJourneyLessonById(67), isNull);
+    expect(getJourneyLessonById(72), isNull);
   });
 
   test('chapter lookup cannot reinterpret the archive as Journey Chapter13',
       () {
-    expect(journeyChapters, hasLength(13));
+    expect(journeyChapters, hasLength(14));
     for (var id = 1; id <= 60; id++) {
       expect(journeyChapterForLesson(id), same(journeyChapters[(id - 1) ~/ 5]));
     }
-    expect(journeyChapterForLesson(61), same(journeyChapters.last));
+    expect(journeyChapterForLesson(61), same(journeyChapters[12])); // Chapter 13
+    expect(journeyChapterForLesson(67), same(journeyChapters.last)); // Chapter 14
     expect(journeyChapters.contains(historicalMasteryGroup), isFalse);
     expect(groupedLevels.last, same(historicalMasteryGroup));
     expect(historicalMasteryGroup.from, 60);
@@ -95,7 +96,7 @@ void main() {
 
   test('semantic Mastery still resolves independently by semantic identity',
       () {
-    expect(mastery2Catalogue.length, 42);
+    expect(mastery2Catalogue.length, 48);
     for (final challenge in mastery2Catalogue.orderedDefinitions) {
       expect(mastery2Catalogue.bySemanticId(challenge.semanticId),
           same(challenge));
@@ -151,7 +152,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(
         home: LearningMapScreen(
       progressState: CampaignProgressPolicy.completeLesson(
-          CampaignProgressState.fresh(), 66),
+          CampaignProgressState.fresh(), 71),
       onStartChapter: (id) async {
         selected.add(id);
       },
@@ -159,7 +160,7 @@ void main() {
         mastery++;
       },
     )));
-    final node = find.byKey(const ValueKey('learning-map-chapter-14'));
+    final node = find.byKey(const ValueKey('learning-map-chapter-15'));
     await tester.ensureVisible(node);
     await tester.pumpAndSettle();
     await tester.tap(node);

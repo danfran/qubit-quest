@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quantumquiz/models/bloch_lab.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/progression_rules.dart';
@@ -10,7 +11,6 @@ import 'package:quantumquiz/screens/web_app.dart';
 import 'package:quantumquiz/screens/web_learning_workspace.dart';
 import 'package:quantumquiz/screens/web_notebook_workspace.dart';
 import 'package:quantumquiz/storage/app_storage.dart';
-import 'package:quantumquiz/widgets/bloch_explorer_panels.dart';
 import 'package:quantumquiz/widgets/bloch_sphere_panel.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 import 'package:quantumquiz/widgets/composer_gate_palette.dart';
@@ -98,7 +98,7 @@ void main() {
       everyElement(isNotNull),
     );
     expect(
-      blochExplorerGateTypes.map(GateEducationalCatalog.forType),
+      blochLabGateTypes.map(GateEducationalCatalog.forType),
       everyElement(isNotNull),
     );
   });
@@ -168,11 +168,10 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('web-nav-bloch')));
     await tester.pump();
+    // v2.6 M8: the Bloch laboratory (sphere, gates, evolution, state).
     expect(find.byType(BlochSpherePanel), findsOneWidget);
-    expect(find.byType(BlochGatePanel), findsOneWidget);
-    expect(find.byType(BlochPlaybackControls), findsOneWidget);
-    expect(find.byType(BlochHistoryPanel), findsOneWidget);
-    expect(find.byKey(const ValueKey('web-bloch-status')), findsOneWidget);
+    expect(find.byKey(const ValueKey('bloch-evolution')), findsOneWidget);
+    expect(find.byKey(const ValueKey('web-bloch-tabs')), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 

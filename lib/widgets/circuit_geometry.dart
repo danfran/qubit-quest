@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/models/composer_session.dart' show controlCountFor;
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/gate_id.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
@@ -134,9 +135,7 @@ class CircuitGeometry {
     final marker = PlacedQuantumGate(
       gate: Gate.fromIdentifier(SelectedGateType.draggedGate),
     );
-    if (gate.type == SelectedGateType.cnot ||
-        gate.type == SelectedGateType.cz ||
-        gate.type == SelectedGateType.ccnot) {
+    if (controlCountFor(gate.type) > 0) {
       for (final row in preview) {
         while (row.length < column) {
           row.add(PlacedQuantumGate.emptyGate());

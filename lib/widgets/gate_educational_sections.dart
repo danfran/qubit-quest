@@ -45,6 +45,7 @@ bool isControlledEducationalVisual(GateEducationalVisualKind kind) =>
     switch (kind) {
       GateEducationalVisualKind.controlledX ||
       GateEducationalVisualKind.controlledPhase ||
+      GateEducationalVisualKind.controlledY ||
       GateEducationalVisualKind.multiControlledX =>
         true,
       _ => false,

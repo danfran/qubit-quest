@@ -79,6 +79,7 @@ class ComposerSessionWorkspace extends StatefulWidget {
     this.clearedStatus = 'Circuit cleared.',
     this.onOpenNotebookEntry,
     this.showLegacyMeasurementNote = false,
+    this.onExploreInBloch,
     this.markFixedGates = false,
     this.header,
     this.footer,
@@ -104,6 +105,11 @@ class ComposerSessionWorkspace extends StatefulWidget {
 
   /// The Sandbox's note for legacy circuits with post-measurement gates.
   final bool showLegacyMeasurementNote;
+
+  /// Opens this one-qubit circuit in the Bloch Explorer as an isolated
+  /// exploration (v2.6 M8). Offered in the Bloch results tab only for
+  /// one-qubit circuits; null hides it.
+  final VoidCallback? onExploreInBloch;
 
   /// Lock badges on gates the activity fixed in place.
   final bool markFixedGates;
@@ -280,7 +286,18 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
   Future<void> _handleDrop(ComposerCircuitDropIntent intent) async {
     final session = _session;
     final outcome = await _placement.drop(context, session, intent);
-    if (identical(session, _session)) _reportGateEdit(outcome);
+    if (!identical(session, _session)) return;
+    // A drop refused with a reason (e.g. MCX on a register that is too
+    // small, v2.6 M7) is shown in full, like other drop rejections.
+    final detail = outcome.detail;
+    if (!outcome.changed &&
+        detail != null &&
+        (outcome.status == CircuitEditStatus.unsupported ||
+            outcome.status == CircuitEditStatus.invalid)) {
+      _rejectEdit(detail);
+      return;
+    }
+    _reportGateEdit(outcome);
   }
 
   void _clearCircuit() {
@@ -537,7 +554,7 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
                   'give the other outcome and state.'
               : 'The state just before M, not a sampled outcome. '
                   'Measuring it gives 0 or 1 at random.',
-      blochHeader: after == null
+      blochHeader: _blochHeader(after == null
           ? null
           : SegmentedButton<bool>(
               key: const ValueKey('bloch-pre-post-selector'),
@@ -555,13 +572,33 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
               selected: {showAfter},
               onSelectionChanged: (v) =>
                   setState(() => _blochAfterRun = v.single),
-            ),
+            )),
       blochUnavailableMessage: measured && preMeasurement!.isAvailable
           ? null
           : preMeasurement?.unavailableReason,
       targetStateExpression: _session.policy.showsTargetState
           ? _activeCircuit.currentLevel.targetStateExpression
           : null,
+    );
+  }
+
+  /// The Bloch tab's header: the pre/post selector, if any, and the
+  /// "Explore in Bloch Explorer" action for one-qubit circuits (v2.6 M8).
+  Widget? _blochHeader(Widget? selector) {
+    final explore = widget.onExploreInBloch;
+    final oneQubit = _activeCircuit.currentLevel.numQubits == 1;
+    if (explore == null || !oneQubit) return selector;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (selector != null) selector,
+        TextButton.icon(
+          key: const ValueKey('composer-explore-in-bloch'),
+          onPressed: explore,
+          icon: const Icon(Icons.language, size: 16),
+          label: const Text('Explore step by step in the Bloch Explorer'),
+        ),
+      ],
     );
   }
 
@@ -671,6 +708,7 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
                       _status,
                       key: const ValueKey('web-storage-status'),
                       textAlign: TextAlign.right,
+                      // Two lines (v2.6 M9); the tooltip has the full text.
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: QubitQuestTypography.supporting
@@ -742,6 +780,7 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
       toolbar: _buildToolbar,
       palette: (collapsed, onToggle) => ComposerGatePalettePanel(
         circuitScale: _circuitScale,
+        numQubits: _activeCircuit.currentLevel.numQubits,
         gates: _gates,
         allowsMeasurement: _session.policy.allowsMeasurement,
         previewedType: _slot.previewType,

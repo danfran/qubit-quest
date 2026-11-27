@@ -268,7 +268,8 @@ void main() {
     expect(find.byType(QubitQuestGateTile), findsNWidgets(9));
     final rx = tester.widget<QubitQuestGateTile>(
         find.byKey(const ValueKey('bloch-gate-rx')));
-    expect(rx.gate.label, contains('1/2π'));
+    // v2.6 M9 notation: π/2, never "1/2π".
+    expect(rx.gate.label, contains('π/2'));
   });
 
   testWidgets('preset selection establishes a new Start and clears history',
@@ -603,7 +604,8 @@ void main() {
     expect(firstStep.y, closeTo(0, 1e-9));
     expect(firstStep.z, closeTo(-1, 1e-9));
     expect(find.text('θ = 3.142'), findsOneWidget);
-    expect(find.text('z = -1.000'), findsOneWidget);
+    // v2.6 M9: true minus sign (U+2212) and no negative zero.
+    expect(find.text('z = −1.000'), findsOneWidget);
     expect(find.textContaining('P(|1⟩) = 100.0%'), findsOneWidget);
     final undoAfter = tester.widget<TextButton>(find.descendant(
       of: find.byKey(const ValueKey('bloch-undo')),
@@ -772,7 +774,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(GateInspectorDialog), findsOneWidget);
     expect(find.text('Ry rotation gate'), findsOneWidget);
-    expect(find.textContaining('Configured angle: Ry -1/4π'), findsOneWidget);
+    expect(find.textContaining('Configured angle: Ry −π/4'), findsOneWidget);
     expect(find.text('History step 1 of 1'), findsOneWidget);
     expect(find.text('Applied after: Start'), findsOneWidget);
   });

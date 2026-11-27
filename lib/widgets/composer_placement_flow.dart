@@ -6,6 +6,7 @@ import 'package:quantumquiz/models/gate_id.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/controlled_gate_placement_dialog.dart';
 import 'package:quantumquiz/screens/gate_replacement_dialog.dart';
+import 'package:quantumquiz/screens/multi_controlled_gate_placement_dialog.dart';
 import 'package:quantumquiz/screens/rotation_gate_dialog.dart';
 import 'package:quantumquiz/widgets/composer_circuit_canvas.dart';
 
@@ -70,6 +71,10 @@ class ComposerPlacementFlow {
     required int targetQubit,
     required int numQubits,
   }) async {
+    if (gateType == SelectedGateType.mcx) {
+      return showMultiControlledPlacementDialog(context,
+          targetQubit: targetQubit, numQubits: numQubits);
+    }
     final placement = await showControlledGatePlacementDialog(
       context,
       gateType: gateType,
@@ -108,6 +113,15 @@ class ComposerPlacementFlow {
       gate = Gate.fromIdentifier(gate.type, angle: angle);
     }
     var controls = const <int>[];
+    if (gate.type == SelectedGateType.mcx) {
+      // Refuse clearly before asking: the register is never resized.
+      final reason = multiControlledUnavailableReason(
+          session.circuit.currentLevel.numQubits);
+      if (reason != null) {
+        return session.rejectWith(
+            CircuitEditOutcome(CircuitEditStatus.unsupported, detail: reason));
+      }
+    }
     if (controlCountFor(gate.type) > 0) {
       final chosen = await chooseControls(
         context,

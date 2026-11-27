@@ -44,9 +44,11 @@ void main() {
       expect(formatComplex(c), '-i');
     });
 
-    test('should format positive fractional imaginary part (1/2i)', () {
+    // v2.6 M9 notation: i is written in the numerator (i/2, i/√2), never
+    // "1/2i", which can be read as 1/(2i).
+    test('should format positive fractional imaginary part (i/2)', () {
       final c = Complex(0, 0.5);
-      expect(formatComplex(c), '1/2i');
+      expect(formatComplex(c), 'i/2');
     });
 
     test('should format negative fractional imaginary part (-1/3i)', () {
@@ -55,14 +57,14 @@ void main() {
     });
 
     // Case 4: Mixed Real and Imaginary
-    test('should format 1/2 + 1/2i', () {
+    test('should format 1/2 + i/2', () {
       final c = Complex(0.5, 0.5);
-      expect(formatComplex(c), '1/2 + 1/2i');
+      expect(formatComplex(c), '1/2 + i/2');
     });
 
-    test('should format -1/2 + 1/2i', () {
+    test('should format -1/2 + i/2', () {
       final c = Complex(-0.5, 0.5);
-      expect(formatComplex(c), '-1/2 + 1/2i');
+      expect(formatComplex(c), '-1/2 + i/2');
     });
 
     test('should format 1 - 1i', () {
@@ -83,8 +85,9 @@ void main() {
     // Case 5: Decimal Fallback (e.g., 1/sqrt(2) approx)
     test('should use 3-digit decimals for non-fractional parts', () {
       final c = Complex(0.70710678, -0.123456); // Approx 1/sqrt(2)
-      // MockQQFraction.doubleToFractionString falls back to fixed(3) for these
-      expect(formatComplex(c), '0.7071 - 1929/15625i');
+      // v2.6 M9: an arbitrary decimal is never shown as a large fraction
+      // (it used to read "1929/15625i").
+      expect(formatComplex(c), '0.7071 - 0.1235i');
     });
   });
 }

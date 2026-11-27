@@ -65,4 +65,10 @@ const List<String> discoveryOrder = [
   'Search Round Order',
   'Search Stopping Point',
   'Quantitative Search',
+  // Chapter 14 (v2.6 M10). Appended: earlier IDs are positional and stable.
+  'Conditional Phase',
+  'Multi-Controlled Logic',
+  'Coherent Conditions',
+  'Condition Becomes Phase',
+  'Reusable Phase Oracle',
 ];

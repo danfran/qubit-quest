@@ -284,11 +284,12 @@ class _ComposerGatePaletteState extends State<ComposerGatePalette> {
   }
 
   Widget _draggableGate(Gate gate) {
-    final fontSize = gate.type == SelectedGateType.ccnot
-        ? (widget.dense ? 11.0 : 14.0)
-        : gate.requiresAngle && gate.angle != null
-            ? (widget.dense ? 8.5 : 10.0)
-            : (widget.dense ? 14.0 : 18.0);
+    final fontSize =
+        gate.type == SelectedGateType.ccnot || gate.type == SelectedGateType.mcx
+            ? (widget.dense ? 11.0 : 14.0)
+            : gate.requiresAngle && gate.angle != null
+                ? (widget.dense ? 8.5 : 10.0)
+                : (widget.dense ? 14.0 : 18.0);
     final buttonSize = widget.dense ? 38.0 : 52.0;
     QubitQuestGateTile tile() => QubitQuestGateTile(
           gate: gate,

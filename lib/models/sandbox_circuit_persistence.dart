@@ -21,6 +21,8 @@ const List<SelectedGateType> sandboxGatePaletteTypes = [
   SelectedGateType.cz,
   SelectedGateType.cnot,
   SelectedGateType.ccnot,
+  SelectedGateType.cy,
+  SelectedGateType.mcx,
   SelectedGateType.rx,
   SelectedGateType.ry,
   SelectedGateType.rz,
@@ -57,10 +59,14 @@ class SandboxCircuitOperation {
     required this.targetQubit,
     this.controlQubit,
     this.secondControlQubit,
+    this.controlQubits,
     this.angle,
   });
 
   final SelectedGateType gateType;
+
+  /// Every control of a multi-controlled X (v2.6 M7); absent otherwise.
+  final List<int>? controlQubits;
   final int column;
   final int targetQubit;
   final int? controlQubit;
@@ -74,6 +80,7 @@ class SandboxCircuitOperation {
         if (controlQubit != null) 'controlQubit': controlQubit!,
         if (secondControlQubit != null)
           'secondControlQubit': secondControlQubit!,
+        if (controlQubits != null) 'controlQubits': controlQubits!,
         if (angle != null) 'angle': angle!,
       };
 
@@ -101,6 +108,11 @@ class SandboxCircuitOperation {
       return value;
     }
 
+    final rawControls = json['controlQubits'];
+    if (rawControls != null &&
+        (rawControls is! List || rawControls.any((e) => e is! int))) {
+      throw const FormatException('Invalid controlQubits.');
+    }
     final rawAngle = json['angle'];
     if (rawAngle != null && rawAngle is! num) {
       throw const FormatException('Invalid rotation angle.');
@@ -111,6 +123,7 @@ class SandboxCircuitOperation {
       targetQubit: target,
       controlQubit: optionalInt('controlQubit'),
       secondControlQubit: optionalInt('secondControlQubit'),
+      controlQubits: (rawControls as List?)?.cast<int>().toList(),
       angle: (rawAngle as num?)?.toDouble(),
     );
   }
@@ -161,6 +174,8 @@ class SandboxCircuitSnapshot {
         targetQubit: gate.targetQubit ?? gate.anchor.qubit,
         controlQubit: gate.controlQubit,
         secondControlQubit: gate.secondControlQubit,
+        controlQubits:
+            gate.type == SelectedGateType.mcx ? gate.controlQubits : null,
         angle: gate.gate.angle,
       );
 
@@ -260,6 +275,17 @@ class SandboxCircuitSnapshot {
     }
     final gate =
         Gate.fromIdentifier(operation.gateType, angle: operation.angle);
+    if (operation.gateType == SelectedGateType.mcx) {
+      final controls = operation.controlQubits;
+      if (controls == null ||
+          operation.controlQubit != null ||
+          operation.secondControlQubit != null) {
+        return CircuitEditOutcome.invalid;
+      }
+      return circuit.insertMultiControlledGateWithOutcome(
+          gate, operation.column, operation.targetQubit, controls);
+    }
+    if (operation.controlQubits != null) return CircuitEditOutcome.invalid;
     if (operation.gateType == SelectedGateType.ccnot) {
       final control = operation.controlQubit;
       final second = operation.secondControlQubit;
@@ -272,8 +298,7 @@ class SandboxCircuitSnapshot {
         second,
       );
     }
-    if (operation.gateType == SelectedGateType.cnot ||
-        operation.gateType == SelectedGateType.cz) {
+    if (QuantumCircuit.singleControlGateTypes.contains(operation.gateType)) {
       final control = operation.controlQubit;
       if (control == null || operation.secondControlQubit != null) {
         return CircuitEditOutcome.invalid;
@@ -309,6 +334,7 @@ class SandboxCircuitSnapshot {
           a.targetQubit != b.targetQubit ||
           a.controlQubit != b.controlQubit ||
           a.secondControlQubit != b.secondControlQubit ||
+          !listEquals(a.controlQubits, b.controlQubits) ||
           a.angle != b.angle) {
         return false;
       }

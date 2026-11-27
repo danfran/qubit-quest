@@ -9,7 +9,7 @@ import 'package:quantumquiz/validation/chapter_release_gate.dart';
 
 void main() {
   test('release requires thirteen Journey chapter gates', () {
-    expect(groupedLevels.where((c) => !c.isMasteryPhase), hasLength(13));
+    expect(groupedLevels.where((c) => !c.isMasteryPhase), hasLength(14));
   });
   for (final chapter in groupedLevels.where((c) => !c.isMasteryPhase)) {
     test('release gate ${chapter.groupName}', () {
@@ -19,11 +19,11 @@ void main() {
   }
   test('all 66 discoveries have unique ordered Notebook coverage', () {
     final entries = notebookEntries.where((e) => e.chapterIndex > 0).toList();
-    expect(entries, hasLength(66));
+    expect(entries, hasLength(71));
     expect(
         entries.map((e) => e.discoveryTitle), DiscoveryProgress.discoveryOrder);
-    expect(entries.map((e) => e.id).toSet(), hasLength(66));
-    for (var id = 1; id <= 66; id++) {
+    expect(entries.map((e) => e.id).toSet(), hasLength(71));
+    for (var id = 1; id <= 71; id++) {
       expect(entries[id - 1].discoveryTitle,
           getJourneyLessonById(id)!.discoveryTitle);
     }

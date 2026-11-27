@@ -57,6 +57,8 @@ class NotebookEntry {
         return 'How algorithm roles compose into structured advantage';
       case 13:
         return 'How signed amplitudes build search advantage and determine when to stop';
+      case 14:
+        return 'How circuits evaluate conditions coherently and record them as phase';
       default:
         return '';
     }

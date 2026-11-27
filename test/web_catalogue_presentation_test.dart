@@ -19,10 +19,10 @@ void main() {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1200, 1800);
     addTearDown(tester.view.reset);
-    expect(journeyLessons, hasLength(66));
-    expect(mastery2Catalogue.length, 42);
+    expect(journeyLessons, hasLength(71));
+    expect(mastery2Catalogue.length, 48);
     final activities = [
-      for (var id = 1; id <= 66; id++)
+      for (var id = 1; id <= 71; id++)
         (
           id: 'Journey $id',
           level: getJourneyLessonById(id)!,
@@ -35,7 +35,7 @@ void main() {
           presentation: requireMasteryPresentation(c.semanticId)
         ),
     ];
-    expect(activities.length, 108);
+    expect(activities.length, 119); // 71 + 48 (v2.6 M10)
     for (final p in mastery2Presentations.values) {
       expect(p.question.isEmpty || p.question.trim().endsWith('?'), isTrue,
           reason:

@@ -491,7 +491,7 @@ class _StateExpressionLine extends StatefulWidget {
 
   String get signature => currentTerms == null
       ? authoredExpression ?? ''
-      : currentTerms!.map((term) => term.displayText).join();
+      : joinQuantumStateTerms(currentTerms!);
 
   @override
   State<_StateExpressionLine> createState() => _StateExpressionLineState();
@@ -567,12 +567,11 @@ class _StateExpressionLineState extends State<_StateExpressionLine> {
     }
 
     for (var index = 0; index < terms.length; index++) {
-      if (index > 0) {
-        spans.add(const TextSpan(text: ' + '));
-      }
       final term = terms[index];
-      if (!term.coefficientIsUnit) {
-        spans.add(TextSpan(text: '(${term.formattedCoefficient})'));
+      final separator = term.separator(first: index == 0);
+      if (separator.isNotEmpty) spans.add(TextSpan(text: separator));
+      if (term.coefficientDisplay.isNotEmpty) {
+        spans.add(TextSpan(text: term.coefficientDisplay));
       }
       spans.add(
         TextSpan(
@@ -997,9 +996,13 @@ class _WrappedStateExpressionState extends State<_WrappedStateExpression> {
 
   Widget _term(QuantumStateTerm term, {required bool first}) => Text.rich(
         TextSpan(children: [
-          if (!first) const TextSpan(text: '+ '),
-          if (!term.coefficientIsUnit)
-            TextSpan(text: '(${term.formattedCoefficient})'),
+          if (term.separator(first: first).isNotEmpty)
+            TextSpan(
+                text: first
+                    ? term.separator(first: true)
+                    : '${term.separator(first: false).trim()} '),
+          if (term.coefficientDisplay.isNotEmpty)
+            TextSpan(text: term.coefficientDisplay),
           TextSpan(
             text: term.basisKet,
             style: const TextStyle(color: _ResultPalette.qqGreen),

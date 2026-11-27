@@ -957,7 +957,11 @@ const List<NotebookEntry> notebookEntries = [
     chapterIndex: 4,
     chapterTitle: 'Chapter 4 - Interference',
     title: 'What Is Interference?',
-    executableExampleIds: ['interference_hzh'],
+    executableExampleIds: [
+      'interference_hzh',
+      'hh_reversibility',
+      'rz_interference',
+    ],
     summary:
         'Interference converts phase relationships inside a superposition into changed measurement probabilities.',
     intuition: NotebookSection(
@@ -1706,6 +1710,7 @@ const List<NotebookEntry> notebookEntries = [
       'One Quantum System',
       'One System, Three Qubits',
     ],
+    executableExampleIds: ['ghz_three'],
   ),
   NotebookEntry(
     id: 'one_system_three_qubits',
@@ -2950,6 +2955,153 @@ const List<NotebookEntry> notebookEntries = [
               ]),
         ]),
     relatedDiscoveryTitles: ['Search Stopping Point'],
+  ),
+  // Chapter 14 — Conditional Quantum Logic (v2.6 M10).
+  NotebookEntry(
+    id: 'conditional_phase',
+    discoveryTitle: 'Conditional Phase',
+    chapterIndex: 14,
+    chapterTitle: 'Chapter 14 - Conditional Quantum Logic',
+    title: 'More Than a Controlled Flip',
+    summary:
+        'CX and CY give the same Z-basis odds but different states: the conditional phase i is physical.',
+    executableExampleIds: [
+      'cy_superposed_control',
+      'cy_interference_comparison',
+    ],
+    intuition: NotebookSection(
+        title: 'Intuition',
+        body:
+            'CX flips the target where the control is 1. CY applies Pauli-Y there, which flips the target and multiplies the amplitude by i or −i. That factor is invisible to a Z-basis measurement on its own, but it changes how the state interferes later.'),
+    whatChanged: NotebookSection(
+        title: 'What Changed?',
+        body:
+            'From |00⟩, H on q0 then CX(q0→q1) gives (|00⟩ + |11⟩)/√2, while H then CY(q0→q1) gives (|00⟩ + i|11⟩)/√2. Both give 50% |00⟩ and 50% |11⟩ in the Z basis. After CX(q0→q1), S and H on q0, the CY state gives |01⟩ every time and the CX state gives 50/50.'),
+    quantumView: NotebookSection(
+        title: 'Quantum View',
+        body:
+            'Equal probabilities do not establish equal states. The two states differ by the relative phase i between |00⟩ and |11⟩; an interference step converts it into a measurable difference. CY in the local order |control, target⟩ maps |10⟩ → i|11⟩ and |11⟩ → −i|10⟩; register kets are written |q1 q0⟩.',
+        examples: [
+          NotebookExample.math(
+              label: 'Two states, same odds',
+              notation:
+                  r'\frac{|00\rangle+|11\rangle}{\sqrt{2}}\quad\text{vs}\quad\frac{|00\rangle+i|11\rangle}{\sqrt{2}}',
+              latexLines: [
+                r'\frac{|00\rangle+|11\rangle}{\sqrt{2}}\quad\text{vs}\quad\frac{|00\rangle+i|11\rangle}{\sqrt{2}}'
+              ]),
+        ]),
+    relatedDiscoveryTitles: ['Relative Phase', 'Entanglement'],
+  ),
+  NotebookEntry(
+    id: 'multi_controlled_logic',
+    discoveryTitle: 'Multi-Controlled Logic',
+    chapterIndex: 14,
+    chapterTitle: 'Chapter 14 - Conditional Quantum Logic',
+    title: 'When Every Condition Holds',
+    summary:
+        'A multi-controlled X flips its target only where every control is 1, and keeps every control.',
+    executableExampleIds: [
+      'mcx_all_controls_active',
+      'mcx_one_inactive_control',
+      'mcx_twice',
+    ],
+    intuition: NotebookSection(
+        title: 'Intuition',
+        body:
+            'CX has one control, CCX two, and MCX three or more. The rule is the same: the target flips only when every control is 1. A single 0 among the controls blocks the flip.'),
+    whatChanged: NotebookSection(
+        title: 'What Changed?',
+        body:
+            'With controls q0, q1, q2 and target q3, |0111⟩ becomes |1111⟩ but |0101⟩ is unchanged. The controls never change, and a second identical MCX restores the input.'),
+    quantumView: NotebookSection(
+        title: 'Quantum View',
+        body:
+            'MCX is reversible: it permutes basis labels and discards nothing, so it is not an irreversible classical AND. Its matrix is 16 × 16 for four qubits and 32 × 32 for five, so the rule is the clearer description.',
+        examples: [
+          NotebookExample.math(
+              label: 'Rule',
+              notation: r't\;\mapsto\;t\oplus(c_1c_2\cdots c_k)',
+              latexLines: [r't\;\mapsto\;t\oplus(c_1c_2\cdots c_k)']),
+        ]),
+    relatedDiscoveryTitles: ['Conditional Phase', 'Reversibility'],
+  ),
+  NotebookEntry(
+    id: 'coherent_conditions',
+    discoveryTitle: 'Coherent Conditions',
+    chapterIndex: 14,
+    chapterTitle: 'Chapter 14 - Conditional Quantum Logic',
+    title: 'Conditions in Superposition',
+    summary:
+        'With superposed controls, MCX acts on every component at once and creates one joint state.',
+    executableExampleIds: ['mcx_superposed_control', 'mcx_coherent_and'],
+    intuition: NotebookSection(
+        title: 'Intuition',
+        body:
+            'Put three controls in |+⟩ and the register holds all eight control patterns. MCX flips the target only in the component where all three are 1. No control is measured and nothing is decided.'),
+    whatChanged: NotebookSection(
+        title: 'What Changed?',
+        body:
+            'With the target in |0⟩, the result is (1/√8)(|0000⟩ + … + |0110⟩ + |1111⟩). Measured in the Z basis, the target gives 0 with probability 87.5% and 1 with probability 12.5%.'),
+    quantumView: NotebookSection(
+        title: 'Quantum View',
+        body:
+            'Those marginal probabilities do not describe the state: the target is correlated with its controls in one coherent superposition. It holds the AND of the controls in every component, reversibly, and a second MCX would uncompute it.'),
+    relatedDiscoveryTitles: ['Multi-Controlled Logic', 'Superposition'],
+  ),
+  NotebookEntry(
+    id: 'condition_becomes_phase',
+    discoveryTitle: 'Condition Becomes Phase',
+    chapterIndex: 14,
+    chapterTitle: 'Chapter 14 - Conditional Quantum Logic',
+    title: 'From Conditions to Phase',
+    summary:
+        'An MCX aimed at an auxiliary in |−⟩ writes its condition as a minus sign.',
+    executableExampleIds: ['mcx_phase_kickback'],
+    intuition: NotebookSection(
+        title: 'Intuition',
+        body:
+            'X|−⟩ = −|−⟩. When an MCX targets an auxiliary prepared in |−⟩, the auxiliary does not change; the components that satisfy every control gain a factor −1 instead.'),
+    whatChanged: NotebookSection(
+        title: 'What Changed?',
+        body:
+            'With q0–q2 in superposition and the auxiliary q3 in |−⟩, the MCX leaves every label unchanged and marks only the 111 component with a minus sign. Z-basis probabilities stay the same.'),
+    quantumView: NotebookSection(
+        title: 'Quantum View',
+        body:
+            'The auxiliary remains |−⟩ and separate from the inputs, so it never needs measuring. The mark is a relative phase that a later interference step, such as amplitude amplification, can turn into a likely outcome.',
+        examples: [
+          NotebookExample.math(
+              label: 'Phase kickback',
+              notation:
+                  r'|-\rangle\otimes\sum_x|x\rangle\;\mapsto\;|-\rangle\otimes\sum_x(-1)^{f(x)}|x\rangle',
+              latexLines: [
+                r'|-\rangle\otimes\sum_x|x\rangle\;\mapsto\;|-\rangle\otimes\sum_x(-1)^{f(x)}|x\rangle'
+              ]),
+        ]),
+    relatedDiscoveryTitles: ['Coherent Conditions', 'Phase Marking'],
+  ),
+  NotebookEntry(
+    id: 'reusable_phase_oracle',
+    discoveryTitle: 'Reusable Phase Oracle',
+    chapterIndex: 14,
+    chapterTitle: 'Chapter 14 - Conditional Quantum Logic',
+    title: 'Building a Reusable Oracle',
+    summary:
+        'Temporary X gates, an MCX onto |−⟩, and uncomputation mark any bit pattern with a phase.',
+    executableExampleIds: ['oracle_pattern_1010'],
+    intuition: NotebookSection(
+        title: 'Intuition',
+        body:
+            'MCX recognises all-ones. To recognise a pattern with zeros, flip those inputs with X, apply the MCX onto an auxiliary in |−⟩, then flip them back.'),
+    whatChanged: NotebookSection(
+        title: 'What Changed?',
+        body:
+            'For the pattern q3 q2 q1 q0 = 1010: X on q0 and q2, MCX(q0–q3 → q4), X on q0 and q2. Only the 1010 component gains −1; every label and the |−⟩ auxiliary are restored.'),
+    quantumView: NotebookSection(
+        title: 'Quantum View',
+        body:
+            'Preparing inputs, computing the condition, writing it as a phase and uncomputing the temporary changes are separate steps. Leaving out the uncomputation still produces the sign but relabels the inputs, so the operation is no longer a reusable oracle. Matching probabilities cannot validate an oracle: a phase mark changes none.'),
+    relatedDiscoveryTitles: ['Condition Becomes Phase', 'Oracle'],
   ),
   NotebookEntry(
     id: 'notation_and_terms',

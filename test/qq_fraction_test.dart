@@ -51,11 +51,13 @@ void main() {
       expect(fraction.radicalTeX, '\\sqrt{2}');
     });
 
-    test('correctly converts 0.12345 to a fraction', () {
+    // v2.6 M9: a decimal is not shown as an implausible exact fraction
+    // (it used to give 2469/20000); small denominators stay exact.
+    test('keeps 0.12345 as a decimal, but 3/8 as a fraction', () {
       final fraction = QQFraction.doubleToFractionTeX(0.12345);
-      expect(fraction.isDecimal, isFalse);
-      expect(fraction.numerator, 2469);
-      expect(fraction.denominator, 20000);
+      expect(fraction.isDecimal, isTrue);
+      final exact = QQFraction.doubleToFractionTeX(0.375);
+      expect((exact.numerator, exact.denominator), (3, 8));
     });
 
     test('falls back to decimal for a non-convertible number', () {
@@ -110,11 +112,13 @@ void main() {
       expect(fraction.radicalTeX, '√2');
     });
 
-    test('correctly converts 0.12345 to a fraction', () {
+    // v2.6 M9: a decimal is not shown as an implausible exact fraction
+    // (it used to give 2469/20000); small denominators stay exact.
+    test('keeps 0.12345 as a decimal, but 3/8 as a fraction', () {
       final fraction = QQFraction.doubleToFractionString(0.12345);
-      expect(fraction.isDecimal, isFalse);
-      expect(fraction.numerator, 2469);
-      expect(fraction.denominator, 20000);
+      expect(fraction.isDecimal, isTrue);
+      final exact = QQFraction.doubleToFractionString(0.375);
+      expect((exact.numerator, exact.denominator), (3, 8));
     });
 
     test('falls back to decimal for a non-convertible number', () {

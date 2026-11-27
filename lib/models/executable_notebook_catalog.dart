@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:quantumquiz/models/canonical_composer_solution.dart';
 import 'package:quantumquiz/models/executable_notebook_example.dart';
+import 'package:quantumquiz/models/gate_reference_examples.dart'
+    show conditionalLogicExamples;
 import 'package:quantumquiz/models/selected_gate_type.dart';
 
 const _searchH0 =
@@ -165,6 +167,71 @@ final List<ExecutableNotebookExample> executableNotebookExamples =
     relatedConcept: 'Interference',
     allowOpenInBlochExplorer: true,
   ),
+  // v2.6 M6b: three reference experiments for the Notebook's gate articles
+  // (expected states verified against the simulator in
+  // test/v26_m6b_notebook_test.dart). Kets are written |q(n−1)…q0⟩.
+  ExecutableNotebookExample(
+    id: 'hh_reversibility',
+    title: 'Undo a superposition',
+    description: 'H twice returns |0⟩: H is its own inverse, and the two '
+        'paths to |1⟩ cancel.',
+    qubitCount: 1,
+    initialBinaryState: '0',
+    operations: const [
+      CanonicalCircuitStep.single(SelectedGateType.hadamard, targetQubit: 0),
+      CanonicalCircuitStep.single(SelectedGateType.hadamard, targetQubit: 0),
+    ],
+    expectedState: const [NotebookAmplitude(1), NotebookAmplitude(0)],
+    relatedConcept: 'Interference',
+    allowOpenInBlochExplorer: true,
+  ),
+  ExecutableNotebookExample(
+    id: 'rz_interference',
+    title: 'Tune a probability with Rz',
+    description: 'H → Rz(π/3) → H gives cos(π/6)|0⟩ − i·sin(π/6)|1⟩: '
+        'Z-basis probabilities 75% and 25%. Change θ to move them '
+        'continuously.',
+    qubitCount: 1,
+    initialBinaryState: '0',
+    operations: const [
+      CanonicalCircuitStep.single(SelectedGateType.hadamard, targetQubit: 0),
+      CanonicalCircuitStep.single(SelectedGateType.rz,
+          targetQubit: 0, angle: math.pi / 3),
+      CanonicalCircuitStep.single(SelectedGateType.hadamard, targetQubit: 0),
+    ],
+    expectedState: const [
+      NotebookAmplitude(0.8660254037844387),
+      NotebookAmplitude(0, -0.5),
+    ],
+    relatedConcept: 'Interference',
+    allowOpenInBlochExplorer: true,
+  ),
+  ExecutableNotebookExample(
+    id: 'ghz_three',
+    title: 'Three-qubit GHZ state',
+    description: 'H on q0, then CX from q0 to q1 and to q2: the coherent '
+        'superposition (|000⟩ + |111⟩)/√2, not a 50/50 mixture.',
+    qubitCount: 3,
+    initialBinaryState: '000',
+    operations: const [
+      CanonicalCircuitStep.single(SelectedGateType.hadamard, targetQubit: 0),
+      CanonicalCircuitStep.controlled(SelectedGateType.cnot,
+          controlQubit: 0, targetQubit: 1),
+      CanonicalCircuitStep.controlled(SelectedGateType.cnot,
+          controlQubit: 0, targetQubit: 2),
+    ],
+    expectedState: const [
+      NotebookAmplitude(math.sqrt1_2),
+      NotebookAmplitude(0),
+      NotebookAmplitude(0),
+      NotebookAmplitude(0),
+      NotebookAmplitude(0),
+      NotebookAmplitude(0),
+      NotebookAmplitude(0),
+      NotebookAmplitude(math.sqrt1_2),
+    ],
+    relatedConcept: 'GHZ State',
+  ),
   ExecutableNotebookExample(
       id: 'search_marked_input',
       title: 'Prepare the signed search input',
@@ -308,6 +375,7 @@ final List<ExecutableNotebookExample> executableNotebookExamples =
           NotebookAmplitude(-1 * (i == 6 ? 1.625 : -0.875) / math.sqrt(8))
       ],
       relatedConcept: 'Quantitative Search'),
+  ...conditionalLogicExamples,
 ]);
 
 final Map<String, ExecutableNotebookExample> executableNotebookExamplesById =

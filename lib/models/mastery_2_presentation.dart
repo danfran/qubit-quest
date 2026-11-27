@@ -746,4 +746,143 @@ final Map<String, MasteryChallengePresentation> mastery2Presentations =
     helperText:
         'The |00⟩ preview must become −|01⟩, but validation checks the full operator, including its sign.',
   ),
+  // Challenges 43–48: conditional quantum logic (v2.6 M10).
+  'same_odds_different_phase': const MasteryChallengePresentation(
+    instruction:
+        'Two circuits give identical Z-basis statistics. Decide what evidence shows that they prepared different states.',
+    evidence: [
+      MasteryCircuitEvidence(
+          label: 'CIRCUIT A',
+          qubitCount: 2,
+          initialBasis: '00',
+          operations: [_h0, _cnot01],
+          semanticDescription:
+              'H(q0) then CX(q0→q1): (|00⟩ + |11⟩)/√2.'),
+      MasteryCircuitEvidence(
+          label: 'CIRCUIT B',
+          qubitCount: 2,
+          initialBasis: '00',
+          operations: [
+            _h0,
+            CanonicalCircuitStep.controlled(SelectedGateType.cy,
+                controlQubit: 0, targetQubit: 1),
+          ],
+          semanticDescription:
+              'H(q0) then CY(q0→q1): (|00⟩ + i|11⟩)/√2.'),
+      MasteryTextEvidence(
+          label: 'Z-BASIS STATISTICS',
+          text: 'Both give 50% |00⟩ and 50% |11⟩. Labels are |q1 q0⟩.'),
+    ],
+    question: 'Which evidence shows that A and B prepared different states?',
+  ),
+  'undo_complex_control': const MasteryChallengePresentation(
+    instruction:
+        'Append the exact inverse of the fixed S(q0) → CY(q1→q0), so the whole circuit is the identity on every input.',
+    evidence: [
+      MasteryMathEvidence(
+          label: 'INVERSE OF A PRODUCT',
+          expression:
+              r'\[(\mathrm{CY}\,S)^{-1}=S^{\dagger}\,\mathrm{CY}^{\dagger},\qquad \mathrm{CY}^{\dagger}=\mathrm{CY},\qquad S^{\dagger}=ZS\]'),
+      MasteryTextEvidence(
+          label: 'ORDER',
+          text:
+              'Matrices act right to left; gates are placed left to right. Undo the last fixed gate first.'),
+    ],
+    question: '',
+    helperText:
+        'Labels are |q1 q0⟩. The |10⟩ preview returns to |10⟩, but the complete operator is checked.',
+  ),
+  'every_control_matters': const MasteryChallengePresentation(
+    instruction:
+        'Flip q3 exactly when q0 = 1, q2 = 1 and q4 = 0. q1 is not part of the condition; every other label is unchanged.',
+    evidence: [
+      MasteryMathEvidence(
+          label: 'CONDITION',
+          expression:
+              r'\[q_3\;\mapsto\;q_3\oplus\big(q_0\cdot q_2\cdot\overline{q_4}\big)\]'),
+      MasteryTextEvidence(
+          label: 'DISPLAYED INPUT',
+          text:
+              '|00101⟩ satisfies the condition and becomes |01101⟩. Labels are |q4 q3 q2 q1 q0⟩.'),
+    ],
+    question: '',
+    helperText:
+        'MCX fires on 1s. A condition on a 0 needs a temporary X that is undone afterwards. All 32 inputs are checked.',
+  ),
+  'condition_without_decision': const MasteryChallengePresentation(
+    instruction:
+        'Three controls are prepared in |+⟩ and the target starts in |0⟩. Predict the result of one MCX.',
+    evidence: [
+      MasteryCircuitEvidence(
+          label: 'CIRCUIT',
+          qubitCount: 4,
+          initialBasis: '0000',
+          operations: [
+            _h0,
+            CanonicalCircuitStep.single(SelectedGateType.hadamard,
+                targetQubit: 1),
+            CanonicalCircuitStep.single(SelectedGateType.hadamard,
+                targetQubit: 2),
+            CanonicalCircuitStep.multiControlledX(
+                controlQubits: [0, 1, 2], targetQubit: 3),
+          ],
+          semanticDescription:
+              'H on q0, q1 and q2, then MCX(q0,q1,q2 → q3).'),
+    ],
+    question: 'Which description of the result is correct?',
+    helperText: 'Labels are |q3 q2 q1 q0⟩; q0 is the top wire.',
+  ),
+  'mark_the_condition': const MasteryChallengePresentation(
+    instruction:
+        'Compare two candidate phase oracles for the input 101 (q2 q1 q0), with the auxiliary q3 prepared in |−⟩.',
+    evidence: [
+      MasteryCircuitEvidence(
+          label: 'CANDIDATE A',
+          qubitCount: 4,
+          initialBasis: '0000',
+          operations: [
+            CanonicalCircuitStep.single(SelectedGateType.x, targetQubit: 1),
+            CanonicalCircuitStep.multiControlledX(
+                controlQubits: [0, 1, 2], targetQubit: 3),
+            CanonicalCircuitStep.single(SelectedGateType.x, targetQubit: 1),
+          ],
+          showInitialValues: false,
+          semanticDescription:
+              'X(q1), MCX(q0,q1,q2 → q3), X(q1). The input superposition and the |−⟩ auxiliary are prepared beforehand.'),
+      MasteryTextEvidence(
+          label: 'CANDIDATE B',
+          text: 'No gates at all.'),
+      MasteryMathEvidence(
+          label: 'PHASE KICKBACK',
+          expression: r'\[X|-\rangle=-|-\rangle\]'),
+    ],
+    question:
+        'Both give 1/8 for each input in the Z basis. Which statement is correct?',
+  ),
+  'oracle_left_a_trace': const MasteryChallengePresentation(
+    instruction:
+        'Repair the fixed oracle: it must leave x = q3 q2 q1 q0 unchanged and replace the auxiliary y = q4 by y ⊕ f(x), with f(x) = 1 only for x = 0110.',
+    evidence: [
+      MasteryCircuitEvidence(
+          label: 'FIXED (BUGGY) ORACLE',
+          qubitCount: 5,
+          initialBasis: '00110',
+          operations: [
+            _x0,
+            CanonicalCircuitStep.single(SelectedGateType.x, targetQubit: 3),
+            CanonicalCircuitStep.multiControlledX(
+                controlQubits: [0, 1, 2, 3], targetQubit: 4),
+            _x0,
+          ],
+          semanticDescription:
+              'X(q0) and X(q3) select the pattern, MCX writes f(x) into q4, and only X(q0) is undone.'),
+      MasteryTextEvidence(
+          label: 'SYMPTOM',
+          text:
+              'For input 0110 the auxiliary becomes 1 as intended, but the output is |11110⟩ instead of |10110⟩.'),
+    ],
+    question: '',
+    helperText:
+        'Labels are |q4 q3 q2 q1 q0⟩; q4 is the auxiliary. All 32 inputs are checked.',
+  ),
 });

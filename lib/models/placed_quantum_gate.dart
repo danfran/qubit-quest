@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/models/gate_id.dart';
 
@@ -7,6 +8,11 @@ class PlacedQuantumGate {
   final int? controlQubitIndex;
   final int? control2QubitIndex;
   final int? targetQubitIndex;
+
+  /// Every control of a multi-controlled gate ([SelectedGateType.mcx]),
+  /// ascending. Null for the other gates, whose controls live in
+  /// [controlQubitIndex] and [control2QubitIndex] (unchanged since v2.5).
+  final List<int>? controlQubitIndices;
   final bool isTarget;
   final bool isLink;
   final bool isControl;
@@ -17,6 +23,14 @@ class PlacedQuantumGate {
   final int? classicalBit;
 
   bool get isMeasurement => gate.type == SelectedGateType.measureZ;
+
+  /// All control qubits, whatever the gate stores them in.
+  List<int> get controlQubits =>
+      controlQubitIndices ??
+      [
+        if (controlQubitIndex != null) controlQubitIndex!,
+        if (control2QubitIndex != null) control2QubitIndex!,
+      ];
 
   static PlacedQuantumGate emptyGate() =>
       PlacedQuantumGate(gate: Gate.fromIdentifier(SelectedGateType.none));
@@ -35,6 +49,7 @@ class PlacedQuantumGate {
           controlQubitIndex == other.controlQubitIndex &&
           control2QubitIndex == other.control2QubitIndex &&
           targetQubitIndex == other.targetQubitIndex &&
+          listEquals(controlQubitIndices, other.controlQubitIndices) &&
           isDeletable == other.isDeletable &&
           classicalBit == other.classicalBit;
 
@@ -44,13 +59,16 @@ class PlacedQuantumGate {
     this.controlQubitIndex,
     this.control2QubitIndex,
     this.targetQubitIndex,
+    List<int>? controlQubitIndices,
     this.isControl = false,
     this.isControl2 = false,
     this.isTarget = false,
     this.isLink = false,
     this.isDeletable = true,
     this.classicalBit,
-  });
+  }) : controlQubitIndices = controlQubitIndices == null
+            ? null
+            : List.unmodifiable(controlQubitIndices.toList()..sort());
 
   @override
   int get hashCode =>
@@ -63,6 +81,7 @@ class PlacedQuantumGate {
       controlQubitIndex.hashCode ^
       control2QubitIndex.hashCode ^
       targetQubitIndex.hashCode ^
+      Object.hashAll(controlQubitIndices ?? const []) ^
       isDeletable.hashCode ^
       classicalBit.hashCode;
 }

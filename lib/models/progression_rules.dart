@@ -3,7 +3,8 @@ enum NumericActivityDomain { journey, historicalMastery }
 class ProgressionRules {
   const ProgressionRules._();
 
-  static const int guidedDiscoveryLevelCount = 66;
+  // 66 until v2.6 M10 added Chapter 14 (lessons 67–71).
+  static const int guidedDiscoveryLevelCount = 71;
   // Frozen historical identity domain, never derived from the live Journey size.
   static const int historicalJourneyCount = 60;
   static const int legacyMasteryFirstId = 61;

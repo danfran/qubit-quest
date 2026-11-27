@@ -1,8 +1,11 @@
+// Web Notebook workspace (v2.6 M6b knowledge base). Ported from the pre-M6b
+// modal-index tests: the behaviours they protected are kept.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/executable_notebook_example.dart';
 import 'package:quantumquiz/models/notebook_entries.dart';
+import 'package:quantumquiz/models/selected_gate_type.dart';
 import 'package:quantumquiz/screens/web_notebook_workspace.dart';
 
 void main() {
@@ -29,7 +32,6 @@ void main() {
     WidgetTester tester, {
     required CampaignProgressController controller,
     String? requestedDiscoveryTitle,
-    ValueChanged<ExecutableNotebookExample>? onOpenExampleInComposer,
     void Function(ExecutableNotebookExample, ExecutableNotebookResult)?
         onOpenExampleInBlochExplorer,
   }) async {
@@ -41,7 +43,6 @@ void main() {
             progressController: controller,
             requestedDiscoveryTitle: requestedDiscoveryTitle,
             onOpenJourney: () {},
-            onOpenExampleInComposer: onOpenExampleInComposer,
             onOpenExampleInBlochExplorer: onOpenExampleInBlochExplorer,
           ),
         ),
@@ -50,8 +51,14 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('wide layout uses transient contents and full-width reader',
-      (tester) async {
+  Future<void> expandChapter(WidgetTester tester, int chapter) async {
+    await tester.tap(
+        find.byKey(ValueKey('web-notebook-category-chapter-$chapter')));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('wide layout: persistent index and article; locked entries '
+      'preview without content', (tester) async {
     await setSize(tester, const Size(1280, 1000));
     final first = notebookEntries.first;
     final second = notebookEntries[1];
@@ -61,29 +68,39 @@ void main() {
     );
     await pumpWorkspace(tester, controller: controller);
 
-    expect(find.byKey(const ValueKey('web-notebook-index-wide')), findsNothing);
-    expect(find.byKey(const ValueKey('web-notebook-contents')), findsOneWidget);
-    expect(find.byKey(const ValueKey('web-notebook-welcome')), findsOneWidget);
+    expect(find.byKey(const ValueKey('web-notebook-master-detail')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('web-notebook-index')), findsOneWidget);
+    // The always-available notation reference is the default article.
+    expect(find.byKey(const ValueKey('web-notebook-reader-notation_and_terms')),
+        findsOneWidget);
+    expect(find.byKey(ValueKey('web-notebook-entry-${first.id}')),
+        findsNothing, reason: 'chapters start collapsed');
+    await expandChapter(tester, first.chapterIndex);
+    expect(find.byKey(ValueKey('web-notebook-entry-${first.id}')),
+        findsOneWidget);
     expect(
-        find.byKey(ValueKey('web-notebook-entry-${first.id}')), findsNothing);
+        tester
+            .widget<Text>(find.byKey(ValueKey(
+                'web-notebook-category-count-chapter-${first.chapterIndex}')))
+            .data,
+        '2 / 5 discovered');
 
-    await tester.tap(find.byKey(const ValueKey('web-notebook-contents')));
+    // A locked entry is selectable but shows no content.
+    await tester.tap(find.byKey(ValueKey('web-notebook-entry-${locked.id}')));
     await tester.pumpAndSettle();
-    expect(find.text(first.chapterTitle.toUpperCase()), findsOneWidget);
-    expect(find.text(first.title), findsOneWidget);
-
-    final lockedTile = tester.widget<ListTile>(
-      find.byKey(ValueKey('web-notebook-entry-${locked.id}')),
-    );
-    expect(lockedTile.enabled, isFalse);
+    expect(find.byKey(const ValueKey('web-notebook-locked-preview')),
+        findsOneWidget);
     expect(find.text(locked.intuition.body), findsNothing);
+    expect(controller.openedDiscoveryTitles(),
+        isNot(contains(locked.discoveryTitle)));
+    expect(controller.unlockedDiscoveryTitles(),
+        isNot(contains(locked.discoveryTitle)));
 
     await tester.tap(find.byKey(ValueKey('web-notebook-entry-${first.id}')));
     await tester.pumpAndSettle();
-
     expect(find.byKey(ValueKey('web-notebook-reader-${first.id}')),
         findsOneWidget);
-    expect(find.text(first.title), findsWidgets);
     expect(find.byKey(const ValueKey('web-notebook-section-Intuition')),
         findsOneWidget);
     expect(find.byKey(const ValueKey('web-notebook-section-What Changed?')),
@@ -117,6 +134,9 @@ void main() {
         findsOneWidget);
     expect(find.byKey(ValueKey('web-notebook-search-${second.id}')),
         findsOneWidget);
+    // Undiscovered entries are never search results.
+    expect(find.byKey(ValueKey('web-notebook-search-${notebookEntries[2].id}')),
+        findsNothing);
     await tester.tap(find.byKey(ValueKey('web-notebook-search-${second.id}')));
     await tester.pump();
     expect(find.byKey(ValueKey('web-notebook-reader-${second.id}')),
@@ -142,6 +162,7 @@ void main() {
       [first.discoveryTitle, second.discoveryTitle],
     );
     await pumpWorkspace(tester, controller: controller);
+    await expandChapter(tester, first.chapterIndex);
     await tester.tap(find.byKey(ValueKey('web-notebook-entry-${first.id}')));
     await tester.pump();
     expect(find.byKey(const ValueKey('web-notebook-reader-narrow')),
@@ -199,49 +220,44 @@ void main() {
         findsNothing);
   });
 
-  testWidgets('X example exposes shared Composer and Bloch actions on Web',
+  testWidgets('X example opens a Notebook experiment and the Bloch handoff',
       (tester) async {
     await setSize(tester, const Size(1280, 1100));
     final entry = notebookEntries.first;
     final controller = await controllerWithDiscoveries([entry.discoveryTitle]);
-    ExecutableNotebookExample? composerExample;
     ExecutableNotebookExample? blochExample;
     ExecutableNotebookResult? blochResult;
     await pumpWorkspace(
       tester,
       controller: controller,
-      onOpenExampleInComposer: (example) => composerExample = example,
+      requestedDiscoveryTitle: entry.discoveryTitle,
       onOpenExampleInBlochExplorer: (example, result) {
         blochExample = example;
         blochResult = result;
       },
     );
-    await tester.tap(find.byKey(const ValueKey('web-notebook-contents')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(ValueKey('web-notebook-entry-${entry.id}')));
+    final bloch = find.byKey(const ValueKey('bloch-example-x_from_zero'));
+    await tester.ensureVisible(bloch);
     await tester.pumpAndSettle();
-    tester
-        .widget<OutlinedButton>(
-          find.byKey(const ValueKey('composer-example-x_from_zero')),
-        )
-        .onPressed!();
-    expect(composerExample?.id, 'x_from_zero');
-
-    tester
-        .widget<FilledButton>(
-          find.byKey(const ValueKey('run-example-x_from_zero')),
-        )
-        .onPressed!();
-    await tester.pump();
-    expect(find.byKey(const ValueKey('bloch-example-x_from_zero')),
-        findsOneWidget);
-    tester
-        .widget<OutlinedButton>(
-          find.byKey(const ValueKey('bloch-example-x_from_zero')),
-        )
-        .onPressed!();
+    await tester.tap(bloch);
     expect(blochExample?.id, 'x_from_zero');
     expect(blochResult?.state, hasLength(2));
+
+    final explore = find.byKey(const ValueKey('notebook-explore-x_from_zero'));
+    await tester.ensureVisible(explore);
+    await tester.pumpAndSettle();
+    await tester.tap(explore);
+    await tester.pumpAndSettle();
+    final state = tester.state<WebNotebookWorkspaceState>(
+        find.byType(WebNotebookWorkspace));
+    final session = state.experimentSession!;
+    expect(session.circuit.logicalGates.map((g) => g.type),
+        [SelectedGateType.x]);
+    expect(find.byKey(const ValueKey('notebook-experiment-workspace')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('web-lesson-check')), findsNothing,
+        reason: 'experiments have no Check');
   });
 
   testWidgets('requested Journey discovery opens the matching canonical entry',
@@ -268,9 +284,11 @@ void main() {
     final controller = await controllerWithDiscoveries([entry.discoveryTitle]);
     await pumpWorkspace(tester, controller: controller);
 
-    expect(find.byKey(const ValueKey('web-notebook-index-wide')), findsNothing);
+    expect(find.byKey(const ValueKey('web-notebook-master-detail')),
+        findsNothing);
     expect(find.byKey(const ValueKey('web-notebook-index-narrow')),
         findsOneWidget);
+    await expandChapter(tester, entry.chapterIndex);
     await tester.tap(find.byKey(ValueKey('web-notebook-entry-${entry.id}')));
     await tester.pump();
 
@@ -278,7 +296,9 @@ void main() {
         find.byKey(const ValueKey('web-notebook-index-narrow')), findsNothing);
     expect(find.byKey(const ValueKey('web-notebook-reader-narrow')),
         findsOneWidget);
-    expect(
-        find.byKey(const ValueKey('web-notebook-back-index')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('web-notebook-back-index')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('web-notebook-index-narrow')),
+        findsOneWidget);
   });
 }

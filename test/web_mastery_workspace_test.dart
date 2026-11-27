@@ -88,7 +88,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('web-nav-mastery')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('web-mastery-overview')), findsOneWidget);
-    expect(find.text('0 / 42 complete'), findsOneWidget);
+    expect(find.text('0 / 48 complete'), findsOneWidget);
     expect(find.byKey(const ValueKey('web-mastery-continue')), findsNothing);
     // The library selects (shows details of) the first incomplete
     // challenge, but never starts an activity by itself.
@@ -105,7 +105,7 @@ void main() {
         findsOneWidget);
     await controller.completeMasteryChallenge('global_phase_equivalence');
     await tester.pumpAndSettle();
-    expect(find.text('1 / 42 complete'), findsOneWidget);
+    expect(find.text('1 / 48 complete'), findsOneWidget);
   });
 
   testWidgets(
@@ -130,7 +130,7 @@ void main() {
     await tester.pumpAndSettle();
     final seen = <String>{};
     final overview = find.byKey(const ValueKey('web-mastery-list'));
-    for (var i = 0; i < 20 && seen.length < 42; i++) {
+    for (var i = 0; i < 20 && seen.length < 48; i++) {
       for (final c in challenges) {
         if (find
             .byKey(ValueKey('web-mastery-challenge-${c.semanticId}'))
@@ -153,25 +153,25 @@ void main() {
     final expected = challenges
         .where((c) => c.title.toLowerCase().contains('hidden'))
         .length;
-    expect(find.text('$expected of 42 challenges'), findsOneWidget);
+    expect(find.text('$expected of 48 challenges'), findsOneWidget);
     await tester
         .tap(find.byKey(const ValueKey('web-mastery-filter-completed')));
     await tester.pumpAndSettle();
     expect(find.text('No matching challenges.'), findsOneWidget);
     await tester.enterText(search, '');
     await tester.pumpAndSettle();
-    expect(find.text('2 of 42 challenges'), findsOneWidget);
+    expect(find.text('2 of 48 challenges'), findsOneWidget);
     await tester
         .tap(find.byKey(const ValueKey('web-mastery-filter-incomplete')));
     await tester.pumpAndSettle();
-    expect(find.text('40 of 42 challenges'), findsOneWidget);
+    expect(find.text('46 of 48 challenges'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('web-mastery-filter-all')));
     await tester.pumpAndSettle();
-    expect(find.text('42 of 42 challenges'), findsOneWidget);
+    expect(find.text('48 of 48 challenges'), findsOneWidget);
     for (final width in [360.0, 1100.0]) {
       tester.view.physicalSize = Size(width, 900);
       await tester.pumpAndSettle();
-      expect(find.text('2 / 42 complete'), findsOneWidget);
+      expect(find.text('2 / 48 complete'), findsOneWidget);
       expect(find.byKey(const ValueKey('web-mastery-challenge-chooser')),
           findsNothing);
       expect(find.byKey(const ValueKey('web-mastery-challenge-list-narrow')),
@@ -210,17 +210,17 @@ void main() {
     final previous = find.byKey(const ValueKey('web-mastery-previous'));
     final next = find.byKey(const ValueKey('web-mastery-next'));
     expect(tester.widget<IconButton>(previous).onPressed, isNull);
-    expect(find.text('Challenge 1 of 42'), findsOneWidget);
+    expect(find.text('Challenge 1 of 48'), findsOneWidget);
     await tester.tap(next);
     await tester.pumpAndSettle();
-    expect(find.text('Challenge 2 of 42'), findsOneWidget);
+    expect(find.text('Challenge 2 of 48'), findsOneWidget);
     final circuit = tester
         .widget<ComposerCircuitCanvas>(find.byType(ComposerCircuitCanvas))
         .circuit;
     for (final width in [360.0, 1100.0]) {
       tester.view.physicalSize = Size(width, 1100);
       await tester.pumpAndSettle();
-      expect(find.text('0 / 42 complete'), findsOneWidget);
+      expect(find.text('0 / 48 complete'), findsOneWidget);
       expect(find.byTooltip('Back to Mastery Challenges'), findsOneWidget);
       expect(previous.hitTestable(), findsOneWidget);
       expect(next.hitTestable(), findsOneWidget);
@@ -251,7 +251,7 @@ void main() {
     expect(find.text('Continue challenge'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('web-mastery-start')));
     await tester.pumpAndSettle();
-    expect(find.text('Challenge 2 of 42'), findsOneWidget);
+    expect(find.text('Challenge 2 of 48'), findsOneWidget);
     expect(
         tester
             .widget<ComposerCircuitCanvas>(find.byType(ComposerCircuitCanvas))
@@ -259,14 +259,15 @@ void main() {
         same(circuit));
     await tester.tap(previous);
     await tester.pumpAndSettle();
-    expect(find.text('Challenge 1 of 42'), findsOneWidget);
+    expect(find.text('Challenge 1 of 48'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('web-mastery-back-overview')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('web-mastery-search')),
-        'Reflect About a Different State');
+        'The Oracle That Left a Trace');
     await tester.pumpAndSettle();
-    await openChallenge(tester, 'nonuniform_reference_reflection');
-    expect(find.text('Challenge 42 of 42'), findsOneWidget);
+    // The last challenge is 48 since v2.6 M10.
+    await openChallenge(tester, 'oracle_left_a_trace');
+    expect(find.text('Challenge 48 of 48'), findsOneWidget);
     expect(tester.widget<IconButton>(next).onPressed, isNull);
     expect(tester.widget<IconButton>(previous).onPressed, isNotNull);
   });

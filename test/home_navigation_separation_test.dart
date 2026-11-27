@@ -246,12 +246,12 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('1 / 42 completed'), findsOneWidget);
+    expect(find.textContaining('1 / 48 completed'), findsOneWidget);
     await tester
         .tap(find.byKey(const ValueKey('home-action-Mastery Challenges')));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Completed: 1 / 42'), findsOneWidget);
+    expect(find.textContaining('Completed: 1 / 48'), findsOneWidget);
     expect(
       find.byKey(
         const ValueKey('mastery-completed-global_phase_equivalence'),

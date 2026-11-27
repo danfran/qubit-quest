@@ -168,13 +168,17 @@ void main() {
       final amp = tester.getCenter(find.text(labels[i]).first);
       expect((ket.dy - amp.dy).abs(), lessThan(1), reason: _ket(i, 2));
     }
-    // The expression shows every term, signs inside the coefficients.
+    // The expression shows every term with its own sign (v2.6 M9:
+    // negative terms are written as subtractions, never "+ (−1/2)").
     final terms = formatQuantumStateTerms(state, numQubits: 2);
+    expect(joinQuantumStateTerms(terms),
+        '(1/2)|00⟩ + (i/2)|01⟩ − (1/2)|10⟩ − (i/2)|11⟩');
     for (final term in terms) {
       expect(
           find.descendant(
               of: find.byKey(_k('state-expression-wrapped')),
-              matching: find.textContaining('(${term.formattedCoefficient})',
+              matching: find.textContaining(
+                  '${term.coefficientDisplay}${term.basisKet}',
                   findRichText: true)),
           findsOneWidget);
     }

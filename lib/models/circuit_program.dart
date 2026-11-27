@@ -36,11 +36,23 @@ final class UnitaryOperation extends CircuitOperation {
       required this.target,
       this.control,
       this.secondControl,
+      this.multiControls,
       this.isDeletable = true});
   final Gate gate;
   final int target;
   final int? control;
   final int? secondControl;
+
+  /// Every control of a multi-controlled X (v2.6 M7); null otherwise.
+  final List<int>? multiControls;
+
+  /// All controls of this operation, however they are stored.
+  List<int> get controls =>
+      multiControls ??
+      [
+        if (control != null) control!,
+        if (secondControl != null) secondControl!
+      ];
   final bool isDeletable;
 }
 
@@ -113,6 +125,8 @@ class CircuitProgram {
               target: g.targetQubit ?? g.anchor.qubit,
               control: g.controlQubit,
               secondControl: g.secondControlQubit,
+              multiControls:
+                  g.type == SelectedGateType.mcx ? g.controlQubits : null,
               isDeletable: g.isDeletable))
         ]..sort((a, b) {
             final column = a.column.compareTo(b.column);
@@ -126,11 +140,8 @@ class CircuitProgram {
             // topmost occupied qubit gives a deterministic total order.
             int topRow(CircuitOperation op) => switch (op) {
                   MeasureZOperation() => op.qubit,
-                  UnitaryOperation() => [
-                      op.target,
-                      if (op.control != null) op.control!,
-                      if (op.secondControl != null) op.secondControl!,
-                    ].reduce((x, y) => x < y ? x : y),
+                  UnitaryOperation() =>
+                    [op.target, ...op.controls].reduce((x, y) => x < y ? x : y),
                 };
             return topRow(a).compareTo(topRow(b));
           })));
@@ -175,22 +186,28 @@ class CircuitProgram {
             SelectedGateType.draggedGate,
             SelectedGateType.measureZ
           }.contains(op.gate.type)) invalid('Not a unitary gate');
-          final controls = switch (op.gate.type) {
-            SelectedGateType.cnot || SelectedGateType.cz => 1,
-            SelectedGateType.ccnot => 2,
-            _ => 0,
+          final validControls = switch (op.gate.type) {
+            SelectedGateType.cnot ||
+            SelectedGateType.cz ||
+            SelectedGateType.cy =>
+              op.control != null &&
+                  op.secondControl == null &&
+                  op.multiControls == null,
+            SelectedGateType.ccnot => op.control != null &&
+                op.secondControl != null &&
+                op.multiControls == null,
+            SelectedGateType.mcx => op.control == null &&
+                op.secondControl == null &&
+                (op.multiControls?.length ?? 0) >= 3,
+            _ => op.control == null &&
+                op.secondControl == null &&
+                op.multiControls == null,
           };
-          if ((op.control != null) != (controls >= 1) ||
-              (op.secondControl != null) != (controls == 2))
-            invalid('Invalid controls');
+          if (!validControls) invalid('Invalid controls');
           if (!op.gate.hasValidRequiredParameters ||
               (!op.gate.requiresAngle && op.gate.angle != null))
             invalid('Invalid angle');
-          wires = [
-            op.target,
-            if (op.control != null) op.control!,
-            if (op.secondControl != null) op.secondControl!
-          ];
+          wires = [op.target, ...op.controls];
       }
       if (wires.toSet().length != wires.length ||
           wires.any((q) => q < 0 || q >= qubitCount || occupied.contains(q))) {

@@ -131,7 +131,13 @@ void main() {
         tester.widget<BlochSpherePanel>(find.byType(BlochSpherePanel));
     expect(panelAfter.camera.yaw, isNot(panelBefore.camera.yaw));
     expect(panelAfter.state, same(panelBefore.state));
-    expect(panelAfter.allowStateEditing, isTrue);
+    // v2.6 M8: dragging edits the state only after opting in ("Drag
+    // vector"), so an ordinary drag can never change the quantum state.
+    expect(panelAfter.allowStateEditing, isFalse);
+    await tester.tap(find.byKey(const ValueKey('bloch-drag-state-toggle')));
+    await tester.pump();
+    expect(tester.widget<BlochSpherePanel>(find.byType(BlochSpherePanel))
+        .allowStateEditing, isTrue);
     expect(tester.takeException(), isNull);
   });
 }

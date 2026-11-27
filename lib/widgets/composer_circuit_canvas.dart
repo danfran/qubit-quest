@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:quantumquiz/models/composer_session.dart' show controlCountFor;
 import 'package:quantumquiz/models/circuit_program.dart';
 
 import 'package:flutter/gestures.dart';
@@ -421,9 +422,7 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
   }
 
   static bool _isSingleQubitType(SelectedGateType type) =>
-      type != SelectedGateType.cnot &&
-      type != SelectedGateType.cz &&
-      type != SelectedGateType.ccnot;
+      controlCountFor(type) == 0;
 
   void _onDragEnter(Offset globalPosition, CircuitDragData data) {
     if (data.isMeasurement) {
@@ -1064,8 +1063,8 @@ class _ComposerCircuitCanvasState extends State<ComposerCircuitCanvas> {
                     key: ValueKey('fixed-gate-${footprint.id.value}'),
                     behavior: HitTestBehavior.translucent,
                     onTap: () => widget.onGateTap(footprint.toPlacedGateRef()),
-                    onPanStart: (_) => widget.onFixedGateDragAttempted!(
-                        footprint.toPlacedGateRef()),
+                    onPanStart: (_) => widget
+                        .onFixedGateDragAttempted!(footprint.toPlacedGateRef()),
                   ),
                 ),
               ),

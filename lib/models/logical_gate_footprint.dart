@@ -26,6 +26,10 @@ class LogicalGateFootprint {
   final int? targetQubit;
   final bool isDeletable;
 
+  /// Stored control list of a multi-controlled gate (MCX); see
+  /// [controlQubits] for every gate's controls.
+  final List<int>? _controlQubitList;
+
   const LogicalGateFootprint({
     required this.id,
     required this.gate,
@@ -35,7 +39,16 @@ class LogicalGateFootprint {
     required this.secondControlQubit,
     required this.targetQubit,
     required this.isDeletable,
-  });
+    List<int>? controlQubits,
+  }) : _controlQubitList = controlQubits;
+
+  /// All control qubits in their stored order (empty when uncontrolled).
+  List<int> get controlQubits =>
+      _controlQubitList ??
+      [
+        if (controlQubit != null) controlQubit!,
+        if (secondControlQubit != null) secondControlQubit!,
+      ];
 
   SelectedGateType get type => gate.type;
   int get column => anchor.column;
@@ -61,10 +74,13 @@ class LogicalGateFootprint {
       type == SelectedGateType.measureZ && fragments.length == 1;
   bool get isControlled => !isSingleQubit && !isMeasurement;
   bool get isEditable => isSingleQubit && isDeletable;
-  bool get supportsControlledHorizontalMovement =>
-      type == SelectedGateType.cnot ||
-      type == SelectedGateType.cz ||
-      type == SelectedGateType.ccnot;
+  bool get supportsControlledHorizontalMovement => const {
+        SelectedGateType.cnot,
+        SelectedGateType.cz,
+        SelectedGateType.ccnot,
+        SelectedGateType.cy,
+        SelectedGateType.mcx,
+      }.contains(type);
   bool get canMoveHorizontally =>
       isSingleQubit || isMeasurement || supportsControlledHorizontalMovement;
   bool get canTranslateRigidly => canMoveHorizontally;
@@ -90,108 +106,54 @@ class LogicalGateFootprint {
     bool metadataMatches(PlacedQuantumGate fragment) =>
         fragment.controlQubitIndex == controlQubit &&
         fragment.control2QubitIndex == secondControlQubit &&
+        listEquals(fragment.controlQubitIndices, _controlQubitList) &&
         fragment.targetQubitIndex == targetQubit;
 
-    if (type == SelectedGateType.cnot || type == SelectedGateType.cz) {
-      final control = controlQubit;
-      final target = targetQubit;
-      if (control == null ||
-          target == null ||
-          control == target ||
-          control < 0 ||
-          target < 0 ||
-          control >= qubitCount ||
-          target >= qubitCount) {
+    // How each gate type stores its controls (v2.6 M7: one rule for all).
+    final controls = controlQubits;
+    final validShape = switch (type) {
+      SelectedGateType.cnot ||
+      SelectedGateType.cz ||
+      SelectedGateType.cy =>
+        controls.length == 1 &&
+            secondControlQubit == null &&
+            _controlQubitList == null,
+      SelectedGateType.ccnot => controls.length == 2 &&
+          secondControlQubit != null &&
+          _controlQubitList == null,
+      SelectedGateType.mcx => controlQubit == null &&
+          secondControlQubit == null &&
+          (_controlQubitList?.length ?? 0) >= 3,
+      _ => false,
+    };
+    final target = targetQubit;
+    if (!validShape || target == null) return false;
+    final operands = [...controls, target];
+    if (operands.toSet().length != operands.length ||
+        operands.any((row) => row < 0 || row >= qubitCount)) {
+      return false;
+    }
+    final from = operands.reduce((a, b) => a < b ? a : b);
+    final to = operands.reduce((a, b) => a > b ? a : b);
+    if (fragments.length != to - from + 1) return false;
+    for (final fragment in fragments) {
+      final row = fragment.location.qubit;
+      final placed = fragment.placedGate;
+      if (!metadataMatches(placed)) return false;
+      // CCX keeps its historical role for the second control.
+      final isSecond = type == SelectedGateType.ccnot && row == controls[1];
+      final isFirst = !isSecond && controls.contains(row);
+      if (placed.isControl != isFirst ||
+          placed.isControl2 != isSecond ||
+          placed.isTarget != (row == target) ||
+          placed.isLink != !operands.contains(row)) {
         return false;
       }
-      final from = control < target ? control : target;
-      final to = control > target ? control : target;
-      if (fragments.length != to - from + 1) return false;
-      for (final fragment in fragments) {
-        final row = fragment.location.qubit;
-        final placed = fragment.placedGate;
-        if (!metadataMatches(placed)) return false;
-        if (row == control) {
-          if (!placed.isControl ||
-              placed.isControl2 ||
-              placed.isTarget ||
-              placed.isLink) {
-            return false;
-          }
-        } else if (row == target) {
-          if (!placed.isTarget ||
-              placed.isControl ||
-              placed.isControl2 ||
-              placed.isLink) {
-            return false;
-          }
-        } else if (!placed.isLink ||
-            placed.isControl ||
-            placed.isControl2 ||
-            placed.isTarget) {
-          return false;
-        }
-      }
-      return fragments
-          .map((fragment) => fragment.location.qubit)
-          .toSet()
-          .containsAll([for (var row = from; row <= to; row++) row]);
     }
-
-    if (type == SelectedGateType.ccnot) {
-      final control = controlQubit;
-      final control2 = secondControlQubit;
-      final target = targetQubit;
-      if (control == null ||
-          control2 == null ||
-          target == null ||
-          {control, control2, target}.length != 3 ||
-          [control, control2, target]
-              .any((row) => row < 0 || row >= qubitCount)) {
-        return false;
-      }
-      final rows = [control, control2, target]..sort();
-      final from = rows.first;
-      final to = rows.last;
-      if (fragments.length != to - from + 1) return false;
-      for (final fragment in fragments) {
-        final row = fragment.location.qubit;
-        final placed = fragment.placedGate;
-        if (!metadataMatches(placed)) return false;
-        if (row == control) {
-          if (!placed.isControl ||
-              placed.isControl2 ||
-              placed.isTarget ||
-              placed.isLink) {
-            return false;
-          }
-        } else if (row == control2) {
-          if (!placed.isControl2 ||
-              placed.isControl ||
-              placed.isTarget ||
-              placed.isLink) {
-            return false;
-          }
-        } else if (row == target) {
-          if (!placed.isTarget ||
-              placed.isControl ||
-              placed.isControl2 ||
-              placed.isLink) {
-            return false;
-          }
-        } else if (!placed.isLink ||
-            placed.isControl ||
-            placed.isControl2 ||
-            placed.isTarget) {
-          return false;
-        }
-      }
-      return fragments
-          .map((fragment) => fragment.location.qubit)
-          .toSet()
-          .containsAll([for (var row = from; row <= to; row++) row]);
-    }
-    return false;
+    return fragments
+        .map((fragment) => fragment.location.qubit)
+        .toSet()
+        .containsAll([for (var row = from; row <= to; row++) row]);
   }
 
   PlacedGateRef toPlacedGateRef() => PlacedGateRef(

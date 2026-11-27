@@ -20,14 +20,14 @@ void main() {
       expect(
         formatQuantumStateExpression([Complex(.5, 0), Complex(0, 1)],
             numQubits: 1),
-        '|ψ⟩ = (1/2)|0⟩ + (i)|1⟩',
+        '|ψ⟩ = (1/2)|0⟩ + i|1⟩',
       );
     });
 
     test('groups a mixed complex coefficient', () {
       expect(
         formatQuantumStateExpression([Complex(.5, .5)], numQubits: 1),
-        '|ψ⟩ = (1/2 + 1/2i)|0⟩',
+        '|ψ⟩ = (1/2 + i/2)|0⟩',
       );
     });
 
@@ -47,7 +47,7 @@ void main() {
           [Complex(.793123456, .609123456), Complex.zero(), Complex(-.25, 0)],
           numQubits: 2,
         ),
-        '|ψ⟩ = (0.7931 + 0.6091i)|00⟩ + (−1/4)|10⟩',
+        '|ψ⟩ = (0.7931 + 0.6091i)|00⟩ − (1/4)|10⟩',
       );
     });
 
@@ -129,14 +129,14 @@ void main() {
       final richText = tester.widget<RichText>(
         find.byKey(const ValueKey('current-state-rich-text')),
       );
-      expect(richText.text.toPlainText(), '|ψ⟩ = (1/2 + 1/2i)|1⟩');
+      expect(richText.text.toPlainText(), '|ψ⟩ = (1/2 + i/2)|1⟩');
 
       final root = richText.text as TextSpan;
       final ketSpan = root.children!.whereType<TextSpan>().last;
       expect(ketSpan.text, '|1⟩');
       expect(ketSpan.style!.color, const Color(0xFF7CFFB2));
       final coefficientSpan = root.children!.whereType<TextSpan>().firstWhere(
-            (span) => span.text == '(1/2 + 1/2i)',
+            (span) => span.text == '(1/2 + i/2)',
           );
       expect(coefficientSpan.style?.color, isNull);
     });

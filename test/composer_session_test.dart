@@ -156,10 +156,15 @@ void main() {
 
       final notebook =
           ComposerPolicy.forMode(ComposerMode.notebookExample, _lessonLevel());
-      expect(notebook.allowsMeasurement, isFalse);
+      // M6b: Notebook experiments measure like the Sandbox, never persist,
+      // offer no Check, and Reset restores the authored example.
+      expect(notebook.allowsMeasurement, isTrue);
+      expect(notebook.runsExperiments, isTrue);
       expect(notebook.persistsToSandbox, isFalse);
       expect(notebook.offersCheck, isFalse);
-      expect(notebook.clearAction, ComposerClearAction.clear);
+      expect(notebook.offersHints, isFalse);
+      expect(notebook.clearAction, ComposerClearAction.reset);
+      expect(notebook.angleEntry, ComposerAngleEntry.defaultOnPlacement);
     });
 
     test('only Sandbox sessions may own a save queue', () {

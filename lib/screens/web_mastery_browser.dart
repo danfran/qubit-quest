@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:quantumquiz/models/mastery_2_presentation.dart';
 import 'package:quantumquiz/models/mastery_challenge_catalogue.dart';
+import 'package:quantumquiz/models/notebook_knowledge_base.dart';
 import 'package:quantumquiz/models/qq_level.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/widgets/web_learning_text.dart';
@@ -134,6 +135,7 @@ class WebMasteryBrowser extends StatelessWidget {
     required this.onSelect,
     required this.onStart,
     required this.onBackToJourney,
+    this.onOpenNotebookArticle,
     required this.narrowShowsDetail,
     required this.onNarrowBack,
     this.listController,
@@ -151,6 +153,9 @@ class WebMasteryBrowser extends StatelessWidget {
   final ValueChanged<String> onSelect;
   final ValueChanged<String> onStart;
   final VoidCallback onBackToJourney;
+
+  /// Opens a Notebook gate article (v2.6 M6b).
+  final ValueChanged<String>? onOpenNotebookArticle;
   final bool narrowShowsDetail;
   final VoidCallback onNarrowBack;
   final ScrollController? listController;
@@ -177,6 +182,7 @@ class WebMasteryBrowser extends StatelessWidget {
                   open: openSemanticId == selected!.semanticId,
                   inResults: visible.contains(selected),
                   onStart: () => onStart(selected!.semanticId),
+                  onOpenNotebookArticle: onOpenNotebookArticle,
                   onNarrowBack: wide ? null : onNarrowBack,
                 );
           return ColoredBox(
@@ -382,7 +388,8 @@ class WebMasteryBrowser extends StatelessWidget {
                 label: 'concept',
                 value: query.concept,
                 values: MasteryConceptTag.values
-                    .where((t) => challenges.any((c) => c.conceptTags.contains(t)))
+                    .where(
+                        (t) => challenges.any((c) => c.conceptTags.contains(t)))
                     .toList(),
                 name: masteryConceptLabel,
                 onChanged: (v) => onQuery(query.copyWith(concept: () => v)),
@@ -561,7 +568,10 @@ class _ChallengeDetail extends StatelessWidget {
     required this.onStart,
     this.onNarrowBack,
     this.inResults = true,
+    this.onOpenNotebookArticle,
   });
+
+  final ValueChanged<String>? onOpenNotebookArticle;
   final MasteryChallengeDefinition challenge;
 
   /// False when the current search or filters hide this challenge's row.
@@ -678,6 +688,33 @@ class _ChallengeDetail extends StatelessWidget {
                     ),
                 ],
               ),
+              if (onOpenNotebookArticle != null &&
+                  challenge.levelDefinition is ComposerLevel) ...[
+                const SizedBox(height: 16),
+                const Text('GATE REFERENCE', style: QubitQuestTypography.label),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    // The challenge's own palette: shown on opening anyway,
+                    // so these links reveal nothing about its solution.
+                    for (final type in {
+                      for (final g
+                          in (challenge.levelDefinition as ComposerLevel)
+                              .availableGates)
+                        g.type
+                    })
+                      ActionChip(
+                        key: ValueKey('web-mastery-gate-ref-${type.name}'),
+                        avatar: const Icon(Icons.menu_book_outlined, size: 16),
+                        label: Text(gateSymbol(type)),
+                        onPressed: () => onOpenNotebookArticle!(
+                            NotebookArticle.gateId(type)),
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

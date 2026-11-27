@@ -216,7 +216,11 @@ class _QuantumInspectorViewsState extends State<QuantumInspectorViews> {
               child: Text(
                 widget.blochUnavailableMessage ??
                     'The Bloch sphere shows a single qubit. This circuit has '
-                        '${widget.numQubits} qubits; use State to inspect it.',
+                        '${widget.numQubits} qubits; use State to inspect it. '
+                        'A qubit entangled with others has no state vector of '
+                        'its own: its reduced state would lie inside the '
+                        'sphere (at the centre for a Bell pair), so no single '
+                        'vector is drawn.',
                 key: const ValueKey(
                     'quantum-inspector-bloch-unavailable-reason'),
                 style: QubitQuestTypography.supporting,

@@ -42,11 +42,14 @@ void main() {
   test(
       '42 identities, presentation parity, and independent historical namespace',
       () {
-    expect(mastery2Catalogue.length, 42);
+    expect(mastery2Catalogue.length, 48);
     expect(mastery2Catalogue.semanticIds.toSet(),
         mastery2Presentations.keys.toSet());
     expect(
-        mastery2Catalogue.orderedDefinitions.skip(39).map((d) => d.semanticId),
+        mastery2Catalogue.orderedDefinitions
+            .skip(39)
+            .take(3) // 43–48 follow since v2.6 M10
+            .map((d) => d.semanticId),
         ids);
     for (var i = 61; i <= 114; i++) {
       expect(getHistoricalMasteryById(i), isNotNull);

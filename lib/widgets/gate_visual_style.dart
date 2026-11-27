@@ -75,9 +75,11 @@ class QubitQuestGateStyle {
       case SelectedGateType.x:
       case SelectedGateType.cnot:
       case SelectedGateType.ccnot:
+      case SelectedGateType.mcx:
       case SelectedGateType.rx:
         return xFamily;
       case SelectedGateType.y:
+      case SelectedGateType.cy:
       case SelectedGateType.ry:
         return y;
       case SelectedGateType.z:

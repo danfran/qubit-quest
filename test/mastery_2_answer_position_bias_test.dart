@@ -38,6 +38,10 @@ void main() {
     'finite_shot_evidence': 'A is compatible and B is incompatible',
     'half_marked_search': 'remains 1/2 after every complete round',
     'search_overshoot_forensics': 'A is round 2 and B is round 3',
+    // v2.6 M10
+    'same_odds_different_phase': 'Append CX(q0→q1), S(q0) and H(q0)',
+    'condition_without_decision': 'One joint state',
+    'mark_the_condition': 'Only A marks 101',
   };
 
   final selectable = mastery2Catalogue.orderedDefinitions.where(
@@ -52,7 +56,7 @@ void main() {
         (definition.levelDefinition as McqLevel).correctOptionIndex,
     ];
 
-    expect(definitions, hasLength(31));
+    expect(definitions, hasLength(34)); // 31 until v2.6 M10
     expect(positions.toSet(), {0, 1, 2, 3});
 
     final counts = <int, int>{};

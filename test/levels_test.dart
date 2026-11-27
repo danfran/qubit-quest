@@ -364,8 +364,8 @@ void main() {
     final s = math.sqrt1_2;
 
     // ── Structural sanity ───────────────────────────────────────────────────
-    test('combined catalogue has 66 Journey and 54 archived activities', () {
-      expect(numberOfLevels, equals(120));
+    test('combined catalogue has 71 Journey and 54 archived activities', () {
+      expect(numberOfLevels, equals(125)); // 120 until v2.6 M10
     });
 
     test('levels 1–60 are the discovery campaign levels', () {
@@ -424,6 +424,7 @@ void main() {
           'Chapter 11 - Grover Loop Intuition',
           'Chapter 12 - Quantum Algorithm Structure',
           'Chapter 13 - Building and Stopping Quantum Search',
+          'Chapter 14 - Conditional Quantum Logic',
           'Mastery Challenges',
         ]),
       );
@@ -626,6 +627,11 @@ void main() {
           'Search Round Order',
           'Search Stopping Point',
           'Quantitative Search',
+          'Conditional Phase',
+          'Multi-Controlled Logic',
+          'Coherent Conditions',
+          'Condition Becomes Phase',
+          'Reusable Phase Oracle',
         ]),
       );
     });
