@@ -57,6 +57,15 @@ When testing a subpath build locally, open
 built artifact. For a direct `build/web` server, build with `/` as the base href or
 serve it beneath a `qubit-quest` directory.
 
+### Visual milestone reporting
+
+Every milestone that changes the UI ends with an implementation report, the original screenshots from a running release build, and grouped contact sheets for external review. The contact sheets are generated with `tools/contact_sheet.sh` (ImageMagick 7) and supplement the screenshots rather than replacing them. All of this lives under the git-ignored `reports/` directory. See [`docs/VISUAL_MILESTONE_REPORTING.md`](docs/VISUAL_MILESTONE_REPORTING.md).
+
+```bash
+tools/contact_sheet.sh --manifest reports/screenshots/<milestone>/contact_sheets.manifest \
+  reports/screenshots/<milestone>
+```
+
 ## Web deployment
 
 Pushes to `main` trigger [`.github/workflows/deploy-web.yml`](.github/workflows/deploy-web.yml).

@@ -1,6 +1,7 @@
 // quantum_circuit_painter.dart
 
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'dart:math'; // For min/max
 import 'package:quantumquiz/models/placed_quantum_gate.dart'; // Import PlacedQuantumGate
 import 'package:quantumquiz/models/quantum_circuit.dart'; // Import QuantumCircuit
@@ -175,6 +176,9 @@ class QuantumCircuitPainter extends CustomPainter {
         text: TextSpan(
           text: footprint.gate.label,
           style: TextStyle(
+            // Painters do not inherit the theme: the maths-symbol fallback
+            // supplies ⟨ ⟩ (v2.6 M11E; was a missing glyph in |0⟩).
+            fontFamilyFallback: QqType.fallback,
             color: Colors.white.withValues(alpha: 0.22),
             fontSize: footprint.gate.requiresAngle ? 10 : 16,
             fontWeight: FontWeight.w700,
@@ -364,6 +368,7 @@ class QuantumCircuitPainter extends CustomPainter {
             TextSpan(
               text: 'q$i${showInitialStateValues ? '\n' : ''}',
               style: TextStyle(
+                fontFamilyFallback: QqType.fallback,
                 color: qubitLabelColor.withValues(alpha: 0.72),
                 fontSize: 9,
                 height: 0.9,
@@ -374,6 +379,7 @@ class QuantumCircuitPainter extends CustomPainter {
               TextSpan(
                 text: qubitState,
                 style: const TextStyle(
+                  fontFamilyFallback: QqType.fallback,
                   color: qubitLabelColor,
                   fontSize: 12,
                   height: 0.9,
@@ -572,6 +578,7 @@ class QuantumCircuitPainter extends CustomPainter {
           text: TextSpan(
               text: '+',
               style: TextStyle(
+                fontFamilyFallback: QqType.fallback,
                   color: Colors.white.withValues(alpha: 0.95), fontSize: 24)),
           textDirection: TextDirection.ltr,
         )..layout();
@@ -619,6 +626,7 @@ class QuantumCircuitPainter extends CustomPainter {
       text: TextSpan(
         text: gateText,
         style: TextStyle(
+          fontFamilyFallback: QqType.fallback,
             color: Colors.white.withValues(alpha: 0.95),
             fontSize: gateTextSize,
             fontWeight: FontWeight.w700,

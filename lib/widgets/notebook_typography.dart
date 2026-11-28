@@ -138,10 +138,20 @@ class NotebookMathEvidence extends StatelessWidget {
     super.key,
     required this.example,
     this.color = Colors.white,
+    this.mathFontSize,
+    this.alignStart = false,
   });
 
   final NotebookExample example;
   final Color color;
+
+  /// MathJax em size (web, v2.6 M11E): fractions and roots keep the size of
+  /// the surrounding glyphs instead of being fitted into a fixed height.
+  /// Null keeps the role-height contract (native).
+  final double? mathFontSize;
+
+  /// Left-aligns display lines (web reading column) instead of centring.
+  final bool alignStart;
 
   List<String> get _lines {
     if (example.latexLines.isNotEmpty) return example.latexLines;
@@ -171,7 +181,9 @@ class NotebookMathEvidence extends StatelessWidget {
               // compensated for vertically stacked mathematical structures.
               Align(
                 key: ValueKey('notebook-math-line-${role.name}-$index'),
-                alignment: inline ? Alignment.centerLeft : Alignment.center,
+                alignment: inline || alignStart
+                    ? Alignment.centerLeft
+                    : Alignment.center,
                 child: LatexText(
                   math: inline
                       ? r'\(' + _lines[index] + r'\)'
@@ -190,6 +202,7 @@ class NotebookMathEvidence extends StatelessWidget {
                     role,
                     _lines[index],
                   ),
+                  mathFontSize: mathFontSize,
                   minimumDisplayMathScale: NotebookTypography.minimumMathScale,
                 ),
               ),

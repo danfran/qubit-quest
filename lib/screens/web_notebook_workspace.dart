@@ -5,34 +5,23 @@ import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/composer_policy.dart';
 import 'package:quantumquiz/models/composer_session.dart';
 import 'package:quantumquiz/models/executable_notebook_example.dart';
-import 'package:quantumquiz/models/gate_educational_info.dart';
-import 'package:quantumquiz/models/notebook_entry.dart';
 import 'package:quantumquiz/models/notebook_knowledge_base.dart';
 import 'package:quantumquiz/models/notebook_search.dart';
-import 'package:quantumquiz/models/progression_rules.dart';
-import 'package:quantumquiz/models/qq_levels.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
+import 'package:quantumquiz/screens/journey_navigation.dart'
+    show RevealWhenCurrent;
+import 'package:quantumquiz/screens/notebook_article_view.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/utils/quantum_state_formatter.dart';
 import 'package:quantumquiz/widgets/composer_workspace/composer_gate_palette_panel.dart'
     show plainGateText;
-import 'package:quantumquiz/widgets/circuit_preview.dart';
 import 'package:quantumquiz/widgets/composer_workspace/composer_session_workspace.dart';
-import 'package:quantumquiz/widgets/composer_workspace/gate_inspector_panel.dart'
-    show gateEducationalPreviewFootprint;
 import 'package:quantumquiz/widgets/composer_workspace/workspace_layout_state.dart';
-import 'package:quantumquiz/widgets/gate_educational_sections.dart';
-import 'package:quantumquiz/widgets/gate_educational_visual.dart';
-import 'package:quantumquiz/widgets/notebook_typography.dart';
 
-const _background = QubitQuestColors.background;
-const _surface = QubitQuestColors.surface;
-const _inner = Color(0xFF07101F);
 const _border = QubitQuestColors.border;
 const _cyan = QubitQuestColors.accentInteractive;
-const _purple = QubitQuestColors.accentStrong;
-const _muted = Color(0xFF9BAAC4);
-const _body = Color(0xFFD6E3F8);
+const _muted = QubitQuestColors.textMuted;
+const _body = QubitQuestColors.textBody;
 
 /// The web Notebook as an interactive quantum knowledge base (v2.6 M6b).
 ///
@@ -136,10 +125,15 @@ class WebNotebookWorkspaceState extends State<WebNotebookWorkspace> {
   final Set<String> _expanded = {'reference', 'gates'};
   bool _narrowDetail = false;
   _Experiment? _experiment;
+
+  /// The learner's preferred presentation (M11E). Kept when the window is
+  /// too narrow for a spread, and used again once it fits.
+  NotebookReadingMode _mode = NotebookReadingMode.article;
   WorkspaceLayoutController? _ownLayout;
 
   /// The open experiment's session (tests).
   ComposerSession? get experimentSession => _experiment?.session;
+  NotebookReadingMode get readingMode => _mode;
   String? get selectedArticleId => _selectedId;
 
   WorkspaceLayoutController get _layout =>
@@ -283,7 +277,7 @@ class WebNotebookWorkspaceState extends State<WebNotebookWorkspace> {
           }
           final experiment = _experiment;
           return ColoredBox(
-            color: _background,
+            color: QubitQuestSurfaces.app,
             child: IndexedStack(
               index: experiment == null ? 0 : 1,
               sizing: StackFit.expand,
@@ -325,18 +319,22 @@ class WebNotebookWorkspaceState extends State<WebNotebookWorkspace> {
             },
             onClearSearch: _clearSearch,
           );
+          final indexWidth = constraints.maxWidth >= 1200 ? 320.0 : 280.0;
+          final articleWidth = wide
+              ? constraints.maxWidth - indexWidth - 1
+              : constraints.maxWidth;
           final article = selected == null
               ? const SizedBox.shrink()
-              : _ArticleView(
+              : NotebookArticleView(
                   key: PageStorageKey('notebook-article-${selected.id}'),
                   kb: _kb,
                   article: selected,
                   unlocked: unlocked,
                   progress: widget.progressController.state,
+                  mode: _mode,
                   showBack: !wide,
                   onBack: () => setState(() => _narrowDetail = false),
                   onSelect: select,
-                  onSelectDiscovery: _selectDiscoveryTitle,
                   onExplore: (example) => openExperiment(example, selected.id),
                   onOpenInBloch: widget.onOpenExampleInBlochExplorer,
                   onOpenJourney: widget.onOpenJourney,
@@ -346,26 +344,38 @@ class WebNotebookWorkspaceState extends State<WebNotebookWorkspace> {
           final header = _NotebookHeader(
             controller: _search,
             compact: !wide,
+            mode: _mode,
+            // Offered only where it fits and the article has two pages
+            // (the notation glossary reads as one column).
+            spreadAvailable: wide &&
+                selected != null &&
+                notebookSpreadAvailable(selected, articleWidth),
+            onModeChanged: (mode) => setState(() => _mode = mode),
             onChanged: (value) => setState(() {
               _query = value;
               if (!wide && value.trim().isNotEmpty) _narrowDetail = false;
             }),
             onClear: _clearSearch,
           );
-          final indexWidth = constraints.maxWidth >= 1200 ? 320.0 : 280.0;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               header,
-              const Divider(height: 1, color: _border),
+              const Divider(height: 1, color: QubitQuestSurfaces.rule),
               Expanded(
                 child: wide
                     ? Row(
                         key: const ValueKey('web-notebook-master-detail'),
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          SizedBox(width: indexWidth, child: index),
-                          const VerticalDivider(width: 1, color: _border),
+                          SizedBox(
+                            width: indexWidth,
+                            child: ColoredBox(
+                                color: QubitQuestSurfaces.section,
+                                child: index),
+                          ),
+                          const VerticalDivider(
+                              width: 1, color: QubitQuestSurfaces.rule),
                           Expanded(child: article),
                         ],
                       )
@@ -419,12 +429,18 @@ class _NotebookHeader extends StatelessWidget {
   const _NotebookHeader({
     required this.controller,
     required this.compact,
+    required this.mode,
+    required this.spreadAvailable,
+    required this.onModeChanged,
     required this.onChanged,
     required this.onClear,
   });
 
   final TextEditingController controller;
   final bool compact;
+  final NotebookReadingMode mode;
+  final bool spreadAvailable;
+  final ValueChanged<NotebookReadingMode> onModeChanged;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
 
@@ -434,9 +450,11 @@ class _NotebookHeader extends StatelessWidget {
       key: const ValueKey('web-notebook-search-field'),
       controller: controller,
       onChanged: onChanged,
+      style: QqType.body,
       decoration: InputDecoration(
         isDense: true,
         hintText: 'Search concepts, gates and notation',
+        hintStyle: QqType.body.copyWith(color: _muted),
         prefixIcon: const Icon(Icons.search, size: 20),
         suffixIcon: controller.text.isEmpty
             ? null
@@ -447,40 +465,84 @@ class _NotebookHeader extends StatelessWidget {
                 icon: const Icon(Icons.clear, size: 19),
               ),
         filled: true,
-        fillColor: _surface,
+        fillColor: QubitQuestSurfaces.work,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: _border),
         ),
       ),
     );
-    final title = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('Notebook',
-            key: const ValueKey('web-notebook-title'),
-            style: NotebookTypography.text(NotebookTextRole.pageTitle,
-                color: Colors.white)),
-        const Text('Quantum knowledge base',
-            style: TextStyle(color: _muted, fontSize: 12.5)),
+    final title = Text('Notebook',
+        key: const ValueKey('web-notebook-title'), style: QqType.sectionTitle);
+    if (compact) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [title, const SizedBox(height: 8), field],
+        ),
+      );
+    }
+    // Spread keeps its place when it does not fit, disabled and saying why;
+    // the preference is kept (M11E).
+    final toggle = SegmentedButton<NotebookReadingMode>(
+      key: const ValueKey('web-notebook-mode'),
+      showSelectedIcon: false,
+      style: SegmentedButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        textStyle: QqType.control,
+      ),
+      segments: [
+        const ButtonSegment(
+          value: NotebookReadingMode.article,
+          icon: Icon(Icons.article_outlined, size: 18),
+          label: Text('Article', key: ValueKey('web-notebook-mode-article')),
+          tooltip: 'One reading column',
+        ),
+        ButtonSegment(
+          value: NotebookReadingMode.spread,
+          enabled: spreadAvailable,
+          icon: const Icon(Icons.menu_book_outlined, size: 18),
+          label:
+              const Text('Spread', key: ValueKey('web-notebook-mode-spread')),
+          tooltip: spreadAvailable
+              ? 'Two pages: explanation, and mathematics with experiments'
+              : 'Needs a wider window; the notation reference is always '
+                  'one column',
+        ),
       ],
+      selected: {
+        spreadAvailable ? mode : NotebookReadingMode.article,
+      },
+      onSelectionChanged: (s) => onModeChanged(s.single),
     );
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-      child: compact
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [title, const SizedBox(height: 10), field],
-            )
-          : Row(
+      child: Row(
+        children: [
+          const Icon(Icons.menu_book_outlined, color: _cyan, size: 22),
+          const SizedBox(width: 10),
+          title,
+          const SizedBox(width: 16),
+          // The controls sit at the right edge; the search field takes
+          // what is left, up to 360 px.
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const Icon(Icons.menu_book_outlined, color: _cyan, size: 24),
-                const SizedBox(width: 10),
-                Expanded(child: title),
-                SizedBox(width: 360, child: field),
+                toggle,
+                const SizedBox(width: 16),
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 360),
+                    child: field,
+                  ),
+                ),
               ],
             ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -522,13 +584,13 @@ class _NotebookIndex extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('No available articles match “${query.trim()}”.',
-                  style: const TextStyle(color: Colors.white, height: 1.4)),
+                  style: QqType.bodyStrong),
               const SizedBox(height: 6),
               const Text(
                 'Search covers the gate reference, notation and the entries '
                 'you have discovered. Undiscovered Journey entries are not '
                 'searched.',
-                style: TextStyle(color: _muted, fontSize: 12.5, height: 1.4),
+                style: QqType.meta,
               ),
               const SizedBox(height: 8),
               TextButton(
@@ -551,7 +613,7 @@ class _NotebookIndex extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(8, 2, 8, 6),
               child: Text('${hits.length} result${hits.length == 1 ? '' : 's'}',
                   key: const ValueKey('web-notebook-search-count'),
-                  style: const TextStyle(color: _muted, fontSize: 12)),
+                  style: QqType.navMeta),
             );
           }
           final hit = hits[index - 1];
@@ -571,19 +633,18 @@ class _NotebookIndex extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(hit.article.title,
-                        style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.w700)),
+                        style: QqType.navLabel
+                            .copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 2),
-                    Text(kb.categoryOf(hit.article).title,
-                        style: const TextStyle(color: _cyan, fontSize: 11.5)),
+                    Text(_groupTitle(kb, hit.article),
+                        style: QqType.navMeta.copyWith(color: _cyan)),
                     const SizedBox(height: 2),
                     Text(
                         formatQuantumNotationForPlainText(
                             plainGateText(hit.snippet)),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: _muted, fontSize: 12, height: 1.35)),
+                        style: QqType.navMeta),
                   ],
                 ),
               ),
@@ -592,21 +653,20 @@ class _NotebookIndex extends StatelessWidget {
         },
       );
     }
-    return ListView(
-      key: const ValueKey('web-notebook-index'),
-      controller: scrollController,
-      padding: const EdgeInsets.fromLTRB(8, 10, 8, 24),
-      children: [
-        for (final category in kb.categories) ...[
-          _CategoryHeading(
-            category: category,
-            available: category.articles
-                .where((a) => kb.isAvailable(a, unlocked))
-                .length,
-            expanded: expanded.contains(category.id),
-            onToggle: () => onToggle(category.id),
-          ),
-          if (expanded.contains(category.id))
+    final reference = kb.categories.where((c) => c.id == 'reference').toList();
+    final gates = kb.categories.where((c) => c.id == 'gates').toList();
+    final chapters =
+        kb.categories.where((c) => c.id.startsWith('chapter-')).toList();
+    final discovered = [
+      for (final c in chapters)
+        for (final a in c.articles)
+          if (kb.isAvailable(a, unlocked)) a,
+    ].length;
+    final totalDiscoveries =
+        chapters.fold<int>(0, (n, c) => n + c.articles.length);
+    Widget rows(NotebookCategory category) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
             for (final article in category.articles)
               _ArticleRow(
                 article: article,
@@ -614,64 +674,200 @@ class _NotebookIndex extends StatelessWidget {
                 selected: article.id == selectedId,
                 onTap: () => onSelect(article.id),
               ),
-          const SizedBox(height: 4),
+          ],
+        );
+    // Built eagerly (about a hundred rows) so the selected entry can always
+    // scroll itself into view, even at the end of the index (M11E).
+    return SingleChildScrollView(
+      key: const ValueKey('web-notebook-index'),
+      controller: scrollController,
+      padding: const EdgeInsets.fromLTRB(10, 14, 10, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 1. Notation and terminology: one article, always shown.
+          for (final category in reference) ...[
+            const _GroupHeading(
+              key: ValueKey('web-notebook-group-notation'),
+              icon: Icons.functions,
+              title: 'Notation and terminology',
+            ),
+            rows(category),
+            const SizedBox(height: 14),
+          ],
+          // 2. Gate reference.
+          for (final category in gates) ...[
+            _GroupHeading(
+              key: const ValueKey('web-notebook-group-gates'),
+              icon: Icons.memory_outlined,
+              title: 'Gate reference',
+              countKey: ValueKey('web-notebook-category-count-${category.id}'),
+              count: '${category.articles.length} gates',
+              expanded: expanded.contains(category.id),
+              toggleKey: ValueKey('web-notebook-category-${category.id}'),
+              onToggle: () => onToggle(category.id),
+            ),
+            if (expanded.contains(category.id)) rows(category),
+            const SizedBox(height: 14),
+          ],
+          // 3. Discoveries, by Journey chapter.
+          _GroupHeading(
+            key: const ValueKey('web-notebook-group-discoveries'),
+            icon: Icons.auto_stories_outlined,
+            title: 'Discoveries',
+            count: '$discovered / $totalDiscoveries discovered',
+          ),
+          for (final category in chapters) ...[
+            _ChapterHeading(
+              category: category,
+              available: category.articles
+                  .where((a) => kb.isAvailable(a, unlocked))
+                  .length,
+              expanded: expanded.contains(category.id),
+              containsSelection:
+                  category.articles.any((a) => a.id == selectedId),
+              onToggle: () => onToggle(category.id),
+            ),
+            if (expanded.contains(category.id))
+              Padding(
+                padding: const EdgeInsets.only(left: 8, bottom: 6),
+                child: rows(category),
+              ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
 
-class _CategoryHeading extends StatelessWidget {
-  const _CategoryHeading({
+/// The group an article belongs to, as the index names it.
+String _groupTitle(NotebookKnowledgeBase kb, NotebookArticle article) =>
+    switch (article.kind) {
+      NotebookArticleKind.reference => 'Notation and terminology',
+      NotebookArticleKind.gate => 'Gate reference',
+      NotebookArticleKind.discovery =>
+        'Discoveries · ${kb.categoryOf(article).title}',
+    };
+
+/// One of the Notebook's three groups: notation, gates, discoveries.
+class _GroupHeading extends StatelessWidget {
+  const _GroupHeading({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.count,
+    this.countKey,
+    this.expanded,
+    this.toggleKey,
+    this.onToggle,
+  });
+  final IconData icon;
+  final String title;
+  final String? count;
+  final Key? countKey;
+  final bool? expanded;
+  final Key? toggleKey;
+  final VoidCallback? onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final row = Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 6, 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 17, color: QubitQuestColors.accentStrong),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              children: [
+                Text(title.toUpperCase(),
+                    style: QqType.panelHeading
+                        .copyWith(color: QubitQuestColors.accentStrong)),
+                if (count != null)
+                  Text(count!, key: countKey, style: QqType.navMeta),
+              ],
+            ),
+          ),
+          if (expanded != null)
+            Icon(expanded! ? Icons.expand_less : Icons.expand_more,
+                size: 18, color: _muted),
+        ],
+      ),
+    );
+    return Semantics(
+      header: true,
+      child: onToggle == null
+          ? row
+          : InkWell(
+              key: toggleKey,
+              borderRadius: QubitQuestRadii.control,
+              onTap: onToggle,
+              child: row,
+            ),
+    );
+  }
+}
+
+class _ChapterHeading extends StatelessWidget {
+  const _ChapterHeading({
     required this.category,
     required this.available,
     required this.expanded,
+    required this.containsSelection,
     required this.onToggle,
   });
   final NotebookCategory category;
   final int available;
   final bool expanded;
+  final bool containsSelection;
   final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
     final total = category.articles.length;
-    final chapter = category.id.startsWith('chapter-');
-    return InkWell(
-      key: ValueKey('web-notebook-category-${category.id}'),
-      borderRadius: QubitQuestRadii.control,
-      onTap: onToggle,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 8, 6, 6),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    category.title.toUpperCase(),
-                    style: const TextStyle(
-                      color: _purple,
-                      fontSize: 11,
-                      letterSpacing: .7,
-                      fontWeight: FontWeight.w900,
+    return Tooltip(
+      message: category.title,
+      waitDuration: const Duration(milliseconds: 700),
+      child: InkWell(
+        key: ValueKey('web-notebook-category-${category.id}'),
+        borderRadius: QubitQuestRadii.control,
+        onTap: onToggle,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 7, 6, 7),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      category.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: QqType.navLabel.copyWith(
+                        color: containsSelection
+                            ? QubitQuestColors.accentInteractive
+                            : QubitQuestColors.textPrimary,
+                        fontWeight: containsSelection
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    chapter
-                        ? '$available / $total discovered'
-                        : '$total article${total == 1 ? '' : 's'}',
-                    key: ValueKey('web-notebook-category-count-${category.id}'),
-                    style: const TextStyle(color: _muted, fontSize: 11),
-                  ),
-                ],
+                    Text(
+                      '$available / $total discovered',
+                      key: ValueKey(
+                          'web-notebook-category-count-${category.id}'),
+                      style: QqType.navMeta,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Icon(expanded ? Icons.expand_less : Icons.expand_more,
-                size: 18, color: _muted),
-          ],
+              Icon(expanded ? Icons.expand_less : Icons.expand_more,
+                  size: 18, color: _muted),
+            ],
+          ),
         ),
       ),
     );
@@ -698,7 +894,7 @@ class _ArticleRow extends StatelessWidget {
       NotebookArticleKind.discovery =>
         available ? Icons.check_circle_outline : Icons.lock_outline,
     };
-    return Padding(
+    final row = Padding(
       padding: const EdgeInsets.only(bottom: 1),
       child: Material(
         color:
@@ -718,24 +914,31 @@ class _ArticleRow extends StatelessWidget {
               ),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon,
-                    size: 16,
-                    color: !available
-                        ? Colors.white30
-                        : article.kind == NotebookArticleKind.discovery
-                            ? QubitQuestColors.success
-                            : _cyan),
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(icon,
+                      size: 16,
+                      color: !available
+                          ? QubitQuestColors.textMuted
+                          : article.kind == NotebookArticleKind.discovery
+                              ? QubitQuestColors.success
+                              : _cyan),
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     article.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: available ? Colors.white : Colors.white38,
-                      fontSize: 13.5,
-                      fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                    style: QqType.navLabel.copyWith(
+                      color: !available
+                          ? QubitQuestColors.textMuted
+                          : selected
+                              ? _cyan
+                              : QubitQuestColors.textPrimary,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                     ),
                   ),
                 ),
@@ -745,666 +948,17 @@ class _ArticleRow extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _ArticleView extends StatelessWidget {
-  const _ArticleView({
-    super.key,
-    required this.kb,
-    required this.article,
-    required this.unlocked,
-    required this.progress,
-    required this.showBack,
-    required this.onBack,
-    required this.onSelect,
-    required this.onSelectDiscovery,
-    required this.onExplore,
-    required this.onOpenInBloch,
-    required this.onOpenJourney,
-    required this.onOpenLesson,
-    required this.onOpenChallenge,
-  });
-
-  final NotebookKnowledgeBase kb;
-  final NotebookArticle article;
-  final Set<String> unlocked;
-  final CampaignProgressState progress;
-  final bool showBack;
-  final VoidCallback onBack;
-  final ValueChanged<String> onSelect;
-  final ValueChanged<String> onSelectDiscovery;
-  final ValueChanged<ExecutableNotebookExample> onExplore;
-  final void Function(ExecutableNotebookExample, ExecutableNotebookResult)?
-      onOpenInBloch;
-  final VoidCallback onOpenJourney;
-  final ValueChanged<int>? onOpenLesson;
-  final ValueChanged<String>? onOpenChallenge;
-
-  bool _lessonUnlocked(int id) => ProgressionRules.isJourneyLessonUnlocked(
-      lessonId: id, maxUnlockedLevel: progress.maxUnlockedLevel);
-
-  @override
-  Widget build(BuildContext context) {
-    final available = kb.isAvailable(article, unlocked);
-    final category = kb.categoryOf(article);
-    final children = <Widget>[
-      if (showBack)
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            key: const ValueKey('web-notebook-back-index'),
-            onPressed: onBack,
-            icon: const Icon(Icons.arrow_back),
-            label: const Text('Notebook index'),
-          ),
-        ),
-      Text(category.title,
-          key: const ValueKey('web-notebook-article-category'),
-          style:
-              NotebookTypography.text(NotebookTextRole.context, color: _cyan)),
-      const SizedBox(height: 6),
-      Text(article.title,
-          key: const ValueKey('web-notebook-entry-title'),
-          style: NotebookTypography.text(NotebookTextRole.entryTitle,
-              color: Colors.white)),
-      const SizedBox(height: 10),
-      if (!available)
-        _LockedPreview(
-          link: kb.lessonFor(article),
-          lessonUnlocked: _lessonUnlocked,
-          onOpenLesson: onOpenLesson,
-          onOpenJourney: onOpenJourney,
-        )
-      else ...[
-        Text(formatQuantumNotationForPlainText(plainGateText(article.summary)),
-            key: const ValueKey('web-notebook-article-summary'),
-            style:
-                NotebookTypography.text(NotebookTextRole.lead, color: _body)),
-        ..._articleSections(context),
-      ],
-    ];
-    return ListView(
-      key: ValueKey('web-notebook-reader-${article.id}'),
-      padding: const EdgeInsets.fromLTRB(28, 20, 28, 36),
-      children: [
-        Align(
-          alignment: Alignment.topLeft,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 780),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: children,
-            ),
-          ),
-        ),
-      ],
+    final tooltipped = Tooltip(
+      message: available ? article.title : '${article.title} · not discovered',
+      waitDuration: const Duration(milliseconds: 700),
+      child: row,
     );
+    // The selected article is scrolled into view when it changes (M11E,
+    // as in the Journey curriculum); manual scrolling is otherwise kept.
+    return selected
+        ? RevealWhenCurrent(token: article.id, child: tooltipped)
+        : tooltipped;
   }
-
-  List<Widget> _gap(Widget child) => [const SizedBox(height: 20), child];
-
-  List<Widget> _articleSections(BuildContext context) {
-    final examples = [
-      for (final id in article.exampleIds)
-        if (notebookExampleById(id) case final e?) e,
-    ];
-    final related = kb.relatedArticles(article);
-    final entry = article.entry;
-    final gate = article.gate;
-    final lesson = kb.lessonFor(article);
-    final lessonGates = lesson == null
-        ? const <NotebookArticle>[]
-        : kb.gateArticlesFor(lesson.level);
-    final relatedConcepts = [
-      ...related,
-      for (final g in lessonGates)
-        if (!related.contains(g)) g,
-    ];
-    return [
-      if (entry != null) ...[
-        if ([
-          ...entry.intuition.examples,
-          ...?entry.whatChanged?.examples,
-          ...?entry.quantumView?.examples,
-        ]
-            case final keyExamples when keyExamples.isNotEmpty)
-          ..._gap(_ExamplesCard(examples: keyExamples)),
-        for (final section in [
-          entry.intuition,
-          if (entry.whatChanged != null) entry.whatChanged!,
-          if (entry.quantumView != null) entry.quantumView!,
-        ])
-          ..._gap(_SectionCard(section: section)),
-      ],
-      if (gate != null) ..._gap(_GateReference(info: gate)),
-      if (examples.isNotEmpty)
-        ..._gap(Column(
-          key: const ValueKey('web-notebook-experiments'),
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _Heading(
-                examples.length == 1 ? 'Circuit example' : 'Circuit examples'),
-            const SizedBox(height: 8),
-            for (final example in examples) ...[
-              _ExperimentCard(
-                key: ValueKey('notebook-example-card-${example.id}'),
-                example: example,
-                onExplore: () => onExplore(example),
-                onOpenInBloch: onOpenInBloch,
-              ),
-              const SizedBox(height: 10),
-            ],
-          ],
-        )),
-      if (entry?.advancedNotes != null)
-        ..._gap(_AdvancedSection(section: entry!.advancedNotes!)),
-      if (relatedConcepts.isNotEmpty)
-        ..._gap(_RelatedConcepts(
-          articles: relatedConcepts,
-          isAvailable: (a) => kb.isAvailable(a, unlocked),
-          onSelect: onSelect,
-        )),
-      if (lesson != null || gate != null)
-        if (_activities(lesson, gate) case final activities?)
-          ..._gap(activities),
-      if (entry != null) ..._gap(_prevNext()),
-    ];
-  }
-
-  Widget? _activities(NotebookLessonLink? lesson, GateEducationalInfo? gate) {
-    final rows = <Widget>[];
-    if (lesson != null) {
-      final unlockedLesson = _lessonUnlocked(lesson.lessonId);
-      final done = progress.completedLessonIds.contains(lesson.lessonId);
-      rows.add(_ActivityRow(
-        key: const ValueKey('web-notebook-activity-lesson'),
-        icon: Icons.route_outlined,
-        title: '${lesson.label} · ${lesson.level.title ?? ''}',
-        status: done
-            ? 'Completed'
-            : unlockedLesson
-                ? 'Available in the Journey'
-                : 'Locked in the Journey',
-        actionLabel: done ? 'Review lesson' : 'Open lesson',
-        onAction: unlockedLesson && onOpenLesson != null
-            ? () => onOpenLesson!(lesson.lessonId)
-            : null,
-      ));
-    }
-    if (article.gate case final info?) {
-      final type = info.type;
-      final challenges = kb.masteryChallengesUsing(type);
-      for (final c in challenges.take(4)) {
-        rows.add(_ActivityRow(
-          key: ValueKey('web-notebook-activity-mastery-${c.semanticId}'),
-          icon: Icons.workspace_premium_outlined,
-          title: 'Mastery ${c.displayOrder} · ${c.title}',
-          status: progress.completedMasterySemanticIds.contains(c.semanticId)
-              ? 'Completed'
-              : 'Open any time',
-          actionLabel: 'Open challenge',
-          onAction: onOpenChallenge == null
-              ? null
-              : () => onOpenChallenge!(c.semanticId),
-        ));
-      }
-      final lessons = kb.journeyLessonsUsing(type);
-      if (lessons.isNotEmpty) {
-        final first = lessons.first;
-        final chapter = journeyChapterForLesson(first);
-        final number = chapter == null
-            ? ''
-            : 'Lesson ${journeyChapters.indexOf(chapter) + 1}.${first - chapter.from}';
-        final unlockedFirst = _lessonUnlocked(first);
-        rows.add(_ActivityRow(
-          key: const ValueKey('web-notebook-activity-journey-first'),
-          icon: Icons.route_outlined,
-          title: 'First used in $number · '
-              '${getJourneyLessonById(first)?.title ?? ''}',
-          status: '${lessons.length} Journey lesson'
-              '${lessons.length == 1 ? ' uses' : 's use'} '
-              '${gateSymbol(type)}'
-              '${unlockedFirst ? '' : ' · locked'}',
-          actionLabel: 'Open lesson',
-          onAction: unlockedFirst && onOpenLesson != null
-              ? () => onOpenLesson!(first)
-              : null,
-        ));
-      }
-    }
-    if (rows.isEmpty) return null;
-    return Column(
-      key: const ValueKey('web-notebook-activities'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const _Heading('Related activities'),
-        const SizedBox(height: 6),
-        for (final row in rows) row,
-      ],
-    );
-  }
-
-  Widget _prevNext() {
-    final category = kb.categoryOf(article);
-    final list = category.articles;
-    final index = list.indexOf(article);
-    NotebookArticle? find(int step) {
-      for (var i = index + step; i >= 0 && i < list.length; i += step) {
-        if (kb.isAvailable(list[i], unlocked)) return list[i];
-      }
-      return null;
-    }
-
-    final previous = find(-1);
-    final next = find(1);
-    if (previous == null && next == null) return const SizedBox.shrink();
-    return Row(
-      children: [
-        Expanded(
-          child: previous == null
-              ? const SizedBox.shrink()
-              : OutlinedButton.icon(
-                  key: const ValueKey('web-notebook-previous'),
-                  onPressed: () => onSelect(previous.id),
-                  icon: const Icon(Icons.chevron_left),
-                  label: Text(previous.title,
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: next == null
-              ? const SizedBox.shrink()
-              : OutlinedButton.icon(
-                  key: const ValueKey('web-notebook-next'),
-                  onPressed: () => onSelect(next.id),
-                  icon: const Icon(Icons.chevron_right),
-                  label: Text(next.title,
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Heading extends StatelessWidget {
-  const _Heading(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(text,
-      style: NotebookTypography.text(NotebookTextRole.sectionHeading,
-          color: Colors.white));
-}
-
-/// A discovery entry the learner has not reached: identity and how to reach
-/// it, never its content.
-class _LockedPreview extends StatelessWidget {
-  const _LockedPreview({
-    required this.link,
-    required this.lessonUnlocked,
-    required this.onOpenLesson,
-    required this.onOpenJourney,
-  });
-  final NotebookLessonLink? link;
-  final bool Function(int) lessonUnlocked;
-  final ValueChanged<int>? onOpenLesson;
-  final VoidCallback onOpenJourney;
-
-  @override
-  Widget build(BuildContext context) {
-    final lesson = link;
-    final open = lesson != null && lessonUnlocked(lesson.lessonId);
-    return Container(
-      key: const ValueKey('web-notebook-locked-preview'),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _inner,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(children: [
-            Icon(Icons.lock_outline, size: 18, color: _muted),
-            SizedBox(width: 8),
-            Text('Not discovered yet',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w800)),
-          ]),
-          const SizedBox(height: 8),
-          Text(
-            lesson == null
-                ? 'This entry is discovered in the Journey.'
-                : 'This entry is discovered in ${lesson.label} · '
-                    '${lesson.level.title}. '
-                    '${open ? 'That lesson is open in your Journey.' : 'That lesson is still locked; continue the Journey to reach it.'}',
-            style: const TextStyle(color: _body, height: 1.45),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Discovery entries describe what a lesson reveals, so they open '
-            'once you make the discovery. The gate reference and notation are '
-            'always available.',
-            style: TextStyle(color: _muted, fontSize: 12.5, height: 1.4),
-          ),
-          const SizedBox(height: 10),
-          if (open && onOpenLesson != null)
-            FilledButton.icon(
-              key: const ValueKey('web-notebook-locked-open-lesson'),
-              onPressed: () => onOpenLesson!(lesson.lessonId),
-              icon: const Icon(Icons.play_arrow, size: 18),
-              label: Text('Open ${lesson.label}'),
-            )
-          else
-            OutlinedButton.icon(
-              key: const ValueKey('web-notebook-go-journey'),
-              onPressed: onOpenJourney,
-              icon: const Icon(Icons.route_outlined, size: 18),
-              label: const Text('Go to the Journey'),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Gate reference: the same catalogue and section widgets as the
-/// Composer's gate inspector, laid out as an article.
-class _GateReference extends StatelessWidget {
-  const _GateReference({required this.info});
-  final GateEducationalInfo info;
-
-  @override
-  Widget build(BuildContext context) {
-    final controlled = isControlledEducationalVisual(info.visual.kind);
-    return Column(
-      key: const ValueKey('web-notebook-gate-reference'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        GateEducationalSummary(
-            info: info, decorated: false, includeIntuition: false),
-        if (info.keyIdeas.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          GateEducationalListSection(
-            key: const ValueKey('web-notebook-gate-key-ideas'),
-            title: 'Key ideas',
-            values: info.keyIdeas,
-          ),
-        ],
-        const SizedBox(height: 18),
-        const _Heading('Visual explanation'),
-        const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: SizedBox(
-            width: 380,
-            child: GateEducationalVisualView(
-              key: const ValueKey('web-notebook-gate-visual'),
-              visual: info.visual,
-              footprint: gateEducationalPreviewFootprint(info.type),
-              height: 170,
-            ),
-          ),
-        ),
-        if (controlled) ...[
-          const SizedBox(height: 6),
-          const Text(controlledGateBlochNote,
-              style: TextStyle(color: _muted, fontSize: 12.5, height: 1.4)),
-        ],
-        const SizedBox(height: 18),
-        const _Heading('Mathematical representation'),
-        const SizedBox(height: 8),
-        Text(mathDefinitionHeading(info.matrix),
-            style: const TextStyle(
-                color: _purple,
-                fontSize: 11,
-                letterSpacing: .7,
-                fontWeight: FontWeight.w900)),
-        const SizedBox(height: 4),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: GateEducationalMatrix(
-            latexKey: const ValueKey('web-notebook-gate-matrix'),
-            matrix: info.matrix,
-            mathFontSize: 21,
-          ),
-        ),
-        if (info.transformations.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          GateEducationalMathList(
-            title: 'State action',
-            values: info.transformations,
-            level: GateEducationalMathLevel.secondary,
-            keyPrefix: 'web-notebook-gate-state',
-            decorated: false,
-            large: true,
-          ),
-        ],
-        if (info.identities.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          GateEducationalMathList(
-            title: 'Important identities',
-            values: info.identities,
-            level: GateEducationalMathLevel.secondary,
-            keyPrefix: 'web-notebook-gate-identity',
-            decorated: false,
-          ),
-        ],
-        if (info.properties.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          GateEducationalListSection(
-              title: 'Properties', values: info.properties),
-        ],
-      ],
-    );
-  }
-}
-
-/// An authored executable example: its circuit (Composer painter) and the
-/// state the real simulator prepares, with the way into an experiment.
-class _ExperimentCard extends StatefulWidget {
-  const _ExperimentCard({
-    super.key,
-    required this.example,
-    required this.onExplore,
-    required this.onOpenInBloch,
-  });
-  final ExecutableNotebookExample example;
-  final VoidCallback onExplore;
-  final void Function(ExecutableNotebookExample, ExecutableNotebookResult)?
-      onOpenInBloch;
-
-  @override
-  State<_ExperimentCard> createState() => _ExperimentCardState();
-}
-
-class _ExperimentCardState extends State<_ExperimentCard> {
-  late QuantumCircuit _circuit = _build();
-
-  QuantumCircuit _build() {
-    final circuit =
-        QuantumCircuit(currentLevel: widget.example.createExperimentLevel());
-    circuit.runSimulation();
-    return circuit;
-  }
-
-  @override
-  void didUpdateWidget(covariant _ExperimentCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.example, widget.example)) {
-      _circuit.dispose();
-      _circuit = _build();
-    }
-  }
-
-  @override
-  void dispose() {
-    _circuit.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final example = widget.example;
-    final state = formatQuantumStateExpression(
-      _circuit.currentState.stateVector,
-      numQubits: example.qubitCount,
-    );
-    return Container(
-      key: ValueKey('executable-example-${example.id}'),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: _inner,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(example.title,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15)),
-          const SizedBox(height: 3),
-          Text(formatQuantumNotationForPlainText(example.description),
-              style: const TextStyle(color: _body, height: 1.4)),
-          const SizedBox(height: 10),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: SizedBox(
-              height: 62.0 * example.qubitCount + 10,
-              child: FittedBox(
-                alignment: Alignment.centerLeft,
-                child: QubitQuestCircuitPreview(
-                  key: ValueKey('notebook-example-preview-${example.id}'),
-                  circuit: _circuit,
-                  minimumWidth: 180,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(state,
-              key: ValueKey('notebook-example-state-${example.id}'),
-              style: const TextStyle(
-                  color: _cyan, fontWeight: FontWeight.w700, height: 1.4)),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              FilledButton.icon(
-                key: ValueKey('notebook-explore-${example.id}'),
-                onPressed: widget.onExplore,
-                icon: const Icon(Icons.science_outlined, size: 18),
-                label: const Text('Explore circuit'),
-              ),
-              if (widget.onOpenInBloch != null &&
-                  example.supports(ExecutableNotebookCapability.blochExplorer))
-                OutlinedButton.icon(
-                  key: ValueKey('bloch-example-${example.id}'),
-                  onPressed: () =>
-                      widget.onOpenInBloch!(example, example.execute()),
-                  icon: const Icon(Icons.public, size: 18),
-                  label: const Text('Explore in Bloch'),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RelatedConcepts extends StatelessWidget {
-  const _RelatedConcepts({
-    required this.articles,
-    required this.isAvailable,
-    required this.onSelect,
-  });
-  final List<NotebookArticle> articles;
-  final bool Function(NotebookArticle) isAvailable;
-  final ValueChanged<String> onSelect;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        key: const ValueKey('web-notebook-related'),
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const _Heading('Related concepts'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final a in articles)
-                ActionChip(
-                  key: ValueKey('web-notebook-related-${a.id}'),
-                  avatar: Icon(
-                    a.kind == NotebookArticleKind.gate
-                        ? Icons.memory_outlined
-                        : isAvailable(a)
-                            ? Icons.auto_stories_outlined
-                            : Icons.lock_outline,
-                    size: 16,
-                  ),
-                  label: Text(a.kind == NotebookArticleKind.gate
-                      ? 'Gate: ${a.title}'
-                      : a.title),
-                  onPressed: () => onSelect(a.id),
-                ),
-            ],
-          ),
-        ],
-      );
-}
-
-class _ActivityRow extends StatelessWidget {
-  const _ActivityRow({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.status,
-    required this.actionLabel,
-    required this.onAction,
-  });
-  final IconData icon;
-  final String title;
-  final String status;
-  final String actionLabel;
-  final VoidCallback? onAction;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: onAction == null ? _muted : _cyan),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w600)),
-                  Text(status,
-                      style: const TextStyle(color: _muted, fontSize: 12)),
-                ],
-              ),
-            ),
-            if (onAction != null)
-              TextButton(onPressed: onAction, child: Text(actionLabel))
-            else
-              const Icon(Icons.lock_outline, size: 16, color: _muted),
-          ],
-        ),
-      );
 }
 
 /// Experiment context above the shared workspace: where it came from and the
@@ -1522,193 +1076,5 @@ class _ExperimentHeaderState extends State<_ExperimentHeader> {
             ),
           );
         },
-      );
-}
-
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.section});
-  final NotebookSection section;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        key: ValueKey('web-notebook-section-${section.title}'),
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              section.title,
-              style: NotebookTypography.text(
-                NotebookTextRole.sectionHeading,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              formatQuantumNotationForPlainText(section.body),
-              style: NotebookTypography.text(
-                NotebookTextRole.body,
-                color: const Color(0xFFD6E3F8),
-              ),
-            ),
-          ],
-        ),
-      );
-}
-
-class _ExamplesCard extends StatelessWidget {
-  const _ExamplesCard({required this.examples});
-  final List<NotebookExample> examples;
-
-  @override
-  Widget build(BuildContext context) {
-    final blocks = <Widget>[];
-    var index = 0;
-    while (index < examples.length) {
-      final example = examples[index];
-      if (example.comparisonGroup case final group?) {
-        final grouped = <NotebookExample>[];
-        while (index < examples.length &&
-            examples[index].comparisonGroup == group) {
-          grouped.add(examples[index]);
-          index++;
-        }
-        blocks.add(_WebNotebookComparison(examples: grouped));
-      } else {
-        blocks.add(_WebNotebookExampleBlock(example: example));
-        index++;
-      }
-    }
-    return Padding(
-      key: const ValueKey('web-notebook-key-examples'),
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Key Examples',
-            style: NotebookTypography.text(
-              NotebookTextRole.sectionHeading,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 10),
-          for (var index = 0; index < blocks.length; index++) ...[
-            blocks[index],
-            if (index != blocks.length - 1)
-              const Divider(height: 18, color: _border),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _WebNotebookExampleBlock extends StatelessWidget {
-  const _WebNotebookExampleBlock({required this.example});
-
-  final NotebookExample example;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            example.label,
-            style: NotebookTypography.text(
-              NotebookTextRole.subsection,
-              color: _cyan,
-            ),
-          ),
-          const SizedBox(height: 4),
-          if (example.presentation == NotebookExamplePresentation.math)
-            NotebookMathEvidence(example: example)
-          else
-            Text(
-              formatQuantumNotationForPlainText(example.notation),
-              style: NotebookTypography.text(
-                NotebookTextRole.lead,
-                color: Colors.white,
-              ),
-            ),
-          if ((example.explanation ?? '').trim().isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(example.explanation!,
-                style: NotebookTypography.text(
-                  NotebookTextRole.supporting,
-                  color: _muted,
-                )),
-          ],
-        ],
-      );
-}
-
-class _WebNotebookComparison extends StatelessWidget {
-  const _WebNotebookComparison({required this.examples});
-
-  final List<NotebookExample> examples;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-        builder: (context, constraints) {
-          final useColumns =
-              constraints.maxWidth >= 430 && examples.length == 2;
-          if (!useColumns) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (var index = 0; index < examples.length; index++) ...[
-                  _WebNotebookExampleBlock(example: examples[index]),
-                  if (index != examples.length - 1) const SizedBox(height: 8),
-                ],
-              ],
-            );
-          }
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var index = 0; index < examples.length; index++) ...[
-                Expanded(
-                    child: _WebNotebookExampleBlock(example: examples[index])),
-                if (index != examples.length - 1) const SizedBox(width: 20),
-              ],
-            ],
-          );
-        },
-      );
-}
-
-class _AdvancedSection extends StatelessWidget {
-  const _AdvancedSection({required this.section});
-  final NotebookSection section;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        key: const ValueKey('web-notebook-advanced-notes'),
-        decoration: BoxDecoration(
-          color: _inner,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _border),
-        ),
-        child: ExpansionTile(
-          initiallyExpanded: true,
-          title: Text(
-            section.title,
-            style: NotebookTypography.text(
-              NotebookTextRole.sectionHeading,
-              color: Colors.white,
-            ),
-          ),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          children: [
-            Text(
-              formatQuantumNotationForPlainText(section.body),
-              style: NotebookTypography.text(
-                NotebookTextRole.body,
-                color: const Color(0xFFD6E3F8),
-              ),
-            ),
-          ],
-        ),
       );
 }

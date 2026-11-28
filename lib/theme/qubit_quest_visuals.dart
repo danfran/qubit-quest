@@ -371,6 +371,43 @@ abstract final class QqType {
   );
 }
 
+/// Reading roles for long-form text (v2.6 M11E, the Notebook). Textbook
+/// prose: regular weight, a generous line height and a reading measure set
+/// by the host (about 70 characters). Headings reuse [QqType.sectionTitle]
+/// and [QqType.subheading].
+abstract final class QqReading {
+  /// The article's one-sentence introduction under its title.
+  static const lead = TextStyle(
+    color: QubitQuestColors.textPrimary,
+    fontSize: 18,
+    height: 1.6,
+    fontWeight: FontWeight.w400,
+  );
+
+  /// Explanatory paragraphs.
+  static const body = TextStyle(
+    color: QubitQuestColors.textBody,
+    fontSize: 16,
+    height: 1.7,
+    fontWeight: FontWeight.w400,
+  );
+
+  /// A term or label introducing a definition or an equation.
+  static const term = TextStyle(
+    color: QubitQuestColors.textPrimary,
+    fontSize: 15,
+    height: 1.5,
+    fontWeight: FontWeight.w600,
+  );
+
+  /// Reading width of an article column.
+  static const measure = 720.0;
+
+  /// Displayed mathematics (MathJax em size) and inline maths in prose.
+  static const displayMathSize = 20.0;
+  static const inlineMathSize = 16.5;
+}
+
 /// Padding and gaps of the web scientific panels (v2.6 M11C.1).
 abstract final class QqSpace {
   static const panel = EdgeInsets.fromLTRB(20, 16, 20, 20);
@@ -521,8 +558,8 @@ abstract final class QubitQuestTheme {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: QubitQuestColors.border),
           ),
-          textStyle: const TextStyle(
-              color: QubitQuestColors.textBody, fontSize: 12.5),
+          textStyle:
+              const TextStyle(color: QubitQuestColors.textBody, fontSize: 12.5),
           waitDuration: const Duration(milliseconds: 400),
         ),
       );

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
 /// One amplitude to draw on a [ComplexAmplitudePlane].
 @immutable
@@ -120,6 +121,9 @@ class _PlanePainter extends CustomPainter {
       text: TextSpan(
           text: text,
           style: TextStyle(
+            // Painters do not inherit the theme: the maths-symbol fallback
+            // supplies ⟨ ⟩ (v2.6 M11E; was a missing glyph in |0⟩).
+            fontFamilyFallback: QqType.fallback,
               color: color, fontSize: 11, fontWeight: FontWeight.w800)),
       textDirection: TextDirection.ltr,
     )..layout();

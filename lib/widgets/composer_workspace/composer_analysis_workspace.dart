@@ -289,10 +289,13 @@ class _ComposerAnalysisWorkspaceState extends State<ComposerAnalysisWorkspace> {
               const Padding(
                 padding: EdgeInsets.only(top: 10),
                 child: QqMeta(
-                  'The Bloch sphere in this workspace represents single-qubit '
-                  'pure states. Individual qubits in entangled systems '
-                  'require a reduced-state description, which is not '
-                  'currently supported.',
+                  // M11E: a subsystem does have a (reduced) Bloch vector,
+                  // possibly inside the sphere; it just does not describe
+                  // the joint state.
+                  'The Bloch sphere is currently available for single-qubit '
+                  'circuits. In multi-qubit systems, individual qubits may '
+                  'have mixed reduced states, and their Bloch vectors do not '
+                  'capture the full joint state.',
                   key: ValueKey('composer-analysis-bloch-note'),
                 ),
               ),

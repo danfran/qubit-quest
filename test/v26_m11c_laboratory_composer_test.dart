@@ -17,6 +17,7 @@ import 'package:quantumquiz/widgets/composer_workspace/composer_session_workspac
 import 'package:quantumquiz/widgets/composer_workspace/desktop_composer_workspace.dart';
 import 'package:quantumquiz/widgets/composer_workspace/laboratory_composer_workspace.dart';
 import 'package:quantumquiz/widgets/probability_distribution_chart.dart';
+import 'package:quantumquiz/widgets/qq_scientific_primitives.dart';
 
 /// v2.6 M11C: the laboratory Composer (Sandbox). Layout, modes, the
 /// contextual inspector and the central analysis, all presenting the one
@@ -154,6 +155,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(_k('composer-analysis-bloch')), findsNothing);
       expect(find.byKey(_k('composer-analysis-bloch-note')), findsOneWidget);
+      // M11E: a subsystem has a (possibly mixed) reduced Bloch vector; it
+      // just does not capture the joint state.
+      expect(
+          tester
+              .widget<QqMeta>(find.byKey(_k('composer-analysis-bloch-note')))
+              .text,
+          contains('mixed reduced states'));
       // Exact probabilities of the Bell state, basis order |q1 q0⟩.
       final chart = tester.widget<ProbabilityDistributionChart>(
           find.byType(ProbabilityDistributionChart));

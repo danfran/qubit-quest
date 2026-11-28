@@ -49,3 +49,5 @@ app.*.map.json
 codex_output.txt
 
 /reports
+
+/tools

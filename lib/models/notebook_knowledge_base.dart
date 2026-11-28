@@ -216,7 +216,7 @@ class NotebookKnowledgeBase {
       if (reference.isNotEmpty)
         NotebookCategory(
           id: 'reference',
-          title: 'Notation & terms',
+          title: 'Notation and terminology',
           description: 'Recurring notation used throughout Qubit Quest.',
           articles: reference,
         ),

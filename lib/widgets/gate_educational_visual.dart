@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/models/gate_educational_info.dart';
 import 'package:quantumquiz/models/logical_gate_footprint.dart';
 import 'package:quantumquiz/widgets/gate_inspector_theme.dart';
@@ -321,6 +322,9 @@ class _GateVisualPainter extends CustomPainter {
       text: TextSpan(
         text: label,
         style: TextStyle(
+          // Painters do not inherit the theme: the maths-symbol fallback
+          // supplies ⟨ ⟩ (v2.6 M11E; was a missing glyph in |0⟩).
+          fontFamilyFallback: QqType.fallback,
             color: color, fontSize: fontSize, fontWeight: FontWeight.w800),
       ),
       textDirection: TextDirection.ltr,

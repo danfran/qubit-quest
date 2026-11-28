@@ -40,6 +40,7 @@ Status: **approved after the M1 review. M2, M3, M3.1, M4, M5, M6a and M6b approv
 | M11C.1 | Scientific component design: bundled Inter web type scale (`QqType`), shared scientific primitives (data table, metadata, probability bar, toggle, fact list), rebuilt Current State (stacked-fraction expression, recognised states with global phase, aligned amplitude table, collapsed precision note), adaptive Probabilities, overlay-free Bloch summary, aligned Measure outcomes, inspector hierarchy | **Implemented, awaiting manual review** (see `reports/V26_M11C1_SCIENTIFIC_COMPONENTS.md`) |
 | M11D | Journey and Mastery redesign: persistent curriculum (expanded chapter, rail, narrow chapter strip), centred chapter page, shared lesson/challenge header with Task callout, learning layout for circuit activities ("Your circuit now" vs target with the actual validation scope), persistent Mastery list pane / numbered rail, lettered answer cards with explicit Check Answer; Composer follow-ups (measured amplitude columns, \|+⟩⊗ⁿ compact form, Bloch pole labels, one palette order) | **Implemented, awaiting manual review** (see `reports/V26_M11D_JOURNEY_MASTERY.md`) |
 | M11D.1 | Journey and Mastery refinement: circuits take their natural height with page scrolling (no capped well), compact scrolling headers on narrow screens, target typeset like the current state, Now/Target columns, left-aligned wide workspaces, sticky Check Answer and compact hints for questions, two-line navigation titles with reveal | **Implemented, awaiting visual review** (see `reports/V26_M11D1_FINAL_UI_REFINEMENT.md`) |
+| M11E | Notebook reading, mathematics and exploration: one ordered block model rendered as Article (centred 720 px column, contextual margin with On this page / Where it is used / notation) or Spread (explanation left, mathematics and experiments right; falls back where it does not fit, preference kept); index in three groups (notation, gates, discoveries) with reveal; maths under the sentence it formalises; gate pages as Overview / Behaviour / Mathematics / Experiments / Related; experiment figures at natural size with the typeset state and Run in Composer; advanced-note examples shown on the web; ket glyph fixed in circuit painters; Composer multi-qubit Bloch note corrected | **Implemented, awaiting visual review** (see `reports/V26_M11E_NOTEBOOK_REFINEMENT.md`) |
 | M11 | Release verification: full regression, Chrome platform, release web build, persistence, Android/iOS regression, **Pixel Tablet Challenge assessment**, bump to 2.6.0 | Last |
 
 Ordering notes:
@@ -147,6 +148,8 @@ Behaviour is unchanged in M2. Deciding whether the map node should match the alw
 | Target panel amplitudes | Tracked: the target panel shows probabilities and the authored expression; showing target amplitudes would make relative phase visible without the expression |
 
 ## 7. Files expected per milestone
+
+**Review material (from M11E, permanent):** every visual milestone also delivers its report, the original screenshots and logically grouped contact sheets (`tools/contact_sheet.sh`), as set out in `docs/VISUAL_MILESTONE_REPORTING.md`. Contact sheets supplement the screenshots and stay git-ignored under `reports/`.
 
 | Milestone | New | Changed | Removed |
 |---|---|---|---|
