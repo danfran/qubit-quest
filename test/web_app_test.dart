@@ -710,6 +710,9 @@ void main() {
     await tester.pump();
     expect(find.byKey(const ValueKey('bloch-preview-card')), findsOneWidget);
     expect(lab.session.appliedCount, 0, reason: 'a preview records nothing');
+    // M11F: the preview card is below Prepare in the left column.
+    await tester.ensureVisible(find.byKey(const ValueKey('bloch-apply')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('bloch-apply')));
     await tester.pumpAndSettle();
     expect(lab.session.appliedCount, 1);
@@ -732,6 +735,8 @@ void main() {
     }
     await tester.tap(find.byKey(const ValueKey('bloch-gate-s')));
     await tester.pump();
+    await tester.ensureVisible(find.byKey(const ValueKey('bloch-about-gate')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('bloch-about-gate')));
     await tester.pumpAndSettle();
     expect(find.byType(GateInspectorDialog), findsOneWidget);

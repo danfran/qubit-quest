@@ -1125,9 +1125,11 @@ const List<NotebookEntry> notebookEntries = [
       examples: [
         NotebookExample.math(
             label: 'Prepare possibilities',
-            notation: '|00⟩ → H on q0 → (|00⟩ + |10⟩)/√2',
+            // M11F: q0 is the rightmost ket symbol, so H on q0 gives
+            // |00⟩ + |01⟩ (was |10⟩; the lesson's circuit is H(q0), CX(q0→q1)).
+            notation: '|00⟩ → H on q0 → (|00⟩ + |01⟩)/√2',
             latex:
-                r'\lvert00\rangle\xrightarrow{H\ \mathrm{on}\ q_0}\frac{\lvert00\rangle+\lvert10\rangle}{\sqrt{2}}'),
+                r'\lvert00\rangle\xrightarrow{H\ \mathrm{on}\ q_0}\frac{\lvert00\rangle+\lvert01\rangle}{\sqrt{2}}'),
         NotebookExample.math(
             label: 'Connect branches',
             notation: 'CNOT → (|00⟩ + |11⟩)/√2',

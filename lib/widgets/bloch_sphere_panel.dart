@@ -461,7 +461,17 @@ class BlochSphereOverlay {
     this.rotation,
     this.basis,
     this.basisLabels = false,
+    this.applied = false,
+    this.outcomeVector,
   });
+
+  /// The trajectory is an applied (or replayed) step rather than a
+  /// prediction: drawn solid and quieter instead of dashed (v2.6 M11F).
+  final bool applied;
+
+  /// The post-measurement state of the last single measurement (a ring on
+  /// the measured axis end); never the state itself.
+  final (double, double, double)? outcomeVector;
 
   /// The input state of a transformation (hollow marker).
   final (double, double, double)? startVector;
@@ -487,11 +497,13 @@ class BlochSphereOverlay {
       other.rotation?.axis == rotation?.axis &&
       other.rotation?.angle == rotation?.angle &&
       other.basis == basis &&
-      other.basisLabels == basisLabels;
+      other.basisLabels == basisLabels &&
+      other.applied == applied &&
+      other.outcomeVector == outcomeVector;
 
   @override
   int get hashCode => Object.hash(startVector, previewVector, rotation?.axis,
-      rotation?.angle, basis, basisLabels);
+      rotation?.angle, basis, basisLabels, applied, outcomeVector);
 }
 
 /// Overlay colours, shared with the Explorer's legend.
@@ -501,6 +513,7 @@ abstract final class BlochOverlayColors {
   static const preview = Color(0xFFFFC857);
   static const axis = Color(0xFFFFC857);
   static const basis = Color(0xFF7CFFB2);
+  static const path = Color(0xFF9FB0CC);
 }
 
 class BlochSpherePainter extends CustomPainter {
@@ -556,7 +569,12 @@ class BlochSpherePainter extends CustomPainter {
     final o = overlay;
     if (o != null) _paintOverlay(canvas, p, o);
     final tip = p.project(state.x, state.y, state.z);
-    if (stateLabels) _paintStateLabels(canvas, p, tip);
+    if (stateLabels) {
+      _paintStateLabels(canvas, p, tip, [
+        for (final v in [o?.startVector, o?.previewVector, o?.outcomeVector])
+          if (v != null) p.project(v.$1, v.$2, v.$3),
+      ]);
+    }
     canvas.drawLine(
         center,
         tip,
@@ -615,19 +633,28 @@ class BlochSpherePainter extends CustomPainter {
       // At the negative end, clear of the X/Y/Z letters.
       _label(canvas, p, at(_neg(rotation.axis), 1.2) + const Offset(-22, 0),
           'axis', BlochOverlayColors.axis, 11, FontWeight.w800);
-      if (start != null && !rotation.fixes(start)) {
+      // Drawn whenever the start is off the axis and the angle is not zero,
+      // so a full turn (2π, 4π) shows its whole circle even though it ends
+      // where it began (v2.6 M11F). Predictions are dashed; an applied or
+      // replayed step is solid and quieter.
+      if (start != null &&
+          !rotation.isOnAxis(start) &&
+          rotation.angle.abs() > 1e-9) {
+        final color =
+            o.applied ? BlochOverlayColors.path : BlochOverlayColors.preview;
         final arc = Paint()
-          ..color = BlochOverlayColors.preview
-          ..strokeWidth = 3
+          ..color = o.applied ? color.withValues(alpha: .7) : color
+          ..strokeWidth = o.applied ? 2.5 : 3
           ..style = PaintingStyle.stroke
           ..strokeCap = StrokeCap.round;
         final segments = math.max(24, (rotation.angle.abs() * 24).ceil());
-        final path = Path()..moveTo(at(start).dx, at(start).dy);
+        var previous = at(start);
         for (var i = 1; i <= segments; i++) {
           final point = at(rotation.apply(start, i / segments));
-          path.lineTo(point.dx, point.dy);
+          // Every other segment for the dashed prediction.
+          if (o.applied || i.isOdd) canvas.drawLine(previous, point, arc);
+          previous = point;
         }
-        canvas.drawPath(path, arc);
         // Direction arrowhead at the end of the trajectory.
         final end = at(rotation.apply(start, 1));
         final before = at(rotation.apply(start, (segments - 1) / segments));
@@ -642,7 +669,7 @@ class BlochSpherePainter extends CustomPainter {
             ..lineTo(
                 (end - u * 10 - normal * 5).dx, (end - u * 10 - normal * 5).dy)
             ..close();
-          canvas.drawPath(head, Paint()..color = BlochOverlayColors.preview);
+          canvas.drawPath(head, Paint()..color = color);
         }
       }
     }
@@ -672,7 +699,27 @@ class BlochSpherePainter extends CustomPainter {
           Paint()
             ..color = BlochOverlayColors.preview
             ..strokeWidth = 3);
-      canvas.drawCircle(tip, 7, Paint()..color = BlochOverlayColors.preview);
+      // Ring with a centre dot: distinct in shape from the current state's
+      // solid tip and the input state's plain ring.
+      canvas.drawCircle(
+          tip,
+          9,
+          Paint()
+            ..color = BlochOverlayColors.preview
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.5);
+      canvas.drawCircle(tip, 3, Paint()..color = BlochOverlayColors.preview);
+    }
+    final outcome = o.outcomeVector;
+    if (outcome != null) {
+      final tip = at(outcome);
+      canvas.drawCircle(
+          tip,
+          11,
+          Paint()
+            ..color = BlochOverlayColors.basis
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 3);
     }
   }
 
@@ -693,7 +740,12 @@ class BlochSpherePainter extends CustomPainter {
     final painter = TextPainter(
       text: TextSpan(
           text: text,
-          style: TextStyle(color: color, fontSize: size, fontWeight: weight)),
+          style: TextStyle(
+              color: color,
+              fontSize: size,
+              fontWeight: weight,
+              fontFamily: QqType.family,
+              fontFamilyFallback: QqType.fallback)),
       textDirection: TextDirection.ltr,
     )..layout();
     final c = p.safeLabelCenter(point, painter.size);
@@ -741,7 +793,8 @@ class BlochSpherePainter extends CustomPainter {
   /// the axis letter at the axis end). Labels on the far hemisphere are
   /// dimmer. A label that would overlap the state vector's tip or an
   /// earlier label moves further out along its direction.
-  void _paintStateLabels(Canvas canvas, BlochProjection p, Offset tip) {
+  void _paintStateLabels(Canvas canvas, BlochProjection p, Offset tip,
+      [List<Offset> markers = const []]) {
     const poles = [
       (0.0, 0.0, 1.0, '|0⟩'),
       (0.0, 0.0, -1.0, '|1⟩'),
@@ -751,7 +804,10 @@ class BlochSpherePainter extends CustomPainter {
       (0.0, -1.0, 0.0, '|−i⟩'),
     ];
     final center = p.center;
-    final placed = <Rect>[Rect.fromCircle(center: tip, radius: 15)];
+    final placed = <Rect>[
+      Rect.fromCircle(center: tip, radius: 15),
+      for (final m in markers) Rect.fromCircle(center: m, radius: 12),
+    ];
     // Axis letters (drawn at 1.25 R on the positive ends) are obstacles too.
     for (final (x, y, z) in const [
       (1.25, 0.0, 0.0),

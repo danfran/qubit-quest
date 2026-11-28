@@ -36,6 +36,8 @@ They are generated with `tools/contact_sheet.sh` (ImageMagick 7). Run `tools/con
 | `mobile` | 3 columns × 1 row | Portrait phone screenshots |
 | `compare` | 2 × 1 | Before (left) and After (right) |
 
+Cell sizes are upper bounds: each sheet's cells shrink to its largest fitted screenshot, so mixing 1440 × 900 with 2560 × 1080, or landscape phones, does not add letterbox padding. Still, group similar aspect ratios on one sheet where possible.
+
 **Rules**
 - Group sheets by what the reviewer assesses (for example "Article experience", "Gate references", "Mobile layouts"), not by capture order.
 - Prefix sheet names with a two-digit group number so they sort in reading order.

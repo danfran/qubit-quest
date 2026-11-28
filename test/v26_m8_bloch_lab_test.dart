@@ -7,6 +7,8 @@ import 'dart:math' as math;
 import 'package:advance_math/advance_math.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quantumquiz/widgets/state_amplitude_panel.dart'
+    show QqCurrentStatePanel;
 import 'package:quantumquiz/models/campaign_progress.dart';
 import 'package:quantumquiz/models/circuit_editing.dart';
 import 'package:quantumquiz/models/gate_reference_examples.dart';
@@ -449,17 +451,18 @@ void main() {
       expect(session.appliedCount, 0, reason: 'previews never commit');
       await tester.tap(find.byKey(const ValueKey('angle-preset-1.5708')));
       await tester.pump();
+      await tester.ensureVisible(find.byKey(const ValueKey('bloch-apply')));
       await tester.tap(find.byKey(const ValueKey('bloch-apply')));
       await tester.pumpAndSettle();
       expect(session.appliedCount, 1);
       _vec(session.current, 1, 0, 0, reason: 'Ry(π/2)|0⟩');
       expect(find.byKey(const ValueKey('bloch-step-1')), findsOneWidget);
-      expect(
-          tester
-              .widget<SelectableText>(
-                  find.byKey(const ValueKey('bloch-state-expression')))
-              .data,
-          '|ψ⟩ = 0.7071|0⟩ + 0.7071|1⟩');
+      // M11F: the state uses the Composer's own presentation.
+      final panel = tester.widget<QqCurrentStatePanel>(find.descendant(
+          of: find.byKey(const ValueKey('bloch-state-expression')),
+          matching: find.byType(QqCurrentStatePanel)));
+      expect(panel.stateVector[0].real, closeTo(math.sqrt1_2, 1e-9));
+      expect(panel.stateVector[1].real, closeTo(math.sqrt1_2, 1e-9));
     });
 
     testWidgets('inspection is read-only until Return to current',
@@ -492,8 +495,8 @@ void main() {
       final lab = await _pumpLab(tester);
       lab.session.commit(SelectedGateType.hadamard);
       await tester.pump();
-      await tester.tap(find.byKey(const ValueKey('web-bloch-tab-measure')));
-      await tester.pump();
+      // M11F: Measure is always visible beside the sphere on wide screens.
+      await tester.ensureVisible(find.byKey(const ValueKey('bloch-basis-x')));
       await tester.tap(find.byKey(const ValueKey('bloch-basis-x')));
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('bloch-run-shots')));

@@ -55,8 +55,21 @@ class BlochRotation {
     );
   }
 
-  /// Whether [v] lies on the axis (its Bloch position does not move; the
-  /// state vector may still gain a phase).
+  /// Whether [v] lies on the rotation axis: it stays put for every angle,
+  /// so there is no path to draw (v2.6 M11F). Unlike [fixes], a full turn
+  /// (2π, 4π) of a state off the axis is *not* on the axis: it travels a
+  /// whole circle and returns to where it started.
+  bool isOnAxis((double, double, double) v) {
+    final (kx, ky, kz) = axis;
+    final (vx, vy, vz) = v;
+    final cx = ky * vz - kz * vy,
+        cy = kz * vx - kx * vz,
+        cz = kx * vy - ky * vx;
+    return math.sqrt(cx * cx + cy * cy + cz * cz) < 1e-9;
+  }
+
+  /// Whether [v] ends where it started: on the axis, or a whole number of
+  /// turns (the state vector may still gain a phase, e.g. Rx(2π) = −I).
   bool fixes((double, double, double) v) {
     final (kx, ky, kz) = axis;
     final (vx, vy, vz) = v;
