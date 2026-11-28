@@ -233,7 +233,8 @@ void main() {
           tester
               .widget<Text>(
                   find.byKey(const ValueKey('notebook-experiment-description')))
-              .data,
+              .textSpan!
+              .toPlainText(),
           startsWith('Original example:'));
       state.experimentSession!.clear();
       await tester.pumpAndSettle();
@@ -296,6 +297,11 @@ void main() {
     testWidgets('global phase is described as a notation convention',
         (tester) async {
       await pump(tester, const Size(1440, 1000));
+      // M11G: the phase details follow the measurement experiment.
+      final toggle = find.byKey(const ValueKey('bloch-phase-toggle'));
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
       expect(
           tester
               .widget<Text>(find.byKey(const ValueKey('bloch-global-phase')))

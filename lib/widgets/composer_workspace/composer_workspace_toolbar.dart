@@ -100,7 +100,7 @@ class ComposerWorkspaceToolbar extends StatelessWidget {
           title,
           key: const ValueKey('composer-workspace-title'),
           overflow: TextOverflow.ellipsis,
-          style: QubitQuestTypography.heading.copyWith(fontSize: 15),
+          style: QqType.subjectTitle.copyWith(fontSize: 15),
         ),
       ),
       if (this.context case final detail? when showContext) ...[

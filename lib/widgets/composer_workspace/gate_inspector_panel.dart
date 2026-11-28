@@ -1708,7 +1708,7 @@ class _CompactIdentity extends StatelessWidget {
               TextSpan(children: [
                 TextSpan(
                   text: _gateName(gate.type),
-                  style: QubitQuestTypography.heading.copyWith(fontSize: 14.5),
+                  style: QqType.subjectTitle.copyWith(fontSize: 14.5),
                 ),
                 TextSpan(
                   text: preview ? '  ·  palette preview' : '  ·  selected',

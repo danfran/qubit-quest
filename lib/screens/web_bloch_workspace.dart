@@ -34,7 +34,18 @@ import 'package:quantumquiz/widgets/qq_scientific_primitives.dart';
 import 'package:quantumquiz/widgets/qubit_quest_gate_tile.dart';
 import 'package:quantumquiz/widgets/qubit_quest_workspace_primitives.dart';
 import 'package:quantumquiz/widgets/state_amplitude_panel.dart'
-    show QqCurrentStatePanel;
+    show QqCurrentStatePanel, qqAmplitudePrecisionNote;
+import 'package:advance_math/advance_math.dart' show Complex;
+import 'package:quantumquiz/models/measured_circuit_runner.dart'
+    show formatCount;
+import 'package:quantumquiz/utils/probability_format.dart';
+import 'package:quantumquiz/utils/quantum_state_formatter.dart'
+    show
+        formatQuantumAmplitude,
+        formatQuantumStateExpression,
+        quantumAmplitudeIsApproximate;
+import 'package:quantumquiz/widgets/measured_circuit_run_panel.dart'
+    show ComparisonBar, MeasurementComparisonLegend;
 
 const _alphaColor = Color(0xFF4FD8FF);
 const _betaColor = Color(0xFFC08BFF);
@@ -429,7 +440,12 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final context = _previewKey.currentContext;
       if (context == null || !mounted) return;
-      Scrollable.ensureVisible(context,
+      // Only the nearest scroll view moves (M11G): in short landscape
+      // windows the controls scroll beside the sphere, which stays put.
+      final object = context.findRenderObject();
+      final scrollable = Scrollable.maybeOf(context);
+      if (object == null || scrollable == null) return;
+      scrollable.position.ensureVisible(object,
           alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
           duration: const Duration(milliseconds: 200));
     });
@@ -717,96 +733,148 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
         ),
       );
 
-  /// Phones and short windows: one natural scroll. The sphere comes first
-  /// after a compact preparation row, with its transport and the gates
-  /// directly under it; side by side in short landscape windows.
+  /// Phones and short windows: one natural scroll. Portrait: preparation,
+  /// then the sphere with the gates directly under it. Short landscape
+  /// windows: the whole sphere beside preparation, playback and gates.
+  /// The detailed panels follow in both.
   Widget _stacked(BoxConstraints c) {
     final width = c.maxWidth;
-    final landscape = width >= 640;
-    final sphereSize = landscape
-        ? math.min(380.0, math.max(280.0, c.maxHeight - 40))
-        : math.min(width - 24, 400.0);
+    final landscape = width >= 640 && width > c.maxHeight;
+    final pane = DecoratedBox(
+      key: const ValueKey('web-bloch-side'),
+      decoration: _paneDecoration,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _stateSection(),
+            const SizedBox(height: 18),
+            _measureSection(),
+            const SizedBox(height: 20),
+            _stateDetails(),
+            const SizedBox(height: 14),
+            _customAndComparisons(custom: false),
+            const SizedBox(height: 16),
+            const QqMeta(blochScopeNote,
+                key: ValueKey('bloch-single-qubit-boundary')),
+          ],
+        ),
+      ),
+    );
+    final timeline = DecoratedBox(
+      decoration: _paneDecoration,
+      child: Padding(padding: const EdgeInsets.all(12), child: _timeline()),
+    );
+    final gates = KeyedSubtree(
+        key: const ValueKey('web-bloch-narrow-gates'),
+        child: _gateSection(compact: true));
+    if (landscape) {
+      // Uses the height as well as the width (M11G): the sphere is as tall
+      // as the window allows, so it is seen whole without scrolling.
+      final side = (c.maxHeight - 20).clamp(220.0, 440.0);
+      // The controls scroll beside the sphere (a preview card can be
+      // taller than the window), so the whole sphere stays in view while
+      // a transformation is previewed.
+      return _Scroll(
+        key: const ValueKey('web-bloch-stacked-layout'),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 28),
+        children: [
+          SizedBox(
+            height: side,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  key: const ValueKey('web-bloch-stage'),
+                  width: side,
+                  height: side,
+                  child: DecoratedBox(
+                    decoration: _paneDecoration,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: _sphere(compactControls: true),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SingleChildScrollView(
+                    key: const ValueKey('web-bloch-landscape-scroll'),
+                    child: Column(
+                      key: const ValueKey('web-bloch-landscape-controls'),
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _header(compact: true),
+                        const SizedBox(height: 6),
+                        _canonicalStates(compact: true),
+                        if (_customOpen) ...[
+                          const SizedBox(height: 8),
+                          _customCard(),
+                        ],
+                        const SizedBox(height: 6),
+                        _transport(compact: true),
+                        const SizedBox(height: 4),
+                        gates,
+                        const SizedBox(height: 6),
+                        _legend(),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          timeline,
+          const SizedBox(height: 10),
+          pane,
+        ],
+      );
+    }
+    final sphereSize = math.min(width - 24, 400.0);
     final sphere = SizedBox(
       key: const ValueKey('web-bloch-stage'),
-      height: sphereSize + 40,
-      child: _sphere(top: 40),
+      height: sphereSize + 36,
+      child: _sphere(top: 36),
     );
     return _Scroll(
       key: const ValueKey('web-bloch-stacked-layout'),
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 28),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 28),
       children: [
         _header(compact: true),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         _canonicalStates(compact: true),
-        const SizedBox(height: 10),
+        if (_customOpen) ...[
+          const SizedBox(height: 8),
+          _customCard(),
+        ],
+        const SizedBox(height: 8),
         DecoratedBox(
           decoration: _paneDecoration,
           child: Padding(
             padding: const EdgeInsets.all(10),
-            child: landscape
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(width: sphereSize, child: sphere),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _legend(),
-                            const SizedBox(height: 8),
-                            _transport(),
-                            const Divider(
-                                height: 20, color: QubitQuestSurfaces.rule),
-                            KeyedSubtree(
-                                key: const ValueKey('web-bloch-narrow-gates'),
-                                child: _gateSection(compact: true)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      sphere,
-                      _legend(),
-                      const SizedBox(height: 8),
-                      _transport(),
-                      const Divider(height: 20, color: QubitQuestSurfaces.rule),
-                      KeyedSubtree(
-                          key: const ValueKey('web-bloch-narrow-gates'),
-                          child: _gateSection(compact: true)),
-                    ],
-                  ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        DecoratedBox(
-          decoration: _paneDecoration,
-          child: Padding(padding: const EdgeInsets.all(12), child: _timeline()),
-        ),
-        const SizedBox(height: 10),
-        DecoratedBox(
-          key: const ValueKey('web-bloch-side'),
-          decoration: _paneDecoration,
-          child: Padding(
-            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _stateSection(),
-                const SizedBox(height: 22),
-                _measureSection(),
-                const SizedBox(height: 22),
-                _customAndComparisons(),
-                const SizedBox(height: 16),
-                const QqMeta(blochScopeNote,
-                    key: ValueKey('bloch-single-qubit-boundary')),
+                sphere,
+                const SizedBox(height: 6),
+                // Gates directly under the sphere; the legend and playback
+                // after them, so the gates never move when a step adds
+                // legend lines or the full transport (M11G).
+                gates,
+                const SizedBox(height: 8),
+                _legend(),
+                const Divider(height: 18, color: QubitQuestSurfaces.rule),
+                _transport(compact: true),
               ],
             ),
           ),
         ),
+        const SizedBox(height: 10),
+        timeline,
+        const SizedBox(height: 10),
+        pane,
       ],
     );
   }
@@ -836,9 +904,11 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
         padding: const EdgeInsets.fromLTRB(14, 4, 14, 18),
         children: [
           _stateSection(),
-          const SizedBox(height: 22),
-          _measureSection(),
           const SizedBox(height: 18),
+          _measureSection(),
+          const SizedBox(height: 20),
+          _stateDetails(),
+          const SizedBox(height: 14),
           const QqMeta(blochScopeNote,
               key: ValueKey('bloch-single-qubit-boundary')),
         ],
@@ -876,7 +946,8 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
 
   /// [top] reserves room for the view controls above the sphere where the
   /// stage is small (phones), so they never cover the |0⟩ label.
-  Widget _sphere({double top = 0}) => Stack(children: [
+  Widget _sphere({double top = 0, bool compactControls = false}) =>
+      Stack(children: [
         Positioned.fill(
           top: top,
           child: MouseRegion(
@@ -909,17 +980,29 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
           right: 2,
           top: 2,
           child: Row(children: [
-            Tooltip(
-              message: 'When on, dragging the vector tip prepares a new '
-                  'state. When off, every drag only turns the view.',
-              child: FilterChip(
+            if (compactControls)
+              IconButton(
                 key: const ValueKey('bloch-drag-state-toggle'),
-                label: const Text('Drag vector', style: QqType.control),
-                selected: _dragState,
-                visualDensity: VisualDensity.compact,
-                onSelected: (v) => setState(() => _dragState = v),
+                tooltip: _dragState
+                    ? 'Drag vector is on: dragging the tip prepares a state'
+                    : 'Drag vector is off: every drag turns the view',
+                isSelected: _dragState,
+                icon: const Icon(Icons.pan_tool_alt_outlined, size: 20),
+                selectedIcon: const Icon(Icons.pan_tool_alt, size: 20),
+                onPressed: () => setState(() => _dragState = !_dragState),
+              )
+            else
+              Tooltip(
+                message: 'When on, dragging the vector tip prepares a new '
+                    'state. When off, every drag only turns the view.',
+                child: FilterChip(
+                  key: const ValueKey('bloch-drag-state-toggle'),
+                  label: const Text('Drag vector', style: QqType.control),
+                  selected: _dragState,
+                  visualDensity: VisualDensity.compact,
+                  onSelected: (v) => setState(() => _dragState = v),
+                ),
               ),
-            ),
             const SizedBox(width: 4),
             IconButton(
               key: const ValueKey('bloch-reset-view'),
@@ -930,19 +1013,20 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
             ),
           ]),
         ),
-        Positioned(
-          left: 4,
-          bottom: 2,
-          child: IgnorePointer(
-            child: Text(
-              _dragState
-                  ? 'Drag the tip to set a state · drag elsewhere to turn'
-                  : 'Drag to turn the view · the state never changes',
-              key: const ValueKey('bloch-sphere-hint'),
-              style: QqType.meta.copyWith(fontSize: 12),
+        if (!compactControls)
+          Positioned(
+            left: 4,
+            bottom: 2,
+            child: IgnorePointer(
+              child: Text(
+                _dragState
+                    ? 'Drag the tip to set a state · drag elsewhere to turn'
+                    : 'Drag to turn the view · the state never changes',
+                key: const ValueKey('bloch-sphere-hint'),
+                style: QqType.meta.copyWith(fontSize: 12),
+              ),
             ),
           ),
-        ),
       ]);
 
   /// Legend: each element is told apart by shape and line style as well as
@@ -1033,7 +1117,7 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
   /// Playback transport, next to the sphere. Every control does what it
   /// says: Play steps replays recorded steps, Apply (in the preview card)
   /// records one, and Animate when applying only changes how Apply looks.
-  Widget _transport() {
+  Widget _transport({bool compact = false}) {
     final applied = session.appliedCount;
     final focus = _focus;
     final hasSteps = applied > 0;
@@ -1054,6 +1138,52 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
                 ? 'No steps yet · apply a gate to record one'
                 : 'Showing the current state · $applied '
                     'step${applied == 1 ? '' : 's'}';
+    final speed = SegmentedButton<double>(
+      key: const ValueKey('bloch-speed'),
+      showSelectedIcon: false,
+      style: SegmentedButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        textStyle: QqType.control.copyWith(fontSize: 12.5),
+      ),
+      segments: const [
+        ButtonSegment(value: .5, label: Text('0.5×')),
+        ButtonSegment(value: 1, label: Text('1×')),
+        ButtonSegment(value: 2, label: Text('2×')),
+      ],
+      selected: {_speed},
+      onSelectionChanged: (s) => setSpeed(s.single),
+    );
+    final animate = Tooltip(
+      message: 'How Apply is shown: along the rotation path, or at '
+          'once. It never changes the result.',
+      child: FilterChip(
+        key: const ValueKey('bloch-animate-toggle'),
+        label: Text(compact ? 'Animate' : 'Animate when applying',
+            style: QqType.control),
+        selected: _animate,
+        visualDensity: VisualDensity.compact,
+        onSelected: (v) => setState(() => _animate = v),
+      ),
+    );
+    // Phones before any step (M11G): playback has nothing to replay, so
+    // only the animation preferences stay, on one line, and the gates
+    // stay close to the sphere. The full transport appears with the
+    // first step.
+    if (compact && !hasSteps) {
+      return Wrap(
+        key: const ValueKey('bloch-transport'),
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
+        runSpacing: 4,
+        children: [
+          animate,
+          speed,
+          Text('No steps yet',
+              key: const ValueKey('bloch-playback-status'), style: QqType.meta),
+        ],
+      );
+    }
     IconButton icon(String key, IconData data, String tip, VoidCallback? on) =>
         IconButton(
           key: ValueKey(key),
@@ -1101,33 +1231,8 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
                 'Show the current state',
                 session.isInspecting || _playing || _paused ? toCurrent : null),
             const SizedBox(width: 8),
-            SegmentedButton<double>(
-              key: const ValueKey('bloch-speed'),
-              showSelectedIcon: false,
-              style: SegmentedButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                textStyle: QqType.control.copyWith(fontSize: 12.5),
-              ),
-              segments: const [
-                ButtonSegment(value: .5, label: Text('0.5×')),
-                ButtonSegment(value: 1, label: Text('1×')),
-                ButtonSegment(value: 2, label: Text('2×')),
-              ],
-              selected: {_speed},
-              onSelectionChanged: (s) => setSpeed(s.single),
-            ),
-            Tooltip(
-              message: 'How Apply is shown: along the rotation path, or at '
-                  'once. It never changes the result.',
-              child: FilterChip(
-                key: const ValueKey('bloch-animate-toggle'),
-                label:
-                    const Text('Animate when applying', style: QqType.control),
-                selected: _animate,
-                visualDensity: VisualDensity.compact,
-                onSelected: (v) => setState(() => _animate = v),
-              ),
-            ),
+            speed,
+            animate,
           ],
         ),
         const SizedBox(height: 2),
@@ -1173,6 +1278,17 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
         children: [
           const Text('Prepare', style: QqType.subheading),
           for (final (_, plus, minus) in rows) ...[state(plus), state(minus)],
+          // Custom preparation from the preparation area (M11G).
+          FilterChip(
+            key: const ValueKey('bloch-custom-chip'),
+            label: const Text('Custom θ, φ', style: QqType.control),
+            selected: _customOpen,
+            visualDensity: VisualDensity.compact,
+            onSelected: (open) => setState(() {
+              _customOpen = open;
+              if (open) _selected = null;
+            }),
+          ),
         ],
       );
     }
@@ -1204,21 +1320,52 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
     );
   }
 
-  Widget _customAndComparisons() => Column(
+  /// The custom state editor in its own frame (phones and short landscape
+  /// windows, opened from the preparation chips).
+  Widget _customCard() => Container(
+        key: const ValueKey('bloch-custom-card'),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        decoration: BoxDecoration(
+          color: QubitQuestSurfaces.work,
+          borderRadius: QubitQuestRadii.card,
+          border: Border.all(
+              color: BlochOverlayColors.preview.withValues(alpha: .5)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(children: [
+              const Expanded(
+                  child: Text('Custom state', style: QqType.subheading)),
+              IconButton(
+                key: const ValueKey('bloch-custom-close'),
+                tooltip: 'Close the custom state',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.close_rounded, size: 18),
+                onPressed: () => setState(() => _customOpen = false),
+              ),
+            ]),
+            _customEditor(),
+          ],
+        ),
+      );
+
+  Widget _customAndComparisons({bool custom = true}) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          QqDisclosure(
-            key: ValueKey('bloch-custom-$_customOpen'),
-            toggleKey: const ValueKey('bloch-custom-toggle'),
-            title: 'Custom state',
-            summary: 'polar θ and azimuthal φ',
-            initiallyExpanded: _customOpen,
-            onChanged: (open) => setState(() {
-              _customOpen = open;
-              if (open) _selected = null;
-            }),
-            child: _customEditor(),
-          ),
+          if (custom)
+            QqDisclosure(
+              key: ValueKey('bloch-custom-$_customOpen'),
+              toggleKey: const ValueKey('bloch-custom-toggle'),
+              title: 'Custom state',
+              summary: 'polar θ and azimuthal φ',
+              initiallyExpanded: _customOpen,
+              onChanged: (open) => setState(() {
+                _customOpen = open;
+                if (open) _selected = null;
+              }),
+              child: _customEditor(),
+            ),
           QqDisclosure(
             toggleKey: const ValueKey('bloch-comparisons-toggle'),
             title: 'Phase comparisons',
@@ -1289,7 +1436,13 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
             key: ValueKey('bloch-custom-pole-note'),
           ),
         const SizedBox(height: 4),
-        Text(blochStateExpression(_customState), style: QqType.bodyStrong),
+        QqCurrentStatePanel(
+          key: ObjectKey(_customState),
+          stateVector: [_customState.alpha, _customState.beta],
+          numQubits: 1,
+          expressionOnly: true,
+          expressionStyle: QqType.stateExpression.copyWith(fontSize: 17),
+        ),
         const SizedBox(height: 8),
         Align(
           alignment: Alignment.centerLeft,
@@ -1314,9 +1467,12 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _Label('Transform'),
-        const QqMeta('Choose a gate to preview its effect; nothing changes '
-            'until you apply it.'),
-        const SizedBox(height: 10),
+        if (!compact) ...[
+          const QqMeta('Choose a gate to preview its effect; nothing changes '
+              'until you apply it.'),
+          const SizedBox(height: 10),
+        ] else
+          const SizedBox(height: 2),
         Wrap(spacing: 8, runSpacing: 8, children: [
           for (final type in blochLabGateTypes)
             DecoratedBox(
@@ -1399,18 +1555,10 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
               style: QqType.subjectTitle.copyWith(fontSize: 15.5)),
           const SizedBox(height: 4),
           Text(
-            '${_rotationCaption(preview.rotation)}.'
-            '${rotation ? '' : ' One equivalent rotation (up to global '
-                'phase) is drawn; the gate is defined by its matrix.'}',
+            '${_rotationCaption(preview.rotation)}.',
             key: const ValueKey('bloch-preview-rotation'),
             style: QqType.meta,
           ),
-          if (stationary != null) ...[
-            const SizedBox(height: 6),
-            Text('$stationary ${phase ?? ''}'.trim(),
-                key: const ValueKey('bloch-preview-on-axis'),
-                style: QqType.meta.copyWith(color: QubitQuestColors.textBody)),
-          ],
           if (rotation)
             _AngleControl(
               key: const ValueKey('bloch-rotation-angle'),
@@ -1430,11 +1578,24 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
               onChanged: setAngle,
             ),
           const SizedBox(height: 8),
-          const Text('Result', style: QqType.meta),
-          Text(_ket(preview.after),
-              key: const ValueKey('bloch-preview-result'),
-              style: QqType.bodyStrong),
+          const Text('Result if applied', style: QqType.meta),
+          const SizedBox(height: 2),
+          // The shared expression (M11G): exact coefficients, ≈ only when
+          // rounded, and a recognised state with its global phase.
+          KeyedSubtree(
+            key: const ValueKey('bloch-preview-result'),
+            child: QqCurrentStatePanel(
+              key: ObjectKey(preview.after),
+              stateVector: [preview.after.alpha, preview.after.beta],
+              numQubits: 1,
+              stateLabel: '|ψ′⟩',
+              expressionOnly: true,
+              expressionStyle: QqType.stateExpression.copyWith(fontSize: 18),
+            ),
+          ),
           const SizedBox(height: 10),
+          // Actions before the longer explanations, so Apply and Cancel
+          // stay in reach (M11G).
           Wrap(spacing: 8, runSpacing: 6, children: [
             FilledButton.icon(
               key: const ValueKey('bloch-apply'),
@@ -1453,6 +1614,21 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
               child: const Text('About this gate'),
             ),
           ]),
+          if (stationary != null) ...[
+            const SizedBox(height: 8),
+            Text('$stationary ${phase ?? ''}'.trim(),
+                key: const ValueKey('bloch-preview-on-axis'),
+                style: QqType.meta.copyWith(color: QubitQuestColors.textBody)),
+          ],
+          if (!rotation) ...[
+            const SizedBox(height: 6),
+            const QqMeta(
+              'One equivalent rotation (up to global phase) is drawn; the '
+              'gate itself is defined by its matrix, and the result above '
+              'keeps its exact phase.',
+              key: ValueKey('bloch-preview-equivalent-note'),
+            ),
+          ],
         ],
       ),
     );
@@ -1464,15 +1640,6 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
     if ((gamma - math.pi / 2).abs() < 1e-9) return 'i';
     if ((gamma + math.pi / 2).abs() < 1e-9) return '−i';
     return 'e^(i·${blochAngle(gamma).split(' (').first})';
-  }
-
-  /// "…" with the canonical state it equals, phase included, if any.
-  static String _ket(BlochState s) {
-    final named = blochCanonicalName(s);
-    final expression = blochStateExpression(s);
-    return named == null || named == expression
-        ? expression
-        : '$expression  =  $named';
   }
 
   /// The timeline of applied steps: each step shows its position, gate and
@@ -1494,7 +1661,7 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
                   'φ ${s.hasDefinedRelativePhase ? blochAngle(s.phi).split(' (').first : '—'}';
       return Tooltip(
         message: '${index == 0 ? 'Start' : 'After step $index'}: '
-            '|ψ⟩ = ${blochStateExpression(s)}',
+            '${formatQuantumStateExpression([s.alpha, s.beta], numQubits: 1)}',
         waitDuration: const Duration(milliseconds: 500),
         child: Material(
           color: isFocus
@@ -1623,12 +1790,45 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
     );
   }
 
+  /// How the sphere and the numbers relate right now (M11G): the numbers
+  /// always show a completed, recorded state; a moving vector is an
+  /// illustration of the step's rotation path; an earlier step is history.
+  /// Null when the sphere simply shows the current state.
+  String? get _presentationNote {
+    final applied = session.appliedCount;
+    final k = _playStep;
+    if (_playing && k != null) {
+      return 'Replaying step $k of $applied: the vector traces the step’s '
+          'rotation path as an illustration. The numbers show the state '
+          'after step $k, where the path ends.';
+    }
+    if (_paused && k != null) {
+      return 'Paused part-way along step $k: the vector’s position is '
+          'illustrative only. The numbers show the state after step $k.';
+    }
+    final inspected = session.inspectedIndex;
+    if (_animating != null && inspected != null) {
+      return 'The vector is drawing a step’s rotation path. The numbers '
+          'show ${inspected == 0 ? 'the Start state' : 'the state after step $inspected'}, '
+          'where the path ends.';
+    }
+    if (_animating != null) {
+      return 'Applied. The vector is drawing the rotation path as an '
+          'illustration; the numbers already show the completed step.';
+    }
+    if (inspected != null) {
+      return 'History: ${inspected == 0 ? 'the Start state' : 'the state after step $inspected of $applied'}. '
+          'Your current state is unchanged; Show current returns to it.';
+    }
+    return null;
+  }
+
+  /// State summary, first in the State and measurement panel (M11G): the
+  /// expression, then a compact geometry summary. The detailed mathematics
+  /// follows the measurement experiment ([_stateDetails]).
   Widget _stateSection() {
     final s = session.displayed;
     final defined = s.hasDefinedRelativePhase;
-    final globalAngle = s.alphaMagnitude > blochAmplitudeEpsilon
-        ? math.atan2(s.alpha.imaginary.toDouble(), s.alpha.real.toDouble())
-        : math.atan2(s.beta.imaginary.toDouble(), s.beta.real.toDouble());
     final label = _playing || _paused
         ? 'State after step $_playStep (replay)'
         : session.isInspecting
@@ -1636,62 +1836,100 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
                 ? 'Start state'
                 : 'State after step ${session.inspectedIndex}'
             : 'Current state';
-    String short(double a) => blochAngle(a).split(' (').first;
+    final note = _presentationNote;
     return Column(
       key: const ValueKey('bloch-state'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _Label(label),
-        if (_animating != null && !_playing && !_paused)
-          const QqMeta(
-              'The numbers already show the result; the sphere is '
-              'drawing the path.',
-              key: ValueKey('bloch-animating-note')),
-        const SizedBox(height: 4),
-        // The Composer's own state presentation (exact coefficients,
-        // recognised states with global phase, amplitude table).
+        if (note != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              note,
+              key: const ValueKey('bloch-presentation-note'),
+              style: QqType.meta.copyWith(color: BlochOverlayColors.preview),
+            ),
+          ),
+        // The Composer's own expression: exact coefficients (≈ when any is
+        // rounded) and a recognised state with its global phase.
         KeyedSubtree(
           key: const ValueKey('bloch-state-expression'),
           child: QqCurrentStatePanel(
             key: ObjectKey(s),
             stateVector: [s.alpha, s.beta],
             numQubits: 1,
-            chromeless: true,
+            expressionOnly: true,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         QqFactList(
           key: const ValueKey('bloch-geometry'),
-          labelWidth: 118,
+          labelWidth: 92,
           facts: [
             (
               'Bloch vector',
               Text(
-                  '(x, y, z) = (${blochNumber(s.x)}, ${blochNumber(s.y)}, '
+                  '(${blochNumber(s.x)}, ${blochNumber(s.y)}, '
                   '${blochNumber(s.z)})',
                   key: const ValueKey('bloch-cartesian')),
             ),
             (
-              'θ · polar',
-              Text(blochAngle(s.theta), key: const ValueKey('bloch-theta'))
-            ),
-            (
-              'φ · azimuthal',
-              Text(defined ? blochAngle(s.phi) : 'undefined at the pole',
-                  key: const ValueKey('bloch-phi')),
+              'Angles',
+              Wrap(spacing: 14, runSpacing: 2, children: [
+                Text.rich(
+                  TextSpan(children: [
+                    const TextSpan(
+                        text: 'θ ', style: TextStyle(color: _alphaColor)),
+                    TextSpan(text: blochAngle(s.theta).split(' (').first),
+                  ]),
+                  key: const ValueKey('bloch-theta'),
+                ),
+                Text.rich(
+                  TextSpan(children: [
+                    const TextSpan(
+                        text: 'φ ', style: TextStyle(color: _betaColor)),
+                    TextSpan(
+                        text: defined
+                            ? blochAngle(s.phi).split(' (').first
+                            : 'undefined at the pole'),
+                  ]),
+                  key: const ValueKey('bloch-phi'),
+                ),
+              ]),
             ),
           ],
         ),
-        const SizedBox(height: 14),
-        const Text('Z-basis probabilities', style: QqType.subheading),
-        const SizedBox(height: 4),
-        _ProbabilityRow('P(|0⟩)', s.probabilityZero),
-        _ProbabilityRow('P(|1⟩)', s.probabilityOne),
-        const SizedBox(height: 10),
+      ],
+    );
+  }
+
+  /// The detailed mathematics, after the measurement experiment: exact and
+  /// decimal amplitudes with the complex plane, phase, the Bloch-vector
+  /// derivation and the precision note.
+  Widget _stateDetails() {
+    final s = session.displayed;
+    final defined = s.hasDefinedRelativePhase;
+    final globalAngle = s.alphaMagnitude > blochAmplitudeEpsilon
+        ? math.atan2(s.alpha.imaginary.toDouble(), s.alpha.real.toDouble())
+        : math.atan2(s.beta.imaginary.toDouble(), s.beta.real.toDouble());
+    String short(double a) => blochAngle(a).split(' (').first;
+    String exact(Complex c) => formatQuantumAmplitude(c);
+    String approx(Complex c) {
+      final e = exact(c);
+      final d = blochComplex(c);
+      return e == d || quantumAmplitudeIsApproximate(e) ? e : '$e ≈ $d';
+    }
+
+    return Column(
+      key: const ValueKey('bloch-state-details'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _Label('Mathematical details'),
         QqDisclosure(
           toggleKey: const ValueKey('bloch-amplitudes-toggle'),
           title: 'Complex amplitudes',
-          summary: 'α = ${blochComplex(s.alpha)} · β = ${blochComplex(s.beta)}',
+          summary: 'α = ${exact(s.alpha)} · β = ${exact(s.beta)}',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1709,21 +1947,24 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
                     key: const ValueKey('bloch-amplitudes'),
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _Value('α', blochComplex(s.alpha), color: _alphaColor),
-                      _Value('|α|²', blochNumber(s.probabilityZero)),
+                      _Value('α', approx(s.alpha), color: _alphaColor),
+                      _Value('|α|²', formatProbability(s.probabilityZero)),
                       const SizedBox(height: 4),
-                      _Value('β', blochComplex(s.beta), color: _betaColor),
-                      _Value('|β|²', blochNumber(s.probabilityOne)),
+                      _Value('β', approx(s.beta), color: _betaColor),
+                      _Value('|β|²', formatProbability(s.probabilityOne)),
                       const SizedBox(height: 4),
-                      _Value('|α|² + |β|²',
-                          blochNumber(s.probabilityZero + s.probabilityOne)),
+                      _Value(
+                          '|α|² + |β|²',
+                          formatProbability(
+                              s.probabilityZero + s.probabilityOne)),
                     ],
                   ),
                 ),
               ]),
               const SizedBox(height: 4),
               const QqMeta('Arrows show the actual amplitudes, including the '
-                  'global phase. The sphere ignores global phase.'),
+                  'global phase. The sphere ignores global phase. |α|² and '
+                  '|β|² are the Z-basis probabilities.'),
             ],
           ),
         ),
@@ -1751,7 +1992,8 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
                 'Global phase as written: ${blochAngle(globalAngle)} (the '
                 'phase of the first non-zero amplitude). Multiplying the '
                 'whole state by e^(iγ) changes neither the sphere nor any '
-                'measurement of this qubit, so it is kept in the amplitudes '
+                'measurement of this qubit: a global phase is not an '
+                'observable on its own, so it is kept in the amplitudes '
                 'only.',
                 key: const ValueKey('bloch-global-phase'),
                 style: QqType.meta,
@@ -1785,10 +2027,20 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
             ],
           ),
         ),
+        const QqDisclosure(
+          toggleKey: ValueKey('bloch-precision-toggle'),
+          title: 'About amplitude precision',
+          summary: 'exact values and rounding',
+          child: Text(qqAmplitudePrecisionNote,
+              key: ValueKey('bloch-precision-note')),
+        ),
       ],
     );
   }
 
+  /// The measurement experiment (M11G order): basis, controls, exact and
+  /// observed outcomes, the result, and the Z basis for comparison when
+  /// another basis is measured.
   Widget _measureSection() {
     final s = session.displayed;
     final (plus, minus) = _basis.probabilities(s);
@@ -1799,17 +2051,14 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
     };
     final single = _single;
     final shots = _shots;
+    final deterministic =
+        plus <= probabilityZeroTolerance || minus <= probabilityZeroTolerance;
+    String count(int n) => formatCount(n);
     return Column(
       key: const ValueKey('bloch-measure'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _Label('Measure'),
-        QqMeta(session.isInspecting
-            ? 'Measures the state shown (step ${session.inspectedIndex}). '
-                'The steps are not changed.'
-            : 'Measures the current state. Each run prepares it again, so '
-                'the state above is never collapsed.'),
-        const SizedBox(height: 8),
         SegmentedButton<BlochBasis>(
           key: const ValueKey('bloch-basis'),
           showSelectedIcon: false,
@@ -1830,28 +2079,7 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
             _shots = null;
           }),
         ),
-        const SizedBox(height: 6),
-        QqMeta('Outcomes ${_basis.plusLabel} and ${_basis.minusLabel} · '
-            'the ${_basis.label} axis is highlighted on the sphere'),
-        const SizedBox(height: 10),
-        Text(
-            shots == null
-                ? 'Predicted probabilities'
-                : 'Predicted (outline) and observed (filled)',
-            style: QqType.subheading),
-        const SizedBox(height: 4),
-        Column(key: const ValueKey('bloch-exact'), children: [
-          _ProbabilityRow('P(${_basis.plusLabel})', plus,
-              observed: shots == null ? null : shots.plusCount / shots.shots),
-          _ProbabilityRow('P(${_basis.minusLabel})', minus,
-              observed: shots == null ? null : shots.minusCount / shots.shots),
-        ]),
-        QqMeta('$formula · ${switch (_basis) {
-          BlochBasis.z => 'measured directly',
-          BlochBasis.x => 'H, then measure in Z',
-          BlochBasis.y => 'S†, then H, then measure in Z',
-        }}'),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -1865,21 +2093,75 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
               FilledButton(
                 key: const ValueKey('bloch-run-shots'),
                 onPressed: _measureShots,
-                child: Text('Run $_shotCount shots'),
+                child: Text('Run ${count(_shotCount)} shots'),
               ),
-              DropdownButton<int>(
+            ]),
+        const SizedBox(height: 8),
+        Row(children: [
+          const Text('Shots', style: QqType.meta),
+          const SizedBox(width: 10),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: SegmentedButton<int>(
                 key: const ValueKey('bloch-shot-count'),
-                value: _shotCount,
-                items: [
+                showSelectedIcon: false,
+                style: SegmentedButton.styleFrom(
+                  visualDensity:
+                      const VisualDensity(horizontal: -2, vertical: -2),
+                  textStyle: QqType.control.copyWith(fontSize: 13),
+                ),
+                segments: [
                   for (final n in const [100, 1000, 10000])
-                    DropdownMenuItem(value: n, child: Text('$n')),
+                    ButtonSegment(
+                        value: n,
+                        label: Text(count(n),
+                            key: ValueKey('bloch-shot-count-$n'))),
                 ],
-                onChanged: (v) => setState(() {
-                  _shotCount = v ?? 1000;
+                selected: {_shotCount},
+                onSelectionChanged: (v) => setState(() {
+                  _shotCount = v.single;
                   _shots = null;
                 }),
               ),
-            ]),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 4),
+        QqMeta(session.isInspecting
+            ? 'Measures the state shown (step ${session.inspectedIndex}). '
+                'The steps are not changed.'
+            : 'Each run prepares the state again, so the state above is '
+                'never collapsed.'),
+        const SizedBox(height: 10),
+        Text(
+          shots == null
+              ? 'Exact probabilities · ${_basis.label} basis'
+              : 'Exact and observed · ${_basis.label} basis',
+          key: const ValueKey('bloch-measure-heading'),
+          style: QqType.subheading,
+        ),
+        const SizedBox(height: 4),
+        Column(key: const ValueKey('bloch-exact'), children: [
+          _OutcomeRow(_basis.plusLabel, plus,
+              observed: shots == null ? null : shots.plusCount / shots.shots,
+              count: shots?.plusCount),
+          _OutcomeRow(_basis.minusLabel, minus,
+              observed: shots == null ? null : shots.minusCount / shots.shots,
+              count: shots?.minusCount),
+        ]),
+        const SizedBox(height: 4),
+        MeasurementComparisonLegend(
+            key: const ValueKey('bloch-measure-legend'),
+            observed: shots != null,
+            exact: true),
+        const SizedBox(height: 2),
+        QqMeta('$formula · ${switch (_basis) {
+          BlochBasis.z => 'measured directly',
+          BlochBasis.x => 'H, then measure in Z',
+          BlochBasis.y => 'S†, then H, then measure in Z',
+        }} · the ${_basis.label} axis is highlighted on the sphere'),
         if (single != null) ...[
           const SizedBox(height: 10),
           Container(
@@ -1891,11 +2173,18 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
                   color: BlochOverlayColors.basis.withValues(alpha: .5)),
             ),
             child: Text(
-              'Outcome: ${single.label}. The outcome is random; only its '
-              'probabilities are fixed by the state. Just after this '
-              'measurement the qubit is in ${single.label} (green ring on '
-              'the sphere). The prepared state is unchanged: each run '
-              'prepares it again.',
+              deterministic
+                  ? 'Outcome: ${single.label}. This outcome was certain '
+                      '(probability 100%): the state lies on the '
+                      '${_basis.label} axis, so every run gives '
+                      '${single.label}. The prepared state is unchanged.'
+                  : 'Outcome: ${single.label} (probability '
+                      '${formatProbability(single.plus ? plus : minus)}). '
+                      'The outcome is random; only its probabilities are '
+                      'fixed by the state. Just after this measurement the '
+                      'qubit is in ${single.label} (green ring on the '
+                      'sphere). The prepared state is unchanged: each run '
+                      'prepares it again.',
               style: QqType.body.copyWith(fontSize: 14),
             ),
           ),
@@ -1903,12 +2192,30 @@ class WebBlochWorkspaceState extends State<WebBlochWorkspace>
         if (shots != null) ...[
           const SizedBox(height: 8),
           Text(
-            '${shots.shots} independent preparations, each measured once: '
-            '${shots.plusCount} × ${_basis.plusLabel}, '
-            '${shots.minusCount} × ${_basis.minusLabel}.',
+            deterministic
+                ? '${count(shots.shots)} independent preparations, each '
+                    'measured once: all ${count(shots.shots)} gave '
+                    '${shots.plusCount == shots.shots ? _basis.plusLabel : _basis.minusLabel}, '
+                    'as the exact probability of 100% predicts.'
+                : '${count(shots.shots)} independent preparations, each '
+                    'measured once: ${count(shots.plusCount)} × '
+                    '${_basis.plusLabel}, ${count(shots.minusCount)} × '
+                    '${_basis.minusLabel}. Observed frequencies vary from '
+                    'run to run around the exact probabilities.',
             key: const ValueKey('bloch-shots-result'),
             style: QqType.body.copyWith(fontSize: 14),
           ),
+        ],
+        if (_basis != BlochBasis.z) ...[
+          const SizedBox(height: 14),
+          Text('Z basis, for comparison (not measured here)',
+              key: const ValueKey('bloch-z-reference'),
+              style: QqType.subheading.copyWith(fontSize: 13.5)),
+          const SizedBox(height: 2),
+          _OutcomeRow('|0⟩', s.probabilityZero),
+          _OutcomeRow('|1⟩', s.probabilityOne),
+          const QqMeta('The same state gives a different distribution in '
+              'each basis.'),
         ],
       ],
     );
@@ -2156,18 +2463,20 @@ class _AngleControlState extends State<_AngleControl> {
                           widget.enabled ? null : QubitQuestColors.textMuted)),
             ),
             SizedBox(
-              width: 86,
+              width: 112,
               child: TextField(
                 key: const ValueKey('angle-entry'),
                 controller: _text,
                 enabled: widget.enabled,
-                style: QqType.body.copyWith(fontSize: 13.5),
+                style: QqType.table.copyWith(fontSize: 15),
+                textInputAction: TextInputAction.done,
                 decoration: const InputDecoration(
                   isDense: true,
-                  hintText: 'π/3',
+                  hintText: 'π/3 or 1.05',
+                  labelText: 'Radians',
                   border: OutlineInputBorder(),
                   contentPadding:
-                      EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 ),
                 onSubmitted: _submit,
               ),
@@ -2223,46 +2532,59 @@ class _Value extends StatelessWidget {
       );
 }
 
-/// A probability row: label, the shared 0–100% bar (predicted), an
-/// observed-frequency bar under it when there are shots, and the numbers.
-class _ProbabilityRow extends StatelessWidget {
-  const _ProbabilityRow(this.label, this.exact, {this.observed});
+/// One outcome: its ket, the shared exact/observed bar (exact probability
+/// as a cyan outline, observed frequency filled purple, as in the
+/// Composer's Measure view), and the values in the same two colours.
+class _OutcomeRow extends StatelessWidget {
+  const _OutcomeRow(this.label, this.exact, {this.observed, this.count});
   final String label;
   final double exact;
   final double? observed;
+  final int? count;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        child: Row(children: [
-          SizedBox(width: 70, child: Text(label, style: QqType.table)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                QqProbabilityBar(value: exact),
-                if (observed != null) ...[
-                  const SizedBox(height: 3),
-                  QqProbabilityBar(
-                      value: observed!,
-                      height: 6,
-                      color: QubitQuestColors.accentStrong),
-                ],
-              ],
+  Widget build(BuildContext context) => Tooltip(
+        message: [
+          'P($label) exact ${formatProbability(exact)}',
+          if (observed != null)
+            'observed ${formatProbability(observed!)}'
+                '${count == null ? '' : ' (${formatCount(count!)})'}',
+        ].join(' · '),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          child: Row(children: [
+            SizedBox(
+              width: 46,
+              child: Text(label,
+                  style: QqType.table.copyWith(
+                      color: QqType.ketColor, fontWeight: FontWeight.w500)),
             ),
-          ),
-          SizedBox(
-            width: observed == null ? 64 : 118,
-            child: Text(
-              observed == null
-                  ? '${(exact * 100).toStringAsFixed(1)}%'
-                  : '${(exact * 100).toStringAsFixed(1)}% · '
-                      '${(observed! * 100).toStringAsFixed(1)}%',
-              textAlign: TextAlign.right,
-              style: QqType.table.copyWith(fontSize: 13.5),
+            Expanded(child: ComparisonBar(exact: exact, observed: observed)),
+            SizedBox(
+              width: 62,
+              child: Text(
+                formatProbability(exact),
+                textAlign: TextAlign.right,
+                style: QqType.table.copyWith(
+                    fontSize: 13.5,
+                    color: QubitQuestColors.accentInteractive,
+                    fontWeight: FontWeight.w500),
+              ),
             ),
-          ),
-        ]),
+            if (observed != null)
+              SizedBox(
+                width: 62,
+                child: Text(
+                  formatProbability(observed!),
+                  textAlign: TextAlign.right,
+                  style: QqType.table.copyWith(
+                      fontSize: 13.5,
+                      color: const Color(0xFFB794F6),
+                      fontWeight: FontWeight.w500),
+                ),
+              ),
+          ]),
+        ),
       );
 }
 

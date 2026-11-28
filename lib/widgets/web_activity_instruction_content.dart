@@ -31,7 +31,7 @@ class WebActivityInstructionContent extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if ((level.conceptIntro ?? '').trim().isNotEmpty) ...[
-          const Text('Concept', style: QubitQuestTypography.label),
+          const Text('Concept', style: QqType.panelHeading),
           const SizedBox(height: QubitQuestSpacing.micro),
           WebLearningText(level.conceptIntro!,
               role: WebLearningTextRole.concept),

@@ -203,7 +203,7 @@ class WebMasteryBrowser extends StatelessWidget {
           final detail = selected == null
               ? const Center(
                   child: Text('Select a challenge to see its details.',
-                      style: QubitQuestTypography.supporting))
+                      style: QqType.meta))
               : _ChallengeDetail(
                   key: ValueKey('web-mastery-detail-${selected!.semanticId}'),
                   challenge: selected!,
@@ -292,7 +292,7 @@ class WebMasteryBrowser extends StatelessWidget {
               isExpanded: true,
               hint: Text('Any $label',
                   overflow: TextOverflow.ellipsis,
-                  style: QubitQuestTypography.supporting),
+                  style: QqType.meta),
               items: [
                 DropdownMenuItem<T?>(
                     value: null,
@@ -321,12 +321,12 @@ class WebMasteryBrowser extends StatelessWidget {
                   children: [
                     const Text('Mastery Challenges',
                         key: ValueKey('web-mastery-title'),
-                        style: QubitQuestTypography.title),
+                        style: QqType.sectionTitle),
                     const SizedBox(height: 2),
                     const Text(
                       'Independent quantum reasoning challenges, open at any '
                       'time and in any order.',
-                      style: QubitQuestTypography.supporting,
+                      style: QqType.meta,
                     ),
                   ],
                 ),
@@ -345,7 +345,7 @@ class WebMasteryBrowser extends StatelessWidget {
             children: [
               Text('$done / $total complete',
                   key: const ValueKey('web-mastery-progress'),
-                  style: QubitQuestTypography.supporting),
+                  style: QqType.meta),
               const SizedBox(width: 12),
               Expanded(
                 child: ClipRRect(
@@ -431,7 +431,7 @@ class WebMasteryBrowser extends StatelessWidget {
               ),
               Text('$visibleCount of $total challenges',
                   key: const ValueKey('web-mastery-result-count'),
-                  style: QubitQuestTypography.supporting),
+                  style: QqType.meta),
               if (!query.isDefault)
                 TextButton(
                   key: const ValueKey('web-mastery-clear-filters'),
@@ -660,7 +660,7 @@ class WebMasteryBrowser extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('No matching challenges.',
-                style: QubitQuestTypography.body),
+                style: QqType.body),
             const SizedBox(height: 8),
             TextButton(
               key: const ValueKey('web-mastery-empty-reset'),
@@ -760,7 +760,7 @@ class _ChallengeRow extends StatelessWidget {
                       width: 24,
                       child: Text(
                         challenge.displayOrder.toString().padLeft(2, '0'),
-                        style: QubitQuestTypography.supporting,
+                        style: QqType.meta,
                       ),
                     ),
                     Expanded(
@@ -870,7 +870,7 @@ class _ChallengeDetail extends StatelessWidget {
                   child: Text(
                     'Not in the current results (hidden by the search or '
                     'filters).',
-                    style: QubitQuestTypography.supporting,
+                    style: QqType.meta,
                   ),
                 ),
               Text(
@@ -911,7 +911,7 @@ class _ChallengeDetail extends StatelessWidget {
                   if (completed)
                     const Text(
                       'Reviewing never resets completion.',
-                      style: QubitQuestTypography.supporting,
+                      style: QqType.meta,
                     ),
                 ],
               ),

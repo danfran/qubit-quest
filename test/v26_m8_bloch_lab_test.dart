@@ -506,7 +506,7 @@ void main() {
           tester
               .widget<Text>(find.byKey(const ValueKey('bloch-shots-result')))
               .data,
-          contains('1000 × |+⟩'));
+          contains('all 1,000 gave |+⟩'));
       await tester.tap(find.byKey(const ValueKey('bloch-run-once')));
       await tester.pump();
       expect(find.byKey(const ValueKey('bloch-single-result')), findsOneWidget);

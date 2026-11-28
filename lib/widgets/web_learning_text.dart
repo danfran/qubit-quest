@@ -30,7 +30,7 @@ extension WebLearningTextStyle on WebLearningTextRole {
   TextStyle get textStyle => switch (this) {
         WebLearningTextRole.task => WebLearningTextStyles.task,
         WebLearningTextRole.question => WebLearningTextStyles.question,
-        WebLearningTextRole.evidenceLabel => QubitQuestTypography.label,
+        WebLearningTextRole.evidenceLabel => QqType.panelHeading,
         WebLearningTextRole.supporting => QubitQuestTypography.supporting,
         _ => QubitQuestTypography.body,
       };

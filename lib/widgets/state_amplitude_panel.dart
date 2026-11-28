@@ -11,6 +11,20 @@ import 'package:quantumquiz/widgets/qubit_quest_workspace_primitives.dart';
 import 'package:quantumquiz/widgets/state_vector_display.dart'
     show defaultNonZeroOnlyForQubitCount;
 
+/// How amplitudes are written and rounded (shared by every host that shows
+/// amplitudes: Composer, lessons, Bloch Explorer).
+const String qqAmplitudePrecisionNote =
+    'Amplitudes are written exactly (such as 1/√2 or 3/8 − i/8) when the '
+    'value is recognised, otherwise as decimals rounded to four places, '
+    'and an expression with a rounded coefficient is written with ≈. '
+    'Rounding affects the display only; the simulation keeps full '
+    'precision, including every phase. A global phase (one factor shared '
+    'by every amplitude) is kept as calculated: it does not change any '
+    'measurement. A recognised state (such as |+⟩ or |Φ⁺⟩) is named only '
+    'when the state equals it, up to the phase shown, within 10⁻⁶ in every '
+    'amplitude, the precision of the simulation; it is written with = only '
+    'when every coefficient is exact.';
+
 /// The Current State component (v2.6 M11C.1).
 ///
 /// Reading order: one heading with its actions (filter, copy); the state
@@ -37,7 +51,18 @@ class QqCurrentStatePanel extends StatefulWidget {
     this.precisionOpen = false,
     this.onPrecisionChanged,
     this.chromeless = false,
+    this.expressionOnly = false,
+    this.expressionStyle = QqType.stateExpression,
   });
+
+  /// Only the expression and its recognised-state line (v2.6 M11G): no
+  /// metadata, amplitude table or precision note. For hosts that show the
+  /// amplitudes elsewhere (the Bloch Explorer's disclosures, a gate
+  /// preview).
+  final bool expressionOnly;
+
+  /// Expression text style (a smaller size for previews).
+  final TextStyle expressionStyle;
 
   /// Content without its own panel, for hosts that already frame it (a
   /// lesson's "State details" disclosure).
@@ -119,6 +144,9 @@ class _QqCurrentStatePanelState extends State<QqCurrentStatePanel> {
         (c.real * c.real + c.imaginary * c.imaginary).toDouble();
     final total = vector.fold<double>(0, (s, a) => s + p(a));
     final named = recogniseNamedState(vector, n);
+    // A rounded coefficient makes the expression, and any recognised state
+    // written after it, an approximation (M11G): ≈, never =.
+    final approximate = quantumTermsAreApproximate(terms);
     final nonZeroOnly = _nonZeroOnly;
     final visible = [
       for (var i = 0; i < size; i++)
@@ -314,7 +342,10 @@ class _QqCurrentStatePanelState extends State<QqCurrentStatePanel> {
           const SizedBox(height: 8),
         ],
         if (compact) ...[
-          _NamedStateLine(named: named, stateLabel: widget.stateLabel),
+          _NamedStateLine(
+              named: named,
+              stateLabel: widget.stateLabel,
+              approximate: approximate),
           const SizedBox(height: 6),
           _UniformSum(named: named, numQubits: n),
         ] else ...[
@@ -323,77 +354,76 @@ class _QqCurrentStatePanelState extends State<QqCurrentStatePanel> {
             stateLabel: widget.stateLabel,
             plainText: full,
             collapsedTermCount: QqCurrentStatePanel.collapsedTermCount,
+            style: widget.expressionStyle,
           ),
           if (named != null && terms.length > 1) ...[
             const SizedBox(height: 4),
-            _NamedStateLine(named: named),
+            _NamedStateLine(
+                named: named,
+                approximate: approximate,
+                style: widget.expressionStyle),
           ],
         ],
-        const SizedBox(height: 10),
-        QqMeta(
-          '${terms.length} of $size amplitude${size == 1 ? '' : 's'} '
-          'non-zero · total probability ${formatProbability(total)} · '
-          'order $order',
-          key: const ValueKey('state-nonzero-count'),
-        ),
-        if ((total - 1).abs() > 1e-6)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              'This state is not normalised (total probability '
-              '${total.toStringAsFixed(6)}); values are shown as '
-              'calculated.',
-              key: const ValueKey('state-not-normalised'),
-              style: QqType.meta.copyWith(color: QubitQuestColors.warning),
+        if (!widget.expressionOnly) ...[
+          const SizedBox(height: 10),
+          QqMeta(
+            '${terms.length} of $size amplitude${size == 1 ? '' : 's'} '
+            'non-zero · total probability ${formatProbability(total)} · '
+            'order $order',
+            key: const ValueKey('state-nonzero-count'),
+          ),
+          if ((total - 1).abs() > 1e-6)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'This state is not normalised (total probability '
+                '${total.toStringAsFixed(6)}); values are shown as '
+                'calculated.',
+                key: const ValueKey('state-not-normalised'),
+                style: QqType.meta.copyWith(color: QubitQuestColors.warning),
+              ),
+            ),
+          const SizedBox(height: QqSpace.gap),
+          if (compact) ...[
+            QqDisclosure(
+              key: const ValueKey('state-expanded-disclosure'),
+              toggleKey: const ValueKey('state-expanded-toggle'),
+              title: 'Expanded expression',
+              summary: '${terms.length} terms',
+              child: QqStateExpression(
+                terms: terms,
+                stateLabel: widget.stateLabel,
+                plainText: full,
+                collapsedTermCount: QqCurrentStatePanel.collapsedTermCount,
+                style: QqType.stateExpression.copyWith(fontSize: 18),
+              ),
+            ),
+            QqDisclosure(
+              key: const ValueKey('state-table-disclosure'),
+              toggleKey: const ValueKey('state-table-toggle'),
+              title: 'Amplitude table',
+              summary: '${visible.length} rows',
+              child: tableBlock(),
+            ),
+          ] else
+            tableBlock(),
+          const SizedBox(height: 12),
+          QqDisclosure(
+            key: const ValueKey('state-precision-disclosure'),
+            toggleKey: const ValueKey('state-precision-toggle'),
+            title: 'About amplitude precision',
+            summary: 'exact values and rounding',
+            initiallyExpanded: widget.precisionOpen,
+            onChanged: widget.onPrecisionChanged,
+            child: const Text(
+              qqAmplitudePrecisionNote,
+              key: ValueKey('composer-analysis-precision-note'),
             ),
           ),
-        const SizedBox(height: QqSpace.gap),
-        if (compact) ...[
-          QqDisclosure(
-            key: const ValueKey('state-expanded-disclosure'),
-            toggleKey: const ValueKey('state-expanded-toggle'),
-            title: 'Expanded expression',
-            summary: '${terms.length} terms',
-            child: QqStateExpression(
-              terms: terms,
-              stateLabel: widget.stateLabel,
-              plainText: full,
-              collapsedTermCount: QqCurrentStatePanel.collapsedTermCount,
-              style: QqType.stateExpression.copyWith(fontSize: 18),
-            ),
-          ),
-          QqDisclosure(
-            key: const ValueKey('state-table-disclosure'),
-            toggleKey: const ValueKey('state-table-toggle'),
-            title: 'Amplitude table',
-            summary: '${visible.length} rows',
-            child: tableBlock(),
-          ),
-        ] else
-          tableBlock(),
-        const SizedBox(height: 12),
-        QqDisclosure(
-          key: const ValueKey('state-precision-disclosure'),
-          toggleKey: const ValueKey('state-precision-toggle'),
-          title: 'About amplitude precision',
-          summary: 'exact values and rounding',
-          initiallyExpanded: widget.precisionOpen,
-          onChanged: widget.onPrecisionChanged,
-          child: const Text(
-            'Amplitudes are written exactly (such as 1/√2 or 3/8 − i/8) '
-            'when the value is recognised, otherwise as decimals rounded '
-            'to four places. Rounding affects the display only; the '
-            'simulation keeps full precision, including every phase. '
-            'A global phase (one factor shared by every amplitude) is '
-            'kept as calculated: it does not change any measurement. A '
-            'recognised state (such as |+⟩ or |Φ⁺⟩) is named only when the '
-            'state equals it, up to the phase shown, within 10⁻⁶ in every '
-            'amplitude, the precision of the simulation.',
-            key: ValueKey('composer-analysis-precision-note'),
-          ),
-        ),
+        ],
       ],
     );
+    if (widget.expressionOnly) return body;
     if (widget.chromeless) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -429,8 +459,18 @@ class _Scrollable extends StatelessWidget {
 /// "= i|+⟩  plus state · global phase π/2": the recognised state as an
 /// exact equation including its global phase.
 class _NamedStateLine extends StatelessWidget {
-  const _NamedStateLine({required this.named, this.stateLabel});
+  const _NamedStateLine({
+    required this.named,
+    this.stateLabel,
+    this.approximate = false,
+    this.style = QqType.stateExpression,
+  });
   final NamedState named;
+
+  /// The expression has rounded coefficients: the state is recognised
+  /// within tolerance, which is not an exact equality (≈).
+  final bool approximate;
+  final TextStyle style;
 
   /// Written before the equals sign when this line *is* the expression
   /// (compact form); otherwise the line continues the expression above.
@@ -438,9 +478,10 @@ class _NamedStateLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const style = QqType.stateExpression;
+    final style = this.style;
     final small = style.copyWith(fontSize: 13, height: 1);
     final prefix = named.phasePrefix;
+    final relation = approximate || !named.isExact ? '≈' : '=';
     final ket = Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -467,7 +508,8 @@ class _NamedStateLine extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(stateLabel == null ? '= ' : '$stateLabel = ', style: style),
+              Text(stateLabel == null ? '$relation ' : '$stateLabel $relation ',
+                  key: const ValueKey('state-named-relation'), style: style),
               if (prefix != null)
                 Text(prefix, style: style)
               else ...[
@@ -617,7 +659,8 @@ class _QqStateExpressionState extends State<QqStateExpression> {
   Widget _label() {
     final label = widget.stateLabel;
     final match = RegExp(r'^\|(.+)_([^⟩]+)⟩$').firstMatch(label);
-    if (match == null) return Text('$label =', style: widget.style);
+    final relation = quantumTermsAreApproximate(widget.terms) ? '≈' : '=';
+    if (match == null) return Text('$label $relation', style: widget.style);
     final sub = widget.style.copyWith(
         fontSize: widget.style.fontSize! * .6,
         color: QubitQuestColors.textBody);
@@ -630,7 +673,7 @@ class _QqStateExpressionState extends State<QqStateExpression> {
           padding: const EdgeInsets.only(bottom: 2),
           child: Text(match.group(2)!, style: sub),
         ),
-        Text('⟩ =', style: widget.style),
+        Text('⟩ $relation', style: widget.style),
       ],
     );
   }

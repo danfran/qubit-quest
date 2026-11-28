@@ -26,7 +26,14 @@ class NamedState {
     required this.name,
     required this.globalPhase,
     this.superscript,
+    this.isExact = true,
   });
+
+  /// Whether the state equals this one (with the phase shown) to
+  /// floating-point precision, not only within [namedStateTolerance]
+  /// (v2.6 M11G). Hosts write the relation as = only when this is true,
+  /// and as ≈ otherwise: a tolerance match is not an exact equality.
+  final bool isExact;
 
   /// The ket as written, e.g. `|+⟩`, `|Φ⁺⟩`, `|+⟩^⊗3` (with [superscript]).
   final String symbol;
@@ -85,6 +92,9 @@ class NamedState {
 /// Tolerance on |⟨named|ψ⟩| and on the phase (display decisions only).
 const double namedStateTolerance = 1e-6;
 
+/// Below this the overlap is 1 to floating-point precision (M11G).
+const double _exactTolerance = 1e-9;
+
 /// The recognised textbook state equal to [state] up to a global phase,
 /// or null. [state] must be normalised (as simulation states are).
 NamedState? recogniseNamedState(List<Complex> state, int numQubits) {
@@ -106,12 +116,25 @@ NamedState? recogniseNamedState(List<Complex> state, int numQubits) {
     if ((overlap - 1).abs() < namedStateTolerance) {
       var phase = math.atan2(im, re);
       if (phase <= -math.pi + 1e-9) phase = math.pi;
-      return NamedState(
+      final named = NamedState(
         symbol: candidate.symbol,
         name: candidate.name,
         globalPhase: phase.abs() < namedStateTolerance ? 0 : phase,
         superscript: candidate.superscript,
       );
+      // Exact: the overlap is 1 to floating-point precision and the phase
+      // is written exactly (−, ±i or a simple multiple of π).
+      final exact = (overlap - 1).abs() < _exactTolerance &&
+          (named.phasePrefix != null || !named.phaseText.contains('.'));
+      return exact
+          ? named
+          : NamedState(
+              symbol: named.symbol,
+              name: named.name,
+              globalPhase: named.globalPhase,
+              superscript: named.superscript,
+              isExact: false,
+            );
     }
   }
   return null;

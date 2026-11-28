@@ -299,7 +299,13 @@ void main() {
       expect(session.circuit.logicalGates.map((g) => g.type),
           [SelectedGateType.hadamard, SelectedGateType.hadamard]);
       expect(find.byKey(_k('notebook-experiment-workspace')), findsOneWidget);
+      // M11G: the laboratory inspector is contextual: it opens on selection.
+      expect(find.byType(GateInspectorPanel), findsNothing);
+      session.select(session.circuit.logicalGates.first.id);
+      await tester.pumpAndSettle();
       expect(find.byType(GateInspectorPanel), findsOneWidget);
+      session.select(null);
+      await tester.pumpAndSettle();
       expect(find.byKey(_k('web-lesson-check')), findsNothing);
       expect(find.byKey(_k('web-lesson-hint')), findsNothing);
 

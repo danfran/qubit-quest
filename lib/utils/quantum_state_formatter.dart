@@ -3,7 +3,11 @@ import 'dart:math' as math;
 import 'package:advance_math/advance_math.dart';
 import 'package:quantumquiz/utils/complex_formatter.dart';
 
-const double _stateMatchTolerance = 1e-6;
+/// Display only (v2.6 M11G: was 1e-6): a coefficient is written exactly
+/// (1, ±1/√2) only when it equals that value to floating-point precision,
+/// as exact fractions already are; anything further away is a rounded
+/// decimal, and the expression is then written with ≈.
+const double _stateMatchTolerance = 1e-9;
 const double _stateAmplitudeThreshold = 1e-9;
 
 class TargetStateDisplayContent {
@@ -70,9 +74,8 @@ class QuantumStateTerm {
       !formattedCoefficient.substring(1).contains(RegExp(r' [+−] '));
 
   /// What precedes the term: "" or "−" first; " + " or " − " after.
-  String separator({required bool first}) => first
-      ? (isNegated ? '−' : '')
-      : (isNegated ? ' − ' : ' + ');
+  String separator({required bool first}) =>
+      first ? (isNegated ? '−' : '') : (isNegated ? ' − ' : ' + ');
 
   /// The coefficient as shown after [separator]: nothing for ±1, bare "i"
   /// for ±i, otherwise parenthesised ("(1/√2)", "(1/2 + i/2)").
@@ -138,8 +141,24 @@ String formatQuantumStateExpression(
     numQubits: numQubits,
   );
 
-  return '$stateLabel = ${terms.isEmpty ? '0' : joinQuantumStateTerms(terms)}';
+  final relation = quantumTermsAreApproximate(terms) ? '≈' : '=';
+  return '$stateLabel $relation '
+      '${terms.isEmpty ? '0' : joinQuantumStateTerms(terms)}';
 }
+
+/// Whether any written coefficient is a rounded decimal (v2.6 M11G).
+///
+/// Coefficients are written exactly (1/√2, 3/8 − i/8, i) when the value is
+/// recognised to floating-point precision, and otherwise as decimals
+/// rounded to four places. An expression containing a rounded coefficient
+/// is an approximation and is joined with ≈, never presented as an exact
+/// equality. Presentation only: values and tolerances are unchanged.
+bool quantumTermsAreApproximate(Iterable<QuantumStateTerm> terms) =>
+    terms.any((t) => quantumAmplitudeIsApproximate(t.formattedCoefficient));
+
+/// Whether one formatted amplitude ([formatQuantumAmplitude]) is rounded.
+bool quantumAmplitudeIsApproximate(String formatted) =>
+    RegExp(r'\d\.\d').hasMatch(formatted);
 
 QuantumStateTerm _formatStateTerm(Complex coefficient, String ket) {
   final real = coefficient.real.toDouble();

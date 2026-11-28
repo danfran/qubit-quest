@@ -168,7 +168,7 @@ class _WebActivityContextHeaderState extends State<WebActivityContextHeader> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if ((level.conceptIntro ?? '').trim().isNotEmpty) ...[
-              const Text('Concept', style: QubitQuestTypography.label),
+              const Text('Concept', style: QqType.panelHeading),
               const SizedBox(height: QubitQuestSpacing.micro),
               WebLearningText(level.conceptIntro!,
                   role: WebLearningTextRole.concept),

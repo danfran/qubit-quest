@@ -21,7 +21,6 @@ import 'package:quantumquiz/widgets/composer_workspace/workspace_layout_state.da
 const _border = QubitQuestColors.border;
 const _cyan = QubitQuestColors.accentInteractive;
 const _muted = QubitQuestColors.textMuted;
-const _body = QubitQuestColors.textBody;
 
 /// The web Notebook as an interactive quantum knowledge base (v2.6 M6b).
 ///
@@ -403,6 +402,13 @@ class WebNotebookWorkspaceState extends State<WebNotebookWorkspace> {
       shortcutsEnabled: widget.isActive,
       contextLabel: 'Notebook experiment',
       workspaceKey: const ValueKey('notebook-experiment-workspace'),
+      // The modern laboratory Composer (v2.6 M11G): the same composition
+      // as the Sandbox (horizontal palette, content-sized circuit, central
+      // analysis, contextual inspector, Analysis / Focus circuit), with
+      // the experiment's own policy, session and header.
+      laboratory: true,
+      // Phones: the experiment context scrolls away with the work.
+      headerScrollsBelow: 600,
       clearLabel: 'Reset example',
       clearedStatus: 'Example restored to its authored circuit.',
       onOpenNotebookEntry: (title) {
@@ -995,17 +1001,40 @@ class _ExperimentHeaderState extends State<_ExperimentHeader> {
             key: const ValueKey('notebook-experiment-back-article'),
             onPressed: widget.onBack,
             icon: const Icon(Icons.menu_book_outlined, size: 18),
-            label: const Text('Back to article'),
+            label: Text(compact ? 'Article' : 'Back to article'),
+          );
+          // Isolation is stated where the learner looks first (M11G): the
+          // experiment is a session of its own, never the Sandbox.
+          final isolation = Tooltip(
+            message: 'Change, measure and reset freely. Nothing here is '
+                'checked, saved or counted as progress, and your Sandbox, '
+                'Journey, Mastery and Bloch Explorer are untouched.',
+            child: Container(
+              key: const ValueKey('notebook-experiment-isolation'),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: QubitQuestSurfaces.rule),
+              ),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.science_outlined, size: 14, color: _muted),
+                SizedBox(width: 5),
+                Flexible(
+                  child: Text('Isolated experiment',
+                      overflow: TextOverflow.ellipsis, style: QqType.meta),
+                ),
+              ]),
+            ),
           );
           return Padding(
             key: const ValueKey('notebook-experiment-header'),
-            padding: const EdgeInsets.fromLTRB(12, 8, 16, 10),
+            padding: EdgeInsets.fromLTRB(8, compact ? 6 : 10, 16, 8),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 IconButton(
                   key: const ValueKey('notebook-experiment-back'),
-                  tooltip: 'Back to the article',
+                  tooltip: 'Back to ${widget.originTitle}',
                   onPressed: widget.onBack,
                   icon: const Icon(Icons.arrow_back),
                 ),
@@ -1014,17 +1043,27 @@ class _ExperimentHeaderState extends State<_ExperimentHeader> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Notebook  /  ${widget.originTitle}  /  Experiment',
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: _cyan, fontSize: 12.5)),
+                      Text(
+                        'Notebook  /  ${widget.originTitle}  /  Experiment',
+                        key: const ValueKey('notebook-experiment-breadcrumb'),
+                        overflow: TextOverflow.ellipsis,
+                        style: QqType.breadcrumb,
+                      ),
                       const SizedBox(height: 2),
-                      Text(widget.example.title,
-                          key: const ValueKey('notebook-experiment-title'),
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 2),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(widget.example.title,
+                              key: const ValueKey('notebook-experiment-title'),
+                              style: compact
+                                  ? QqType.subjectTitle
+                                  : QqType.sectionTitle),
+                          isolation,
+                        ],
+                      ),
+                      const SizedBox(height: 4),
                       if (widget.modified)
                         const Padding(
                           padding: EdgeInsets.only(bottom: 2),
@@ -1034,21 +1073,29 @@ class _ExperimentHeaderState extends State<_ExperimentHeader> {
                             'example restores it.',
                             key: ValueKey('notebook-experiment-modified'),
                             style: TextStyle(
-                                color: Color(0xFFFFC857), fontSize: 12.5),
+                                color: QubitQuestColors.warning,
+                                fontSize: 13,
+                                height: 1.4),
                           ),
                         ),
-                      Text(
-                        widget.modified
-                            ? 'Original example: $description'
-                            : description,
+                      Text.rich(
+                        TextSpan(children: [
+                          TextSpan(
+                            text: widget.modified
+                                ? 'Original example: '
+                                : 'Demonstrates: ',
+                            style: QqType.meta,
+                          ),
+                          TextSpan(text: description),
+                        ]),
                         key: const ValueKey('notebook-experiment-description'),
                         maxLines: compact && !_expanded ? 2 : null,
                         overflow: compact && !_expanded
                             ? TextOverflow.ellipsis
                             : null,
-                        style: const TextStyle(color: _body, height: 1.4),
+                        style: QqType.body.copyWith(fontSize: 14.5),
                       ),
-                      if (compact && description.length > 90)
+                      if (compact && description.length > 70)
                         TextButton(
                           key: const ValueKey('notebook-experiment-more'),
                           style: TextButton.styleFrom(
@@ -1060,18 +1107,21 @@ class _ExperimentHeaderState extends State<_ExperimentHeader> {
                               setState(() => _expanded = !_expanded),
                           child: Text(_expanded ? 'Less' : 'More'),
                         ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Exploration only: change, measure and reset freely. '
-                        'Nothing here is checked, saved or counted as '
-                        'progress, and your Sandbox is untouched.',
-                        key: ValueKey('notebook-experiment-note'),
-                        style: TextStyle(color: _muted, fontSize: 12),
-                      ),
+                      if (!compact || _expanded) ...[
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Exploration only: change, measure and reset '
+                          'freely. Nothing here is checked, saved or counted '
+                          'as progress, and your Sandbox is untouched.',
+                          key: ValueKey('notebook-experiment-note'),
+                          style: QqType.meta,
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                if (!compact) ...[const SizedBox(width: 12), back],
+                const SizedBox(width: 12),
+                back,
               ],
             ),
           );

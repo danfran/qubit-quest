@@ -167,7 +167,9 @@ const List<NotebookEntry> notebookEntries = [
         NotebookExample.math(label: 'After', notation: '|11⟩'),
         NotebookExample(
             label: 'Each part changed',
-            notation: 'first qubit: 0 → 1\nsecond qubit: 0 → 1'),
+            // M11G: named by wire; "first qubit" read as q0 or the top wire.
+            notation: 'q1 (first ket position): 0 → 1\n'
+                'q0 (second ket position): 0 → 1'),
       ],
     ),
     quantumView: NotebookSection(
@@ -208,7 +210,8 @@ const List<NotebookEntry> notebookEntries = [
         NotebookExample.math(label: 'After', notation: '|10⟩'),
         NotebookExample(
             label: 'Each part changed',
-            notation: 'first qubit: 0 → 1\nsecond qubit: 1 → 0'),
+            notation: 'q1 (first ket position): 0 → 1\n'
+                'q0 (second ket position): 1 → 0'),
       ],
     ),
     quantumView: NotebookSection(
@@ -743,7 +746,7 @@ const List<NotebookEntry> notebookEntries = [
     quantumView: NotebookSection(
       title: 'Quantum View',
       body:
-          'The state |+0⟩ means the first qubit is in the plus state while the second qubit remains 0. This is not entanglement. The important idea is that superposition can be placed precisely within a larger register.',
+          'The state |+0⟩ means q1, the first ket position, is in the plus state while q0, the second position, remains 0. This is not entanglement. The important idea is that superposition can be placed precisely within a larger register.',
       examples: [
         NotebookExample.math(
           label: 'Two-qubit superposition',
@@ -1077,8 +1080,18 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'The target qubit changed because the control qubit was |1⟩. The action depended on the joint register state, not on the target alone. The result here is still a definite two-qubit state, so it is controlled behavior without entanglement.',
       examples: [
-        NotebookExample.math(label: 'Control off', notation: 'CNOT|00⟩ = |00⟩'),
-        NotebookExample.math(label: 'Control on', notation: 'CNOT|10⟩ = |11⟩'),
+        // M11G: the control is stated (q1, the first ket position), as in
+        // the lesson; the kets alone left it implicit.
+        NotebookExample.math(
+            label: 'Control off',
+            notation: 'CNOT(q1→q0)|00⟩ = |00⟩',
+            latex:
+                r'\operatorname{CNOT}_{q_1\to q_0}\lvert00\rangle=\lvert00\rangle'),
+        NotebookExample.math(
+            label: 'Control on',
+            notation: 'CNOT(q1→q0)|10⟩ = |11⟩',
+            latex:
+                r'\operatorname{CNOT}_{q_1\to q_0}\lvert10\rangle=\lvert11\rangle'),
       ],
     ),
     quantumView: NotebookSection(
@@ -1312,9 +1325,16 @@ const List<NotebookEntry> notebookEntries = [
           'CX is a two-qubit gate. One qubit is the control and the other is the target. When the control is active, the target receives an X action. When the control is inactive, the target is left alone.',
       examples: [
         NotebookExample.math(
-            label: 'Control active', notation: 'CX|01⟩ = |11⟩'),
+            // M11G: control q0 (the last ket position) stated.
+            label: 'Control active',
+            notation: 'CX(q0→q1)|01⟩ = |11⟩',
+            latex:
+                r'\operatorname{CX}_{q_0\to q_1}\lvert01\rangle=\lvert11\rangle'),
         NotebookExample.math(
-            label: 'Control inactive', notation: 'CX|00⟩ = |00⟩'),
+            label: 'Control inactive',
+            notation: 'CX(q0→q1)|00⟩ = |00⟩',
+            latex:
+                r'\operatorname{CX}_{q_0\to q_1}\lvert00\rangle=\lvert00\rangle'),
       ],
     ),
     advancedNotes: NotebookSection(
@@ -1358,8 +1378,16 @@ const List<NotebookEntry> notebookEntries = [
       body:
           'A controlled gate is defined by its full behavior, not just by one visible input. On some inputs CX changes the register. On others it leaves the displayed state unchanged because the control condition is false.',
       examples: [
-        NotebookExample.math(label: 'No flip', notation: 'CX|00⟩ = |00⟩'),
-        NotebookExample.math(label: 'Flip', notation: 'CX|01⟩ = |11⟩'),
+        NotebookExample.math(
+            label: 'No flip',
+            notation: 'CX(q0→q1)|00⟩ = |00⟩',
+            latex:
+                r'\operatorname{CX}_{q_0\to q_1}\lvert00\rangle=\lvert00\rangle'),
+        NotebookExample.math(
+            label: 'Flip',
+            notation: 'CX(q0→q1)|01⟩ = |11⟩',
+            latex:
+                r'\operatorname{CX}_{q_0\to q_1}\lvert01\rangle=\lvert11\rangle'),
       ],
     ),
     advancedNotes: NotebookSection(
@@ -1385,16 +1413,24 @@ const List<NotebookEntry> notebookEntries = [
     intuition: NotebookSection(
       title: 'Intuition',
       body:
-          'First make one qubit active. Then use that qubit as the control for CX. The second qubit changes because the first qubit now carries the information that triggers the controlled action.',
+          'First make one qubit active. Then use that qubit as the control for CX. The other qubit changes because the active qubit now carries the information that triggers the controlled action.',
     ),
     whatChanged: NotebookSection(
       title: 'What Changed?',
       body:
           'The circuit did two different jobs. X created an active qubit. CX then used that active qubit to change the other qubit, spreading the information through the two-qubit register.',
       examples: [
-        NotebookExample.math(label: 'Create', notation: '|00⟩ -> X -> |10⟩'),
+        // M11G: the wires are named (X on q1, then CX with control q1).
         NotebookExample.math(
-            label: 'Propagate', notation: '|10⟩ -> CX -> |11⟩'),
+            label: 'Create',
+            notation: '|00⟩ -> X on q1 -> |10⟩',
+            latex:
+                r'\lvert00\rangle\xrightarrow{X\ \mathrm{on}\ q_1}\lvert10\rangle'),
+        NotebookExample.math(
+            label: 'Propagate',
+            notation: '|10⟩ -> CX(q1→q0) -> |11⟩',
+            latex:
+                r'\lvert10\rangle\xrightarrow{\operatorname{CX}_{q_1\to q_0}}\lvert11\rangle'),
         NotebookExample.math(label: 'Result', notation: '|00⟩ -> |11⟩'),
       ],
     ),

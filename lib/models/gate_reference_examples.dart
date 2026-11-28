@@ -29,7 +29,8 @@ final List<ExecutableNotebookExample> gateReferenceExamples = [
   ExecutableNotebookExample(
     id: 't_on_plus',
     title: 'T turns |+⟩ by π/4 about Z',
-    description: 'H then T: (|0⟩ + e^{iπ/4}|1⟩)/√2. The relative phase grows '
+    // M11G: plain-text exponent (TeX braces read literally here).
+    description: 'H then T: (|0⟩ + e^(iπ/4)|1⟩)/√2. The relative phase grows '
         'by π/4, so the Bloch vector turns an eighth of a circle around the '
         'equator; Z-basis probabilities stay 50/50.',
     qubitCount: 1,

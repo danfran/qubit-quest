@@ -73,3 +73,13 @@ Information is not placed in a sidebar merely because it is *derived*. Results d
 - **Shared functionality, distinct presentation.** Sandbox, Journey and Mastery compose the same session, canvas, inspector and scientific components in layouts suited to their purpose.
 - **Typography adoption.** The Notebook and Bloch Explorer redesigns adopt the `QqType` roles (page and section titles, body at reading width, panel headings and `QqDataTable` for experiments, `meta`, `math`); `WebLearningTextStyles` then moves onto `QqType`.
 
+
+## 8. Consolidation (M11G)
+
+- **One modern Composer, several hosts.** The Sandbox, Notebook experiments, Journey lessons and Mastery challenges compose the same laboratory (or learning) workspace; each host adds only its own header, policy and session. The classic three-column web layout is no longer reachable in the product (it remains a test seam until its suites move).
+- **Experiments say where they come from and that they are isolated.** Breadcrumb to the originating article, title, what the experiment demonstrates, a way back that restores the article's reading mode and scroll, and an "Isolated experiment" marker. Running, editing, resetting or leaving never touches the Sandbox, progress or the Bloch laboratory.
+- **Approximation is written as approximation.** An expression with any rounded coefficient is joined with ≈; a coefficient is written exactly (1/√2, 3/8) only when it equals that value to floating-point precision; a recognised state is "=" only when exact, otherwise "≈". Zero (within simulator noise) draws no probability sliver.
+- **Experiments before derivations.** Where a panel holds both, the experiment (basis, controls, exact and observed outcomes) comes before the detailed mathematics, which stays one disclosure away.
+- **Exact versus observed looks the same everywhere.** Exact probability: cyan outline; observed frequency: filled purple; the same legend (`MeasurementComparisonLegend`) in the Composer and the Bloch Explorer.
+- **Motion is labelled.** When the sphere is drawing a path, the numbers show a completed, recorded state, and the panel says which one (applied step, replayed step, paused replay, historical state).
+- **Phones keep the experiment immediate.** Controls with nothing to act on collapse to their preferences; the gate palette stays directly under the sphere and never moves when steps appear; short landscape windows use the height for the whole sphere beside the controls.

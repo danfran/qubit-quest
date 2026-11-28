@@ -721,12 +721,14 @@ void main() {
       expect(gate.targetQubit, 2);
       session.select(gate.id);
       await tester.pumpAndSettle();
+      // M11G: experiments use the laboratory's contextual inspector, whose
+      // subtitle names every control and the target.
       expect(
           tester
-              .widget<Text>(
-                  find.byKey(const ValueKey('composer-inspector-topology')))
+              .widget<Text>(find.byKey(
+                  const ValueKey('web-composer-selection-position')))
               .data,
-          '4 controls: q0, q1, q3, q4  ·  Target: q2');
+          'Controls q0, q1, q3, q4 → target q2');
       // Edit, then reset to the authored circuit.
       session.deleteOperation(gate.id);
       expect(session.circuit.logicalGates, isEmpty);

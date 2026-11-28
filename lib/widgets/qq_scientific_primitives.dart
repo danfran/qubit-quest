@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/utils/probability_format.dart';
 import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 
 /// Shared scientific presentation primitives (v2.6 M11C.1).
@@ -278,8 +279,9 @@ class _BarPainter extends CustomPainter {
       RRect.fromRectAndRadius(Offset.zero & size, radius),
       Paint()..color = const Color(0x14FFFFFF),
     );
-    if (value <= 0) return;
-    // A non-zero value always shows at least a sliver.
+    // Zero within simulator noise draws nothing (M11G); a genuinely
+    // non-zero value always shows at least a sliver.
+    if (value <= probabilityZeroTolerance) return;
     final w = (size.width * value).clamp(2.0, size.width);
     canvas.drawRRect(
       RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, w, size.height), radius),

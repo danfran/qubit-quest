@@ -678,7 +678,7 @@ class _WebNavigation extends StatelessWidget {
                   'Web v${info.version} · Build ${info.buildNumber}',
                   key: const ValueKey('web-navigation-version'),
                   textAlign: TextAlign.center,
-                  style: QubitQuestTypography.supporting
+                  style: QqType.meta
                       .copyWith(color: QubitQuestColors.textMuted),
                 ),
               ]),
@@ -926,7 +926,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
               ),
             ] else if (_chooserStatus != _chooseStatus) ...[
               const SizedBox(height: 12),
-              Text(_chooserStatus, style: QubitQuestTypography.supporting),
+              Text(_chooserStatus, style: QqType.meta),
             ],
           ],
         ),
@@ -941,7 +941,7 @@ class _ComposerWorkspaceState extends State<_ComposerWorkspace> {
       return const Center(
         key: ValueKey('web-composer-opening'),
         child: Text('Opening the Sandbox…',
-            style: QubitQuestTypography.supporting),
+            style: QqType.meta),
       );
     }
     if (slot == null) {

@@ -780,8 +780,13 @@ class BlochSpherePainter extends CustomPainter {
     final text = TextPainter(
       text: TextSpan(
           text: label,
+          // The shared family (M11G): painters do not inherit the theme.
           style: const TextStyle(
-              color: Colors.white, fontSize: 12, fontWeight: FontWeight.w900)),
+              color: QubitQuestColors.textPrimary,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              fontFamily: QqType.family,
+              fontFamilyFallback: QqType.fallback)),
       textDirection: TextDirection.ltr,
     )..layout();
     final labelCenter = p.safeLabelCenter(b, text.size);
@@ -814,7 +819,7 @@ class BlochSpherePainter extends CustomPainter {
       (0.0, 1.25, 0.0),
       (0.0, 0.0, 1.25)
     ]) {
-      placed.add(Rect.fromCircle(center: p.project(x, y, z), radius: 9));
+      placed.add(Rect.fromCircle(center: p.project(x, y, z), radius: 12));
     }
     for (final (x, y, z, text) in poles) {
       final surface = p.projectWithDepth(x, y, z);
@@ -833,14 +838,14 @@ class BlochSpherePainter extends CustomPainter {
             fontFamilyFallback: QqType.fallback,
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: QubitQuestColors.textBody
-                .withValues(alpha: surface.depth >= -0.05 ? .95 : .5),
+            color: QubitQuestColors.textPrimary
+                .withValues(alpha: surface.depth >= -0.05 ? .95 : .55),
           ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
-      Rect rectAt(double out) {
-        final c = surface.point + unit * out + normal * 12;
+      Rect rectAt(double out, double side) {
+        final c = surface.point + unit * out + normal * side;
         final clamped = p.safeLabelCenter(c, painter.size);
         return Rect.fromCenter(
             center: clamped,
@@ -848,15 +853,25 @@ class BlochSpherePainter extends CustomPainter {
             height: painter.height + 2);
       }
 
-      var out = 12.0;
-      var rect = rectAt(out);
-      for (var attempt = 0;
-          attempt < 6 && placed.any((r) => r.overlaps(rect));
-          attempt++) {
-        out += 10;
-        rect = rectAt(out);
+      // Candidates beside the axis line on either side, moving outwards
+      // (M11G): the first that touches no axis letter, marker or earlier
+      // label wins, so |+⟩ never sits on X nor |0⟩ on Z.
+      Rect? rect;
+      for (final out in const [10.0, 18.0, 28.0, 40.0]) {
+        for (final side in const [14.0, -14.0]) {
+          final candidate = rectAt(out, side);
+          if (!placed.any((r) => r.overlaps(candidate))) {
+            rect = candidate;
+            break;
+          }
+        }
+        if (rect != null) break;
       }
+      rect ??= rectAt(52, 14);
       placed.add(rect);
+      // A quiet backing keeps the label legible over sphere lines.
+      canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(4)),
+          Paint()..color = QubitQuestSurfaces.app.withValues(alpha: .72));
       painter.paint(canvas, rect.topLeft + const Offset(2, 1));
     }
   }

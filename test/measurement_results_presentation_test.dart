@@ -5,6 +5,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quantumquiz/widgets/state_amplitude_panel.dart';
 import 'package:quantumquiz/models/measured_circuit_runner.dart';
 import 'package:quantumquiz/models/quantum_circuit.dart';
 import 'package:quantumquiz/models/selected_gate_type.dart';
@@ -114,7 +115,12 @@ void main() {
     final hit = single.outcome == '0' ? 0 : 3;
     expect(state[hit].real, closeTo(1, 1e-12));
     expect(find.byKey(_k('measure-conditional-state')), findsOneWidget);
-    expect(find.textContaining('|ψ_after⟩ ='), findsOneWidget);
+    // M11G: the shared state presentation, labelled |ψ_after⟩.
+    final after = tester.widget<QqCurrentStatePanel>(find.descendant(
+        of: find.byKey(_k('measure-conditional-state-vector')),
+        matching: find.byType(QqCurrentStatePanel)));
+    expect(after.stateLabel, '|ψ_after⟩');
+    expect(after.stateVector[hit].real, closeTo(1, 1e-12));
   });
 
   testWidgets('Bell, both measured: All outcomes lists impossible ones',

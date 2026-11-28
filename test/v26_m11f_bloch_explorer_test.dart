@@ -342,7 +342,7 @@ void main() {
       await tester.ensureVisible(y);
       await tester.tap(y);
       await tester.pump();
-      expect(find.text('100.0%'), findsWidgets);
+      expect(find.text('100%'), findsWidgets);
       await tester.ensureVisible(find.byKey(_k('bloch-run-once')));
       await tester.tap(find.byKey(_k('bloch-run-once')));
       await tester.pump();

@@ -1,5 +1,7 @@
 import 'package:advance_math/advance_math.dart' show Complex;
 import 'package:flutter/material.dart';
+import 'package:quantumquiz/widgets/state_amplitude_panel.dart'
+    show QqCurrentStatePanel;
 import 'package:quantumquiz/models/circuit_program.dart';
 import 'package:quantumquiz/models/measured_circuit_runner.dart';
 import 'package:quantumquiz/models/measurement_distribution.dart';
@@ -7,7 +9,6 @@ import 'package:quantumquiz/theme/qubit_quest_visuals.dart';
 import 'package:quantumquiz/utils/probability_format.dart';
 import 'package:quantumquiz/widgets/qq_scientific_primitives.dart';
 import 'package:quantumquiz/widgets/qubit_quest_workspace_primitives.dart';
-import 'package:quantumquiz/widgets/state_vector_display.dart';
 
 /// The Measure tab (v2.6 M4): the environment for comparing theory with
 /// sampled outcomes. In order:
@@ -853,7 +854,7 @@ class _DistributionViewState extends State<_DistributionView> {
           style: QqType.meta,
         ),
         const SizedBox(height: 8),
-        _Legend(observed: hasObserved, exact: hasExact),
+        MeasurementComparisonLegend(observed: hasObserved, exact: hasExact),
         if (observed != null &&
             configuredShots != null &&
             configuredShots != observed.shots)
@@ -946,8 +947,12 @@ class _DistributionViewState extends State<_DistributionView> {
 
 const Color _observedColor = Color(0xFFB794F6);
 
-class _Legend extends StatelessWidget {
-  const _Legend({required this.observed, required this.exact});
+/// Legend for [ComparisonBar]: exact probability (cyan outline) and
+/// observed frequency (filled purple). Shared by the Composer's Measure
+/// view and the Bloch Explorer (v2.6 M11G).
+class MeasurementComparisonLegend extends StatelessWidget {
+  const MeasurementComparisonLegend(
+      {super.key, required this.observed, required this.exact});
   final bool observed;
   final bool exact;
 
@@ -1029,7 +1034,7 @@ class _ComparisonBarPainter extends CustomPainter {
     canvas.drawRRect(track, Paint()..color = const Color(0x1AFFFFFF));
     if (observed case final f?) {
       final w = size.width * f.clamp(0, 1);
-      if (w > 0) {
+      if (f > probabilityZeroTolerance && w > 0) {
         canvas.drawRRect(
           RRect.fromRectAndRadius(Rect.fromLTWH(0, 2, w, size.height - 4),
               const Radius.circular(2)),
@@ -1038,7 +1043,10 @@ class _ComparisonBarPainter extends CustomPainter {
       }
     }
     if (exact case final p?) {
-      final x = size.width * p.clamp(0, 1);
+      // A zero probability (within simulator noise) draws nothing: zero is
+      // never shown as a sliver (M11G).
+      final x =
+          p <= probabilityZeroTolerance ? 0.0 : size.width * p.clamp(0, 1);
       final outline = Paint()
         ..color = QubitQuestColors.accentInteractive
         ..style = PaintingStyle.stroke
@@ -1102,7 +1110,7 @@ class _ConditionalStateViewState extends State<_ConditionalStateView> {
               children: [
                 const Expanded(
                   child: Text('CONDITIONAL STATE AFTER THIS RUN',
-                      style: QubitQuestTypography.label),
+                      style: QqType.panelHeading),
                 ),
                 Icon(
                   _open ? Icons.expand_less_rounded : Icons.expand_more_rounded,
@@ -1121,16 +1129,18 @@ class _ConditionalStateViewState extends State<_ConditionalStateView> {
               style: QqType.meta,
             ),
             const SizedBox(height: 6),
-            StateVectorDisplay(
+            // The shared state presentation (M11G), as in the Composer's
+            // Current State: exact coefficients, ≈ when rounded, recognised
+            // states with their phase, and the amplitude table.
+            KeyedSubtree(
               key: const ValueKey('measure-conditional-state-vector'),
-              stateVector: state,
-              numQubits: numQubits,
-              showHeader: false,
-              dense: true,
-              contentDriven: true,
-              structuredLayout: true,
-              lightweightTypography: true,
-              stateLabel: '|ψ_after⟩',
+              child: QqCurrentStatePanel(
+                stateVector: state,
+                numQubits: numQubits,
+                stateLabel: '|ψ_after⟩',
+                chromeless: true,
+                expressionStyle: QqType.stateExpression.copyWith(fontSize: 19),
+              ),
             ),
           ],
         ],

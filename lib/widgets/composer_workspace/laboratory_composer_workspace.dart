@@ -217,6 +217,11 @@ class _LaboratoryComposerWorkspaceState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // A scrolling host header stays reachable in Focus too.
+                  if (widget.intro case final intro?) ...[
+                    intro,
+                    const SizedBox(height: 10),
+                  ],
                   if (phone) ...[
                     widget.narrowPalette(context),
                     const SizedBox(height: 10),

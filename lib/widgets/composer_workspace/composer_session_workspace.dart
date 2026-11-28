@@ -88,6 +88,7 @@ class ComposerSessionWorkspace extends StatefulWidget {
     this.markFixedGates = false,
     this.header,
     this.footer,
+    this.headerScrollsBelow,
     this.laboratory = false,
     this.learning = false,
     this.learningPaletteLabel = 'Available in this lesson',
@@ -148,6 +149,11 @@ class ComposerSessionWorkspace extends StatefulWidget {
   /// Educational actions below the workspace (hints, Check, feedback). It
   /// stays visible at every size, so Check never scrolls away.
   final Widget? footer;
+
+  /// Laboratory hosts only (v2.6 M11G): below this width [header] scrolls
+  /// with the work (above the palette and circuit) instead of staying
+  /// fixed, so phones keep the circuit near the top. Null: always fixed.
+  final double? headerScrollsBelow;
 
   @override
   State<ComposerSessionWorkspace> createState() =>
@@ -749,9 +755,11 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
     );
   }
 
-  Widget _buildLaboratory(PreMeasurementState? preMeasurement) =>
+  Widget _buildLaboratory(PreMeasurementState? preMeasurement,
+          {Widget? intro}) =>
       LaboratoryComposerWorkspace(
         key: widget.workspaceKey,
+        intro: intro,
         shortcutsEnabled: widget.shortcutsEnabled,
         onUndo: _undo,
         onRedo: _redo,
@@ -1123,13 +1131,20 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
     if (mounted && widget.laboratory) setState(() {});
   }
 
+  bool get _scrollingHeader =>
+      widget.laboratory &&
+      widget.header != null &&
+      widget.headerScrollsBelow != null &&
+      MediaQuery.sizeOf(context).width < widget.headerScrollsBelow!;
+
   @override
   Widget build(BuildContext context) {
     final preMeasurement = _session.preMeasurement;
     final workspace = widget.learning
         ? _buildLearning()
         : widget.laboratory
-            ? _buildLaboratory(preMeasurement)
+            ? _buildLaboratory(preMeasurement,
+                intro: _scrollingHeader ? widget.header : null)
             : DesktopComposerWorkspace(
                 key: widget.workspaceKey,
                 layout: widget.layout,
@@ -1167,7 +1182,7 @@ class _ComposerSessionWorkspaceState extends State<ComposerSessionWorkspace> {
     // The classic layout has no scrolling intro: a narrow host's header is
     // shown fixed above it instead.
     final intro = widget.learning ? null : widget.learningIntro;
-    final header = widget.header ??
+    final header = (_scrollingHeader ? null : widget.header) ??
         (intro == null
             ? null
             : ConstrainedBox(
